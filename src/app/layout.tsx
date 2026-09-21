@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, Inter } from "next/font/google";
 import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvider";
+import { IntroLoader } from "@/components/providers/IntroLoader";
 import { FloatingNav } from "@/components/ui/FloatingNav";
 import "./globals.css";
 
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="pt-BR" className={`${instrumentSerif.variable} ${inter.variable} antialiased`}>
       <body>
         <SmoothScrollProvider>
+          <IntroLoader />
           <FloatingNav />
           {children}
         </SmoothScrollProvider>

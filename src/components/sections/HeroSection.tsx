@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger, SplitText, prefersReducedMotion, supportsHover } from "@/lib/gsap";
+import { onIntroComplete } from "@/lib/introSignal";
 
 export function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -43,35 +44,43 @@ export function HeroSection() {
       });
     }
 
+    if (reduceMotion) {
+      gsap.set([horse, tagline, indicator], { opacity: 1, y: 0, scale: 1 });
+      gsap.set(charTargets, { opacity: 1, y: 0 });
+    } else {
+      gsap.set(horse, { opacity: 0, scale: 0.8 });
+      gsap.set(charTargets, { opacity: 0, y: 40 });
+      gsap.set(tagline, { opacity: 0, y: 40 });
+      gsap.set(indicator, { opacity: 0 });
+    }
+
+    // A entrada só começa a rodar quando o IntroLoader terminar — senão ela
+    // acontece inteira escondida atrás da cortina do loader. Se o loader foi
+    // pulado (reduced motion), onIntroComplete já dispara na hora.
+    let entranceTimeline: gsap.core.Timeline | null = null;
+    const unsubscribeIntro = reduceMotion
+      ? null
+      : onIntroComplete(() => {
+          entranceTimeline = gsap
+            .timeline()
+            .to(horse, { opacity: 1, scale: 1, duration: 0.8, ease: "power3.out" }, 0.2)
+            .to(
+              charTargets,
+              { opacity: 1, y: 0, duration: 0.6, stagger: 0.03, ease: "power4.out" },
+              0.6,
+            )
+            .to(tagline, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 1.4)
+            .to(indicator, { opacity: 0.6, duration: 0.4, ease: "power1.out" }, 2.0)
+            .to(
+              indicator,
+              { y: 8, duration: 0.9, ease: "power1.inOut", yoyo: true, repeat: -1 },
+              2.0,
+            );
+        });
+
     let removeMouseMove: (() => void) | null = null;
 
     const ctx = gsap.context(() => {
-      if (reduceMotion) {
-        gsap.set([horse, tagline, indicator], { opacity: 1, y: 0, scale: 1 });
-        gsap.set(charTargets, { opacity: 1, y: 0 });
-      } else {
-        gsap.set(horse, { opacity: 0, scale: 0.8 });
-        gsap.set(charTargets, { opacity: 0, y: 40 });
-        gsap.set(tagline, { opacity: 0, y: 40 });
-        gsap.set(indicator, { opacity: 0 });
-
-        gsap
-          .timeline()
-          .to(horse, { opacity: 1, scale: 1, duration: 0.8, ease: "power3.out" }, 0.2)
-          .to(
-            charTargets,
-            { opacity: 1, y: 0, duration: 0.6, stagger: 0.03, ease: "power4.out" },
-            0.6,
-          )
-          .to(tagline, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 1.4)
-          .to(indicator, { opacity: 0.6, duration: 0.4, ease: "power1.out" }, 2.0)
-          .to(
-            indicator,
-            { y: 8, duration: 0.9, ease: "power1.inOut", yoyo: true, repeat: -1 },
-            2.0,
-          );
-      }
-
       // Mouse parallax — desktop only (hover-capable pointers).
       if (!reduceMotion && supportsHover()) {
         const horseX = gsap.quickTo(horse, "x", { duration: 0.6, ease: "power2.out" });
@@ -117,6 +126,8 @@ export function HeroSection() {
     }
 
     return () => {
+      unsubscribeIntro?.();
+      entranceTimeline?.kill();
       removeMouseMove?.();
       scrollTrigger?.kill();
       ctx.revert();
