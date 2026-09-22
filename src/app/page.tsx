@@ -1,5 +1,6 @@
 import { HeroSection } from "@/components/sections/HeroSection";
 import { ManifestoSection } from "@/components/sections/ManifestoSection";
+import { CartaSection } from "@/components/sections/CartaSection";
 import { ProdutoSection } from "@/components/sections/ProdutoSection";
 import { FichaTecnicaSection } from "@/components/sections/FichaTecnicaSection";
 import { VideoSection } from "@/components/sections/VideoSection";
@@ -11,6 +12,7 @@ export default function Home() {
     <main>
       <HeroSection />
       <ManifestoSection />
+      <CartaSection />
       <ProdutoSection />
       <FichaTecnicaSection />
       <VideoSection />

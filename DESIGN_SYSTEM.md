@@ -139,17 +139,32 @@ chegarem (substituem os placeholders acima):
 | `fernandito-logo-mono.svg`     | Versão monocromática                                        |
 | `fernandito-logo-negative.svg` | Versão negativa                                             |
 
+### Assets da CartaSection (`/public/carta/`)
+
+Pasta criada, arquivo ainda não enviado. O selo do cartão-carta usa um
+placeholder (`div` verde-medio, texto "FOTO SELO") até a foto real chegar
+— trocar no `CartaSection.tsx` (elemento com `role="img"`), mantendo o
+formato quadrado (a borda serrilhada em `.carta-seal-edge`, `globals.css`,
+é um clip-path percentual pensado pra caixa quadrada):
+
+| Arquivo esperado | Uso                                                                  |
+| ---------------- | -------------------------------------------------------------------- |
+| `selo.jpg`       | Foto do selo — paisagem gaúcha, pôr do sol, cavalo ou a lata em cena |
+
 ## Estrutura de seções (`/src/components/sections`)
 
 Ordem fixa da landing page (ver `src/app/page.tsx`):
 
 1. `HeroSection` — fundo **verde-medio**
 2. `ManifestoSection` — fundo off-white
-3. `ProdutoSection` — fundo verde-medio
-4. `FichaTecnicaSection` — fundo verde-claro
-5. `VideoSection` — fundo verde-escuro
-6. `CTASection` — fundo verde-medio
-7. `FooterSection` — fundo verde-escuro, 5 camadas (labels de canto,
+3. `CartaSection` — fundo off-white, bloco editorial: epígrafe grande
+   (reveal por palavra via SplitText) + cartão-carta (corpo, assinaturas,
+   selo com clip-path serrilhado; elevação física no hover, desktop only)
+4. `ProdutoSection` — fundo verde-medio
+5. `FichaTecnicaSection` — fundo verde-claro
+6. `VideoSection` — fundo verde-escuro
+7. `CTASection` — fundo verde-medio
+8. `FooterSection` — fundo verde-escuro, 5 camadas (labels de canto,
    frase de fechamento, navegação em colunas, CTA WhatsApp, base com
    copyright); grain sutil via CSS/SVG (`.footer-grain` em `globals.css`)
 

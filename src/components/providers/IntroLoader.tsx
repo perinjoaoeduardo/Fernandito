@@ -4,19 +4,25 @@ import { useEffect, useRef, useState } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { markIntroComplete } from "@/lib/introSignal";
 
-// Cortina de abertura: vídeo do cavalinho por ~2s, depois sobe e revela o
-// site — estilo intro de landing page. Roda uma vez por carregamento (não
-// tem sessionStorage: é uma landing de página única, então "toda vez que
+// Cortina de abertura: cavalinho por ~2s, depois sobe e revela o site —
+// estilo intro de landing page. Roda uma vez por carregamento (não tem
+// sessionStorage: é uma landing de página única, então "toda vez que
 // carrega" É o comportamento esperado).
+//
+// Usa o mesmo GIF do Hero (transparência real de verdade, palette-based)
+// em vez do antigo cavalinho-intro.mp4: MP4 não tem canal alpha, então o
+// fundo preto sólido do vídeo dependia de mix-blend-mode:screen pra sumir
+// — só que isso clareia qualquer pixel escuro contra o fundo, não só o
+// preto puro, e lavava o contraste da crina/cauda (escura mas não preta).
+// cavalinho-intro.gif é gerado a partir de public/cavalinho.gif com os
+// frames 25% mais lentos (80ms -> 100ms, equivalente ao antigo
+// playbackRate 0.8 do vídeo) sem alterar o GIF original usado no Hero.
 const VISIBLE_DURATION = 2;
-// -20% de velocidade = dura 1/0.8 = 1.25x mais (0.9s base -> 1.125s).
 const REVEAL_DURATION = 0.9 / 0.8;
-const VIDEO_PLAYBACK_RATE = 0.8;
 
 export function IntroLoader() {
   const [visible, setVisible] = useState(true);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (prefersReducedMotion()) {
@@ -31,8 +37,6 @@ export function IntroLoader() {
 
     const overlay = overlayRef.current;
     if (!overlay) return;
-
-    if (videoRef.current) videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
 
     const previousOverflow = document.documentElement.style.overflow;
     document.documentElement.style.overflow = "hidden";
@@ -66,17 +70,11 @@ export function IntroLoader() {
       aria-hidden="true"
       className="bg-fernandito-verde-medio fixed inset-0 z-[100] flex items-center justify-center [will-change:transform]"
     >
-      <video
-        ref={videoRef}
-        src="/cavalinho-intro.mp4"
-        autoPlay
-        muted
-        loop
-        playsInline
-        // O vídeo tem fundo preto sólido (não transparente). "screen" faz
-        // preto virar invisível contra o fundo da cortina — só o cavalo claro
-        // fica visível, sem a caixa retangular do vídeo aparecendo.
-        className="h-[160px] w-[240px] object-contain mix-blend-screen sm:h-[220px] sm:w-[320px]"
+      {/* eslint-disable-next-line @next/next/no-img-element -- animated GIF, next/image would strip the animation */}
+      <img
+        src="/cavalinho-intro.gif"
+        alt=""
+        className="h-[160px] w-[240px] object-contain sm:h-[220px] sm:w-[320px]"
       />
     </div>
   );
