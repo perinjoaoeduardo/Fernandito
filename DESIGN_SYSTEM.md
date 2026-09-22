@@ -15,13 +15,40 @@ tokens definidos aqui. Os tokens abaixo estão implementados em
 
 ## Tipografia
 
-Fontes atuais carregadas via `next/font/google` como placeholder funcional
-(serão substituídas por fontes customizadas em prompt futuro — a troca é só
-trocar o `next/font` import em `layout.tsx`, os tokens de escala abaixo não
-mudam):
-
 - `font-serif` → Instrument Serif, Georgia, serif — **voz rústica/manifesto**
-- `font-sans` → Inter, system-ui, sans-serif — UI, labels, ficha técnica
+  (ainda placeholder via `next/font/google`; troca só no import em
+  `layout.tsx`, os tokens de escala abaixo não mudam)
+- `font-sans` → **Courier Prime**, Courier New, monospace — **fonte de texto
+  geral do site** (UI, labels, ficha técnica, texto corrido). Carregada via
+  `next/font/local` a partir de `public/fonts/CourierPrime-*.ttf`; regular,
+  bold, italic e bold-italic são arquivos reais (não negrito/itálico
+  sintético do navegador) — `font-bold`/`italic` do Tailwind já pegam o
+  arquivo certo automaticamente.
+- `font-accent` → **Special Elite**, Courier New, monospace — acompanha a
+  Courier Prime, mas **não é fonte de texto corrido**: usar pontualmente
+  para dar destaque a um elemento diferenciado dentro do texto (ainda sem
+  um local fixo definido — aplicar caso a caso conforme instrução). Só tem
+  peso Regular (`public/fonts/SpecialElite-Regular.ttf`).
+
+### Família Rampart — fonte do logo
+
+A Rampart é a fonte que deu origem ao logo da marca. Papel: **texto
+próximo/relacionado ao logo** (ainda sem componente fixo definido — aplicar
+conforme instrução). É uma família maior, com vários sub-estilos, cada um
+seu próprio token (cada `.otf` em `public/fonts/Rampart-*.otf` vira um
+font-family separado, exceto Sans/SansBold que são regular/bold da mesma
+variante):
+
+| Token                      | Arquivo(s)                                              |
+| -------------------------- | ------------------------------------------------------- |
+| `font-rampart`             | `Rampart-Regular.otf`                                   |
+| `font-rampart-sans`        | `Rampart-Sans.otf` (400) + `Rampart-SansBold.otf` (700) |
+| `font-rampart-stamp`       | `Rampart-Stamp.otf`                                     |
+| `font-rampart-spurs`       | `Rampart-Spurs.otf`                                     |
+| `font-rampart-spurs-stamp` | `Rampart-SpursStamp.otf`                                |
+
+Papel específico de cada sub-estilo dentro da família ainda não foi
+definido — aguardando instrução de uso.
 
 ### Escala (classes `text-*` do Tailwind)
 

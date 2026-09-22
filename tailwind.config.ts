@@ -14,7 +14,13 @@ export default {
       },
       fontFamily: {
         serif: ["var(--font-instrument-serif)", "Georgia", "serif"],
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        sans: ["var(--font-courier-prime)", "Courier New", "monospace"],
+        accent: ["var(--font-special-elite)", "Courier New", "monospace"],
+        rampart: ["var(--font-rampart)", "Georgia", "serif"],
+        "rampart-sans": ["var(--font-rampart-sans)", "Courier New", "monospace"],
+        "rampart-stamp": ["var(--font-rampart-stamp)", "Georgia", "serif"],
+        "rampart-spurs": ["var(--font-rampart-spurs)", "Georgia", "serif"],
+        "rampart-spurs-stamp": ["var(--font-rampart-spurs-stamp)", "Georgia", "serif"],
       },
       fontSize: {
         "display-xl": ["clamp(4rem, 12vw, 12rem)", { lineHeight: "0.9" }],
