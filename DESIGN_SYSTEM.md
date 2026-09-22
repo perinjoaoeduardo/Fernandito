@@ -246,8 +246,8 @@ dessa ilustração em raster, gerar um resize menor a partir dele primeiro.
 
 Ordem fixa da landing page (ver `src/app/page.tsx`):
 
-1. `HeroSection` — cartão visual **verde-medio** (logo + banner "Fernet y
-   Cola" + tagline), efeito "shrink-to-card" ao rolar (inspirado no hero da
+1. `HeroSection` — cartão visual **verde-escuro** (logo + tagline), efeito
+   "shrink-to-card" ao rolar (inspirado no hero da
    Lassie): a section é `motion-safe:h-[160vh]`, o cartão visual é
    `sticky top-0 h-screen` — enquanto a altura extra rola por baixo,
    `scale`/`border-radius` do cartão animam via `ScrollTrigger` (`scrub`)
@@ -264,20 +264,33 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    mudar no futuro, essa classe precisa ser atualizada manualmente junto
    (ver comentário no `className` da section em `HeroSection.tsx`).
 
-   O logo (`Logo.tsx`, `max-w-[376px] sm:max-w-[600px] lg:max-w-[700px]`) e
-   o banner `public/images/fernet-y-cola-banner.png` (cores corrigidas pro
-   padrão `#E6E6CB`/`#405139`) ficam empilhados bem próximos no centro do
-   cartão (banner com `-mt-4`, colado no logo). Abaixo, com um respiro maior
-   (`mt-12`), a tagline usa duas fontes: o texto fixo ("Fernet feito com")
-   em `font-rampart-sans` regular, cor off-white; a palavra variável usa
-   `RotatingWord.tsx` — um roller vertical (GSAP, `y` em `em` por cima de
-   uma pilha de `<span>`, `overflow-hidden`) que troca entre 10 palavras
-   (Brio, Intenção, Teimosia, Amargor, Insistência, Paciência, Coragem,
-   Liberdade, Inquietação, Independência) em `font-rampart-stamp font-bold`
-   (bold sintético — a Stamp só tem peso 400). Cada linha do roller usa
-   `h-[1.4em]` + `leading-none` (não `1.2em` — a Rampart Stamp tem métricas
-   de ascendente/descendente maiores que o normal; com menos folga a
-   palavra vizinha vazava visualmente por cima/baixo do recorte).
+   No centro do cartão ficam só o logo (`Logo.tsx`, `max-w-[376px]
+   sm:max-w-[600px] lg:max-w-[700px]`) e, logo abaixo (`mt-8`), a tagline.
+   O banner "Fernet y Cola" (`public/images/fernet-y-cola-banner.png`, cores
+   já corrigidas pro padrão `#E6E6CB`/`#405139`) saiu da Hero — o texto dele
+   virou parte da própria frase. O arquivo segue em `/public/images` pra
+   outros usos.
+
+   A tagline ("Fernet y cola em lata. Feito com ___.") usa duas fontes: o
+   texto fixo em `font-rampart-sans` regular, cor off-white; a palavra
+   variável usa `RotatingWord.tsx` — um roller vertical (GSAP, `y` em `em`
+   por cima de uma pilha de `<span>`, `overflow-hidden`) que troca entre 10
+   palavras (Brio, Intenção, Teimosia, Amargor, Insistência, Paciência,
+   Coragem, Liberdade, Inquietação, Independência) em
+   `font-rampart-stamp font-bold` (bold sintético — a Stamp só tem peso
+   400). Três detalhes que não são óbvios:
+   - cada linha do roller usa `h-[1.4em]` + `leading-none` (não `1.2em` — a
+     Rampart Stamp tem métricas de ascendente/descendente maiores que o
+     normal; com menos folga a palavra vizinha vazava visualmente por
+     cima/baixo do recorte);
+   - **o ponto final faz parte de cada palavra** (`"Brio."`), não fica solto
+     depois do componente — senão ele gruda na borda da caixa e aparece
+     flutuando longe das palavras curtas;
+   - **a largura da caixa é animada junto com o roll** (medida por palavra
+     depois de `document.fonts.ready`), em vez de ficar travada na palavra
+     mais larga — senão a frase inteira, que é centralizada, fica
+     visivelmente fora do meio da tela nas palavras curtas.
+
    `prefers-reduced-motion` trava a primeira palavra, sem animação.
 2. `OQueESection` — fundo off-white, "o que é" o produto em linguagem
    direta (elevator pitch, estilo do segundo bloco da home da Lassie):

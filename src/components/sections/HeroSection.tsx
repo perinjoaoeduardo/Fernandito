@@ -17,7 +17,6 @@ export function HeroSection() {
   const boxRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLHeadingElement>(null);
-  const bannerRef = useRef<HTMLImageElement>(null);
   const taglineRef = useRef<HTMLParagraphElement>(null);
   const indicatorRef = useRef<HTMLButtonElement>(null);
   const chevronRef = useRef<SVGSVGElement>(null);
@@ -27,18 +26,16 @@ export function HeroSection() {
     const box = boxRef.current;
     const content = contentRef.current;
     const logo = logoRef.current;
-    const banner = bannerRef.current;
     const tagline = taglineRef.current;
     const indicator = indicatorRef.current;
-    if (!section || !box || !content || !logo || !banner || !tagline || !indicator) return;
+    if (!section || !box || !content || !logo || !tagline || !indicator) return;
 
     const reduceMotion = prefersReducedMotion();
 
     if (reduceMotion) {
-      gsap.set([logo, banner, tagline, indicator], { opacity: 1, y: 0, scale: 1 });
+      gsap.set([logo, tagline, indicator], { opacity: 1, y: 0, scale: 1 });
     } else {
       gsap.set(logo, { opacity: 0, scale: 0.85 });
-      gsap.set(banner, { opacity: 0, y: 20 });
       gsap.set(tagline, { opacity: 0, y: 40 });
       gsap.set(indicator, { opacity: 0 });
     }
@@ -53,8 +50,7 @@ export function HeroSection() {
           entranceTimeline = gsap
             .timeline()
             .to(logo, { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" }, 0.2)
-            .to(banner, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.65)
-            .to(tagline, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 0.95)
+            .to(tagline, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 0.8)
             .to(indicator, { opacity: 1, duration: 0.4, ease: "power1.out" }, 1.4)
             .fromTo(
               chevronRef.current,
@@ -142,24 +138,17 @@ export function HeroSection() {
     >
       <div
         ref={boxRef}
-        className="bg-fernandito-verde-medio sticky top-0 flex h-screen w-full flex-col items-center justify-center overflow-hidden [will-change:transform,border-radius]"
+        className="bg-fernandito-verde-escuro sticky top-0 flex h-screen w-full flex-col items-center justify-center overflow-hidden [will-change:transform,border-radius]"
       >
         <div ref={contentRef} className="flex flex-col items-center px-6 text-center">
           <h1 ref={logoRef} aria-label="Fernandito" className="flex justify-center">
             <Logo />
           </h1>
-          {/* eslint-disable-next-line @next/next/no-img-element -- PNG estático, next/image não traz benefício aqui */}
-          <img
-            ref={bannerRef}
-            src="/images/fernet-y-cola-banner.png"
-            alt="Fernet y Cola"
-            className="-mt-4 w-full max-w-[220px] sm:max-w-[320px] lg:max-w-[380px]"
-          />
           <p
             ref={taglineRef}
-            className="text-body-lg text-fernandito-off-white font-rampart-sans mt-12"
+            className="text-body-lg text-fernandito-off-white font-rampart-sans mt-8"
           >
-            Fernet feito com <RotatingWord />.
+            Fernet y cola em lata. Feito com <RotatingWord />
           </p>
         </div>
 
