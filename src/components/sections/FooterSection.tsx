@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger, SplitText, prefersReducedMotion } from "@/lib/gsap";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
-import { SvgPlaceholder } from "@/components/ui/SvgPlaceholder";
 import { Link } from "@/components/ui/Link";
 
 const NAV_LINKS = [
@@ -239,10 +238,12 @@ export function FooterSection() {
 
       {/* Camada 5 — base do footer */}
       <div className="relative mx-auto flex w-full max-w-5xl flex-col items-center gap-4 border-t border-white/10 pt-8 text-center sm:flex-row sm:justify-between sm:text-left">
-        <SvgPlaceholder
-          label="CAVALO"
+        {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático */}
+        <img
+          src="/logo/fernandito-horse.svg"
+          alt=""
           aria-hidden="true"
-          className="h-9 w-9 shrink-0 rounded-full text-[6px] opacity-70"
+          className="h-9 w-9 shrink-0 rounded-full opacity-70"
         />
         <div className="font-sans text-[13px] opacity-70 sm:text-sm">
           <p>© 2026 Fernandito. Todos os direitos reservados.</p>

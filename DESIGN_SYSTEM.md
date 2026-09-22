@@ -178,11 +178,13 @@ no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
   contexto já-escuro — Footer, CTASection —, hover vai pra `verde-claro`).
 - **`SvgPlaceholder`** (`SvgPlaceholder.tsx`) — placeholder genérico (borda
   tracejada + label) pros SVGs de marca que ainda não chegaram. Dimensionado
-  via `className` por quem usa.
-- **`Logo`** (`Logo.tsx`) — lockup completo da marca. Hoje é um
-  `SvgPlaceholder` (~4:1, "LOGO SVG AQUI — aguardando arquivo") esperando
-  `/public/logo/fernandito-logo-full.svg`. Ver seção "Assets de logo"
-  abaixo pros demais arquivos esperados.
+  via `className` por quem usa. Sem uso ativo no momento — todo asset que
+  o usava (`Logo`, ícone do cavalo no `FloatingNav`/`FooterSection`) já
+  recebeu o arquivo real (ver "Assets de logo" abaixo); mantido pra
+  próximos assets que ainda não chegaram.
+- **`Logo`** (`Logo.tsx`) — wordmark da marca, `/public/logo/fernandito-logo-text.svg`
+  via `<img>`. Ver "Assets de logo" abaixo pro resto dos arquivos
+  (recebidos e ainda esperados).
 - **`CustomCursor`** (`CustomCursor.tsx`) — bolinha de 12px, sempre
   off-white, `mix-blend-mode: difference` permanente. Segue o mouse via
   `gsap.quickTo`; no hover de qualquer `a`/`button`/`[role=button]`/
@@ -204,16 +206,20 @@ no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
 
 ### Assets de logo (`/public/logo/`)
 
-Pasta criada, arquivos ainda não enviados — nomes esperados quando
-chegarem (substituem os placeholders acima):
+| Arquivo                             | Uso                                                                                                                                                                   | Status                     |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| `fernandito-logo-text.svg`          | Wordmark "FERNANDITO" — usado por `<Logo />` (Hero)                                                                                                                   | ✅ recebido                |
+| `fernandito-horse.svg`              | "Moeda" (medalhão) só com a cabeça do cavalo, sem texto — pra ocasiões pequenas. Usado nas duas pills-cavalo do `FloatingNav` e no símbolo da base do `FooterSection` | ✅ recebido                |
+| `fernandito-moeda.svg`              | Mesmo medalhão, com texto ao redor — ainda sem um lugar fixo no site (aplicar conforme instrução)                                                                     | ✅ recebido, sem uso ainda |
+| `fernandito-horse-illustration.png` | Ilustração do cavalo (raster, ~760KB) — uso ainda não definido                                                                                                        | ✅ recebido, sem uso ainda |
+| `fernandito-logo-full.svg`          | Lockup completo (ícone + texto juntos)                                                                                                                                | Aguardando arquivo         |
+| `fernandito-logo-mono.svg`          | Versão monocromática                                                                                                                                                  | Aguardando arquivo         |
+| `fernandito-logo-negative.svg`      | Versão negativa                                                                                                                                                       | Aguardando arquivo         |
 
-| Arquivo esperado               | Uso                                                         |
-| ------------------------------ | ----------------------------------------------------------- |
-| `fernandito-logo-full.svg`     | Lockup completo — usado por `<Logo />`                      |
-| `fernandito-logo-text.svg`     | Só o texto "FERNANDITO" + tagline                           |
-| `fernandito-horse.svg`         | Símbolo do cavalo isolado — `FloatingNav` (pill 1) usa este |
-| `fernandito-logo-mono.svg`     | Versão monocromática                                        |
-| `fernandito-logo-negative.svg` | Versão negativa                                             |
+`fernandito-logo-text.svg` e `fernandito-moeda.svg` são arquivos pesados
+(2.3MB e 1.7MB — vetores bem detalhados). Funcionam normalmente via `<img>`,
+mas vale considerar otimizar (`svgo` ou re-exportar com menos precisão de
+curva) antes do lançamento, se o peso da página virar problema.
 
 ### Assets da CartaSection (`/public/carta/`)
 

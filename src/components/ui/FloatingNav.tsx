@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { scrollToTarget } from "@/lib/lenis";
-import { SvgPlaceholder } from "@/components/ui/SvgPlaceholder";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 
@@ -82,10 +81,8 @@ export function FloatingNav() {
           aria-label="Voltar ao topo"
           className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio hidden h-11 w-11 shrink-0 items-center justify-center rounded-full backdrop-blur-md transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:flex"
         >
-          <SvgPlaceholder
-            label="CAVALO"
-            className="text-fernandito-verde-escuro/70 h-7 w-7 rounded-full border text-[6px]"
-          />
+          {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático */}
+          <img src="/logo/fernandito-horse.svg" alt="" className="h-7 w-7 rounded-full" />
         </motion.button>
 
         {/* Pill 1 (mobile) — mesmo símbolo, vira gatilho do menu fullscreen */}
@@ -98,10 +95,8 @@ export function FloatingNav() {
           aria-expanded={menuOpen}
           className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 w-11 shrink-0 items-center justify-center rounded-full backdrop-blur-md transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:hidden"
         >
-          <SvgPlaceholder
-            label="CAVALO"
-            className="text-fernandito-verde-escuro/70 h-7 w-7 rounded-full border text-[6px]"
-          />
+          {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático */}
+          <img src="/logo/fernandito-horse.svg" alt="" className="h-7 w-7 rounded-full" />
         </motion.button>
 
         {/* Pill 2 (desktop only) — links + CTA WhatsApp em destaque */}
