@@ -4,6 +4,7 @@ import { clsx } from "clsx";
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger, EASE, prefersReducedMotion, supportsHover } from "@/lib/gsap";
 import { Button } from "@/components/ui/Button";
+import { InstagramIcon } from "@/components/ui/icons";
 
 const CARD_COUNT = 7;
 const CENTER_INDEX = 3;
@@ -34,23 +35,6 @@ function distanceFromCenter(index: number) {
 
 function baseScale(index: number) {
   return index === CENTER_INDEX ? 1.1 : 1;
-}
-
-function InstagramIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      aria-hidden="true"
-      className="h-5 w-5"
-    >
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="17.3" cy="6.7" r="1.1" fill="currentColor" stroke="none" />
-    </svg>
-  );
 }
 
 function PhotoCard({

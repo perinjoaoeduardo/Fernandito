@@ -251,7 +251,38 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
 8. `CTASection` — fundo verde-medio
 9. `FooterSection` — fundo verde-escuro, 5 camadas (labels de canto,
    frase de fechamento, navegação em colunas, CTA WhatsApp, base com
-   copyright); grain sutil via CSS/SVG (`.grain-overlay` em `globals.css`)
+   copyright); grain sutil via CSS/SVG (`.grain-overlay` em `globals.css`).
+   Coluna "Navegar" usa `Link` `underline-grow` + item "Voltar ao topo";
+   "Social" usa `underline-swap` com `InstagramIcon` ao lado do texto;
+   "Legal" linka pra `/legal/avisos` (ver seção própria abaixo). Símbolo do
+   cavalo na base em `h-16 w-16 sm:h-20 sm:w-20` (bem maior que o resto do
+   site — é a assinatura final da página).
+
+## Páginas legais (`/legal`)
+
+Shell compartilhado (`src/app/legal/layout.tsx` + `LegalSidebar.tsx`):
+sidebar fixa com link "← Voltar ao site" e a lista de documentos, área de
+conteúdo à direita com título serif grande + "Última atualização" + corpo
+em `font-sans`. Layout inspirado no `/legal/privacy` da Lassie, adaptado
+pra paleta do site (off-white/verde-escuro em vez de branco/navy).
+
+- **`/legal/avisos`** — único documento existente até agora: as 3
+  informações regulatórias que antes ficavam soltas no rodapé (glúten,
+  idade mínima, registro MAPA), reescritas como parágrafos curtos. Texto
+  gerado a partir do que já existia no site, não é aconselhamento
+  jurídico — revisar com um advogado antes de tratar como definitivo.
+- **`/legal`** — redireciona pra `/legal/avisos` (`next/navigation`
+  `redirect()`).
+- Pra adicionar um novo documento (ex: Política de Privacidade, Termos de
+  Uso): criar `src/app/legal/<slug>/page.tsx` seguindo o mesmo padrão de
+  `avisos/page.tsx`, e adicionar `{ slug, label }` em `LEGAL_DOCS`
+  (`LegalSidebar.tsx`) — a sidebar já cresce sozinha a partir dali. **Não
+  preencher o conteúdo desses documentos com texto jurídico inventado por
+  IA** — usar o texto real fornecido pelo negócio/advogado.
+- `Link` (`components/ui/Link.tsx`) agora detecta rotas internas
+  (`href` começando com "/", sem `target="_blank"`) e usa `next/link` por
+  baixo em vez de `<a>` puro — navegação client-side, sem recarregar a
+  página (o que faria a `IntroLoader` tocar de novo a cada clique).
 
 ### `SocialGallerySection` — detalhes
 

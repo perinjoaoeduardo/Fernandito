@@ -1,20 +1,17 @@
 "use client";
 
+import { clsx } from "clsx";
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger, SplitText, prefersReducedMotion } from "@/lib/gsap";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
+import { InstagramIcon } from "@/components/ui/icons";
 
 const NAV_LINKS = [
   { label: "Manifesto", href: "#manifesto" },
   { label: "Produto", href: "#produto" },
   { label: "Onde encontrar", href: "#onde-encontrar" },
-];
-
-const LEGAL_LINES = [
-  "Contém glúten",
-  "Venda proibida para menores de 18 anos",
-  "Registro MAPA RS 002594-1.000127",
+  { label: "Voltar ao topo", href: "#hero" },
 ];
 
 // Footer é fundo escuro (verde-escuro) — outline de foco precisa contrastar
@@ -195,7 +192,7 @@ export function FooterSection() {
           <ul className="flex flex-col gap-3">
             {NAV_LINKS.map((link) => (
               <li key={link.label}>
-                <Link href={link.href} variant="underline-swap" className={FOOTER_LINK_CLASSES}>
+                <Link href={link.href} variant="underline-grow" className={FOOTER_LINK_CLASSES}>
                   {link.label}
                 </Link>
               </li>
@@ -214,8 +211,9 @@ export function FooterSection() {
                 target="_blank"
                 rel="noopener noreferrer"
                 variant="underline-swap"
-                className={FOOTER_LINK_CLASSES}
+                className={clsx(FOOTER_LINK_CLASSES, "inline-flex items-center gap-2")}
               >
+                <InstagramIcon className="h-4 w-4" />
                 Instagram
               </Link>
             </li>
@@ -227,11 +225,11 @@ export function FooterSection() {
             Legal
           </h3>
           <ul className="flex flex-col gap-3">
-            {LEGAL_LINES.map((line) => (
-              <li key={line} className="text-body text-fernandito-off-white/85 font-sans">
-                {line}
-              </li>
-            ))}
+            <li>
+              <Link href="/legal/avisos" variant="underline-grow" className={FOOTER_LINK_CLASSES}>
+                Avisos e registro
+              </Link>
+            </li>
           </ul>
         </div>
       </div>
@@ -243,7 +241,7 @@ export function FooterSection() {
           src="/logo/fernandito-horse.svg"
           alt=""
           aria-hidden="true"
-          className="h-9 w-9 shrink-0 rounded-full opacity-70"
+          className="h-16 w-16 shrink-0 rounded-full opacity-90 sm:h-20 sm:w-20"
         />
         <div className="font-sans text-[13px] opacity-70 sm:text-sm">
           <p>© 2026 Fernandito. Todos os direitos reservados.</p>
