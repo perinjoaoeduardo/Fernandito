@@ -5,6 +5,7 @@ import { gsap, ScrollTrigger, prefersReducedMotion, supportsHover } from "@/lib/
 import { onIntroComplete } from "@/lib/introSignal";
 import { scrollToTarget } from "@/lib/lenis";
 import { Logo } from "@/components/ui/Logo";
+import { RotatingWord } from "@/components/ui/RotatingWord";
 
 // Quanto o cartão encolhe/arredonda ao rolar (ver efeito "shrink-to-card"
 // abaixo) — sutil o bastante pra não parecer um zoom brusco.
@@ -16,6 +17,7 @@ export function HeroSection() {
   const boxRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLHeadingElement>(null);
+  const bannerRef = useRef<HTMLImageElement>(null);
   const taglineRef = useRef<HTMLParagraphElement>(null);
   const indicatorRef = useRef<HTMLButtonElement>(null);
   const chevronRef = useRef<SVGSVGElement>(null);
@@ -25,16 +27,18 @@ export function HeroSection() {
     const box = boxRef.current;
     const content = contentRef.current;
     const logo = logoRef.current;
+    const banner = bannerRef.current;
     const tagline = taglineRef.current;
     const indicator = indicatorRef.current;
-    if (!section || !box || !content || !logo || !tagline || !indicator) return;
+    if (!section || !box || !content || !logo || !banner || !tagline || !indicator) return;
 
     const reduceMotion = prefersReducedMotion();
 
     if (reduceMotion) {
-      gsap.set([logo, tagline, indicator], { opacity: 1, y: 0, scale: 1 });
+      gsap.set([logo, banner, tagline, indicator], { opacity: 1, y: 0, scale: 1 });
     } else {
       gsap.set(logo, { opacity: 0, scale: 0.85 });
+      gsap.set(banner, { opacity: 0, y: 20 });
       gsap.set(tagline, { opacity: 0, y: 40 });
       gsap.set(indicator, { opacity: 0 });
     }
@@ -49,7 +53,8 @@ export function HeroSection() {
           entranceTimeline = gsap
             .timeline()
             .to(logo, { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" }, 0.2)
-            .to(tagline, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 0.8)
+            .to(banner, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.65)
+            .to(tagline, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 0.95)
             .to(indicator, { opacity: 1, duration: 0.4, ease: "power1.out" }, 1.4)
             .fromTo(
               chevronRef.current,
@@ -84,8 +89,9 @@ export function HeroSection() {
     // "Shrink-to-card": a section é mais alta que a viewport (motion-safe:h-[160vh])
     // e o cartão (`box`) fica `sticky top-0` — enquanto o resto da altura extra
     // rola por baixo dele, a gente anima scale + border-radius do cartão
-    // (revela a cor de fundo do body nas bordas, como uma moldura) e desvanece
-    // o conteúdo de texto, que já não faz sentido dentro de um cartão pequeno.
+    // (revela o fundo da própria section nas bordas, como uma moldura — ver
+    // comentário no `className` da section abaixo) e desvanece o conteúdo de
+    // texto, que já não faz sentido dentro de um cartão pequeno.
     // Ao fim do range, o sticky solta sozinho e a ManifestoSection continua o
     // scroll normalmente — sem precisar de pin/unpin manual via ScrollTrigger.
     let shrinkTrigger: ScrollTrigger | null = null;
@@ -124,7 +130,16 @@ export function HeroSection() {
   }, []);
 
   return (
-    <section ref={sectionRef} id="hero" className="relative h-screen motion-safe:h-[160vh]">
+    <section
+      ref={sectionRef}
+      id="hero"
+      // O fundo aqui é o que aparece na "moldura" revelada pelo efeito
+      // shrink-to-card (ver `shrinkTrigger` acima) — tem que ser sempre a
+      // mesma cor de fundo da PRÓXIMA seção (hoje, `ManifestoSection`,
+      // off-white). Se a cor da próxima seção mudar no futuro, atualizar
+      // aqui também — não há sincronia automática entre as duas.
+      className="bg-fernandito-off-white relative h-screen motion-safe:h-[160vh]"
+    >
       <div
         ref={boxRef}
         className="bg-fernandito-verde-medio sticky top-0 flex h-screen w-full flex-col items-center justify-center overflow-hidden [will-change:transform,border-radius]"
@@ -133,8 +148,18 @@ export function HeroSection() {
           <h1 ref={logoRef} aria-label="Fernandito" className="flex justify-center">
             <Logo />
           </h1>
-          <p ref={taglineRef} className="text-body-lg text-fernandito-verde-claro mt-6 font-sans">
-            Fernet com cola. Direto da lata.
+          {/* eslint-disable-next-line @next/next/no-img-element -- PNG estático, next/image não traz benefício aqui */}
+          <img
+            ref={bannerRef}
+            src="/images/fernet-y-cola-banner.png"
+            alt="Fernet y Cola"
+            className="mt-4 w-full max-w-[220px] sm:max-w-[320px] lg:max-w-[380px]"
+          />
+          <p
+            ref={taglineRef}
+            className="text-body-lg text-fernandito-off-white font-rampart-sans mt-6"
+          >
+            Fernet feito com <RotatingWord />.
           </p>
         </div>
 

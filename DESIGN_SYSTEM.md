@@ -235,15 +235,34 @@ dessa ilustração em raster, gerar um resize menor a partir dele primeiro.
 
 Ordem fixa da landing page (ver `src/app/page.tsx`):
 
-1. `HeroSection` — fundo **verde-medio**, efeito "shrink-to-card" ao rolar
-   (inspirado no hero da Lassie): a section é `motion-safe:h-[160vh]`, o
-   cartão visual é `sticky top-0 h-screen` — enquanto a altura extra rola
-   por baixo, `scale`/`border-radius` do cartão animam via `ScrollTrigger`
-   (`scrub`) de tela cheia (scale 1, raio 0) até um cartão menor e
-   arredondado (`scale 0.9`, raio 40px), revelando o fundo do `body`
-   (verde-escuro) como moldura. Texto/indicador desvanecem antes do
-   cartão terminar de encolher. `prefers-reduced-motion` volta a section
-   pra um `h-screen` simples, sem o efeito.
+1. `HeroSection` — cartão visual **verde-medio** (logo + banner "Fernet y
+   Cola" + tagline), efeito "shrink-to-card" ao rolar (inspirado no hero da
+   Lassie): a section é `motion-safe:h-[160vh]`, o cartão visual é
+   `sticky top-0 h-screen` — enquanto a altura extra rola por baixo,
+   `scale`/`border-radius` do cartão animam via `ScrollTrigger` (`scrub`)
+   de tela cheia (scale 1, raio 0) até um cartão menor e arredondado
+   (`scale 0.9`, raio 40px), revelando o fundo da própria `<section>`
+   como moldura. Texto/indicador desvanecem antes do cartão terminar de
+   encolher. `prefers-reduced-motion` volta a section pra um `h-screen`
+   simples, sem o efeito.
+
+   **Regra da cor da moldura:** o fundo da `<section>` (a moldura revelada)
+   tem que ser **sempre a mesma cor de fundo da seção seguinte** — hoje,
+   `bg-fernandito-off-white` (a cor da `ManifestoSection`). Não é uma
+   sincronia automática: se a cor de fundo da seção que vem depois da Hero
+   mudar no futuro, essa classe precisa ser atualizada manualmente junto
+   (ver comentário no `className` da section em `HeroSection.tsx`).
+
+   O logo (`Logo.tsx`) e o banner `public/images/fernet-y-cola-banner.png`
+   (cores corrigidas pro padrão `#E6E6CB`/`#405139`) ficam empilhados no
+   centro do cartão. Abaixo, a tagline usa duas fontes: o texto fixo
+   ("Fernet feito com") em `font-rampart-sans` regular, cor off-white; a
+   palavra variável usa `RotatingWord.tsx` — um roller vertical (GSAP,
+   `y` em `em` por cima de uma pilha de `<span>`, `overflow-hidden`) que
+   troca entre ~10 palavras (amor, teimosia, orgulho, raiz, fé, calma,
+   coragem, rebeldia, alma, dedicação) em `font-rampart-stamp font-bold`
+   (bold sintético — a Stamp só tem peso 400). `prefers-reduced-motion`
+   trava a primeira palavra, sem animação.
 2. `ManifestoSection` — fundo off-white
 3. `CartaSection` — fundo off-white, bloco editorial: epígrafe grande
    (reveal por palavra via SplitText) + cartão-carta (`ElevatedCard`, corpo,
