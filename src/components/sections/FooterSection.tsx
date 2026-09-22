@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger, SplitText, prefersReducedMotion } from "@/lib/gsap";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { SvgPlaceholder } from "@/components/ui/SvgPlaceholder";
+import { Link } from "@/components/ui/Link";
 
 const NAV_LINKS = [
   { label: "Manifesto", href: "#manifesto" },
@@ -17,10 +18,10 @@ const LEGAL_LINES = [
   "Registro MAPA RS 002594-1.000127",
 ];
 
-// Sublinhado que cresce da esquerda pra direita no hover — mesmo tratamento
-// nos links de NAVEGAR e SOCIAL.
-const LINK_CLASSES =
-  "text-fernandito-off-white/85 relative w-fit transition-colors duration-300 hover:text-fernandito-verde-claro after:absolute after:bottom-0 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-fernandito-verde-claro after:transition-transform after:duration-300 hover:after:scale-x-100";
+// Footer é fundo escuro (verde-escuro) — outline de foco precisa contrastar
+// com isso, não com o verde-medio padrão do Link (pensado pra fundos claros).
+const FOOTER_LINK_CLASSES =
+  "text-fernandito-off-white/85 text-body font-sans !outline-fernandito-off-white";
 
 export function FooterSection() {
   const footerRef = useRef<HTMLElement>(null);
@@ -195,9 +196,9 @@ export function FooterSection() {
           <ul className="flex flex-col gap-3">
             {NAV_LINKS.map((link) => (
               <li key={link.label}>
-                <a href={link.href} className={`${LINK_CLASSES} text-body font-sans`}>
+                <Link href={link.href} variant="underline-swap" className={FOOTER_LINK_CLASSES}>
                   {link.label}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
@@ -209,14 +210,15 @@ export function FooterSection() {
           </h3>
           <ul className="flex flex-col gap-3">
             <li>
-              <a
+              <Link
                 href="https://www.instagram.com/toma.fernandito/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`${LINK_CLASSES} text-body font-sans`}
+                variant="underline-swap"
+                className={FOOTER_LINK_CLASSES}
               >
                 Instagram
-              </a>
+              </Link>
             </li>
           </ul>
         </div>

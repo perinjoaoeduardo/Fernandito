@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { Instrument_Serif } from "next/font/google";
 import localFont from "next/font/local";
+import Script from "next/script";
 import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvider";
 import { IntroLoader } from "@/components/providers/IntroLoader";
 import { FloatingNav } from "@/components/ui/FloatingNav";
 import { CustomCursor } from "@/components/ui/CustomCursor";
+import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import "./globals.css";
 
 const instrumentSerif = Instrument_Serif({
@@ -90,8 +92,20 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pt-BR" className={`${fontVariables} antialiased`}>
       <body>
+        {/* Landing de página única: refresh sempre volta pro topo, nunca
+            fica "preso" no meio (decisão explícita — o restauro nativo do
+            navegador ficaria estranho aqui, já que a intro/curtain também
+            roda do zero a cada carregamento). beforeInteractive roda antes
+            da hidratação, então evita o flash de restaurar-e-depois-pular. */}
+        <Script id="scroll-restoration" strategy="beforeInteractive">
+          {`try {
+            if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+            window.scrollTo(0, 0);
+          } catch (e) {}`}
+        </Script>
         <SmoothScrollProvider>
           <IntroLoader />
+          <ScrollProgress />
           <CustomCursor />
           <FloatingNav />
           {children}

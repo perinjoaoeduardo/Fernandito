@@ -36,6 +36,16 @@ export default {
         lg: "16px",
         full: "9999px",
       },
+      transitionDuration: {
+        fast: "150ms",
+        base: "300ms",
+        slow: "500ms",
+      },
+      transitionTimingFunction: {
+        "out-standard": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "out-back": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "in-out-smooth": "cubic-bezier(0.65, 0, 0.35, 1)",
+      },
     },
   },
 } satisfies Config;

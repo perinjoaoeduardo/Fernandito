@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger, SplitText, prefersReducedMotion, supportsHover } from "@/lib/gsap";
+import {
+  gsap,
+  ScrollTrigger,
+  SplitText,
+  EASE,
+  prefersReducedMotion,
+  supportsHover,
+} from "@/lib/gsap";
+import { ElevatedCard } from "@/components/ui/ElevatedCard";
 
 const SIGNATURES = ["João", "Lorenzo", "Nando", "Matheus"];
 
 const SEAL_BASE_ROTATION = 8;
 const SEAL_HOVER_ROTATION = SEAL_BASE_ROTATION + 3;
-
-const SHADOW_REST = "0 4px 12px rgba(36,48,34,0.08)";
-const SHADOW_HOVER = "0 20px 40px rgba(36,48,34,0.18)";
 
 export function CartaSection() {
   const epigraphRef = useRef<HTMLHeadingElement>(null);
@@ -72,7 +77,8 @@ export function CartaSection() {
     };
   }, []);
 
-  // Elevação no hover — cartão sobe/rotaciona, selo reage com leve atraso.
+  // O selo reage ao hover do cartão com leve atraso/rotação extra — a
+  // elevação do cartão em si agora é o ElevatedCard (ver JSX abaixo).
   useEffect(() => {
     const card = cardRef.current;
     const seal = sealRef.current;
@@ -80,36 +86,22 @@ export function CartaSection() {
     if (prefersReducedMotion() || !supportsHover()) return;
 
     const handleEnter = () => {
-      gsap.to(card, {
-        y: -8,
-        rotate: -1.5,
-        boxShadow: SHADOW_HOVER,
-        duration: 0.4,
-        ease: "power2.out",
-      });
       gsap.to(seal, {
         rotate: SEAL_HOVER_ROTATION,
         y: -4,
         duration: 0.4,
         delay: 0.05,
-        ease: "power2.out",
+        ease: EASE.outStandard,
       });
     };
 
     const handleLeave = () => {
-      gsap.to(card, {
-        y: 0,
-        rotate: 0,
-        boxShadow: SHADOW_REST,
-        duration: 0.4,
-        ease: "power2.out",
-      });
       gsap.to(seal, {
         rotate: SEAL_BASE_ROTATION,
         y: 0,
         duration: 0.4,
         delay: 0.05,
-        ease: "power2.out",
+        ease: EASE.outStandard,
       });
     };
 
@@ -138,10 +130,11 @@ export function CartaSection() {
       </div>
 
       <div className="mx-auto mt-16 max-w-[720px] px-6 sm:mt-24">
-        <div
+        <ElevatedCard
           ref={cardRef}
-          data-cursor-hover
-          className="relative rounded-md bg-[#F5F5E9] p-6 shadow-[0_4px_12px_rgba(36,48,34,0.08)] [will-change:transform,box-shadow] sm:p-8 lg:p-12"
+          elevation="md"
+          rotateOnHover
+          className="relative rounded-md bg-[#F5F5E9] p-6 sm:p-8 lg:p-12"
         >
           <blockquote className="text-body-lg flex flex-col gap-6 font-sans">
             <p>
@@ -181,7 +174,7 @@ export function CartaSection() {
               </span>
             </div>
           </div>
-        </div>
+        </ElevatedCard>
       </div>
     </section>
   );

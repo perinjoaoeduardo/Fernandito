@@ -140,7 +140,7 @@ function GalleryImage({
         type="button"
         onClick={(event) => onOpen(item.index, event.currentTarget)}
         aria-label={`Ampliar: ${item.alt}`}
-        className="absolute inset-0 h-full w-full cursor-zoom-in"
+        className="focus-visible:outline-fernandito-off-white absolute inset-0 h-full w-full cursor-zoom-in focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2"
       >
         <div ref={innerRef} className="absolute inset-0 h-full w-full [will-change:transform]">
           <GalleryVisual item={item} fit="cover" />
@@ -225,7 +225,7 @@ function Lightbox({ item, onClose }: { item: GalleryItem | null; onClose: () => 
           type="button"
           onClick={onClose}
           aria-label="Fechar"
-          className="text-fernandito-off-white absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-2xl leading-none"
+          className="text-fernandito-off-white duration-base ease-out-standard focus-visible:outline-fernandito-off-white absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-2xl leading-none transition-colors hover:bg-black/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           ×
         </button>

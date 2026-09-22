@@ -1,26 +1,66 @@
-import { clsx } from "clsx";
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
+"use client";
 
-type Variant = "primary" | "ghost" | "whatsapp";
+import { clsx } from "clsx";
+import { useEffect, useRef } from "react";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
+import { gsap, EASE, prefersReducedMotion, supportsHover } from "@/lib/gsap";
+
+type Variant = "primary" | "secondary" | "ghost" | "cta-destaque";
+
+// Compartilhado por todos: radius-full, padding generoso, fonte sans,
+// letter-spacing sutil ("label style"), transition base — ver
+// DESIGN_SYSTEM.md "## Interação".
+const baseClasses =
+  "group relative inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-sans text-body font-medium tracking-[0.01em] transition-[background-color,color,box-shadow,transform] duration-base ease-out-standard";
 
 const variantClasses: Record<Variant, string> = {
-  primary: "bg-fernandito-verde-escuro text-fernandito-off-white hover:opacity-90",
+  primary:
+    "bg-fernandito-verde-medio text-fernandito-off-white hover:bg-fernandito-verde-escuro active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fernandito-verde-medio",
+  // Preenchimento do centro pra fora + swap de cor do texto são feitos por
+  // dois spans internos (ver `renderContent`), não só por className.
+  secondary:
+    "overflow-hidden border-[1.5px] border-fernandito-verde-escuro bg-transparent text-fernandito-verde-escuro active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fernandito-verde-medio",
+  // Sublinhado igual ao Link `underline-grow` (crescer da esquerda, retrair
+  // pra direita via troca de transform-origin) — texto sem borda/fundo.
   ghost:
-    "border border-fernandito-verde-medio text-fernandito-verde-escuro bg-transparent hover:bg-fernandito-verde-medio/10",
-  whatsapp: "bg-fernandito-verde-medio text-fernandito-off-white hover:opacity-90",
+    "w-fit bg-transparent text-fernandito-verde-escuro after:absolute after:bottom-2 after:left-0 after:h-px after:w-[calc(100%-3rem)] after:origin-right after:scale-x-0 after:bg-current after:transition-transform after:duration-base after:ease-out-standard hover:text-fernandito-verde-medio hover:after:origin-left hover:after:scale-x-100 focus-visible:text-fernandito-verde-medio focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fernandito-verde-medio focus-visible:after:origin-left focus-visible:after:scale-x-100 active:opacity-70",
+  "cta-destaque":
+    "bg-fernandito-verde-escuro text-fernandito-off-white hover:bg-fernandito-verde-medio hover:shadow-[0_0_20px_rgba(64,81,57,0.3)] active:scale-[0.96] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-fernandito-verde-medio",
 };
 
-const baseClasses =
-  "inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-sans text-body font-medium transition-colors duration-200";
+// Magnetic hover só existe no cta-destaque (o CTA de maior hierarquia).
+const MAGNET_RADIUS = 80;
+const MAGNET_MAX_PULL = 8;
 
-function WhatsAppIcon() {
+function IconSlide({ icon }: { icon: ReactNode }) {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-5 w-5">
-      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-      <path d="M12.004 2.003c-5.514 0-9.997 4.483-9.997 9.997 0 1.763.462 3.484 1.34 5.002L2 22l5.126-1.345a9.958 9.958 0 0 0 4.878 1.242h.004c5.514 0 9.997-4.483 9.997-9.997 0-2.67-1.04-5.18-2.929-7.07a9.935 9.935 0 0 0-7.072-2.927zm0 18.16h-.003a8.19 8.19 0 0 1-4.174-1.143l-.3-.178-3.043.798.813-2.968-.196-.305a8.156 8.156 0 0 1-1.256-4.367c0-4.509 3.669-8.178 8.163-8.178a8.12 8.12 0 0 1 5.78 2.397 8.12 8.12 0 0 1 2.393 5.788c0 4.509-3.67 8.156-8.177 8.156z" />
-    </svg>
+    <span className="bg-fernandito-off-white text-fernandito-verde-medio relative flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full">
+      <span
+        aria-hidden="true"
+        className="duration-base ease-out-standard absolute inset-0 flex items-center justify-center transition-transform group-hover:translate-x-full"
+      >
+        {icon}
+      </span>
+      <span
+        aria-hidden="true"
+        className="duration-base ease-out-standard absolute inset-0 flex -translate-x-full items-center justify-center transition-transform group-hover:translate-x-0"
+      >
+        {icon}
+      </span>
+    </span>
   );
 }
+
+type SharedProps = {
+  variant?: Variant;
+  children: ReactNode;
+  className?: string;
+  /** Ícone estático (ex: WhatsApp) ou, com `animatedIcon`, o par
+   * duplicado que desliza no hover (ver Parte 2 do prompt de interação). */
+  icon?: ReactNode;
+  iconPosition?: "left" | "right";
+  animatedIcon?: boolean;
+};
 
 type ButtonAsButton = ButtonHTMLAttributes<HTMLButtonElement> & {
   as?: "button";
@@ -32,26 +72,106 @@ type ButtonAsAnchor = AnchorHTMLAttributes<HTMLAnchorElement> & {
   href: string;
 };
 
-type ButtonProps = (ButtonAsButton | ButtonAsAnchor) & {
-  variant?: Variant;
-  children: ReactNode;
-  className?: string;
-};
+type ButtonProps = (ButtonAsButton | ButtonAsAnchor) & SharedProps;
 
-export function Button({ variant = "primary", children, className, ...props }: ButtonProps) {
+export function Button({
+  variant = "primary",
+  children,
+  className,
+  icon,
+  iconPosition = "right",
+  animatedIcon = false,
+  ...props
+}: ButtonProps) {
+  const magneticRef = useRef<HTMLElement | null>(null);
+
+  // Magnetic hover (cta-destaque only): quando o mouse chega a até 80px do
+  // botão, ele "puxa" até 8px na direção do cursor. Desktop + motion only.
+  useEffect(() => {
+    if (variant !== "cta-destaque") return;
+    if (props["aria-disabled"] === "true" || props["aria-disabled"] === true) return;
+    if (prefersReducedMotion() || !supportsHover()) return;
+
+    const el = magneticRef.current;
+    if (!el) return;
+
+    const moveX = gsap.quickTo(el, "x", { duration: 0.3, ease: EASE.outStandard });
+    const moveY = gsap.quickTo(el, "y", { duration: 0.3, ease: EASE.outStandard });
+
+    const handleMove = (event: MouseEvent) => {
+      const rect = el.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = event.clientX - cx;
+      const dy = event.clientY - cy;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist < MAGNET_RADIUS) {
+        const pull = (1 - dist / MAGNET_RADIUS) * MAGNET_MAX_PULL;
+        const angle = Math.atan2(dy, dx);
+        moveX(Math.cos(angle) * pull);
+        moveY(Math.sin(angle) * pull);
+      } else {
+        moveX(0);
+        moveY(0);
+      }
+    };
+
+    window.addEventListener("mousemove", handleMove);
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      gsap.set(el, { x: 0, y: 0 });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- aria-disabled read once at effect setup on purpose, not a reactive dep
+  }, [variant]);
+
   const classes = clsx(baseClasses, variantClasses[variant], className);
-  const content = (
+
+  const iconNode = icon ? (
+    animatedIcon ? (
+      <IconSlide icon={icon} />
+    ) : (
+      <span aria-hidden="true" className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+        {icon}
+      </span>
+    )
+  ) : null;
+
+  const innerContent = (
     <>
-      {variant === "whatsapp" && <WhatsAppIcon />}
+      {icon && iconPosition === "left" && iconNode}
       {children}
+      {icon && iconPosition === "right" && iconNode}
     </>
   );
+
+  // Secondary precisa de dois spans extras: o preenchimento que cresce do
+  // centro (::before "manual", já que Tailwind puro não anima pseudo +
+  // troca de cor do texto junto sem um layer próprio) e o texto por cima.
+  const content =
+    variant === "secondary" ? (
+      <>
+        <span
+          aria-hidden="true"
+          className="bg-fernandito-verde-escuro duration-base ease-out-standard pointer-events-none absolute inset-0 origin-center scale-x-0 transition-transform group-hover:scale-x-100"
+        />
+        <span className="duration-base ease-out-standard group-hover:text-fernandito-off-white relative z-10 flex items-center gap-2 transition-colors">
+          {innerContent}
+        </span>
+      </>
+    ) : (
+      innerContent
+    );
+
+  const setRef = (el: HTMLButtonElement | HTMLAnchorElement | null) => {
+    magneticRef.current = el;
+  };
 
   if (props.as === "a") {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip custom `as` before spreading onto the DOM node
     const { as: _as, ...anchorProps } = props;
     return (
-      <a className={classes} {...anchorProps}>
+      <a ref={setRef} className={classes} {...anchorProps}>
         {content}
       </a>
     );
@@ -60,8 +180,10 @@ export function Button({ variant = "primary", children, className, ...props }: B
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip custom `as` before spreading onto the DOM node
   const { as: _as, ...buttonProps } = props;
   return (
-    <button className={classes} {...buttonProps}>
+    <button ref={setRef} className={classes} {...buttonProps}>
       {content}
     </button>
   );
 }
+
+export default Button;

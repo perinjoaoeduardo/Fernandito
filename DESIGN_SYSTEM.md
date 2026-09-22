@@ -94,24 +94,88 @@ A tabela abaixo é só a referência de conversão usada no design:
 | `lg`   | 16px   | `rounded-lg`   |
 | `full` | 9999px | `rounded-full` |
 
+## Interação
+
+Referência canônica pra qualquer estado interativo (hover, focus, active) em
+qualquer prompt futuro — ver `tailwind.config.ts` (`transitionDuration`,
+`transitionTimingFunction`) e `src/lib/gsap.ts` (`DURATION`, `EASE`, os
+mesmos nomes registrados como `CustomEase` pro GSAP usar a curva idêntica).
+
+### Tokens de duração e easing
+
+| Token                | Valor                               | Uso                                             |
+| -------------------- | ----------------------------------- | ----------------------------------------------- |
+| `duration-fast`      | `150ms`                             | Feedbacks imediatos (press, focus)              |
+| `duration-base`      | `300ms`                             | Hover padrão de UI                              |
+| `duration-slow`      | `500ms`                             | Transições maiores, entrada de elementos        |
+| `ease-out-standard`  | `cubic-bezier(0.22, 1, 0.36, 1)`    | Padrão pra quase tudo                           |
+| `ease-out-back`      | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Parcimônia — bounce leve (selos, hover de card) |
+| `ease-in-out-smooth` | `cubic-bezier(0.65, 0, 0.35, 1)`    | Loops e yoyos                                   |
+
+Classes Tailwind: `duration-fast/base/slow`, `ease-out-standard/out-back/in-out-smooth`.
+Em GSAP: `import { DURATION, EASE } from "@/lib/gsap"` — `EASE.outStandard`
+etc. já é o nome registrado via `CustomEase`, mesma curva do CSS.
+
+### Regra geral: nada instantâneo
+
+Nenhum estado interativo troca sem transição. Toda mudança de cor, fundo,
+borda, escala ou posição em hover/focus/active passa por `transition` com
+no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
+
 ## Componentes base (`/src/components/ui`)
 
-- **`Button`** (`Button.tsx`) — variantes:
-  - `primary` — fundo `verde-escuro`, texto `off-white`
-  - `ghost` — borda `verde-medio`, texto `verde-escuro`
-  - `whatsapp` — fundo `verde-medio`, ícone WhatsApp + texto `off-white`
+- **`Button`** (`Button.tsx`) — 4 variantes, todas com radius-full, padding
+  generoso, `transition` base 300ms/`ease-out-standard`:
+  - `primary` — fundo `verde-medio` → hover `verde-escuro`. Com a prop
+    `icon` + `animatedIcon`, o ícone mora num círculo off-white e desliza
+    (clone entra pela esquerda enquanto o original sai pela direita,
+    `overflow-hidden` + `group-hover:translate-x-full`) — "isso te leva a
+    algum lugar".
+  - `secondary` — borda `verde-escuro` 1.5px, transparente. Hover: um span
+    absoluto (`scale-x-0 → scale-x-100`, `origin-center`) preenche de
+    dentro pra fora, texto vira `off-white` no meio da transição.
+  - `ghost` — sem borda/fundo, texto `verde-escuro` → hover `verde-medio` +
+    sublinhado (mesma mecânica do `Link` `underline-grow`). Active:
+    `opacity-70` (não scale, ao contrário dos outros três).
+  - `cta-destaque` — fundo `verde-escuro` sólido → hover `verde-medio` +
+    glow (`box-shadow` verde-medio/0.3, blur 20px). **Magnetic hover**
+    (desktop + motion only): dentro de 80px do botão, ele "puxa" até 8px
+    na direção do cursor via `gsap.quickTo`; desliga sozinho se
+    `aria-disabled="true"`. É o botão do WhatsApp e afins.
+  - Todas: `active:scale-*` (0.97 padrão, 0.96 no cta-destaque),
+    `focus-visible:outline` (2px, 3px no cta-destaque) — cor padrão
+    `verde-medio`, sobrescrever via `className` (`!outline-...`) em fundos
+    onde verde-medio não contrasta (ex: `FooterSection`, verde-escuro).
+- **`Link`** (`Link.tsx`) — link textual com sublinha animada, 2 variantes:
+  - `underline-grow` (padrão) — sem sublinha em repouso; cresce da esquerda
+    no hover/focus (`origin-left`) e retrai pra direita ao sair
+    (`origin-right`) via o clássico truque de trocar `transform-origin`
+    entre estado base e `:hover`, sem JS. Uso: prosa, listas.
+  - `underline-swap` — sublinha fina permanente + uma segunda, mais grossa
+    e `verde-medio`, "sobe" por baixo no hover (`scale-y-0 → scale-y-100`,
+    `origin-bottom`). Mais editorial — usado no Footer e adequado a links
+    dentro do cartão-carta.
+- **`ElevatedCard`** (`ElevatedCard.tsx`) — card com elevação física no
+  hover, extraído da `CartaSection`. Props: `elevation` (`"sm"|"md"|"lg"` →
+  `-6px`/`-8px`/`-12px`, sombra cresce junto — `md` é o valor original da
+  CartaSection), `rotateOnHover` (`-1.5deg`, default `false`). `duration-slow`
+  - `ease-out-standard`, desliga sob `prefers-reduced-motion`/sem hover.
+    `data-cursor-hover` já embutido (ver `CustomCursor` abaixo).
 - **`FloatingNav`** (`FloatingNav.tsx`) — menu flutuante centralizado no topo,
   ver comportamento detalhado no componente.
 - **`Container`** (`Container.tsx`) — max-width com padding responsivo,
   usado para limitar a largura de conteúdo dentro das seções full-bleed.
-- **`WhatsAppButton`** (`WhatsAppButton.tsx`) — wrapper do `Button`
-  variante `whatsapp` que lê `NEXT_PUBLIC_WHATSAPP_NUMBER`: sem a variável
-  preenchida, renderiza desabilitado (mesma aparência, `opacity-60`,
-  `cursor-not-allowed`, tooltip "Em breve"); com ela preenchida, vira link
-  para `wa.me/{numero}` com mensagem pré-preenchida. Usar este componente
-  em vez de `Button` direto sempre que o CTA for "falar no WhatsApp". Aceita
-  `background="verde-medio"` (padrão) ou `"verde-escuro"` (usado no
-  `FloatingNav`, que já tem fundo claro).
+- **`WhatsAppButton`** (`WhatsAppButton.tsx`) — wrapper do `Button` variante
+  `cta-destaque` (ícone à esquerda) que lê `NEXT_PUBLIC_WHATSAPP_NUMBER`:
+  sem a variável preenchida, renderiza com `aria-disabled="true"` + clique
+  bloqueado via `preventDefault` (não usa o atributo `disabled` nativo —
+  alguns navegadores suprimem eventos de mouse/hover nele, quebrando o
+  tooltip "Em breve" e o CustomCursor); com ela preenchida, vira link pra
+  `wa.me/{numero}` com mensagem pré-preenchida. Usar este componente em vez
+  de `Button` direto sempre que o CTA for "falar no WhatsApp". Prop
+  `background`: `"verde-escuro"` (default do `cta-destaque`, sem overrid —
+  usado no `FloatingNav`, pill clara) ou `"verde-medio"` (override pra
+  contexto já-escuro — Footer, CTASection —, hover vai pra `verde-claro`).
 - **`SvgPlaceholder`** (`SvgPlaceholder.tsx`) — placeholder genérico (borda
   tracejada + label) pros SVGs de marca que ainda não chegaram. Dimensionado
   via `className` por quem usa.
@@ -119,12 +183,24 @@ A tabela abaixo é só a referência de conversão usada no design:
   `SvgPlaceholder` (~4:1, "LOGO SVG AQUI — aguardando arquivo") esperando
   `/public/logo/fernandito-logo-full.svg`. Ver seção "Assets de logo"
   abaixo pros demais arquivos esperados.
-- **`CustomCursor`** (`CustomCursor.tsx`) — bolinha de 12px que segue o
-  mouse (via `gsap.quickTo`), cresce (2.75x) e vira `mix-blend-mode:
-difference` sobre qualquer `a`/`button`/etc. Global (montado 1x no
+- **`CustomCursor`** (`CustomCursor.tsx`) — bolinha de 12px, sempre
+  off-white, `mix-blend-mode: difference` permanente. Segue o mouse via
+  `gsap.quickTo`; no hover de qualquer `a`/`button`/`[role=button]`/
+  `[data-cursor-hover]`, cresce só ~8% (`scale: 1.08`) — sutil, só indica
+  "isso é clicável". A identidade visual do hover mora nos componentes
+  (`Button`, `Link`, `ElevatedCard`), não no cursor. `[data-cursor-hover]`
+  é o opt-in pra divs sem role semântico mas com reação de hover forte
+  (o `ElevatedCard` já vem com o atributo). Global (montado 1x no
   `layout.tsx`, não por seção). Só ativa em desktop com hover
   (`supportsHover()`) e fora de `prefers-reduced-motion`; fora disso
   retorna `null` e o cursor nativo continua normal.
+- **`ScrollProgress`** (`ScrollProgress.tsx`) — barra fixa de 2px no topo
+  absoluto da viewport, `verde-medio` + `mix-blend-mode: difference` (some
+  o suficiente pra funcionar sobre qualquer fundo). Largura 0–100% via
+  `lenis.progress` (fallback pra `scrollY`/`scrollHeight` sem Lenis),
+  atualizado por `requestAnimationFrame`. Sob `prefers-reduced-motion` nem
+  monta — é adorno de motion, não conteúdo. Global, montado 1x no
+  `layout.tsx`.
 
 ### Assets de logo (`/public/logo/`)
 
@@ -183,3 +259,13 @@ Qualquer nova seção com animação deve:
 - Respeitar `prefers-reduced-motion` (helper `prefersReducedMotion()` em
   `src/lib/gsap.ts`).
 - Limpar `ScrollTrigger`/timelines no cleanup do `useEffect`.
+
+## Comportamento de refresh
+
+Decisão explícita: dar refresh na página **sempre volta pro topo**, nunca
+mantém a posição de scroll da sessão anterior — landing de página única,
+"acordar" no meio do scroll é uma experiência ruim, e a IntroLoader já roda
+do zero a cada carregamento mesmo. Implementado em `layout.tsx` via um
+`<Script strategy="beforeInteractive">` que desliga `history.scrollRestoration`
+e força `scrollTo(0, 0)` antes da hidratação (evita o flash de "restaura no
+meio e depois pula pro topo").

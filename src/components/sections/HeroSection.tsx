@@ -140,7 +140,7 @@ export function HeroSection() {
         type="button"
         onClick={() => scrollToTarget("#manifesto")}
         aria-label="Rolar até a seção Manifesto"
-        className="border-fernandito-off-white absolute bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full border-2 bg-transparent transition-transform duration-300 [will-change:transform] hover:scale-110"
+        className="border-fernandito-off-white duration-base ease-out-standard focus-visible:outline-fernandito-off-white absolute bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full border-2 bg-transparent transition-transform [will-change:transform] hover:scale-110 focus-visible:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
       >
         <svg
           ref={chevronRef}

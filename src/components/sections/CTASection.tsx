@@ -7,7 +7,9 @@ export function CTASection() {
       className="bg-fernandito-verde-medio flex min-h-screen flex-col items-center justify-center gap-8 px-6"
     >
       <h2 className="text-display-xl text-fernandito-off-white text-center font-serif">CTA</h2>
-      <WhatsAppButton>Fale no WhatsApp</WhatsAppButton>
+      {/* verde-escuro aqui — o fundo padrão (verde-medio) do WhatsAppButton
+          ficaria invisível contra a própria seção, que também é verde-medio. */}
+      <WhatsAppButton background="verde-escuro">Fale no WhatsApp</WhatsAppButton>
     </section>
   );
 }

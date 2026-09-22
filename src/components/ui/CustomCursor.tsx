@@ -1,14 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { gsap, prefersReducedMotion, supportsHover } from "@/lib/gsap";
+import { gsap, EASE, prefersReducedMotion, supportsHover } from "@/lib/gsap";
 
-// Qualquer coisa clicável faz a bolinha crescer + entrar em "difference".
+// A bolinha fica sempre off-white — o hover só dá um aumento sutil (~8%),
+// só pra indicar "isso é clicável" sem virar o protagonista da interação.
+// Quem carrega a identidade visual de fato são os próprios componentes
+// (Button, Link, ElevatedCard — ver DESIGN_SYSTEM.md "## Interação").
 // `[data-cursor-hover]` é o opt-in pra elementos não-semânticos (divs com
-// reação de hover forte mas sem ação de clique, tipo o cartão da
-// CartaSection) que ainda assim devem contar como "hover" pro cursor.
+// reação de hover forte mas sem ação de clique, tipo o ElevatedCard) que
+// ainda assim devem contar como "hover" pro cursor.
 const HOVER_SELECTOR =
   "a, button, [role='button'], input, textarea, select, label, [data-cursor-hover]";
+const HOVER_SCALE = 1.08;
 
 export function CustomCursor() {
   const [active, setActive] = useState(false);
@@ -39,14 +43,12 @@ export function CustomCursor() {
 
     const handlePointerOver = (event: PointerEvent) => {
       if ((event.target as Element | null)?.closest(HOVER_SELECTOR)) {
-        gsap.to(dot, { scale: 2.75, duration: 0.25, ease: "power2.out" });
-        dot.style.mixBlendMode = "difference";
+        gsap.to(dot, { scale: HOVER_SCALE, duration: 0.3, ease: EASE.outStandard });
       }
     };
     const handlePointerOut = (event: PointerEvent) => {
       if ((event.target as Element | null)?.closest(HOVER_SELECTOR)) {
-        gsap.to(dot, { scale: 1, duration: 0.25, ease: "power2.out" });
-        dot.style.mixBlendMode = "normal";
+        gsap.to(dot, { scale: 1, duration: 0.3, ease: EASE.outStandard });
       }
     };
 
@@ -68,7 +70,7 @@ export function CustomCursor() {
     <div
       ref={dotRef}
       aria-hidden="true"
-      className="bg-fernandito-off-white pointer-events-none fixed top-0 left-0 z-[200] h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full [will-change:transform]"
+      className="bg-fernandito-off-white pointer-events-none fixed top-0 left-0 z-[200] h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full mix-blend-difference [will-change:transform]"
     />
   );
 }

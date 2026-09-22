@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { scrollToTarget } from "@/lib/lenis";
 import { SvgPlaceholder } from "@/components/ui/SvgPlaceholder";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
+import { Link } from "@/components/ui/Link";
 
 // "Onde encontrar" e "Contato" apontam para a mesma seção (CTASection) por
 // enquanto — não há um bloco de contato dedicado nesta fundação.
@@ -79,7 +80,7 @@ export function FloatingNav() {
           transition={{ duration: 0.3, ease: "easeOut" }}
           onClick={() => scrollToTarget("#hero")}
           aria-label="Voltar ao topo"
-          className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full backdrop-blur-md sm:flex"
+          className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio hidden h-11 w-11 shrink-0 items-center justify-center rounded-full backdrop-blur-md transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:flex"
         >
           <SvgPlaceholder
             label="CAVALO"
@@ -95,7 +96,7 @@ export function FloatingNav() {
           onClick={() => setMenuOpen((open) => !open)}
           aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
           aria-expanded={menuOpen}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full backdrop-blur-md sm:hidden"
+          className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 w-11 shrink-0 items-center justify-center rounded-full backdrop-blur-md transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:hidden"
         >
           <SvgPlaceholder
             label="CAVALO"
@@ -110,13 +111,13 @@ export function FloatingNav() {
           className="hidden items-center gap-1 rounded-full py-2 pr-2 pl-4 backdrop-blur-md sm:flex"
         >
           {LINKS.map((link) => (
-            <a
+            <Link
               key={link.label}
               href={link.href}
-              className="text-label text-fernandito-verde-escuro rounded-full px-4 py-2 font-sans tracking-[0.08em] uppercase transition-opacity hover:opacity-60"
+              className="text-label text-fernandito-verde-escuro rounded-full px-4 py-2 font-sans tracking-[0.08em] uppercase"
             >
               {link.label}
-            </a>
+            </Link>
           ))}
           <WhatsAppButton background="verde-escuro" className="!text-label ml-1 !px-4 !py-2">
             Fale no WhatsApp
@@ -138,21 +139,21 @@ export function FloatingNav() {
               type="button"
               onClick={() => setMenuOpen(false)}
               aria-label="Fechar menu"
-              className="text-fernandito-off-white absolute top-6 right-6 text-3xl leading-none"
+              className="text-fernandito-off-white duration-base ease-out-standard focus-visible:outline-fernandito-off-white absolute top-6 right-6 text-3xl leading-none transition-opacity hover:opacity-70 focus-visible:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               ×
             </button>
 
             <nav className="flex flex-col items-center gap-8">
               {LINKS.map((link) => (
-                <a
+                <Link
                   key={link.label}
                   href={link.href}
                   onClick={() => setMenuOpen(false)}
-                  className="text-fernandito-off-white text-display-md font-serif"
+                  className="text-fernandito-off-white text-display-md !outline-fernandito-off-white font-serif"
                 >
                   {link.label}
-                </a>
+                </Link>
               ))}
             </nav>
 
