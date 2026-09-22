@@ -235,7 +235,15 @@ dessa ilustração em raster, gerar um resize menor a partir dele primeiro.
 
 Ordem fixa da landing page (ver `src/app/page.tsx`):
 
-1. `HeroSection` — fundo **verde-medio**
+1. `HeroSection` — fundo **verde-medio**, efeito "shrink-to-card" ao rolar
+   (inspirado no hero da Lassie): a section é `motion-safe:h-[160vh]`, o
+   cartão visual é `sticky top-0 h-screen` — enquanto a altura extra rola
+   por baixo, `scale`/`border-radius` do cartão animam via `ScrollTrigger`
+   (`scrub`) de tela cheia (scale 1, raio 0) até um cartão menor e
+   arredondado (`scale 0.9`, raio 40px), revelando o fundo do `body`
+   (verde-escuro) como moldura. Texto/indicador desvanecem antes do
+   cartão terminar de encolher. `prefers-reduced-motion` volta a section
+   pra um `h-screen` simples, sem o efeito.
 2. `ManifestoSection` — fundo off-white
 3. `CartaSection` — fundo off-white, bloco editorial: epígrafe grande
    (reveal por palavra via SplitText) + cartão-carta (`ElevatedCard`, corpo,

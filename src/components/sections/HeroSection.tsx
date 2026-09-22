@@ -6,8 +6,14 @@ import { onIntroComplete } from "@/lib/introSignal";
 import { scrollToTarget } from "@/lib/lenis";
 import { Logo } from "@/components/ui/Logo";
 
+// Quanto o cartão encolhe/arredonda ao rolar (ver efeito "shrink-to-card"
+// abaixo) — sutil o bastante pra não parecer um zoom brusco.
+const SHRINK_SCALE = 0.9;
+const SHRINK_RADIUS = 40; // px
+
 export function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLHeadingElement>(null);
   const taglineRef = useRef<HTMLParagraphElement>(null);
@@ -16,11 +22,12 @@ export function HeroSection() {
 
   useEffect(() => {
     const section = sectionRef.current;
+    const box = boxRef.current;
     const content = contentRef.current;
     const logo = logoRef.current;
     const tagline = taglineRef.current;
     const indicator = indicatorRef.current;
-    if (!section || !content || !logo || !tagline || !indicator) return;
+    if (!section || !box || !content || !logo || !tagline || !indicator) return;
 
     const reduceMotion = prefersReducedMotion();
 
@@ -74,22 +81,35 @@ export function HeroSection() {
       }
     }, section);
 
-    // Exit parallax (1.2x scroll speed) + fade over the last 30vh of the
-    // section's own scroll range.
-    let scrollTrigger: ScrollTrigger | null = null;
+    // "Shrink-to-card": a section é mais alta que a viewport (motion-safe:h-[160vh])
+    // e o cartão (`box`) fica `sticky top-0` — enquanto o resto da altura extra
+    // rola por baixo dele, a gente anima scale + border-radius do cartão
+    // (revela a cor de fundo do body nas bordas, como uma moldura) e desvanece
+    // o conteúdo de texto, que já não faz sentido dentro de um cartão pequeno.
+    // Ao fim do range, o sticky solta sozinho e a ManifestoSection continua o
+    // scroll normalmente — sem precisar de pin/unpin manual via ScrollTrigger.
+    let shrinkTrigger: ScrollTrigger | null = null;
     if (!reduceMotion) {
-      scrollTrigger = ScrollTrigger.create({
+      shrinkTrigger = ScrollTrigger.create({
         trigger: section,
         start: "top top",
-        end: "bottom top",
-        scrub: true,
+        end: "bottom bottom",
+        scrub: 0.6,
         onUpdate: (self) => {
           const progress = self.progress;
-          const translateY = -progress * window.innerHeight * 0.2;
-          const fadeStart = 0.7;
-          const opacity =
-            progress <= fadeStart ? 1 : Math.max(0, 1 - (progress - fadeStart) / (1 - fadeStart));
-          gsap.set(content, { y: translateY, opacity });
+          const boxProgress = Math.min(1, progress / 0.7);
+          const contentProgress = Math.min(1, progress / 0.35);
+          const indicatorProgress = Math.min(1, progress / 0.15);
+
+          gsap.set(box, {
+            scale: 1 - boxProgress * (1 - SHRINK_SCALE),
+            borderRadius: boxProgress * SHRINK_RADIUS,
+          });
+          gsap.set(content, {
+            opacity: 1 - contentProgress,
+            y: -contentProgress * 40,
+          });
+          gsap.set(indicator, { opacity: 1 - indicatorProgress });
         },
       });
     }
@@ -98,48 +118,49 @@ export function HeroSection() {
       unsubscribeIntro?.();
       entranceTimeline?.kill();
       removeMouseMove?.();
-      scrollTrigger?.kill();
+      shrinkTrigger?.kill();
       ctx.revert();
     };
   }, []);
 
   return (
-    <section
-      ref={sectionRef}
-      id="hero"
-      className="bg-fernandito-verde-medio relative flex h-screen flex-col items-center justify-center overflow-hidden"
-    >
-      <div ref={contentRef} className="flex flex-col items-center px-6 text-center">
-        <h1 ref={logoRef} aria-label="Fernandito" className="flex justify-center">
-          <Logo />
-        </h1>
-        <p ref={taglineRef} className="text-body-lg text-fernandito-verde-claro mt-6 font-sans">
-          Fernet com cola. Direto da lata.
-        </p>
-      </div>
-
-      <button
-        ref={indicatorRef}
-        type="button"
-        onClick={() => scrollToTarget("#manifesto")}
-        aria-label="Rolar até a seção Manifesto"
-        className="text-fernandito-off-white/70 duration-base ease-out-standard focus-visible:outline-fernandito-off-white absolute bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 flex -translate-x-1/2 items-center gap-2 bg-transparent font-sans text-body transition-colors hover:text-fernandito-off-white focus-visible:text-fernandito-off-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
+    <section ref={sectionRef} id="hero" className="relative h-screen motion-safe:h-[160vh]">
+      <div
+        ref={boxRef}
+        className="bg-fernandito-verde-medio sticky top-0 flex h-screen w-full flex-col items-center justify-center overflow-hidden [will-change:transform,border-radius]"
       >
-        scroll
-        <svg
-          ref={chevronRef}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-          className="h-4 w-4"
+        <div ref={contentRef} className="flex flex-col items-center px-6 text-center">
+          <h1 ref={logoRef} aria-label="Fernandito" className="flex justify-center">
+            <Logo />
+          </h1>
+          <p ref={taglineRef} className="text-body-lg text-fernandito-verde-claro mt-6 font-sans">
+            Fernet com cola. Direto da lata.
+          </p>
+        </div>
+
+        <button
+          ref={indicatorRef}
+          type="button"
+          onClick={() => scrollToTarget("#manifesto")}
+          aria-label="Rolar até a seção Manifesto"
+          className="text-fernandito-off-white/70 duration-base ease-out-standard focus-visible:outline-fernandito-off-white text-body hover:text-fernandito-off-white focus-visible:text-fernandito-off-white absolute bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 flex -translate-x-1/2 items-center gap-2 bg-transparent font-sans transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
         >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
+          scroll
+          <svg
+            ref={chevronRef}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className="h-4 w-4"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+      </div>
     </section>
   );
 }
