@@ -130,7 +130,11 @@ export function FooterSection() {
           <p ref={taglineRef} className="text-body-lg text-fernandito-verde-claro mt-6 font-sans">
             Isso toma fernandito.
           </p>
-          <div className="mt-8">
+          {/* Vídeo e CTA intermediários foram removidos (eram placeholders
+              sem conteúdo) — o link "Onde encontrar" do nav aponta direto
+              pra cá agora, que já é a resposta prática (fala com a gente
+              no WhatsApp). */}
+          <div id="onde-encontrar" className="mt-8">
             <WhatsAppButton>Fale no WhatsApp</WhatsAppButton>
           </div>
         </div>

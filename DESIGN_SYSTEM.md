@@ -162,7 +162,16 @@ no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
   - `ease-out-standard`, desliga sob `prefers-reduced-motion`/sem hover.
     `data-cursor-hover` já embutido (ver `CustomCursor` abaixo).
 - **`FloatingNav`** (`FloatingNav.tsx`) — menu flutuante centralizado no topo,
-  ver comportamento detalhado no componente.
+  ver comportamento detalhado no componente. Também troca de tom sozinho
+  conforme a seção por trás dele: a cada scroll, amostra a cor de fundo
+  computada num ponto fixo fora da pill (`elementFromPoint` num canto,
+  não no próprio nav) e decide clara/escura pela luminância (`> 150` =
+  fundo claro). Sobre fundo escuro/verde a pill fica clara (off-white,
+  comportamento padrão); sobre fundo claro/off-white ela inverte pra
+  verde-escuro, com texto off-white — sempre com a mesma transição suave
+  do "shrunk" ao rolar. Funciona pra qualquer seção presente ou futura sem
+  precisar marcar cada uma com um data-attribute (é systemic, não
+  hardcoded por seção).
 - **`Container`** (`Container.tsx`) — max-width com padding responsivo,
   usado para limitar a largura de conteúdo dentro das seções full-bleed.
 - **`WhatsAppButton`** (`WhatsAppButton.tsx`) — wrapper do `Button` variante
@@ -173,9 +182,10 @@ no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
   tooltip "Em breve" e o CustomCursor); com ela preenchida, vira link pra
   `wa.me/{numero}` com mensagem pré-preenchida. Usar este componente em vez
   de `Button` direto sempre que o CTA for "falar no WhatsApp". Prop
-  `background`: `"verde-escuro"` (default do `cta-destaque`, sem overrid —
-  usado no `FloatingNav`, pill clara) ou `"verde-medio"` (override pra
-  contexto já-escuro — Footer, CTASection —, hover vai pra `verde-claro`).
+  `background`: `"verde-escuro"` (default do `cta-destaque`, sem override —
+  usado no `FloatingNav` quando a pill está clara) ou `"verde-medio"`
+  (override pra contexto já-escuro — Footer, ou o `FloatingNav` quando a
+  pill inverteu pra escura — hover vai pra `verde-claro`).
 - **`SvgPlaceholder`** (`SvgPlaceholder.tsx`) — placeholder genérico (borda
   tracejada + label) pros SVGs de marca que ainda não chegaram. Dimensionado
   via `className` por quem usa. Sem uso ativo no momento — todo asset que
@@ -294,10 +304,14 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    (rotação alternada, card central maior) que entra em cascata do centro
    pras bordas e se "abre" no hover; vira carrossel com scroll-snap no
    mobile. Ver detalhes na sua própria entrada abaixo.
-7. `FichaTecnicaSection` — fundo verde-claro
-8. `VideoSection` — fundo verde-escuro
-9. `CTASection` — fundo verde-medio
-10. `FooterSection` — fundo verde-escuro, versão compacta (estilo do
+7. `FichaTecnicaSection` — só o marquee (`font-accent`, texto curto: "Toma
+   Fernandito · Fernet y Cola · 350ml · 8% vol." em loop) — a versão
+   anterior tinha uma grade de "ficha técnica" completa (specs, ingredientes,
+   registro MAPA) abaixo do marquee; foi removida por conter informação
+   redundante com `/legal/avisos` e não agregar visualmente. Altura do
+   marquee agora vem do padding do conteúdo (`py-6 sm:py-8`), não de `vh` —
+   antes ficava alta demais em qualquer viewport.
+8. `FooterSection` — fundo verde-escuro, versão compacta (estilo do
     rodapé enxuto da Lassie — substituiu uma versão anterior bem mais alta,
     com labels decorativos nos 4 cantos e `min-h-[90vh]`). Duas colunas no
     topo: frase de fechamento (`font-serif`, reveal por palavra) + CTA

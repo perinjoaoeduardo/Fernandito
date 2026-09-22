@@ -5,8 +5,6 @@ import { CartaSection } from "@/components/sections/CartaSection";
 import { ProdutoSection } from "@/components/sections/ProdutoSection";
 import { SocialGallerySection } from "@/components/sections/SocialGallerySection";
 import { FichaTecnicaSection } from "@/components/sections/FichaTecnicaSection";
-import { VideoSection } from "@/components/sections/VideoSection";
-import { CTASection } from "@/components/sections/CTASection";
 import { FooterSection } from "@/components/sections/FooterSection";
 
 export default function Home() {
@@ -19,8 +17,6 @@ export default function Home() {
       <ProdutoSection />
       <SocialGallerySection />
       <FichaTecnicaSection />
-      <VideoSection />
-      <CTASection />
       <FooterSection />
     </main>
   );

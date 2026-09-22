@@ -1,12 +1,13 @@
 "use client";
 
+import { clsx } from "clsx";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { scrollToTarget } from "@/lib/lenis";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 
-// "Onde encontrar" e "Contato" apontam para a mesma seção (CTASection) por
+// "Onde encontrar" e "Contato" apontam pro CTA do FooterSection por
 // enquanto — não há um bloco de contato dedicado nesta fundação.
 const LINKS = [
   { label: "Manifesto", href: "#manifesto" },
@@ -14,9 +15,44 @@ const LINKS = [
   { label: "Onde encontrar", href: "#onde-encontrar" },
 ];
 
+// Ponto de amostragem fixo (canto esquerdo, fora da pill que fica centrada)
+// — assim `elementFromPoint` sempre pega o fundo da SEÇÃO por trás do nav,
+// nunca o próprio nav. Funciona pra qualquer seção presente ou futura, sem
+// precisar marcar cada uma manualmente com um data-attribute: a gente lê a
+// cor de fundo computada de verdade e decide clara/escura pela luminância.
+const PROBE_X = 12;
+const PROBE_Y = 40;
+const LIGHT_LUMINANCE_THRESHOLD = 150;
+
+function luminance(r: number, g: number, b: number) {
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
+/** Sobe a árvore a partir do ponto amostrado até achar um background-color
+ * não-transparente — a maioria dos wrappers internos não define bg próprio. */
+function sampleIsOverLight(): boolean | null {
+  const el = document.elementFromPoint(PROBE_X, PROBE_Y);
+  let node: Element | null = el;
+  while (node) {
+    const bg = getComputedStyle(node).backgroundColor;
+    const match = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+      const [, r, g, b] = match;
+      const alpha = bg.match(/[\d.]+\)$/)?.[0];
+      // Ignora transparente total (rgba(0,0,0,0)) — continua subindo.
+      if (!(alpha === "0)" && r === "0" && g === "0" && b === "0")) {
+        return luminance(Number(r), Number(g), Number(b)) > LIGHT_LUMINANCE_THRESHOLD;
+      }
+    }
+    node = node.parentElement;
+  }
+  return null;
+}
+
 export function FloatingNav() {
   const [visible, setVisible] = useState(false);
   const [shrunk, setShrunk] = useState(false);
+  const [overLight, setOverLight] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const lastScrollY = useRef(0);
 
@@ -40,10 +76,15 @@ export function FloatingNav() {
           setShrunk(delta > 0 && currentY > 80);
           lastScrollY.current = currentY;
         }
+
+        const isLight = sampleIsOverLight();
+        if (isLight !== null) setOverLight(isLight);
+
         ticking = false;
       });
     };
 
+    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -58,9 +99,18 @@ export function FloatingNav() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [menuOpen]);
 
+  // Cor do fundo por trás do nav decide o tom da pill — clara (off-white,
+  // padrão) sobre fundo escuro/verde, escura (verde-escuro) sobre fundo
+  // claro/off-white, sempre com a mesma transição suave do "shrunk".
   const pillAnimation = {
     scale: shrunk ? 0.95 : 1,
-    backgroundColor: shrunk ? "rgba(230, 230, 203, 0.95)" : "rgba(230, 230, 203, 0.7)",
+    backgroundColor: overLight
+      ? shrunk
+        ? "rgba(36, 48, 34, 0.95)"
+        : "rgba(36, 48, 34, 0.7)"
+      : shrunk
+        ? "rgba(230, 230, 203, 0.95)"
+        : "rgba(230, 230, 203, 0.7)",
   };
 
   return (
@@ -109,12 +159,18 @@ export function FloatingNav() {
             <Link
               key={link.label}
               href={link.href}
-              className="text-label text-fernandito-verde-escuro rounded-full px-4 py-2 font-sans tracking-[0.08em] uppercase"
+              className={clsx(
+                "text-label duration-base ease-out-standard rounded-full px-4 py-2 font-sans tracking-[0.08em] uppercase transition-colors",
+                overLight ? "text-fernandito-off-white" : "text-fernandito-verde-escuro",
+              )}
             >
               {link.label}
             </Link>
           ))}
-          <WhatsAppButton background="verde-escuro" className="!text-label ml-1 !px-4 !py-2">
+          <WhatsAppButton
+            background={overLight ? "verde-medio" : "verde-escuro"}
+            className="!text-label ml-1 !px-4 !py-2"
+          >
             Fale no WhatsApp
           </WhatsAppButton>
         </motion.div>

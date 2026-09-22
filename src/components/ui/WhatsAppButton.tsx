@@ -32,10 +32,11 @@ export function WhatsAppButton({
   background = "verde-medio",
 }: WhatsAppButtonProps) {
   // `cta-destaque` já é verde-escuro-em-repouso/verde-medio-no-hover por
-  // padrão (ver Button.tsx) — perfeito pro FloatingNav (pill clara, precisa
-  // de fundo escuro pra contraste). Fora dali (Footer, CTASection), o botão
-  // senta sobre um fundo JÁ verde-escuro, então precisa da lógica invertida:
-  // repouso verde-medio (contrasta com o fundo escuro), hover verde-claro
+  // padrão (ver Button.tsx) — perfeito pro FloatingNav quando a pill está
+  // clara (precisa de fundo escuro pra contraste). Fora dali (Footer), o
+  // botão senta sobre um fundo JÁ verde-escuro, então precisa da lógica
+  // invertida: repouso verde-medio (contrasta com o fundo escuro), hover
+  // verde-claro
   // (mais claro ainda, mantém o padrão "fica mais vivo no hover"). `!` força
   // a sobrescrita já que a ordem das classes no JSX não garante qual delas
   // "vence" no CSS gerado pelo Tailwind.

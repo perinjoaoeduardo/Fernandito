@@ -1,44 +1,18 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger, prefersReducedMotion, supportsHover } from "@/lib/gsap";
+import { gsap, ScrollTrigger, prefersReducedMotion } from "@/lib/gsap";
 
-const MARQUEE_PHRASE =
-  "TOMA FERNANDITO • FERNET COM COLA • 350ml • 8% • BEBIDA ALCOÓLICA MISTA GASEIFICADA • RS 002594-1.000127 • ";
-
-type Stat = { value: number; suffix: string; label: string };
-
-const STATS: Stat[] = [
-  { value: 350, suffix: "", label: "ML POR LATA" },
-  { value: 8, suffix: "%", label: "TEOR ALCOÓLICO" },
-  { value: 1, suffix: "", label: "ORIGEM — PORTO ALEGRE, RS" },
-  { value: 1, suffix: "", label: "SABOR — FERNET COM COLA" },
-];
-
-const SPEC_ROWS = [
-  { label: "CLASSIFICAÇÃO", value: "Bebida Alcoólica Mista Gaseificada" },
-  { label: "VOLUME", value: "350ml" },
-  { label: "TEOR", value: "8% v/v" },
-  {
-    label: "INGREDIENTES",
-    value:
-      "água, fernet, açúcar, gás carbônico, corante caramelo IV, conservantes (sorbato de potássio e benzoato de sódio), acidulantes (ácido fosfórico e ácido cítrico) e aroma",
-  },
-  { label: "ALÉRGICOS", value: "contém glúten. Pode conter aveia, cevada e trigo." },
-  { label: "REGISTRO MAPA", value: "RS 002594-1.000127" },
-  {
-    label: "PRODUZIDO POR",
-    value: "Al Capone Indústria e Comércio de Bebidas Ltda. Porto Alegre / RS",
-  },
-];
-
-const REGULATORY_TEXT =
-  "Colorido e aromatizado artificialmente. Sabor artificial de cola. Evite o consumo excessivo de álcool. Proibida a venda para menores de 18 anos.";
+// Frase curta, só o essencial de marca — nada de texto regulatório aqui
+// (isso mora em /legal/avisos). `font-accent` (Special Elite, o mesmo dos
+// carimbos da SocialGallerySection) em vez do serif genérico do resto do
+// site, pra essa faixa ter uma voz tipográfica própria.
+const MARQUEE_PHRASE = "TOMA FERNANDITO · FERNET Y COLA · 350ML · 8% VOL. · ";
 
 // Repetido várias vezes pra garantir que uma "metade" da trilha já seja mais
 // larga que qualquer viewport razoável — condição pro loop xPercent:-50 ficar
 // perfeitamente contínuo (sem "buraco" em telas muito largas).
-const MARQUEE_TRACK_TEXT = MARQUEE_PHRASE.repeat(6);
+const MARQUEE_TRACK_TEXT = MARQUEE_PHRASE.repeat(8);
 
 function Marquee() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -83,13 +57,13 @@ function Marquee() {
     <div
       ref={containerRef}
       aria-hidden="true"
-      className="bg-fernandito-verde-escuro flex h-[10vh] items-center overflow-hidden md:h-[15vh]"
+      className="bg-fernandito-verde-escuro flex items-center overflow-hidden py-6 sm:py-8"
     >
       <div ref={trackRef} className="flex w-max shrink-0 [will-change:transform]">
-        <span className="text-display-lg text-fernandito-off-white pr-8 font-serif whitespace-nowrap">
+        <span className="text-display-md text-fernandito-off-white font-accent pr-8 tracking-[0.02em] whitespace-nowrap uppercase">
           {MARQUEE_TRACK_TEXT}
         </span>
-        <span className="text-display-lg text-fernandito-off-white pr-8 font-serif whitespace-nowrap">
+        <span className="text-display-md text-fernandito-off-white font-accent pr-8 tracking-[0.02em] whitespace-nowrap uppercase">
           {MARQUEE_TRACK_TEXT}
         </span>
       </div>
@@ -98,176 +72,10 @@ function Marquee() {
 }
 
 export function FichaTecnicaSection() {
-  const revealAnchorRef = useRef<HTMLDivElement>(null);
-  const statRootRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const statValueRefs = useRef<(HTMLParagraphElement | null)[]>([]);
-  const statLabelRefs = useRef<(HTMLSpanElement | null)[]>([]);
-  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  // Entrada: números fazem count-up em sequência, depois a ficha completa
-  // revela linha a linha — tudo numa única timeline pra garantir a ordem
-  // "stats primeiro, tabela depois" (as duas colunas ficam lado a lado, então
-  // triggers independentes por elemento disparariam ao mesmo tempo).
-  useEffect(() => {
-    const anchor = revealAnchorRef.current;
-    if (!anchor) return;
-
-    const values = statValueRefs.current;
-    const labels = statLabelRefs.current;
-    const rows = rowRefs.current.filter((el): el is HTMLDivElement => Boolean(el));
-
-    if (prefersReducedMotion()) {
-      STATS.forEach((stat, i) => {
-        const el = values[i];
-        if (el) el.textContent = `${stat.value}${stat.suffix}`;
-      });
-      gsap.set(labels, { opacity: 1, y: 0 });
-      gsap.set(rows, { opacity: 1, y: 0 });
-      return;
-    }
-
-    gsap.set(labels, { opacity: 0, y: 12 });
-    gsap.set(rows, { opacity: 0, y: 15 });
-    STATS.forEach((stat, i) => {
-      const el = values[i];
-      if (el) el.textContent = `0${stat.suffix}`;
-    });
-
-    const counters = STATS.map(() => ({ value: 0 }));
-    const tl = gsap.timeline({
-      scrollTrigger: { trigger: anchor, start: "top 75%", once: true },
-    });
-
-    STATS.forEach((stat, i) => {
-      const valueEl = values[i];
-      const labelEl = labels[i];
-      tl.to(
-        counters[i],
-        {
-          value: stat.value,
-          duration: 1.2,
-          ease: "power2.out",
-          onUpdate: () => {
-            if (valueEl) valueEl.textContent = `${Math.round(counters[i].value)}${stat.suffix}`;
-          },
-        },
-        i * 0.15,
-      );
-      if (labelEl) {
-        tl.to(labelEl, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, i * 0.15 + 1.0);
-      }
-    });
-
-    tl.to(rows, { opacity: 1, y: 0, duration: 0.5, stagger: 0.06, ease: "power2.out" }, "+=0.2");
-
-    return () => {
-      tl.scrollTrigger?.kill();
-      tl.kill();
-    };
-  }, []);
-
-  // Hover "carinho tipográfico" nos números — desktop only.
-  useEffect(() => {
-    if (prefersReducedMotion() || !supportsHover()) return;
-
-    const cleanups = statRootRefs.current.map((root, i) => {
-      if (!root) return () => {};
-      const valueEl = statValueRefs.current[i];
-
-      const handleEnter = () => {
-        gsap.to(root, { scale: 1.03, duration: 0.3, ease: "power2.out" });
-        if (valueEl) gsap.to(valueEl, { color: "#405139", duration: 0.3, ease: "power2.out" });
-      };
-      const handleLeave = () => {
-        gsap.to(root, { scale: 1, duration: 0.3, ease: "power2.out" });
-        if (valueEl) gsap.to(valueEl, { color: "#243022", duration: 0.3, ease: "power2.out" });
-      };
-
-      root.addEventListener("mouseenter", handleEnter);
-      root.addEventListener("mouseleave", handleLeave);
-      return () => {
-        root.removeEventListener("mouseenter", handleEnter);
-        root.removeEventListener("mouseleave", handleLeave);
-      };
-    });
-
-    return () => cleanups.forEach((cleanup) => cleanup());
-  }, []);
-
   return (
-    <section
-      id="ficha-tecnica"
-      className="bg-fernandito-verde-claro text-fernandito-verde-escuro min-h-[120vh] w-full"
-    >
+    <section id="ficha-tecnica" className="bg-fernandito-verde-claro w-full">
       <h2 className="sr-only">Ficha Técnica</h2>
-
       <Marquee />
-
-      <div
-        ref={revealAnchorRef}
-        className="mx-auto grid max-w-6xl grid-cols-1 gap-16 px-6 py-24 sm:px-8 md:grid-cols-2 lg:px-12"
-      >
-        <div className="grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-2">
-          {STATS.map((stat, i) => (
-            <div
-              key={stat.label}
-              ref={(el) => {
-                statRootRefs.current[i] = el;
-              }}
-              className="flex flex-col gap-2 [will-change:transform]"
-            >
-              <p
-                ref={(el) => {
-                  statValueRefs.current[i] = el;
-                }}
-                className="text-display-xl font-serif"
-              >
-                {stat.value}
-                {stat.suffix}
-              </p>
-              <span
-                ref={(el) => {
-                  statLabelRefs.current[i] = el;
-                }}
-                className="text-label font-sans tracking-[0.08em] uppercase"
-              >
-                {stat.label}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div>
-          <dl className="flex flex-col">
-            {SPEC_ROWS.map((row, i) => (
-              <div
-                key={row.label}
-                ref={(el) => {
-                  rowRefs.current[i] = el;
-                }}
-                className="border-fernandito-verde-escuro/15 flex flex-col gap-1 border-b py-4 [will-change:transform] sm:flex-row sm:gap-6"
-              >
-                <dt className="text-label w-full shrink-0 font-sans tracking-[0.08em] uppercase sm:w-40">
-                  {row.label}
-                </dt>
-                <dd className="text-body font-serif">{row.value}</dd>
-              </div>
-            ))}
-            <div
-              ref={(el) => {
-                rowRefs.current[SPEC_ROWS.length] = el;
-              }}
-              className="pt-4 [will-change:transform]"
-            >
-              <span className="text-label font-sans tracking-[0.08em] uppercase">
-                Indústria brasileira
-              </span>
-            </div>
-          </dl>
-
-          <p className="text-label mt-8 font-sans opacity-70">{REGULATORY_TEXT}</p>
-        </div>
-      </div>
     </section>
   );
 }
