@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { gsap, EASE, prefersReducedMotion, supportsHover } from "@/lib/gsap";
 
-// A bolinha fica sempre off-white — o hover só dá um aumento sutil (~8%),
-// só pra indicar "isso é clicável" sem virar o protagonista da interação.
+// A bolinha é sempre branca sólida (sem mix-blend-mode — isso deixava o
+// fundo "vazar" através dela) — o hover só dá um aumento sutil (~8%), só
+// pra indicar "isso é clicável" sem virar o protagonista da interação.
 // Quem carrega a identidade visual de fato são os próprios componentes
 // (Button, Link, ElevatedCard — ver DESIGN_SYSTEM.md "## Interação").
 // `[data-cursor-hover]` é o opt-in pra elementos não-semânticos (divs com
@@ -70,7 +71,7 @@ export function CustomCursor() {
     <div
       ref={dotRef}
       aria-hidden="true"
-      className="bg-fernandito-off-white pointer-events-none fixed top-0 left-0 z-[200] h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full mix-blend-difference [will-change:transform]"
+      className="pointer-events-none fixed top-0 left-0 z-[200] h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white [will-change:transform]"
     />
   );
 }

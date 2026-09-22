@@ -13,7 +13,7 @@ export function Logo({ className }: LogoProps) {
     <img
       src="/logo/fernandito-logo-text.svg"
       alt="Fernandito"
-      className={clsx("w-full max-w-[280px] sm:max-w-md", className)}
+      className={clsx("w-full max-w-[360px] sm:max-w-xl lg:max-w-2xl", className)}
     />
   );
 }

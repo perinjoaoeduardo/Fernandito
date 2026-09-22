@@ -9,7 +9,6 @@ import { Logo } from "@/components/ui/Logo";
 export function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const horseRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLHeadingElement>(null);
   const taglineRef = useRef<HTMLParagraphElement>(null);
   const indicatorRef = useRef<HTMLButtonElement>(null);
@@ -18,18 +17,16 @@ export function HeroSection() {
   useEffect(() => {
     const section = sectionRef.current;
     const content = contentRef.current;
-    const horse = horseRef.current;
     const logo = logoRef.current;
     const tagline = taglineRef.current;
     const indicator = indicatorRef.current;
-    if (!section || !content || !horse || !logo || !tagline || !indicator) return;
+    if (!section || !content || !logo || !tagline || !indicator) return;
 
     const reduceMotion = prefersReducedMotion();
 
     if (reduceMotion) {
-      gsap.set([horse, logo, tagline, indicator], { opacity: 1, y: 0, scale: 1 });
+      gsap.set([logo, tagline, indicator], { opacity: 1, y: 0, scale: 1 });
     } else {
-      gsap.set(horse, { opacity: 0, scale: 0.8 });
       gsap.set(logo, { opacity: 0, scale: 0.85 });
       gsap.set(tagline, { opacity: 0, y: 40 });
       gsap.set(indicator, { opacity: 0 });
@@ -44,15 +41,14 @@ export function HeroSection() {
       : onIntroComplete(() => {
           entranceTimeline = gsap
             .timeline()
-            .to(horse, { opacity: 1, scale: 1, duration: 0.8, ease: "power3.out" }, 0.2)
-            .to(logo, { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" }, 0.6)
-            .to(tagline, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 1.4)
-            .to(indicator, { opacity: 1, duration: 0.4, ease: "power1.out" }, 2.0)
+            .to(logo, { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" }, 0.2)
+            .to(tagline, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 0.8)
+            .to(indicator, { opacity: 1, duration: 0.4, ease: "power1.out" }, 1.4)
             .fromTo(
               chevronRef.current,
               { y: -8 },
               { y: 8, duration: 1.2, ease: "power1.inOut", yoyo: true, repeat: -1 },
-              2.0,
+              1.4,
             );
         });
 
@@ -61,8 +57,6 @@ export function HeroSection() {
     const ctx = gsap.context(() => {
       // Mouse parallax — desktop only (hover-capable pointers).
       if (!reduceMotion && supportsHover()) {
-        const horseX = gsap.quickTo(horse, "x", { duration: 0.6, ease: "power2.out" });
-        const horseY = gsap.quickTo(horse, "y", { duration: 0.6, ease: "power2.out" });
         const logoX = gsap.quickTo(logo, "x", { duration: 0.6, ease: "power2.out" });
         const logoY = gsap.quickTo(logo, "y", { duration: 0.6, ease: "power2.out" });
 
@@ -71,9 +65,6 @@ export function HeroSection() {
           const relX = (event.clientX - rect.left) / rect.width - 0.5;
           const relY = (event.clientY - rect.top) / rect.height - 0.5;
 
-          // Cavalinho: inverted, deeper plane. Logo: same direction, subtler.
-          horseX(relX * -15);
-          horseY(relY * -10);
           logoX(relX * 8);
           logoY(relY * 4);
         };
@@ -119,18 +110,10 @@ export function HeroSection() {
       className="bg-fernandito-verde-medio relative flex h-screen flex-col items-center justify-center overflow-hidden"
     >
       <div ref={contentRef} className="flex flex-col items-center px-6 text-center">
-        <div ref={horseRef} className="mb-6 h-[120px] w-[120px] sm:h-[180px] sm:w-[180px]">
-          {/* eslint-disable-next-line @next/next/no-img-element -- animated GIF, next/image would strip the animation */}
-          <img
-            src="/cavalinho.gif"
-            alt="Cavalinho Fernandito"
-            className="h-full w-full object-contain"
-          />
-        </div>
         <h1 ref={logoRef} aria-label="Fernandito" className="flex justify-center">
           <Logo />
         </h1>
-        <p ref={taglineRef} className="text-display-md text-fernandito-verde-claro mt-4 font-sans">
+        <p ref={taglineRef} className="text-body-lg text-fernandito-verde-claro mt-6 font-sans">
           Fernet com cola. Direto da lata.
         </p>
       </div>
