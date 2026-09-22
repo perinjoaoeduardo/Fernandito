@@ -8,14 +8,10 @@ const MARQUEE_PHRASE =
 
 type Stat = { value: number; suffix: string; label: string };
 
-// NOTA: "CONSERVANTE ARTIFICIAL DE COR" = 0 é o texto exatamente como veio
-// no briefing (provocativo, proposital). Mas a lista de INGREDIENTES abaixo
-// lista "corante caramelo IV" — as duas informações se contradizem. Mantive
-// como pedido; sinalizando aqui pra revisão de copy antes de publicar.
 const STATS: Stat[] = [
   { value: 350, suffix: "", label: "ML POR LATA" },
   { value: 8, suffix: "%", label: "TEOR ALCOÓLICO" },
-  { value: 0, suffix: "", label: "CONSERVANTE ARTIFICIAL DE COR" },
+  { value: 1, suffix: "", label: "ORIGEM — PORTO ALEGRE, RS" },
   { value: 1, suffix: "", label: "SABOR — FERNET COM COLA" },
 ];
 

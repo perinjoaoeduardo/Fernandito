@@ -77,6 +77,12 @@ A tabela abaixo é só a referência de conversão usada no design:
   ver comportamento detalhado no componente.
 - **`Container`** (`Container.tsx`) — max-width com padding responsivo,
   usado para limitar a largura de conteúdo dentro das seções full-bleed.
+- **`WhatsAppButton`** (`WhatsAppButton.tsx`) — wrapper do `Button`
+  variante `whatsapp` que lê `NEXT_PUBLIC_WHATSAPP_NUMBER`: sem a variável
+  preenchida, renderiza desabilitado (mesma aparência, `opacity-60`,
+  `cursor-not-allowed`, tooltip "Em breve"); com ela preenchida, vira link
+  para `wa.me/{numero}` com mensagem pré-preenchida. Usar este componente
+  em vez de `Button` direto sempre que o CTA for "falar no WhatsApp".
 
 ## Estrutura de seções (`/src/components/sections`)
 
