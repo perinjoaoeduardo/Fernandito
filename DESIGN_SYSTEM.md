@@ -149,6 +149,9 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
 4. `FichaTecnicaSection` — fundo verde-claro
 5. `VideoSection` — fundo verde-escuro
 6. `CTASection` — fundo verde-medio
+7. `FooterSection` — fundo verde-escuro, 5 camadas (labels de canto,
+   frase de fechamento, navegação em colunas, CTA WhatsApp, base com
+   copyright); grain sutil via CSS/SVG (`.footer-grain` em `globals.css`)
 
 ## Infra de animação (`/src/lib`)
 

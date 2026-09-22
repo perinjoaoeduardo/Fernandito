@@ -4,6 +4,7 @@ import { ProdutoSection } from "@/components/sections/ProdutoSection";
 import { FichaTecnicaSection } from "@/components/sections/FichaTecnicaSection";
 import { VideoSection } from "@/components/sections/VideoSection";
 import { CTASection } from "@/components/sections/CTASection";
+import { FooterSection } from "@/components/sections/FooterSection";
 
 export default function Home() {
   return (
@@ -14,6 +15,7 @@ export default function Home() {
       <FichaTecnicaSection />
       <VideoSection />
       <CTASection />
+      <FooterSection />
     </main>
   );
 }
