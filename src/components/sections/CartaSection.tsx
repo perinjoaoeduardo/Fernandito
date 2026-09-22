@@ -159,20 +159,10 @@ export function CartaSection() {
 
           <div
             ref={sealRef}
-            className="carta-seal-edge absolute -right-3 -bottom-4 aspect-square w-24 rotate-[8deg] bg-white p-1.5 shadow-[0_4px_10px_rgba(36,48,34,0.15)] [will-change:transform] sm:-right-5 sm:-bottom-6 sm:w-28 lg:-right-6 lg:-bottom-8 lg:w-[120px]"
+            className="absolute -right-3 -bottom-4 aspect-square w-24 rotate-[8deg] drop-shadow-[0_4px_10px_rgba(36,48,34,0.25)] [will-change:transform] sm:-right-5 sm:-bottom-6 sm:w-28 lg:-right-6 lg:-bottom-8 lg:w-[120px]"
           >
-            <div
-              role="img"
-              aria-label="Placeholder de foto do selo — foto real a definir (paisagem gaúcha, pôr do sol, cavalo ou a lata em cena)"
-              className="carta-seal-edge bg-fernandito-verde-medio flex h-full w-full items-center justify-center text-center"
-            >
-              <span
-                aria-hidden="true"
-                className="text-label text-fernandito-off-white px-2 font-sans leading-tight uppercase"
-              >
-                Foto selo
-              </span>
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático */}
+            <img src="/logo/fernandito-moeda.svg" alt="Selo Fernandito" className="h-full w-full" />
           </div>
         </ElevatedCard>
       </div>

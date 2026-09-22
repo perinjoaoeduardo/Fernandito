@@ -206,32 +206,30 @@ no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
 
 ### Assets de logo (`/public/logo/`)
 
+Todos os arquivos recebidos chegaram com cores aproximadas, fora do hex
+exato da paleta (ex: `#3a4936` em vez de `#405139`) — foram todos
+corrigidos por substituição direta de cor pra bater exato com `## Cores`
+(vetores: replace de string nos hex; raster: remapeamento linear no eixo
+escuro→claro via PIL/numpy, preservando o anti-aliasing original).
+
 | Arquivo                             | Uso                                                                                                                                                                   | Status                     |
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
 | `fernandito-logo-text.svg`          | Wordmark "FERNANDITO" — usado por `<Logo />` (Hero)                                                                                                                   | ✅ recebido                |
 | `fernandito-horse.svg`              | "Moeda" (medalhão) só com a cabeça do cavalo, sem texto — pra ocasiões pequenas. Usado nas duas pills-cavalo do `FloatingNav` e no símbolo da base do `FooterSection` | ✅ recebido                |
-| `fernandito-moeda.svg`              | Mesmo medalhão, com texto ao redor — ainda sem um lugar fixo no site (aplicar conforme instrução)                                                                     | ✅ recebido, sem uso ainda |
-| `fernandito-horse-illustration.png` | Ilustração do cavalo (raster, ~760KB) — uso ainda não definido                                                                                                        | ✅ recebido, sem uso ainda |
+| `fernandito-moeda.svg`              | Mesmo medalhão, com texto ao redor. Usado como o selo da `CartaSection`                                                                                               | ✅ recebido                |
+| `fernandito-horse-full.svg`         | Cavalo completo, pose empinada, ilustração maior (não é o medalhão) — uso ainda não definido                                                                          | ✅ recebido, sem uso ainda |
+| `fernandito-horse-full.png`         | Mesma ilustração acima, raster em alta resolução (7076×8524) — preferir a versão `.svg` quando der, é ~40x mais leve                                                  | ✅ recebido, sem uso ainda |
+| `fernandito-horse-illustration.png` | Mesma ilustração, raster em resolução menor (1088×1312) — redundante com as duas acima, mantido por já ter sido recebido antes                                        | ✅ recebido, sem uso ainda |
 | `fernandito-logo-full.svg`          | Lockup completo (ícone + texto juntos)                                                                                                                                | Aguardando arquivo         |
 | `fernandito-logo-mono.svg`          | Versão monocromática                                                                                                                                                  | Aguardando arquivo         |
 | `fernandito-logo-negative.svg`      | Versão negativa                                                                                                                                                       | Aguardando arquivo         |
 
-`fernandito-logo-text.svg` e `fernandito-moeda.svg` são arquivos pesados
-(2.3MB e 1.7MB — vetores bem detalhados). Funcionam normalmente via `<img>`,
-mas vale considerar otimizar (`svgo` ou re-exportar com menos precisão de
-curva) antes do lançamento, se o peso da página virar problema.
-
-### Assets da CartaSection (`/public/carta/`)
-
-Pasta criada, arquivo ainda não enviado. O selo do cartão-carta usa um
-placeholder (`div` verde-medio, texto "FOTO SELO") até a foto real chegar
-— trocar no `CartaSection.tsx` (elemento com `role="img"`), mantendo o
-formato quadrado (a borda serrilhada em `.carta-seal-edge`, `globals.css`,
-é um clip-path percentual pensado pra caixa quadrada):
-
-| Arquivo esperado | Uso                                                                  |
-| ---------------- | -------------------------------------------------------------------- |
-| `selo.jpg`       | Foto do selo — paisagem gaúcha, pôr do sol, cavalo ou a lata em cena |
+`fernandito-logo-text.svg`, `fernandito-moeda.svg` e `fernandito-horse.svg`
+são vetores bem detalhados (472KB–2.3MB) — funcionam normalmente via
+`<img>`, mas vale considerar otimizar (`svgo`) antes do lançamento se o
+peso da página virar problema. O par `fernandito-horse-full.png`
+(11.8MB) é pesado demais pra usar direto na web — se algum dia precisar
+dessa ilustração em raster, gerar um resize menor a partir dele primeiro.
 
 ## Estrutura de seções (`/src/components/sections`)
 
@@ -240,8 +238,9 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
 1. `HeroSection` — fundo **verde-medio**
 2. `ManifestoSection` — fundo off-white
 3. `CartaSection` — fundo off-white, bloco editorial: epígrafe grande
-   (reveal por palavra via SplitText) + cartão-carta (corpo, assinaturas,
-   selo com clip-path serrilhado; elevação física no hover, desktop only)
+   (reveal por palavra via SplitText) + cartão-carta (`ElevatedCard`, corpo,
+   assinaturas, selo = `fernandito-moeda.svg` rotacionado no canto;
+   elevação física no hover, desktop only)
 4. `ProdutoSection` — fundo verde-medio
 5. `FichaTecnicaSection` — fundo verde-claro
 6. `VideoSection` — fundo verde-escuro
