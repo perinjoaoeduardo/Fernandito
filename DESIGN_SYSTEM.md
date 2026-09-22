@@ -109,13 +109,41 @@ A tabela abaixo é só a referência de conversão usada no design:
   preenchida, renderiza desabilitado (mesma aparência, `opacity-60`,
   `cursor-not-allowed`, tooltip "Em breve"); com ela preenchida, vira link
   para `wa.me/{numero}` com mensagem pré-preenchida. Usar este componente
-  em vez de `Button` direto sempre que o CTA for "falar no WhatsApp".
+  em vez de `Button` direto sempre que o CTA for "falar no WhatsApp". Aceita
+  `background="verde-medio"` (padrão) ou `"verde-escuro"` (usado no
+  `FloatingNav`, que já tem fundo claro).
+- **`SvgPlaceholder`** (`SvgPlaceholder.tsx`) — placeholder genérico (borda
+  tracejada + label) pros SVGs de marca que ainda não chegaram. Dimensionado
+  via `className` por quem usa.
+- **`Logo`** (`Logo.tsx`) — lockup completo da marca. Hoje é um
+  `SvgPlaceholder` (~4:1, "LOGO SVG AQUI — aguardando arquivo") esperando
+  `/public/logo/fernandito-logo-full.svg`. Ver seção "Assets de logo"
+  abaixo pros demais arquivos esperados.
+- **`CustomCursor`** (`CustomCursor.tsx`) — bolinha de 12px que segue o
+  mouse (via `gsap.quickTo`), cresce (2.75x) e vira `mix-blend-mode:
+difference` sobre qualquer `a`/`button`/etc. Global (montado 1x no
+  `layout.tsx`, não por seção). Só ativa em desktop com hover
+  (`supportsHover()`) e fora de `prefers-reduced-motion`; fora disso
+  retorna `null` e o cursor nativo continua normal.
+
+### Assets de logo (`/public/logo/`)
+
+Pasta criada, arquivos ainda não enviados — nomes esperados quando
+chegarem (substituem os placeholders acima):
+
+| Arquivo esperado               | Uso                                                         |
+| ------------------------------ | ----------------------------------------------------------- |
+| `fernandito-logo-full.svg`     | Lockup completo — usado por `<Logo />`                      |
+| `fernandito-logo-text.svg`     | Só o texto "FERNANDITO" + tagline                           |
+| `fernandito-horse.svg`         | Símbolo do cavalo isolado — `FloatingNav` (pill 1) usa este |
+| `fernandito-logo-mono.svg`     | Versão monocromática                                        |
+| `fernandito-logo-negative.svg` | Versão negativa                                             |
 
 ## Estrutura de seções (`/src/components/sections`)
 
 Ordem fixa da landing page (ver `src/app/page.tsx`):
 
-1. `HeroSection` — fundo verde-escuro
+1. `HeroSection` — fundo **verde-medio**
 2. `ManifestoSection` — fundo off-white
 3. `ProdutoSection` — fundo verde-medio
 4. `FichaTecnicaSection` — fundo verde-claro

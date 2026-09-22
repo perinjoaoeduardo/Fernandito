@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvider";
 import { IntroLoader } from "@/components/providers/IntroLoader";
 import { FloatingNav } from "@/components/ui/FloatingNav";
+import { CustomCursor } from "@/components/ui/CustomCursor";
 import "./globals.css";
 
 const instrumentSerif = Instrument_Serif({
@@ -91,6 +92,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <SmoothScrollProvider>
           <IntroLoader />
+          <CustomCursor />
           <FloatingNav />
           {children}
         </SmoothScrollProvider>

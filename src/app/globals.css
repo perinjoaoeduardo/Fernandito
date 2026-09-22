@@ -15,6 +15,14 @@ body {
   color: #e6e6cb;
 }
 
+/* Ativado por CustomCursor.tsx (desktop, hover:hover, motion permitido) —
+   esconde o cursor nativo em tudo, já que <a>/<button> etc. têm seu próprio
+   cursor:pointer que ignora um `cursor:none` só no body. */
+.cursor-none-mode,
+.cursor-none-mode * {
+  cursor: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

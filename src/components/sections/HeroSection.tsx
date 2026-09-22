@@ -1,55 +1,36 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger, SplitText, prefersReducedMotion, supportsHover } from "@/lib/gsap";
+import { gsap, ScrollTrigger, prefersReducedMotion, supportsHover } from "@/lib/gsap";
 import { onIntroComplete } from "@/lib/introSignal";
+import { scrollToTarget } from "@/lib/lenis";
+import { Logo } from "@/components/ui/Logo";
 
 export function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const horseRef = useRef<HTMLDivElement>(null);
-  const titleRef = useRef<HTMLHeadingElement>(null);
+  const logoRef = useRef<HTMLHeadingElement>(null);
   const taglineRef = useRef<HTMLParagraphElement>(null);
-  const indicatorRef = useRef<HTMLDivElement>(null);
+  const indicatorRef = useRef<HTMLButtonElement>(null);
+  const chevronRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
     const section = sectionRef.current;
     const content = contentRef.current;
     const horse = horseRef.current;
-    const title = titleRef.current;
+    const logo = logoRef.current;
     const tagline = taglineRef.current;
     const indicator = indicatorRef.current;
-    if (!section || !content || !horse || !title || !tagline || !indicator) return;
+    if (!section || !content || !horse || !logo || !tagline || !indicator) return;
 
     const reduceMotion = prefersReducedMotion();
 
-    // Split "Fernandito" per character. SplitText ships free since gsap 3.13
-    // (no Club GreenSock needed) — fallback below only guards against a
-    // future/older gsap build that doesn't include it.
-    let splitInstance: SplitText | null = null;
-    let charTargets: Element[] = [];
-    try {
-      splitInstance = new SplitText(title, { type: "chars" });
-      charTargets = splitInstance.chars;
-    } catch (err) {
-      console.warn("[HeroSection] SplitText indisponível, usando fallback manual.", err);
-      const text = title.textContent ?? "";
-      title.innerHTML = "";
-      charTargets = text.split("").map((char) => {
-        const span = document.createElement("span");
-        span.textContent = char === " " ? "\u00A0" : char;
-        span.style.display = "inline-block";
-        title.appendChild(span);
-        return span;
-      });
-    }
-
     if (reduceMotion) {
-      gsap.set([horse, tagline, indicator], { opacity: 1, y: 0, scale: 1 });
-      gsap.set(charTargets, { opacity: 1, y: 0 });
+      gsap.set([horse, logo, tagline, indicator], { opacity: 1, y: 0, scale: 1 });
     } else {
       gsap.set(horse, { opacity: 0, scale: 0.8 });
-      gsap.set(charTargets, { opacity: 0, y: 40 });
+      gsap.set(logo, { opacity: 0, scale: 0.85 });
       gsap.set(tagline, { opacity: 0, y: 40 });
       gsap.set(indicator, { opacity: 0 });
     }
@@ -64,16 +45,13 @@ export function HeroSection() {
           entranceTimeline = gsap
             .timeline()
             .to(horse, { opacity: 1, scale: 1, duration: 0.8, ease: "power3.out" }, 0.2)
-            .to(
-              charTargets,
-              { opacity: 1, y: 0, duration: 0.6, stagger: 0.03, ease: "power4.out" },
-              0.6,
-            )
+            .to(logo, { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" }, 0.6)
             .to(tagline, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 1.4)
-            .to(indicator, { opacity: 0.6, duration: 0.4, ease: "power1.out" }, 2.0)
-            .to(
-              indicator,
-              { y: 8, duration: 0.9, ease: "power1.inOut", yoyo: true, repeat: -1 },
+            .to(indicator, { opacity: 1, duration: 0.4, ease: "power1.out" }, 2.0)
+            .fromTo(
+              chevronRef.current,
+              { y: -8 },
+              { y: 8, duration: 1.2, ease: "power1.inOut", yoyo: true, repeat: -1 },
               2.0,
             );
         });
@@ -85,19 +63,19 @@ export function HeroSection() {
       if (!reduceMotion && supportsHover()) {
         const horseX = gsap.quickTo(horse, "x", { duration: 0.6, ease: "power2.out" });
         const horseY = gsap.quickTo(horse, "y", { duration: 0.6, ease: "power2.out" });
-        const titleX = gsap.quickTo(title, "x", { duration: 0.6, ease: "power2.out" });
-        const titleY = gsap.quickTo(title, "y", { duration: 0.6, ease: "power2.out" });
+        const logoX = gsap.quickTo(logo, "x", { duration: 0.6, ease: "power2.out" });
+        const logoY = gsap.quickTo(logo, "y", { duration: 0.6, ease: "power2.out" });
 
         const handleMouseMove = (event: MouseEvent) => {
           const rect = section.getBoundingClientRect();
           const relX = (event.clientX - rect.left) / rect.width - 0.5;
           const relY = (event.clientY - rect.top) / rect.height - 0.5;
 
-          // Cavalinho: inverted, deeper plane. Nome: same direction, subtler.
+          // Cavalinho: inverted, deeper plane. Logo: same direction, subtler.
           horseX(relX * -15);
           horseY(relY * -10);
-          titleX(relX * 8);
-          titleY(relY * 4);
+          logoX(relX * 8);
+          logoY(relY * 4);
         };
 
         section.addEventListener("mousemove", handleMouseMove);
@@ -131,7 +109,6 @@ export function HeroSection() {
       removeMouseMove?.();
       scrollTrigger?.kill();
       ctx.revert();
-      splitInstance?.revert();
     };
   }, []);
 
@@ -139,7 +116,7 @@ export function HeroSection() {
     <section
       ref={sectionRef}
       id="hero"
-      className="bg-fernandito-verde-escuro relative flex h-screen flex-col items-center justify-center overflow-hidden"
+      className="bg-fernandito-verde-medio relative flex h-screen flex-col items-center justify-center overflow-hidden"
     >
       <div ref={contentRef} className="flex flex-col items-center px-6 text-center">
         <div ref={horseRef} className="mb-6 h-[120px] w-[120px] sm:h-[180px] sm:w-[180px]">
@@ -150,23 +127,35 @@ export function HeroSection() {
             className="h-full w-full object-contain"
           />
         </div>
-        <h1
-          ref={titleRef}
-          className="text-display-xl text-fernandito-off-white font-serif leading-[0.9]"
-        >
-          Fernandito
+        <h1 ref={logoRef} aria-label="Fernandito" className="flex justify-center">
+          <Logo />
         </h1>
         <p ref={taglineRef} className="text-display-md text-fernandito-verde-claro mt-4 font-sans">
           Fernet com cola. Direto da lata.
         </p>
       </div>
 
-      <div
+      <button
         ref={indicatorRef}
-        className="text-label text-fernandito-off-white absolute bottom-8 left-1/2 -translate-x-1/2 font-sans tracking-[0.08em] uppercase"
+        type="button"
+        onClick={() => scrollToTarget("#manifesto")}
+        aria-label="Rolar até a seção Manifesto"
+        className="border-fernandito-off-white absolute bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full border-2 bg-transparent transition-transform duration-300 [will-change:transform] hover:scale-110"
       >
-        scroll ↓
-      </div>
+        <svg
+          ref={chevronRef}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          className="text-fernandito-off-white h-5 w-5"
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
     </section>
   );
 }

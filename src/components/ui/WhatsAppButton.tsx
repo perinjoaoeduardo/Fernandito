@@ -1,5 +1,6 @@
 "use client";
 
+import { clsx } from "clsx";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 
@@ -11,9 +12,21 @@ const WHATSAPP_MESSAGE = "Oi! Quero comprar Fernandito 🐎";
 type WhatsAppButtonProps = {
   children: ReactNode;
   className?: string;
+  /** Fundo sólido do botão — "verde-medio" (padrão, CTA de seção) ou
+   * "verde-escuro" (usado no FloatingNav, que já tem fundo off-white). */
+  background?: "verde-medio" | "verde-escuro";
 };
 
-export function WhatsAppButton({ children, className }: WhatsAppButtonProps) {
+export function WhatsAppButton({
+  children,
+  className,
+  background = "verde-medio",
+}: WhatsAppButtonProps) {
+  // `!` força a sobrescrita do bg-fernandito-verde-medio da variante
+  // "whatsapp" do Button, já que a ordem das classes no JSX não garante
+  // qual delas "vence" no CSS gerado pelo Tailwind.
+  const bgOverride = background === "verde-escuro" ? "!bg-fernandito-verde-escuro" : undefined;
+
   if (!WHATSAPP_NUMBER) {
     return (
       <Button
@@ -23,7 +36,7 @@ export function WhatsAppButton({ children, className }: WhatsAppButtonProps) {
         disabled
         title="Em breve"
         aria-disabled="true"
-        className={`cursor-not-allowed opacity-60 hover:opacity-60 ${className ?? ""}`}
+        className={clsx(bgOverride, "cursor-not-allowed opacity-60 hover:opacity-60", className)}
       >
         {children}
       </Button>
@@ -39,7 +52,7 @@ export function WhatsAppButton({ children, className }: WhatsAppButtonProps) {
       variant="whatsapp"
       target="_blank"
       rel="noopener noreferrer"
-      className={className}
+      className={clsx(bgOverride, className)}
     >
       {children}
     </Button>

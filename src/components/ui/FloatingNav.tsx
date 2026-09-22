@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { clsx } from "clsx";
+import { scrollToTarget } from "@/lib/lenis";
+import { SvgPlaceholder } from "@/components/ui/SvgPlaceholder";
+import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 
 // "Onde encontrar" e "Contato" apontam para a mesma seção (CTASection) por
 // enquanto — não há um bloco de contato dedicado nesta fundação.
@@ -10,7 +12,6 @@ const LINKS = [
   { label: "Manifesto", href: "#manifesto" },
   { label: "Produto", href: "#produto" },
   { label: "Onde encontrar", href: "#onde-encontrar" },
-  { label: "Contato", href: "#onde-encontrar" },
 ];
 
 export function FloatingNav() {
@@ -47,84 +48,122 @@ export function FloatingNav() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  return (
-    <motion.nav
-      initial={{ opacity: 0, y: -16 }}
-      animate={visible ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className="fixed top-4 left-1/2 z-50 -translate-x-1/2 sm:top-6"
-      aria-label="Navegação principal"
-    >
-      <motion.div
-        animate={{
-          scale: shrunk ? 0.95 : 1,
-          backgroundColor: shrunk ? "rgba(36, 48, 34, 0.9)" : "rgba(36, 48, 34, 0.6)",
-        }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
-        className="rounded-full px-2 py-2 backdrop-blur-md sm:px-3"
-      >
-        {/* Desktop links */}
-        <ul className="hidden items-center gap-1 sm:flex">
-          {LINKS.map((link) => (
-            <li key={link.label}>
-              <a
-                href={link.href}
-                className="text-label text-fernandito-off-white block rounded-full px-4 py-2 font-sans tracking-[0.08em] uppercase transition-opacity hover:opacity-70"
-              >
-                {link.label}
-              </a>
-            </li>
-          ))}
-        </ul>
+  // Fecha o overlay mobile com Esc.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [menuOpen]);
 
-        {/* Mobile hamburger */}
-        <button
+  const pillAnimation = {
+    scale: shrunk ? 0.95 : 1,
+    backgroundColor: shrunk ? "rgba(230, 230, 203, 0.95)" : "rgba(230, 230, 203, 0.7)",
+  };
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: -16 }}
+        animate={visible ? { opacity: 1, y: 0 } : {}}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="fixed top-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 sm:top-6"
+        aria-label="Navegação principal"
+      >
+        {/* Pill 1 (desktop) — símbolo do cavalo, volta ao topo */}
+        <motion.button
           type="button"
-          onClick={() => setMenuOpen((open) => !open)}
-          aria-expanded={menuOpen}
-          aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
-          className="flex h-9 w-9 flex-col items-center justify-center gap-1.5 rounded-full sm:hidden"
+          animate={pillAnimation}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          onClick={() => scrollToTarget("#hero")}
+          aria-label="Voltar ao topo"
+          className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full backdrop-blur-md sm:flex"
         >
-          <span
-            className={clsx(
-              "bg-fernandito-off-white h-[1.5px] w-4 transition-transform duration-200",
-              menuOpen && "translate-y-[3.5px] rotate-45",
-            )}
+          <SvgPlaceholder
+            label="CAVALO"
+            className="text-fernandito-verde-escuro/70 h-7 w-7 rounded-full border text-[6px]"
           />
-          <span
-            className={clsx(
-              "bg-fernandito-off-white h-[1.5px] w-4 transition-transform duration-200",
-              menuOpen && "-translate-y-[3.5px] -rotate-45",
-            )}
+        </motion.button>
+
+        {/* Pill 1 (mobile) — mesmo símbolo, vira gatilho do menu fullscreen */}
+        <motion.button
+          type="button"
+          animate={pillAnimation}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
+          aria-expanded={menuOpen}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full backdrop-blur-md sm:hidden"
+        >
+          <SvgPlaceholder
+            label="CAVALO"
+            className="text-fernandito-verde-escuro/70 h-7 w-7 rounded-full border text-[6px]"
           />
-        </button>
+        </motion.button>
+
+        {/* Pill 2 (desktop only) — links + CTA WhatsApp em destaque */}
+        <motion.div
+          animate={pillAnimation}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="hidden items-center gap-1 rounded-full py-2 pr-2 pl-4 backdrop-blur-md sm:flex"
+        >
+          {LINKS.map((link) => (
+            <a
+              key={link.label}
+              href={link.href}
+              className="text-label text-fernandito-verde-escuro rounded-full px-4 py-2 font-sans tracking-[0.08em] uppercase transition-opacity hover:opacity-60"
+            >
+              {link.label}
+            </a>
+          ))}
+          <WhatsAppButton background="verde-escuro" className="!text-label ml-1 !px-4 !py-2">
+            Fale no WhatsApp
+          </WhatsAppButton>
+        </motion.div>
       </motion.div>
 
+      {/* Overlay fullscreen (mobile) */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.96 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute top-full left-1/2 mt-2 w-max -translate-x-1/2 rounded-lg bg-[rgba(36,48,34,0.95)] p-2 backdrop-blur-md sm:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="bg-fernandito-verde-escuro fixed inset-0 z-40 flex flex-col items-center justify-center gap-10 sm:hidden"
           >
-            <ul className="flex flex-col items-stretch gap-1">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              aria-label="Fechar menu"
+              className="text-fernandito-off-white absolute top-6 right-6 text-3xl leading-none"
+            >
+              ×
+            </button>
+
+            <nav className="flex flex-col items-center gap-8">
               {LINKS.map((link) => (
-                <li key={link.label}>
-                  <a
-                    href={link.href}
-                    onClick={() => setMenuOpen(false)}
-                    className="text-label text-fernandito-off-white block rounded-md px-4 py-2 text-center font-sans tracking-[0.08em] uppercase transition-opacity hover:opacity-70"
-                  >
-                    {link.label}
-                  </a>
-                </li>
+                <a
+                  key={link.label}
+                  href={link.href}
+                  onClick={() => setMenuOpen(false)}
+                  className="text-fernandito-off-white text-display-md font-serif"
+                >
+                  {link.label}
+                </a>
               ))}
-            </ul>
+            </nav>
+
+            {/* Fundo padrão (verde-medio) aqui — o overlay já é verde-escuro,
+                então o CTA "verde-escuro" do pill ficaria invisível contra ele. */}
+            <WhatsAppButton>Fale no WhatsApp</WhatsAppButton>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.nav>
+    </>
   );
 }
+
+export default FloatingNav;
