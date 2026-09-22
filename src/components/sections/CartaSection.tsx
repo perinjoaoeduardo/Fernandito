@@ -140,6 +140,7 @@ export function CartaSection() {
       <div className="mx-auto mt-16 max-w-[720px] px-6 sm:mt-24">
         <div
           ref={cardRef}
+          data-cursor-hover
           className="relative rounded-md bg-[#F5F5E9] p-6 shadow-[0_4px_12px_rgba(36,48,34,0.08)] [will-change:transform,box-shadow] sm:p-8 lg:p-12"
         >
           <blockquote className="text-body-lg flex flex-col gap-6 font-sans">

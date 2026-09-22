@@ -4,7 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { gsap, prefersReducedMotion, supportsHover } from "@/lib/gsap";
 
 // Qualquer coisa clicável faz a bolinha crescer + entrar em "difference".
-const HOVER_SELECTOR = "a, button, [role='button'], input, textarea, select, label";
+// `[data-cursor-hover]` é o opt-in pra elementos não-semânticos (divs com
+// reação de hover forte mas sem ação de clique, tipo o cartão da
+// CartaSection) que ainda assim devem contar como "hover" pro cursor.
+const HOVER_SELECTOR =
+  "a, button, [role='button'], input, textarea, select, label, [data-cursor-hover]";
 
 export function CustomCursor() {
   const [active, setActive] = useState(false);

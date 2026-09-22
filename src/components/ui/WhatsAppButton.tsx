@@ -28,12 +28,19 @@ export function WhatsAppButton({
   const bgOverride = background === "verde-escuro" ? "!bg-fernandito-verde-escuro" : undefined;
 
   if (!WHATSAPP_NUMBER) {
+    // `aria-disabled` em vez do atributo `disabled` nativo: alguns
+    // navegadores (Firefox, principalmente) simplesmente não disparam
+    // eventos de mouse/hover em elementos com `disabled` nativo — o que
+    // quebrava tanto o tooltip "Em breve" quanto o CustomCursor global
+    // nesse botão. `aria-disabled` mantém o botão focável/hoverável (correto
+    // pra acessibilidade — dá pra descobrir por que a ação está indisponível)
+    // e o clique é barrado via `onClick` com `preventDefault`.
     return (
       <Button
         as="button"
         type="button"
         variant="whatsapp"
-        disabled
+        onClick={(event) => event.preventDefault()}
         title="Em breve"
         aria-disabled="true"
         className={clsx(bgOverride, "cursor-not-allowed opacity-60 hover:opacity-60", className)}
