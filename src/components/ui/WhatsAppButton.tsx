@@ -22,7 +22,8 @@ type WhatsAppButtonProps = {
   children: ReactNode;
   className?: string;
   /** Fundo sólido do botão — "verde-medio" (padrão, CTA de seção) ou
-   * "verde-escuro" (usado no FloatingNav, que já tem fundo off-white). */
+   * "verde-escuro" (usado no FloatingNav e no Footer, ambos já verde-escuro
+   * por trás — ganha borda sutil pra não sumir contra o próprio fundo). */
   background?: "verde-medio" | "verde-escuro";
 };
 
@@ -32,18 +33,16 @@ export function WhatsAppButton({
   background = "verde-medio",
 }: WhatsAppButtonProps) {
   // `cta-destaque` já é verde-escuro-em-repouso/verde-medio-no-hover por
-  // padrão (ver Button.tsx) — perfeito pro FloatingNav quando a pill está
-  // clara (precisa de fundo escuro pra contraste). Fora dali (Footer), o
-  // botão senta sobre um fundo JÁ verde-escuro, então precisa da lógica
-  // invertida: repouso verde-medio (contrasta com o fundo escuro), hover
-  // verde-claro
-  // (mais claro ainda, mantém o padrão "fica mais vivo no hover"). `!` força
-  // a sobrescrita já que a ordem das classes no JSX não garante qual delas
-  // "vence" no CSS gerado pelo Tailwind.
+  // padrão (ver Button.tsx) — usado no FloatingNav e no Footer, os dois já
+  // com fundo verde-escuro por trás. Como a cor do botão é a MESMA do fundo
+  // em repouso, a borda sutil abaixo é o que garante que ele continue
+  // legível como uma forma própria (sem ela, "some" contra o fundo). `!`
+  // força a sobrescrita já que a ordem das classes no JSX não garante qual
+  // delas "vence" no CSS gerado pelo Tailwind.
   const bgOverride =
     background === "verde-medio"
       ? "!bg-fernandito-verde-medio hover:!bg-fernandito-verde-claro"
-      : undefined;
+      : "border border-fernandito-off-white/15";
 
   if (!WHATSAPP_NUMBER) {
     // `aria-disabled` em vez do atributo `disabled` nativo: alguns

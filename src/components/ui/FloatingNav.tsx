@@ -167,10 +167,10 @@ export function FloatingNav() {
               {link.label}
             </Link>
           ))}
-          <WhatsAppButton
-            background={overLight ? "verde-medio" : "verde-escuro"}
-            className="!text-label ml-1 !px-4 !py-2"
-          >
+          {/* Sempre verde-escuro aqui, mesmo quando a pill inverte (fica
+              clara sobre fundo claro) — a borda sutil do WhatsAppButton
+              garante que ele continue legível como forma própria. */}
+          <WhatsAppButton background="verde-escuro" className="!text-label ml-1 !px-4 !py-2">
             Fale no WhatsApp
           </WhatsAppButton>
         </motion.div>

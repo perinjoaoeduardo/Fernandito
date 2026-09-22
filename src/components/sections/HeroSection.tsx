@@ -58,8 +58,8 @@ export function HeroSection() {
             .to(indicator, { opacity: 1, duration: 0.4, ease: "power1.out" }, 1.4)
             .fromTo(
               chevronRef.current,
-              { y: -8 },
-              { y: 8, duration: 1.2, ease: "power1.inOut", yoyo: true, repeat: -1 },
+              { y: -2 },
+              { y: 2, duration: 1.2, ease: "power1.inOut", yoyo: true, repeat: -1 },
               1.4,
             );
         });
@@ -153,11 +153,11 @@ export function HeroSection() {
             ref={bannerRef}
             src="/images/fernet-y-cola-banner.png"
             alt="Fernet y Cola"
-            className="mt-4 w-full max-w-[220px] sm:max-w-[320px] lg:max-w-[380px]"
+            className="-mt-4 w-full max-w-[220px] sm:max-w-[320px] lg:max-w-[380px]"
           />
           <p
             ref={taglineRef}
-            className="text-body-lg text-fernandito-off-white font-rampart-sans mt-6"
+            className="text-body-lg text-fernandito-off-white font-rampart-sans mt-12"
           >
             Fernet feito com <RotatingWord />.
           </p>
@@ -168,7 +168,7 @@ export function HeroSection() {
           type="button"
           onClick={() => scrollToTarget("#manifesto")}
           aria-label="Rolar até a seção Manifesto"
-          className="text-fernandito-off-white/70 duration-base ease-out-standard focus-visible:outline-fernandito-off-white text-body hover:text-fernandito-off-white focus-visible:text-fernandito-off-white absolute bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 flex -translate-x-1/2 items-center gap-2 bg-transparent font-sans transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
+          className="text-fernandito-off-white/70 duration-base ease-out-standard focus-visible:outline-fernandito-off-white text-body hover:text-fernandito-off-white focus-visible:text-fernandito-off-white absolute bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 flex -translate-x-1/2 items-center gap-1 bg-transparent font-sans transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
         >
           scroll
           <svg

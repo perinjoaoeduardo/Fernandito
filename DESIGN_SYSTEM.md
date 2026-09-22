@@ -183,9 +183,10 @@ no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
   `wa.me/{numero}` com mensagem pré-preenchida. Usar este componente em vez
   de `Button` direto sempre que o CTA for "falar no WhatsApp". Prop
   `background`: `"verde-escuro"` (default do `cta-destaque`, sem override —
-  usado no `FloatingNav` quando a pill está clara) ou `"verde-medio"`
-  (override pra contexto já-escuro — Footer, ou o `FloatingNav` quando a
-  pill inverteu pra escura — hover vai pra `verde-claro`).
+  usado no `FloatingNav` e no `FooterSection`, os dois já verde-escuro por
+  trás; ganha uma borda sutil off-white/15 pra não sumir contra o próprio
+  fundo) ou `"verde-medio"` (override pra outros contextos escuros — hover
+  vai pra `verde-claro`).
 - **`SvgPlaceholder`** (`SvgPlaceholder.tsx`) — placeholder genérico (borda
   tracejada + label) pros SVGs de marca que ainda não chegaram. Dimensionado
   via `className` por quem usa. Sem uso ativo no momento — todo asset que
@@ -263,16 +264,21 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    mudar no futuro, essa classe precisa ser atualizada manualmente junto
    (ver comentário no `className` da section em `HeroSection.tsx`).
 
-   O logo (`Logo.tsx`) e o banner `public/images/fernet-y-cola-banner.png`
-   (cores corrigidas pro padrão `#E6E6CB`/`#405139`) ficam empilhados no
-   centro do cartão. Abaixo, a tagline usa duas fontes: o texto fixo
-   ("Fernet feito com") em `font-rampart-sans` regular, cor off-white; a
-   palavra variável usa `RotatingWord.tsx` — um roller vertical (GSAP,
-   `y` em `em` por cima de uma pilha de `<span>`, `overflow-hidden`) que
-   troca entre ~10 palavras (amor, teimosia, orgulho, raiz, fé, calma,
-   coragem, rebeldia, alma, dedicação) em `font-rampart-stamp font-bold`
-   (bold sintético — a Stamp só tem peso 400). `prefers-reduced-motion`
-   trava a primeira palavra, sem animação.
+   O logo (`Logo.tsx`, `max-w-[376px] sm:max-w-[600px] lg:max-w-[700px]`) e
+   o banner `public/images/fernet-y-cola-banner.png` (cores corrigidas pro
+   padrão `#E6E6CB`/`#405139`) ficam empilhados bem próximos no centro do
+   cartão (banner com `-mt-4`, colado no logo). Abaixo, com um respiro maior
+   (`mt-12`), a tagline usa duas fontes: o texto fixo ("Fernet feito com")
+   em `font-rampart-sans` regular, cor off-white; a palavra variável usa
+   `RotatingWord.tsx` — um roller vertical (GSAP, `y` em `em` por cima de
+   uma pilha de `<span>`, `overflow-hidden`) que troca entre 10 palavras
+   (Brio, Intenção, Teimosia, Amargor, Insistência, Paciência, Coragem,
+   Liberdade, Inquietação, Independência) em `font-rampart-stamp font-bold`
+   (bold sintético — a Stamp só tem peso 400). Cada linha do roller usa
+   `h-[1.4em]` + `leading-none` (não `1.2em` — a Rampart Stamp tem métricas
+   de ascendente/descendente maiores que o normal; com menos folga a
+   palavra vizinha vazava visualmente por cima/baixo do recorte).
+   `prefers-reduced-motion` trava a primeira palavra, sem animação.
 2. `OQueESection` — fundo off-white, "o que é" o produto em linguagem
    direta (elevator pitch, estilo do segundo bloco da home da Lassie):
    grid com placeholder da lata à esquerda (`border-dashed`, aguardando
@@ -295,23 +301,35 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    bloco de impacto próprio (`min-h-[70vh] sm:min-h-[80vh]`) com entrada em
    zoom (`scale` 0.85→1) — o único momento "gigante" da seção, contrastando
    com o resto do poema.
-4. `CartaSection` — fundo off-white, bloco editorial: epígrafe grande
+4. `GaleriaSection` — galeria horizontal animada (referência: landonorris.com,
+   "mas melhor"). Mesmo mecanismo de `sticky` + `ScrollTrigger` scrub da
+   Hero (sem `pin` do GSAP — o sticky nativo já resolve): a section é
+   `motion-safe:sm:h-[250vh]`, o cartão `sticky top-0` contém uma trilha
+   horizontal (`flex w-max`) que translada em `x` conforme o progresso do
+   scroll. A cor de fundo troca de verde-escuro pra off-white concentrada
+   no meio do percurso (interpolação RGB entre progress 0.35→0.65), onde
+   fica um cartão de citação (fundo off-white fixo, não depende da cor de
+   fundo da section) entre os placeholders de foto — mesmo padrão de
+   placeholder do resto do site (rótulo + tom de verde), aguardando fotos
+   reais. Mobile e `prefers-reduced-motion` caem pra uma fileira com
+   scroll-snap nativo, fundo fixo verde-escuro, sem pin nem troca de cor.
+5. `CartaSection` — fundo off-white, bloco editorial: epígrafe grande
    (reveal por palavra via SplitText) + cartão-carta (`ElevatedCard`, corpo,
    assinaturas, selo = `fernandito-moeda.svg` rotacionado no canto;
    elevação física no hover, desktop only)
-5. `ProdutoSection` — fundo verde-medio
-6. `SocialGallerySection` — fundo off-white, leque de 7 fotos sobrepostas
+6. `ProdutoSection` — fundo verde-medio
+7. `SocialGallerySection` — fundo off-white, leque de 7 fotos sobrepostas
    (rotação alternada, card central maior) que entra em cascata do centro
    pras bordas e se "abre" no hover; vira carrossel com scroll-snap no
    mobile. Ver detalhes na sua própria entrada abaixo.
-7. `FichaTecnicaSection` — só o marquee (`font-accent`, texto curto: "Toma
+8. `FichaTecnicaSection` — só o marquee (`font-accent`, texto curto: "Toma
    Fernandito · Fernet y Cola · 350ml · 8% vol." em loop) — a versão
    anterior tinha uma grade de "ficha técnica" completa (specs, ingredientes,
    registro MAPA) abaixo do marquee; foi removida por conter informação
    redundante com `/legal/avisos` e não agregar visualmente. Altura do
    marquee agora vem do padding do conteúdo (`py-6 sm:py-8`), não de `vh` —
    antes ficava alta demais em qualquer viewport.
-8. `FooterSection` — fundo verde-escuro, versão compacta (estilo do
+9. `FooterSection` — fundo verde-escuro, versão compacta (estilo do
     rodapé enxuto da Lassie — substituiu uma versão anterior bem mais alta,
     com labels decorativos nos 4 cantos e `min-h-[90vh]`). Duas colunas no
     topo: frase de fechamento (`font-serif`, reveal por palavra) + CTA
@@ -326,15 +344,6 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
     lugar de um símbolo maior do cavalo + copyright, e um botão "topo"
     (`scrollToTarget("#hero")`) — sem grain overlay, fundo sólido de
     propósito (no futuro entra um placeholder de imagem nessa área).
-
-### Próxima seção planejada — galeria horizontal
-
-Entre `OQueESection`/`ManifestoSection` e `CartaSection`, está planejada uma
-galeria horizontal bem animada, referência em `landonorris.com`: fotos em
-alturas/colunas variadas que passam horizontalmente conforme rola a página,
-com uma troca de cor de fundo no meio do percurso e uma citação+assinatura
-central. Ainda não implementada — é um componente novo e visualmente
-grande o suficiente pra merecer sua própria rodada de construção/ajuste.
 
 ## Páginas legais (`/legal`)
 

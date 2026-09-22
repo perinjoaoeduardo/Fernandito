@@ -1,6 +1,7 @@
 import { HeroSection } from "@/components/sections/HeroSection";
 import { OQueESection } from "@/components/sections/OQueESection";
 import { ManifestoSection } from "@/components/sections/ManifestoSection";
+import { GaleriaSection } from "@/components/sections/GaleriaSection";
 import { CartaSection } from "@/components/sections/CartaSection";
 import { ProdutoSection } from "@/components/sections/ProdutoSection";
 import { SocialGallerySection } from "@/components/sections/SocialGallerySection";
@@ -13,6 +14,7 @@ export default function Home() {
       <HeroSection />
       <OQueESection />
       <ManifestoSection />
+      <GaleriaSection />
       <CartaSection />
       <ProdutoSection />
       <SocialGallerySection />

@@ -8,16 +8,16 @@ import { gsap, prefersReducedMotion } from "@/lib/gsap";
 // não deixa gosto"). A primeira se repete no fim da lista de render pra
 // fechar o loop do roller sem costura (ver `LOOP_WORDS` abaixo).
 const WORDS = [
-  "amor",
-  "teimosia",
-  "orgulho",
-  "raiz",
-  "fé",
-  "calma",
-  "coragem",
-  "rebeldia",
-  "alma",
-  "dedicação",
+  "Brio",
+  "Intenção",
+  "Teimosia",
+  "Amargor",
+  "Insistência",
+  "Paciência",
+  "Coragem",
+  "Liberdade",
+  "Inquietação",
+  "Independência",
 ];
 
 const LOOP_WORDS = [...WORDS, WORDS[0]];
@@ -25,10 +25,13 @@ const LOOP_WORDS = [...WORDS, WORDS[0]];
 const HOLD_SECONDS = 1.8;
 const STEP_SECONDS = 0.7;
 
-// Cada palavra ocupa exatamente 1 linha de `1.2em` (ver `h-[1.2em]` nos spans
-// abaixo) — o roller sobe uma linha por vez em `em` (não `yPercent`, que
-// seria relativo à altura TOTAL da trilha inteira, não de um item).
-const LINE_HEIGHT_EM = 1.2;
+// Cada palavra ocupa exatamente 1 linha de `1.4em` (ver `h-[1.4em]` nos spans
+// abaixo — folga extra em relação a `1.2em` porque a Rampart Stamp tem
+// métricas de ascendente/descendente maiores que o normal; sem essa folga
+// e `leading-none`, a palavra vizinha vazava por baixo/cima do recorte). O
+// roller sobe uma linha por vez em `em` (não `yPercent`, que seria
+// relativo à altura TOTAL da trilha inteira, não de um item).
+const LINE_HEIGHT_EM = 1.4;
 
 export function RotatingWord() {
   const trackRef = useRef<HTMLSpanElement>(null);
@@ -64,13 +67,13 @@ export function RotatingWord() {
   }, []);
 
   return (
-    <span aria-live="off" className="relative inline-block h-[1.2em] overflow-hidden align-bottom">
+    <span aria-live="off" className="relative inline-block h-[1.4em] overflow-hidden align-bottom">
       <span ref={trackRef} className="flex flex-col">
         {LOOP_WORDS.map((word, i) => (
           <span
             key={`${word}-${i}`}
             aria-hidden={i !== 0}
-            className="font-rampart-stamp block h-[1.2em] font-bold whitespace-nowrap"
+            className="font-rampart-stamp flex h-[1.4em] items-center font-bold leading-none whitespace-nowrap"
           >
             {word}
           </span>
