@@ -118,7 +118,7 @@ export function FooterSection() {
       className="bg-fernandito-verde-escuro text-fernandito-off-white relative flex min-h-[90vh] flex-col overflow-hidden px-6 py-16 sm:px-10 lg:min-h-[90vh] lg:px-16"
     >
       {/* Grain sutil de fundo — puro CSS/SVG, sem canvas. */}
-      <div className="footer-grain pointer-events-none absolute inset-0 opacity-[0.05] mix-blend-overlay" />
+      <div className="grain-overlay pointer-events-none absolute inset-0 opacity-[0.05] mix-blend-overlay" />
 
       {/* Camada 1 — labels soltos nos cantos, ruído tipográfico editorial */}
       <span

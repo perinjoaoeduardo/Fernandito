@@ -242,12 +242,56 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    assinaturas, selo = `fernandito-moeda.svg` rotacionado no canto;
    elevação física no hover, desktop only)
 4. `ProdutoSection` — fundo verde-medio
-5. `FichaTecnicaSection` — fundo verde-claro
-6. `VideoSection` — fundo verde-escuro
-7. `CTASection` — fundo verde-medio
-8. `FooterSection` — fundo verde-escuro, 5 camadas (labels de canto,
+5. `SocialGallerySection` — fundo off-white, leque de 7 fotos sobrepostas
+   (rotação alternada, card central maior) que entra em cascata do centro
+   pras bordas e se "abre" no hover; vira carrossel com scroll-snap no
+   mobile. Ver detalhes na sua própria entrada abaixo.
+6. `FichaTecnicaSection` — fundo verde-claro
+7. `VideoSection` — fundo verde-escuro
+8. `CTASection` — fundo verde-medio
+9. `FooterSection` — fundo verde-escuro, 5 camadas (labels de canto,
    frase de fechamento, navegação em colunas, CTA WhatsApp, base com
-   copyright); grain sutil via CSS/SVG (`.footer-grain` em `globals.css`)
+   copyright); grain sutil via CSS/SVG (`.grain-overlay` em `globals.css`)
+
+### `SocialGallerySection` — detalhes
+
+Inspirada no "What's up on socials" do site do Lando Norris, adaptada pro
+tom rústico da marca (bordas grossas off-white estilo polaroid, sombra dura
+sem blur, grain, 2 selos decorativos tipo carimbo em posições fixas).
+
+- **Leque desktop**: 7 cards em `flex` com margin-left negativo pro
+  overlap; cada card tem seu próprio `rotate`/`translateY`/`scale` via
+  `gsap.set`/`gsap.to` (nunca via className — precisa mudar no hover).
+  Rotação por índice `[-12, -8, -4, 0, 4, 8, 12]`, distância do centro em
+  "camadas" de `translateY` (14px por camada) e z-index (maior no centro).
+  Entrada em cascata (`ScrollTrigger`, uma vez): todos partem de
+  opacity 0/scale 0.7/y 40/rotate 0, e animam pra seus valores finais
+  agrupados por distância do centro (stagger 0.08s por camada,
+  `back.out(1.4)` — dá o leve "assentar" com bounce).
+  Hover: card sob o mouse zera a rotação e cresce (+0.08 sobre a própria
+  escala-base, não um valor absoluto — o card central já começa maior, um
+  alvo fixo de 1.08 encolheria ele), z-index vai pro topo; os DOIS vizinhos
+  imediatos se afastam (`translateX` ±15px) pra abrir espaço. Tudo reverte
+  no `mouseleave` (z-index só volta ao normal depois que a rotação/escala
+  termina de voltar, pra não "furar" atrás do vizinho no meio do caminho).
+- **Mobile (< `sm`)**: os dois DOMs (leque e fileira) coexistem, alternados
+  via `hidden`/`sm:hidden` — mesmo padrão já usado no `FloatingNav` pras
+  pills desktop/mobile. Escolhida a **Opção B** (carrossel com
+  `overflow-x-auto` + `snap-x snap-mandatory`) em vez de reduzir pra 3-4
+  cards do leque: em tela estreita, cada card do carrossel continua no
+  tamanho legível de sempre (o leque forçaria cards minúsculos ou vazaria
+  a viewport), é um padrão de swipe que todo mundo já conhece, e não
+  disputa o gesto de scroll vertical do Lenis (scroll horizontal num
+  container é um eixo totalmente independente). Cada card mantém sua
+  própria rotação (mesmo array `ROTATIONS`) sem overlap — "fileira", não
+  "leque" —, textura e selo intactos; sem hover (não existe em touch) e
+  sem cascata por card, só um fade simples na fileira inteira.
+- **Placeholders de foto**: 7 divs com `bg-fernandito-verde-medio`/
+  `verde-claro` em variações de opacidade, texto "FOTO 0X" — não há
+  arquivos ainda. Quando as fotos reais chegarem, trocar o miolo colorido
+  de cada `PhotoCard` (`SocialGallerySection.tsx`) por
+  `<img src="/images/social-0X.jpg" />`, mantendo a borda/sombra/grain do
+  card por fora.
 
 ## Infra de animação (`/src/lib`)
 

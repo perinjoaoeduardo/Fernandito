@@ -2,6 +2,7 @@ import { HeroSection } from "@/components/sections/HeroSection";
 import { ManifestoSection } from "@/components/sections/ManifestoSection";
 import { CartaSection } from "@/components/sections/CartaSection";
 import { ProdutoSection } from "@/components/sections/ProdutoSection";
+import { SocialGallerySection } from "@/components/sections/SocialGallerySection";
 import { FichaTecnicaSection } from "@/components/sections/FichaTecnicaSection";
 import { VideoSection } from "@/components/sections/VideoSection";
 import { CTASection } from "@/components/sections/CTASection";
@@ -14,6 +15,7 @@ export default function Home() {
       <ManifestoSection />
       <CartaSection />
       <ProdutoSection />
+      <SocialGallerySection />
       <FichaTecnicaSection />
       <VideoSection />
       <CTASection />
