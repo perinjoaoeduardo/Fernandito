@@ -1,4 +1,5 @@
 import { HeroSection } from "@/components/sections/HeroSection";
+import { OQueESection } from "@/components/sections/OQueESection";
 import { ManifestoSection } from "@/components/sections/ManifestoSection";
 import { CartaSection } from "@/components/sections/CartaSection";
 import { ProdutoSection } from "@/components/sections/ProdutoSection";
@@ -12,6 +13,7 @@ export default function Home() {
   return (
     <main>
       <HeroSection />
+      <OQueESection />
       <ManifestoSection />
       <CartaSection />
       <ProdutoSection />

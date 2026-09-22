@@ -263,27 +263,64 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    coragem, rebeldia, alma, dedicação) em `font-rampart-stamp font-bold`
    (bold sintético — a Stamp só tem peso 400). `prefers-reduced-motion`
    trava a primeira palavra, sem animação.
-2. `ManifestoSection` — fundo off-white
-3. `CartaSection` — fundo off-white, bloco editorial: epígrafe grande
+2. `OQueESection` — fundo off-white, "o que é" o produto em linguagem
+   direta (elevator pitch, estilo do segundo bloco da home da Lassie):
+   grid com placeholder da lata à esquerda (`border-dashed`, aguardando
+   arte — "lata (aguardando arte)") e dois parágrafos curtos à direita,
+   revelados letra a letra (SplitText `type: "chars"`, stagger de 0.014s —
+   efeito de máquina de escrever, combina com a Courier Prime do
+   `font-sans`). Abaixo, uma frase de fechamento grande (`font-serif`,
+   reveal por palavra). `prefers-reduced-motion` pula pro estado final.
+3. `ManifestoSection` — fundo off-white, reescrito como poema contínuo de
+   scroll simples (substituiu a versão anterior de 5 "macros" pinados em
+   tela cheia, considerada grande demais pro conteúdo). Uma lista de
+   linhas curtas (array `LINES` no componente — inclui um item
+   `{ type: "placeholder" }` no meio, uma caixa tracejada reservando
+   espaço pra cenas/sensorial de "ser Fernandito", futuramente fotos/vídeo)
+   revela cada linha com fade+y simples (`ScrollTrigger` individual por
+   linha, sem pin/scrub) em `text-display-md` — bem mais contido que o
+   `display-lg/xl` de antes, pra não pesar o scroll. As duas últimas
+   linhas do poema ("Mas, para os que não deixaram passar... Tomam
+   Fernandito.") se repetem de propósito logo em seguida, sozinhas, num
+   bloco de impacto próprio (`min-h-[70vh] sm:min-h-[80vh]`) com entrada em
+   zoom (`scale` 0.85→1) — o único momento "gigante" da seção, contrastando
+   com o resto do poema.
+4. `CartaSection` — fundo off-white, bloco editorial: epígrafe grande
    (reveal por palavra via SplitText) + cartão-carta (`ElevatedCard`, corpo,
    assinaturas, selo = `fernandito-moeda.svg` rotacionado no canto;
    elevação física no hover, desktop only)
-4. `ProdutoSection` — fundo verde-medio
-5. `SocialGallerySection` — fundo off-white, leque de 7 fotos sobrepostas
+5. `ProdutoSection` — fundo verde-medio
+6. `SocialGallerySection` — fundo off-white, leque de 7 fotos sobrepostas
    (rotação alternada, card central maior) que entra em cascata do centro
    pras bordas e se "abre" no hover; vira carrossel com scroll-snap no
    mobile. Ver detalhes na sua própria entrada abaixo.
-6. `FichaTecnicaSection` — fundo verde-claro
-7. `VideoSection` — fundo verde-escuro
-8. `CTASection` — fundo verde-medio
-9. `FooterSection` — fundo verde-escuro, 5 camadas (labels de canto,
-   frase de fechamento, navegação em colunas, CTA WhatsApp, base com
-   copyright); grain sutil via CSS/SVG (`.grain-overlay` em `globals.css`).
-   Coluna "Navegar" usa `Link` `underline-grow` + item "Voltar ao topo";
-   "Social" usa `underline-swap` com `InstagramIcon` ao lado do texto;
-   "Legal" linka pra `/legal/avisos` (ver seção própria abaixo). Símbolo do
-   cavalo na base em `h-16 w-16 sm:h-20 sm:w-20` (bem maior que o resto do
-   site — é a assinatura final da página).
+7. `FichaTecnicaSection` — fundo verde-claro
+8. `VideoSection` — fundo verde-escuro
+9. `CTASection` — fundo verde-medio
+10. `FooterSection` — fundo verde-escuro, versão compacta (estilo do
+    rodapé enxuto da Lassie — substituiu uma versão anterior bem mais alta,
+    com labels decorativos nos 4 cantos e `min-h-[90vh]`). Duas colunas no
+    topo: frase de fechamento (`font-serif`, reveal por palavra) + CTA
+    `WhatsAppButton` à esquerda; grid "Navegar"/"Social" à direita (a
+    coluna "Legal", que só linkava pra `/legal/avisos`, foi removida do
+    rodapé até existir conteúdo real de privacidade/termos — a rota
+    `/legal/avisos` continua existindo, só não tem mais link direto aqui).
+    "Social" usa `Link` `underline-grow` (não mais `underline-swap` — sem
+    sublinha permanente) com `InstagramIcon` explicitamente à esquerda do
+    texto (`<span className="inline-flex items-center gap-2">`, não
+    depende do wrapping interno do `Link`). Base do rodapé: `moeda.svg` no
+    lugar de um símbolo maior do cavalo + copyright, e um botão "topo"
+    (`scrollToTarget("#hero")`) — sem grain overlay, fundo sólido de
+    propósito (no futuro entra um placeholder de imagem nessa área).
+
+### Próxima seção planejada — galeria horizontal
+
+Entre `OQueESection`/`ManifestoSection` e `CartaSection`, está planejada uma
+galeria horizontal bem animada, referência em `landonorris.com`: fotos em
+alturas/colunas variadas que passam horizontalmente conforme rola a página,
+com uma troca de cor de fundo no meio do percurso e uma citação+assinatura
+central. Ainda não implementada — é um componente novo e visualmente
+grande o suficiente pra merecer sua própria rodada de construção/ajuste.
 
 ## Páginas legais (`/legal`)
 
