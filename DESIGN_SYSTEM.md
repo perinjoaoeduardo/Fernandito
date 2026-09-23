@@ -319,10 +319,11 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    mudar no futuro, essa classe precisa ser atualizada manualmente junto
    (ver comentário no `className` da section em `HeroSection.tsx`).
 
-   No centro do cartão ficam só o logo (`Logo.tsx`, `max-w-[376px]
-   sm:max-w-[600px] lg:max-w-[700px]`) e, logo abaixo (`mt-8`), duas linhas
-   de tagline. O banner "Fernet y Cola" (`public/images/fernet-y-cola-banner.png`)
-   saiu da Hero — o arquivo segue em `/public/images` pra outros usos.
+   No centro do cartão ficam só o logo (`Logo.tsx`, `max-w-[432px]
+   sm:max-w-[690px] lg:max-w-[805px]`) e, logo abaixo (`mt-5`, aproximado do
+   logo), duas linhas de tagline. O banner "Fernet y Cola"
+   (`public/images/fernet-y-cola-banner.png`) saiu da Hero — o arquivo segue
+   em `/public/images` pra outros usos.
 
    **Linha 1** (estática): "Fernet y cola em lata." — `text-body-lg`,
    off-white, `font-rampart-sans` regular.
@@ -354,17 +355,22 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
 2. `OQueESection` — fundo off-white, "o que é" o produto em linguagem
    direta (elevator pitch, estilo do segundo bloco da home da Lassie):
    grid com placeholder da lata à esquerda (`border-dashed`, aguardando
-   arte — "lata (aguardando arte)") e dois parágrafos curtos à direita,
-   revelados letra a letra (SplitText `type: "chars"`, stagger de 0.014s —
-   efeito de máquina de escrever, combina com a Courier Prime do
-   `font-sans`). Abaixo, uma frase de fechamento grande (`font-serif`,
-   reveal por palavra). **O reveal é preso ao scroll via `scrub` num
-   `ScrollTrigger`** (não um "toca uma vez ao entrar na tela") — as
-   letras/palavras aparecem enquanto rola pra baixo e desaparecem de volta
-   se rolar pra cima, igual ao princípio de reveal usado no resto do site
-   pros títulos grandes. Parágrafos e frase de fechamento têm cada um seu
-   próprio trigger independente (`start`/`end` diferentes), não uma timeline
-   única. `prefers-reduced-motion` pula pro estado final.
+   arte — "lata (aguardando arte)") e, na mesma coluna à direita, os dois
+   parágrafos curtos seguidos, **logo abaixo, ainda dentro do mesmo bloco**,
+   da frase de fechamento (`text-display-md`, `font-serif`) — não é mais um
+   bloco separado em tela cheia: fica contida na coluna de texto, no mesmo
+   tamanho relativo da frase de efeito da referência da Lassie (maior que o
+   corpo, mas longe de dominar a viewport sozinha). Parágrafos e frase de
+   fechamento são revelados juntos, letra a letra (SplitText `type: "chars"`
+   nos três elementos, um `chars` array só, stagger de 0.014s — efeito de
+   máquina de escrever, combina com a Courier Prime do `font-sans`; a frase
+   de fechamento usa a mesma técnica, não mais um reveal por palavra
+   separado). **O reveal é preso ao scroll via `scrub` num único
+   `ScrollTrigger`** (trigger na coluna inteira, não um "toca uma vez ao
+   entrar na tela") — as letras aparecem enquanto rola pra baixo e
+   desaparecem de volta se rolar pra cima, igual ao princípio de reveal
+   usado no resto do site pros títulos grandes. `prefers-reduced-motion`
+   pula pro estado final.
 3. `ManifestoSection` — fundo off-white, reescrito como poema contínuo de
    scroll simples (substituiu a versão anterior de 5 "macros" pinados em
    tela cheia, considerada grande demais pro conteúdo). Uma lista de
@@ -410,18 +416,31 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
 9. `FooterSection` — fundo verde-escuro, versão compacta (estilo do
     rodapé enxuto da Lassie — substituiu uma versão anterior bem mais alta,
     com labels decorativos nos 4 cantos e `min-h-[90vh]`). Duas colunas no
-    topo: frase de fechamento (`font-serif`, reveal por palavra) + CTA
-    `WhatsAppButton` à esquerda; grid "Navegar"/"Social" à direita (a
-    coluna "Legal", que só linkava pra `/legal/avisos`, foi removida do
-    rodapé até existir conteúdo real de privacidade/termos — a rota
-    `/legal/avisos` continua existindo, só não tem mais link direto aqui).
-    "Social" usa `Link` `underline-grow` (não mais `underline-swap` — sem
-    sublinha permanente) com `InstagramIcon` explicitamente à esquerda do
-    texto (`<span className="inline-flex items-center gap-2">`, não
-    depende do wrapping interno do `Link`). Base do rodapé: `moeda.svg` no
-    lugar de um símbolo maior do cavalo + copyright, e um botão "topo"
-    (`scrollToTarget("#hero")`) — sem grain overlay, fundo sólido de
-    propósito (no futuro entra um placeholder de imagem nessa área).
+    topo, contidas em `max-w-5xl` com `gap-12` (o gap padrão do site pra
+    esse tipo de grid assimétrico — reduzido de `gap-16`, que deixava um
+    vão vazio grande demais entre o bloco de texto e a navegação): frase
+    de fechamento (`font-serif`, reveal por palavra) + legenda
+    ("Isso toma fernandito.", também `font-serif italic` — é a MESMA voz
+    editorial da frase de fechamento, não a voz de UI/nav; usar `font-sans`
+    aqui foi um erro corrigido, já que ela é a continuação da frase de
+    efeito, não um elemento de interface) + CTA `WhatsAppButton` à
+    esquerda; grid "Navegar"/"Social" à direita, com `gap-14` interno entre
+    as duas colunas de links (reduzido de `gap-16`, mesmo motivo — a coluna
+    "Legal", que só linkava pra `/legal/avisos`, foi removida do rodapé até
+    existir conteúdo real de privacidade/termos — a rota `/legal/avisos`
+    continua existindo, só não tem mais link direto aqui). "Social" usa
+    `Link` `underline-grow` (não mais `underline-swap` — sem sublinha
+    permanente) com `InstagramIcon` explicitamente à esquerda do texto
+    (`<span className="inline-flex items-center gap-2">`, não depende do
+    wrapping interno do `Link`). Base do rodapé: `moeda.svg` no lugar de um
+    símbolo maior do cavalo + copyright, e um botão "topo" circular
+    (`h-11 w-11 rounded-full border`, ícone só — sem grain overlay, fundo
+    sólido de propósito, no futuro entra um placeholder de imagem nessa
+    área). O botão de topo tinha peso visual baixo demais (link de texto
+    solto perto do bloco de copyright) — agora é um círculo com borda, no
+    mesmo idioma visual dos outros elementos circulares do site (pill do
+    cavalo no `FloatingNav`, `moeda.svg` ao lado), com alvo de toque de
+    44×44px.
 
 ## Páginas legais (`/legal`)
 

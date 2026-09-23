@@ -151,7 +151,7 @@ export function HeroSection() {
           </h1>
           <div
             ref={taglineRef}
-            className="text-fernandito-off-white font-rampart-sans mt-8 flex flex-col items-center gap-1"
+            className="text-fernandito-off-white font-rampart-sans mt-5 flex flex-col items-center gap-1"
           >
             <p className="text-body-lg">Fernet y cola em lata.</p>
             <div className="text-body text-fernandito-off-white/70">

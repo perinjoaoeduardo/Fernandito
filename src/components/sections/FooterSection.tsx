@@ -1,6 +1,5 @@
 "use client";
 
-import { clsx } from "clsx";
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger, SplitText, prefersReducedMotion } from "@/lib/gsap";
 import { scrollToTarget } from "@/lib/lenis";
@@ -29,7 +28,7 @@ function TopoIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className="h-4 w-4"
+      className="h-5 w-5"
     >
       <path d="M18 15l-6-6-6 6" />
     </svg>
@@ -116,7 +115,7 @@ export function FooterSection() {
       id="footer"
       className="bg-fernandito-verde-escuro text-fernandito-off-white relative w-full px-6 py-14 sm:px-10 sm:py-16 lg:px-16"
     >
-      <div className="mx-auto grid w-full max-w-5xl gap-12 sm:grid-cols-[1fr_auto] sm:items-start sm:gap-16">
+      <div className="mx-auto grid w-full max-w-5xl gap-12 sm:grid-cols-[1fr_auto] sm:items-start sm:gap-12">
         {/* Frase de fechamento + CTA */}
         <div>
           <h2 className="flex flex-col">
@@ -127,7 +126,14 @@ export function FooterSection() {
               vira história.
             </span>
           </h2>
-          <p ref={taglineRef} className="text-body-lg text-fernandito-verde-claro mt-6 font-sans">
+          {/* Mesma voz editorial do resto do bloco (font-serif itálico,
+              seguindo "vira história.") — não a voz de UI/nav (font-sans)
+              usada nos links e rótulos ao lado; aqui é a continuação da
+              frase de efeito, não um elemento de interface. */}
+          <p
+            ref={taglineRef}
+            className="text-body-lg text-fernandito-verde-claro mt-4 font-serif italic"
+          >
             Isso toma fernandito.
           </p>
           {/* Vídeo e CTA intermediários foram removidos (eram placeholders
@@ -140,7 +146,7 @@ export function FooterSection() {
         </div>
 
         {/* Navegação em colunas — estilo compacto (Company/Socials da Lassie) */}
-        <div className="grid grid-cols-2 gap-10 sm:gap-16">
+        <div className="grid grid-cols-2 gap-10 sm:gap-14">
           <div>
             <h3 className="text-label mb-4 font-sans tracking-[0.08em] uppercase opacity-80">
               Navegar
@@ -184,7 +190,7 @@ export function FooterSection() {
           de voltar ao topo, igual ao rodapé enxuto da Lassie (sem o grain e
           sem o texto gigante de fundo: aqui embaixo entra um placeholder de
           imagem futuramente, por isso o fundo fica sólido). */}
-      <div className="relative mx-auto mt-12 flex w-full max-w-5xl flex-col items-center gap-4 border-t border-white/10 pt-6 text-center sm:flex-row sm:justify-between sm:text-left">
+      <div className="relative mx-auto mt-12 flex w-full max-w-5xl flex-col items-center gap-6 border-t border-white/10 pt-6 text-center sm:flex-row sm:justify-between sm:text-left">
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático */}
           <img
@@ -203,16 +209,18 @@ export function FooterSection() {
           </div>
         </div>
 
+        {/* Botão circular — mesmo peso visual dos outros ícones redondos do
+            site (cavalo do FloatingNav, moeda acima): antes era só um link
+            de texto discreto, fácil de perder ao lado do bloco de
+            copyright. */}
         <button
           type="button"
           onClick={() => scrollToTarget("#hero")}
-          className={clsx(
-            FOOTER_LINK_CLASSES,
-            "duration-base ease-out-standard inline-flex items-center gap-2 opacity-70 transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
-          )}
+          aria-label="Voltar ao topo"
+          title="Voltar ao topo"
+          className="border-fernandito-off-white/25 text-fernandito-off-white/80 duration-base ease-out-standard hover:border-fernandito-off-white/50 hover:text-fernandito-off-white hover:bg-fernandito-off-white/5 focus-visible:outline-fernandito-off-white flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-all hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           <TopoIcon />
-          topo
         </button>
       </div>
     </footer>

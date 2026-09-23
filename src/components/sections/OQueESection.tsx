@@ -7,78 +7,73 @@ import { gsap, ScrollTrigger, SplitText, prefersReducedMotion } from "@/lib/gsap
 // escrever — combina com a Courier Prime (font-sans) já usada no corpo do
 // site. Preso ao scroll via `scrub` (ver useEffect abaixo), não um "toca
 // uma vez": avança enquanto rola pra baixo, volta se rolar pra cima. A
-// frase de fechamento usa o mesmo princípio, só que com reveal por palavra
-// (padrão do resto do site — CartaSection/FooterSection —, mais rápido de
-// ler num bloco grande de display).
+// frase de fechamento mora na MESMA coluna dos parágrafos (não vira um
+// bloco gigante à parte) e usa a mesma máquina de escrever, só que num
+// tamanho bem mais contido — estilo do segundo bloco da home da Lassie,
+// onde a frase de efeito fica logo abaixo do texto curto, não domina a
+// tela sozinha.
 const PARAGRAPHS = [
   "Fernandito é uma bebida mista pronta pra beber: fernet e cola numa lata só, gaseificada, 8% vol.",
   "Sem coqueteleira, sem gelo, sem enrolação — só abrir e virar. O ritual gaúcho do fernet, do jeito que a vida moderna pede.",
 ];
 
+const STATEMENT = "Onde tomar fernet vira tão fácil quanto abrir uma lata.";
+
 const TYPE_STAGGER = 0.014;
 
 export function OQueESection() {
+  const columnRef = useRef<HTMLDivElement>(null);
   const p1Ref = useRef<HTMLParagraphElement>(null);
   const p2Ref = useRef<HTMLParagraphElement>(null);
   const statementRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
+    const column = columnRef.current;
     const p1 = p1Ref.current;
     const p2 = p2Ref.current;
     const statement = statementRef.current;
-    if (!p1 || !p2 || !statement) return;
+    if (!column || !p1 || !p2 || !statement) return;
 
     const reduceMotion = prefersReducedMotion();
     const splitInstances: SplitText[] = [];
 
     if (reduceMotion) {
-      gsap.set([p1, p2, statement], { opacity: 1, y: 0 });
+      gsap.set([p1, p2, statement], { opacity: 1 });
       return;
     }
 
     let chars: Element[] = [];
-    let words: Element[] = [];
     try {
       const splitP1 = new SplitText(p1, { type: "chars", aria: "none" });
       const splitP2 = new SplitText(p2, { type: "chars", aria: "none" });
-      const splitStatement = new SplitText(statement, { type: "words", aria: "none" });
+      const splitStatement = new SplitText(statement, { type: "chars", aria: "none" });
       splitInstances.push(splitP1, splitP2, splitStatement);
-      chars = [...splitP1.chars, ...splitP2.chars];
-      words = splitStatement.words;
+      chars = [...splitP1.chars, ...splitP2.chars, ...splitStatement.chars];
     } catch (err) {
       console.warn("[OQueESection] SplitText indisponível, usando fallback manual.", err);
-      gsap.set([p1, p2, statement], { opacity: 1, y: 0 });
+      gsap.set([p1, p2, statement], { opacity: 1 });
       return;
     }
 
     gsap.set(chars, { opacity: 0 });
-    gsap.set(words, { opacity: 0, y: 20 });
 
     // Preso ao scroll (scrub), não um "dispara e esquece": a máquina de
     // escrever avança enquanto você rola pra baixo E volta letra por letra
     // se você rolar pra cima — mesma lógica de "aparece e some conforme
-    // rola" que o resto do site usa pros títulos grandes.
-    const paragraphTrigger = ScrollTrigger.create({
-      trigger: p1,
+    // rola" que o resto do site usa pros títulos grandes. Uma trilha só
+    // (parágrafos + frase de fechamento juntos), não dois triggers
+    // separados — lê como um bloco de texto contínuo, não duas animações
+    // independentes.
+    const trigger = ScrollTrigger.create({
+      trigger: column,
       start: "top 85%",
-      end: "bottom 55%",
+      end: "bottom 60%",
       scrub: 0.4,
       animation: gsap.timeline().to(chars, { opacity: 1, stagger: TYPE_STAGGER, ease: "none" }),
     });
 
-    const statementTrigger = ScrollTrigger.create({
-      trigger: statement,
-      start: "top 85%",
-      end: "top 50%",
-      scrub: 0.4,
-      animation: gsap
-        .timeline()
-        .to(words, { opacity: 1, y: 0, stagger: 0.03, ease: "none" }),
-    });
-
     return () => {
-      paragraphTrigger.kill();
-      statementTrigger.kill();
+      trigger.kill();
       splitInstances.forEach((split) => split.revert());
     };
   }, []);
@@ -99,23 +94,17 @@ export function OQueESection() {
           </span>
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div ref={columnRef} className="flex flex-col gap-6">
           <p ref={p1Ref} className="text-body-lg font-sans">
             {PARAGRAPHS[0]}
           </p>
           <p ref={p2Ref} className="text-body-lg font-sans">
             {PARAGRAPHS[1]}
           </p>
+          <h2 ref={statementRef} className="text-display-md mt-4 font-serif leading-[1.1]">
+            {STATEMENT}
+          </h2>
         </div>
-      </div>
-
-      <div className="mx-auto mt-16 max-w-5xl sm:mt-20">
-        <h2
-          ref={statementRef}
-          className="text-display-lg sm:text-display-xl font-serif leading-[0.95]"
-        >
-          Onde tomar fernet vira tão fácil quanto abrir uma lata.
-        </h2>
       </div>
     </section>
   );
