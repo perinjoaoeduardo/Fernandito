@@ -85,7 +85,7 @@ export function ManifestoSection() {
               }}
               className="border-fernandito-verde-escuro/25 mx-auto flex h-32 w-full max-w-xl items-center justify-center rounded-2xl border-2 border-dashed sm:h-40"
             >
-              <span className="text-label font-accent px-6 text-center uppercase opacity-50">
+              <span className="text-label font-accent px-6 text-center uppercase opacity-80">
                 cenas e sensorial de ser Fernandito
                 <br />
                 (encontro, rolê — aguardando conteúdo)

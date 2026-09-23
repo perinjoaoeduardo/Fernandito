@@ -258,7 +258,9 @@ export function SocialGallerySection() {
           variant="ghost"
           icon={<InstagramIcon />}
           iconPosition="left"
-          aria-label="Seguir o Fernandito no Instagram — abre em nova aba"
+          // O nome acessível precisa CONTER o texto visível — senão quem usa
+          // controle por voz fala "@toma.fernandito" e o comando não casa.
+          aria-label="@toma.fernandito — seguir no Instagram, abre em nova aba"
         >
           @toma.fernandito
         </Button>

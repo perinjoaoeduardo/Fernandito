@@ -37,7 +37,7 @@ export function CartaSection() {
     let words: Element[] = [];
 
     try {
-      const split = new SplitText(epigraph, { type: "words" });
+      const split = new SplitText(epigraph, { type: "words", aria: "none" });
       splitInstances.push(split);
       words = split.words;
     } catch (err) {
@@ -161,8 +161,16 @@ export function CartaSection() {
             ref={sealRef}
             className="absolute -right-3 -bottom-4 aspect-square w-24 rotate-[8deg] drop-shadow-[0_4px_10px_rgba(36,48,34,0.25)] [will-change:transform] sm:-right-5 sm:-bottom-6 sm:w-28 lg:-right-6 lg:-bottom-8 lg:w-[120px]"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático */}
-            <img src="/logo/fernandito-moeda.svg" alt="Selo Fernandito" className="h-full w-full" />
+            {/* eslint-disable-next-line @next/next/no-img-element -- raster estático de tamanho fixo, next/image não traz benefício */}
+            <img
+              src="/logo/fernandito-moeda.webp"
+              alt="Selo Fernandito"
+              width={256}
+              height={258}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full"
+            />
           </div>
         </ElevatedCard>
       </div>

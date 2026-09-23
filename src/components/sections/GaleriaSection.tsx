@@ -86,9 +86,13 @@ function QuoteBlock() {
       <p className="text-body-lg font-serif italic">O que se entrega fácil não deixa gosto.</p>
       {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático */}
       <img
-        src="/logo/fernandito-moeda.svg"
+        src="/logo/fernandito-moeda.webp"
         alt=""
         aria-hidden="true"
+        width={256}
+        height={258}
+        loading="lazy"
+        decoding="async"
         className="ml-auto h-14 w-14 -rotate-6 opacity-90"
       />
     </div>
@@ -185,6 +189,8 @@ export function GaleriaSection() {
       aria-label="Galeria"
       className="relative w-full motion-safe:sm:h-[250vh]"
     >
+      <h2 className="sr-only">Galeria</h2>
+
       {/* Desktop — pin horizontal + troca de cor */}
       <div
         ref={stickyRef}

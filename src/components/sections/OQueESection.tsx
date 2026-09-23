@@ -37,9 +37,9 @@ export function OQueESection() {
     let chars: Element[] = [];
     let words: Element[] = [];
     try {
-      const splitP1 = new SplitText(p1, { type: "chars" });
-      const splitP2 = new SplitText(p2, { type: "chars" });
-      const splitStatement = new SplitText(statement, { type: "words" });
+      const splitP1 = new SplitText(p1, { type: "chars", aria: "none" });
+      const splitP2 = new SplitText(p2, { type: "chars", aria: "none" });
+      const splitStatement = new SplitText(statement, { type: "words", aria: "none" });
       splitInstances.push(splitP1, splitP2, splitStatement);
       chars = [...splitP1.chars, ...splitP2.chars];
       words = splitStatement.words;
@@ -82,7 +82,7 @@ export function OQueESection() {
       <div className="mx-auto grid max-w-5xl gap-12 sm:grid-cols-[minmax(0,200px)_1fr] sm:items-start sm:gap-16">
         {/* Placeholder — aqui entra a arte da lata quando o asset chegar. */}
         <div className="border-fernandito-verde-escuro/25 mx-auto flex aspect-[3/7] w-36 shrink-0 items-center justify-center rounded-[2rem] border-2 border-dashed sm:mx-0 sm:w-full">
-          <span className="text-label font-accent px-3 text-center uppercase opacity-50">
+          <span className="text-label font-accent px-3 text-center uppercase opacity-80">
             lata
             <br />
             (aguardando arte)

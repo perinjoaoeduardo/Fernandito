@@ -56,8 +56,8 @@ export function FooterSection() {
     const splitInstances: SplitText[] = [];
     let words: Element[] = [];
     try {
-      const split1 = new SplitText(line1, { type: "words" });
-      const split2 = new SplitText(line2, { type: "words" });
+      const split1 = new SplitText(line1, { type: "words", aria: "none" });
+      const split2 = new SplitText(line2, { type: "words", aria: "none" });
       splitInstances.push(split1, split2);
       words = [...split1.words, ...split2.words];
     } catch (err) {
@@ -142,7 +142,7 @@ export function FooterSection() {
         {/* Navegação em colunas — estilo compacto (Company/Socials da Lassie) */}
         <div className="grid grid-cols-2 gap-10 sm:gap-16">
           <div>
-            <h3 className="text-label mb-4 font-sans tracking-[0.08em] uppercase opacity-50">
+            <h3 className="text-label mb-4 font-sans tracking-[0.08em] uppercase opacity-80">
               Navegar
             </h3>
             <ul className="flex flex-col gap-3">
@@ -157,7 +157,7 @@ export function FooterSection() {
           </div>
 
           <div>
-            <h3 className="text-label mb-4 font-sans tracking-[0.08em] uppercase opacity-50">
+            <h3 className="text-label mb-4 font-sans tracking-[0.08em] uppercase opacity-80">
               Social
             </h3>
             <ul className="flex flex-col gap-3">
@@ -188,9 +188,13 @@ export function FooterSection() {
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático */}
           <img
-            src="/logo/fernandito-moeda.svg"
+            src="/logo/fernandito-moeda.webp"
             alt=""
             aria-hidden="true"
+            width={256}
+            height={258}
+            loading="lazy"
+            decoding="async"
             className="h-10 w-10 shrink-0 opacity-90"
           />
           <div className="font-sans text-[13px] opacity-70">

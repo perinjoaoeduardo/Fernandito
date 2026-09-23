@@ -131,8 +131,15 @@ export function FloatingNav() {
           aria-label="Voltar ao topo"
           className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio hidden h-11 w-11 shrink-0 items-center justify-center rounded-full backdrop-blur-md transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:flex"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático */}
-          <img src="/logo/fernandito-horse.svg" alt="" className="h-full w-full rounded-full" />
+          {/* eslint-disable-next-line @next/next/no-img-element -- raster estático de tamanho fixo, next/image não traz benefício */}
+          <img
+            src="/logo/fernandito-horse.webp"
+            alt=""
+            width={128}
+            height={129}
+            decoding="async"
+            className="h-full w-full rounded-full"
+          />
         </motion.button>
 
         {/* Pill 1 (mobile) — mesmo símbolo, vira gatilho do menu fullscreen */}
@@ -145,8 +152,15 @@ export function FloatingNav() {
           aria-expanded={menuOpen}
           className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 w-11 shrink-0 items-center justify-center rounded-full backdrop-blur-md transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:hidden"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático */}
-          <img src="/logo/fernandito-horse.svg" alt="" className="h-full w-full rounded-full" />
+          {/* eslint-disable-next-line @next/next/no-img-element -- raster estático de tamanho fixo, next/image não traz benefício */}
+          <img
+            src="/logo/fernandito-horse.webp"
+            alt=""
+            width={128}
+            height={129}
+            decoding="async"
+            className="h-full w-full rounded-full"
+          />
         </motion.button>
 
         {/* Pill 2 (desktop only) — links + CTA WhatsApp em destaque */}

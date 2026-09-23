@@ -141,8 +141,13 @@ export function HeroSection() {
         className="bg-fernandito-verde-escuro sticky top-0 flex h-screen w-full flex-col items-center justify-center overflow-hidden [will-change:transform,border-radius]"
       >
         <div ref={contentRef} className="flex flex-col items-center px-6 text-center">
-          <h1 ref={logoRef} aria-label="Fernandito" className="flex justify-center">
-            <Logo />
+          {/* O texto do h1 vive num `sr-only` de verdade (não só no `alt` da
+              imagem): garante um h1 com texto rastreável no HTML do servidor,
+              independente do raster do logo carregar ou não. A imagem vira
+              decorativa (`alt=""`) pra não duplicar o anúncio no leitor. */}
+          <h1 ref={logoRef} className="flex justify-center">
+            <span className="sr-only">Fernandito — fernet com cola, direto da lata</span>
+            <Logo alt="" aria-hidden />
           </h1>
           <p
             ref={taglineRef}

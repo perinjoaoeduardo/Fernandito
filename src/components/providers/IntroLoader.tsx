@@ -70,10 +70,14 @@ export function IntroLoader() {
       aria-hidden="true"
       className="bg-fernandito-verde-medio fixed inset-0 z-[100] flex items-center justify-center [will-change:transform]"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- animated GIF, next/image would strip the animation */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- GIF animado, next/image tiraria a animação */}
       <img
         src="/cavalinho-intro.gif"
         alt=""
+        width={640}
+        height={366}
+        fetchPriority="high"
+        decoding="async"
         className="h-[160px] w-[240px] object-contain sm:h-[220px] sm:w-[320px]"
       />
     </div>

@@ -26,25 +26,38 @@ export function ScrollProgress() {
     const bar = barRef.current;
     if (!bar) return;
 
-    let rafId: number;
+    // Antes isso era um requestAnimationFrame em loop infinito: ficava
+    // recalculando ~60x por segundo mesmo com a página parada. Agora só
+    // recalcula quando o scroll (ou o tamanho do documento) muda de fato,
+    // com o rAF servindo só de throttle pra no máximo um cálculo por frame.
+    let rafId: number | null = null;
 
     const update = () => {
+      rafId = null;
       const lenis = getLenis();
-      let progress: number;
-
-      if (lenis) {
-        progress = lenis.progress;
-      } else {
-        const max = document.documentElement.scrollHeight - window.innerHeight;
-        progress = max > 0 ? window.scrollY / max : 0;
-      }
+      const progress = lenis
+        ? lenis.progress
+        : (() => {
+            const max = document.documentElement.scrollHeight - window.innerHeight;
+            return max > 0 ? window.scrollY / max : 0;
+          })();
 
       bar.style.width = `${Math.min(1, Math.max(0, progress)) * 100}%`;
-      rafId = requestAnimationFrame(update);
     };
 
-    rafId = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(rafId);
+    const schedule = () => {
+      if (rafId === null) rafId = requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+    };
   }, [active]);
 
   if (!active) return null;

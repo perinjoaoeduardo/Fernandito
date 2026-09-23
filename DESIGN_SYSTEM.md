@@ -39,16 +39,37 @@ seu próprio token (cada `.otf` em `public/fonts/Rampart-*.otf` vira um
 font-family separado, exceto Sans/SansBold que são regular/bold da mesma
 variante):
 
-| Token                      | Arquivo(s)                                              |
-| -------------------------- | ------------------------------------------------------- |
-| `font-rampart`             | `Rampart-Regular.otf`                                   |
-| `font-rampart-sans`        | `Rampart-Sans.otf` (400) + `Rampart-SansBold.otf` (700) |
-| `font-rampart-stamp`       | `Rampart-Stamp.otf`                                     |
-| `font-rampart-spurs`       | `Rampart-Spurs.otf`                                     |
-| `font-rampart-spurs-stamp` | `Rampart-SpursStamp.otf`                                |
+| Token                      | Arquivo(s)                                                  | Preload |
+| -------------------------- | ----------------------------------------------------------- | ------- |
+| `font-rampart`             | `Rampart-Regular.woff2`                                     | não     |
+| `font-rampart-sans`        | `Rampart-Sans.woff2` (400) + `Rampart-SansBold.woff2` (700) | **sim** |
+| `font-rampart-stamp`       | `Rampart-Stamp.woff2`                                       | **sim** |
+| `font-rampart-spurs`       | `Rampart-Spurs.woff2`                                       | não     |
+| `font-rampart-spurs-stamp` | `Rampart-SpursStamp.woff2`                                  | não     |
 
 Papel específico de cada sub-estilo dentro da família ainda não foi
 definido — aguardando instrução de uso.
+
+### Formato e política de preload
+
+Todas as fontes são servidas em **WOFF2** (os `.otf`/`.ttf` originais
+continuam em `/public/fonts` como fonte-verdade). A conversão cortou
+**2147KB → 464KB** — a Rampart-Stamp sozinha foi de 690KB pra 96KB. Pra
+converter uma fonte nova: `fontTools.ttLib.TTFont(src)`, `flavor="woff2"`,
+`save()`.
+
+Todas usam `display: "swap"`. O que muda por fonte é o **preload**: cada
+fonte pré-carregada vira um `<link rel=preload>` que disputa banda com o
+LCP, então só pré-carrega quem aparece na **primeira dobra** — Courier
+Prime (nav + indicador de scroll), Rampart Sans e Rampart Stamp (tagline da
+Hero). As outras levam `preload: false` em `layout.tsx` e carregam sob
+demanda quando a seção entra em cena.
+
+Isso vale especialmente pras Rampart sem uso hoje (`rampart`,
+`rampart-spurs`, `rampart-spurs-stamp`): seguem disponíveis como token, mas
+sem preload não custam nada até alguém aplicar a classe. **Ao passar a usar
+uma delas na primeira dobra, tire o `preload: false`** — e o contrário
+também vale.
 
 ### Escala (classes `text-*` do Tailwind)
 
@@ -235,12 +256,40 @@ escuro→claro via PIL/numpy, preservando o anti-aliasing original).
 | `fernandito-logo-mono.svg`          | Versão monocromática                                                                                                                                                  | Aguardando arquivo         |
 | `fernandito-logo-negative.svg`      | Versão negativa                                                                                                                                                       | Aguardando arquivo         |
 
-`fernandito-logo-text.svg`, `fernandito-moeda.svg` e `fernandito-horse.svg`
-são vetores bem detalhados (472KB–2.3MB) — funcionam normalmente via
-`<img>`, mas vale considerar otimizar (`svgo`) antes do lançamento se o
-peso da página virar problema. O par `fernandito-horse-full.png`
-(11.8MB) é pesado demais pra usar direto na web — se algum dia precisar
-dessa ilustração em raster, gerar um resize menor a partir dele primeiro.
+#### O que o site serve de verdade: WebP, não os SVGs
+
+Os três SVGs usados em tela são ilustrações com milhares de paths — o
+wordmark sozinho tinha **2.3MB** e era o elemento de LCP da Hero. Passaram
+por `svgo` e, principalmente, viraram **rasters WebP em 2x do tamanho real
+de exibição**, que é o que os componentes carregam:
+
+| Servido em tela                  | Vem de                     | Peso            | Exibido a       |
+| -------------------------------- | -------------------------- | --------------- | --------------- |
+| `fernandito-logo-text.webp`      | `fernandito-logo-text.svg` | 2.3MB → **59KB** | até 700px (Hero) |
+| `fernandito-moeda.webp`          | `fernandito-moeda.svg`     | 1.7MB → **23KB** | 40–120px        |
+| `fernandito-horse.webp`          | `fernandito-horse.svg`     | 472KB → **8KB**  | 44px (nav)      |
+
+Os `.svg` continuam no repo como **arquivo-fonte da marca** (é deles que os
+rasters saem). Pra regerar — depois de trocar um SVG, ou se algum lugar
+passar a exibir maior do que a tabela acima —, renderize o SVG no Chromium
+no dobro do tamanho de exibição e salve como WebP (qualidade 90). Regra:
+**o raster tem que ter no mínimo 2x a maior largura CSS em que aparece**,
+senão fica borrado em tela retina.
+
+O `<Logo />` usa `next/image` com `priority` (é o LCP: ganha `<link
+rel=preload>` e sai do lazy-loading). Os ícones pequenos seguem em `<img>`
+normal com `width`/`height` explícitos — passar 40px por um otimizador não
+paga o custo, e as dimensões é que evitam CLS.
+
+O GIF da intro (`cavalinho-intro.gif`) tinha 1325×757 sendo exibido a
+320px: foi reduzido pra 640px e 32 cores (**1MB → 283KB**), sem diferença
+visível.
+
+`fernandito-horse-full.png` (11.8MB), `fernandito-horse-full.svg`,
+`fernandito-horse-illustration.png`, `cavalinho.gif` e
+`cavalinho-intro.mp4` continuam no `/public` mas **nenhum componente usa** —
+não pesam no carregamento do usuário, só no tamanho do deploy. Dá pra
+apagar quando quiser (o git guarda).
 
 ## Estrutura de seções (`/src/components/sections`)
 
@@ -449,3 +498,62 @@ do zero a cada carregamento mesmo. Implementado em `layout.tsx` via um
 `<Script strategy="beforeInteractive">` que desliga `history.scrollRestoration`
 e força `scrollTo(0, 0)` antes da hidratação (evita o flash de "restaura no
 meio e depois pula pro topo").
+
+## SEO técnico
+
+Tudo via Metadata API nativa do Next — nenhuma tag `<head>` na mão.
+
+- **`src/lib/site.ts`** — `SITE_URL`, `SITE_TITLE`, `SITE_DESCRIPTION`. Mora
+  fora do `layout.tsx` de propósito: `robots.ts`/`sitemap.ts` importando do
+  layout fariam o módulo dele ser avaliado fora do grafo de componentes,
+  onde o transform do `next/font` não roda — e o build quebra em
+  `localFont(...).variable`. `NEXT_PUBLIC_SITE_URL` sobrescreve a URL em
+  preview, pra deploy de teste não emitir canonical do domínio final.
+- **`layout.tsx`** — title/description, keywords, canonical, Open Graph
+  (com `/og-image.jpg` 1200×630), Twitter `summary_large_image`, robots, e
+  os metadados de geo (`geo.region` BR-RS, `geo.placename`, `geo.position`,
+  `ICBM`) via `other`, que a Metadata API não tem campo próprio pra isso.
+  `viewport` exporta `themeColor`.
+- **JSON-LD** (`@graph` com `Organization` + `Product` + `WebSite`) inline no
+  `<body>`. Só com dado que já é verdade no site (350ml, 8% v/v, registro
+  MAPA, Instagram). **Sem `offers`, `price` ou `aggregateRating`** — não há
+  e-commerce nem avaliações, e marcar campo inexistente derruba o rich
+  result inteiro na validação. Quando houver loja, adicionar `offers` aqui.
+- **`robots.ts` / `sitemap.ts` / `manifest.ts`** — rotas nativas. Pra somar
+  página nova ao sitemap basta uma entrada no array `ROUTES`.
+- **Ícones** — `src/app/icon.png`, `apple-icon.png` e `favicon.ico` são
+  convenções de arquivo do Next (ele gera as tags sozinho); `public/icon-192.png`
+  e `icon-512.png` servem o manifest. Todos gerados a partir da moeda.
+  `og-image.jpg` é **placeholder** com o logo real sobre verde-escuro.
+
+## Performance — o que já foi feito e onde está o teto
+
+Baseline Lighthouse (mobile) era **Performance 59 / LCP 8.9s / 3210KB**.
+Depois de otimizar assets e fontes: **Performance ~74 / LCP 6.4s / CLS 0 /
+TBT ~190ms / 1000KB**, com **SEO 100, Acessibilidade 100, Best Practices 100**.
+
+O LCP restante **não é peso de asset** — todas as imagens carregam em menos
+de 100ms. É a cortina de abertura: medido com throttling mobile, LCP com a
+intro dá **5.0s** e sem ela (via `prefers-reduced-motion`) dá **0.9s** — ou
+seja, **a intro responde por ~4.1s**. A conta é o próprio desenho dela:
+`VISIBLE_DURATION` 2s + reveal 1.1s + o fade-in da Hero (que começa em
+`opacity: 0`, então o logo nem conta como LCP antes disso). Encurtar a
+intro é a única alavanca real de LCP — e é decisão de marca, não técnica.
+
+Regras que o site já segue e que vale manter:
+
+- `scrub` sempre com valor numérico (0.6), nunca `true` puro.
+- `[will-change:transform]` em todo elemento que o GSAP anima.
+- `CustomCursor` e `ScrollProgress` **não montam** sob `prefers-reduced-motion`
+  (retornam `null`) — não é só ficar invisível, é não rodar cálculo nenhum.
+- `ScrollProgress` recalcula **por evento de scroll/resize** com rAF só de
+  throttle. Antes era um `requestAnimationFrame` em loop infinito, queimando
+  CPU ~60x por segundo com a página parada.
+- Texto animado (`SplitText`) nasce **no HTML do servidor** — a animação só
+  mexe em `opacity`/`transform` de spans que já existem. Nenhuma informação
+  depende de JS pra existir no DOM.
+- `SplitText` sempre com `aria: "none"`. O padrão (`"auto"`) injeta
+  `aria-label` no elemento splitado, o que a spec do ARIA proíbe em `<p>`/
+  `<span>` sem role — era o que segurava a nota de acessibilidade em 92.
+- Labels pequenos (`text-label`) não descem de `opacity-80`: a 50% o
+  contraste caía pra 2.77, abaixo do mínimo de 4.5.
