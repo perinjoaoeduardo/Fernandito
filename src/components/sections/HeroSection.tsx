@@ -17,7 +17,7 @@ export function HeroSection() {
   const boxRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLHeadingElement>(null);
-  const taglineRef = useRef<HTMLParagraphElement>(null);
+  const taglineRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLButtonElement>(null);
   const chevronRef = useRef<SVGSVGElement>(null);
 
@@ -149,12 +149,15 @@ export function HeroSection() {
             <span className="sr-only">Fernandito — fernet com cola, direto da lata</span>
             <Logo alt="" aria-hidden />
           </h1>
-          <p
+          <div
             ref={taglineRef}
-            className="text-body-lg text-fernandito-off-white font-rampart-sans mt-8"
+            className="text-fernandito-off-white font-rampart-sans mt-8 flex flex-col items-center gap-1"
           >
-            Fernet y cola em lata. Feito com <RotatingWord />
-          </p>
+            <p className="text-body-lg">Fernet y cola em lata.</p>
+            <div className="text-body text-fernandito-off-white/70">
+              <RotatingWord />
+            </div>
+          </div>
         </div>
 
         <button

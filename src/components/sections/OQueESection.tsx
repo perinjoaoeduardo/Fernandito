@@ -5,9 +5,11 @@ import { gsap, ScrollTrigger, SplitText, prefersReducedMotion } from "@/lib/gsap
 
 // Textos curtos ("o que somos") revelados letra a letra, tipo máquina de
 // escrever — combina com a Courier Prime (font-sans) já usada no corpo do
-// site. A frase de fechamento usa o reveal por palavra padrão do resto do
-// site (ver CartaSection/FooterSection), pra não ficar lento demais num
-// bloco grande de display.
+// site. Preso ao scroll via `scrub` (ver useEffect abaixo), não um "toca
+// uma vez": avança enquanto rola pra baixo, volta se rolar pra cima. A
+// frase de fechamento usa o mesmo princípio, só que com reveal por palavra
+// (padrão do resto do site — CartaSection/FooterSection —, mais rápido de
+// ler num bloco grande de display).
 const PARAGRAPHS = [
   "Fernandito é uma bebida mista pronta pra beber: fernet e cola numa lata só, gaseificada, 8% vol.",
   "Sem coqueteleira, sem gelo, sem enrolação — só abrir e virar. O ritual gaúcho do fernet, do jeito que a vida moderna pede.",
@@ -52,23 +54,31 @@ export function OQueESection() {
     gsap.set(chars, { opacity: 0 });
     gsap.set(words, { opacity: 0, y: 20 });
 
-    const tl = gsap.timeline({ paused: true });
-    tl.to(chars, { opacity: 1, duration: 0.01, stagger: TYPE_STAGGER, ease: "none" }).to(
-      words,
-      { opacity: 1, y: 0, duration: 0.5, stagger: 0.03, ease: "power3.out" },
-      "+=0.2",
-    );
-
-    const trigger = ScrollTrigger.create({
+    // Preso ao scroll (scrub), não um "dispara e esquece": a máquina de
+    // escrever avança enquanto você rola pra baixo E volta letra por letra
+    // se você rolar pra cima — mesma lógica de "aparece e some conforme
+    // rola" que o resto do site usa pros títulos grandes.
+    const paragraphTrigger = ScrollTrigger.create({
       trigger: p1,
-      start: "top 80%",
-      once: true,
-      onEnter: () => tl.play(),
+      start: "top 85%",
+      end: "bottom 55%",
+      scrub: 0.4,
+      animation: gsap.timeline().to(chars, { opacity: 1, stagger: TYPE_STAGGER, ease: "none" }),
+    });
+
+    const statementTrigger = ScrollTrigger.create({
+      trigger: statement,
+      start: "top 85%",
+      end: "top 50%",
+      scrub: 0.4,
+      animation: gsap
+        .timeline()
+        .to(words, { opacity: 1, y: 0, stagger: 0.03, ease: "none" }),
     });
 
     return () => {
-      trigger.kill();
-      tl.kill();
+      paragraphTrigger.kill();
+      statementTrigger.kill();
       splitInstances.forEach((split) => split.revert());
     };
   }, []);

@@ -60,16 +60,22 @@ converter uma fonte nova: `fontTools.ttLib.TTFont(src)`, `flavor="woff2"`,
 
 Todas usam `display: "swap"`. O que muda por fonte é o **preload**: cada
 fonte pré-carregada vira um `<link rel=preload>` que disputa banda com o
-LCP, então só pré-carrega quem aparece na **primeira dobra** — Courier
-Prime (nav + indicador de scroll), Rampart Sans e Rampart Stamp (tagline da
-Hero). As outras levam `preload: false` em `layout.tsx` e carregam sob
-demanda quando a seção entra em cena.
+LCP, então só pré-carrega quem aparece **cedo na rolagem** — Courier Prime
+(nav + indicador de scroll), Rampart Sans e Rampart Stamp (tagline da
+Hero), e **Instrument Serif** (`font-serif`) — que apesar de não aparecer
+na Hero, é o título usado em praticamente toda seção seguinte (a SEGUNDA
+seção do site já usa), então sem preload dava tempo de mostrar a fonte de
+fallback (Georgia) antes do Google Fonts terminar de baixar num scroll
+rápido — foi reportado ao vivo num celular real. As outras levam
+`preload: false` em `layout.tsx` e carregam sob demanda quando a seção
+entra em cena.
 
 Isso vale especialmente pras Rampart sem uso hoje (`rampart`,
 `rampart-spurs`, `rampart-spurs-stamp`): seguem disponíveis como token, mas
 sem preload não custam nada até alguém aplicar a classe. **Ao passar a usar
-uma delas na primeira dobra, tire o `preload: false`** — e o contrário
-também vale.
+uma delas cedo na rolagem, tire o `preload: false`** — e o contrário
+também vale. Regra de bolso: não é só "primeira dobra" que importa, é
+"quão rápido um usuário rolando normalmente chega lá".
 
 ### Escala (classes `text-*` do Tailwind)
 
@@ -314,33 +320,37 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    (ver comentário no `className` da section em `HeroSection.tsx`).
 
    No centro do cartão ficam só o logo (`Logo.tsx`, `max-w-[376px]
-   sm:max-w-[600px] lg:max-w-[700px]`) e, logo abaixo (`mt-8`), a tagline.
-   O banner "Fernet y Cola" (`public/images/fernet-y-cola-banner.png`, cores
-   já corrigidas pro padrão `#E6E6CB`/`#405139`) saiu da Hero — o texto dele
-   virou parte da própria frase. O arquivo segue em `/public/images` pra
-   outros usos.
+   sm:max-w-[600px] lg:max-w-[700px]`) e, logo abaixo (`mt-8`), duas linhas
+   de tagline. O banner "Fernet y Cola" (`public/images/fernet-y-cola-banner.png`)
+   saiu da Hero — o arquivo segue em `/public/images` pra outros usos.
 
-   A tagline ("Fernet y cola em lata. Feito com ___.") usa duas fontes: o
-   texto fixo em `font-rampart-sans` regular, cor off-white; a palavra
-   variável usa `RotatingWord.tsx` — um roller vertical (GSAP, `y` em `em`
-   por cima de uma pilha de `<span>`, `overflow-hidden`) que troca entre 10
-   palavras (Brio, Intenção, Teimosia, Amargor, Insistência, Paciência,
-   Coragem, Liberdade, Inquietação, Independência) em
-   `font-rampart-stamp font-bold` (bold sintético — a Stamp só tem peso
-   400). Três detalhes que não são óbvios:
+   **Linha 1** (estática): "Fernet y cola em lata." — `text-body-lg`,
+   off-white, `font-rampart-sans` regular.
+
+   **Linha 2** (`RotatingWord.tsx`, menor — `text-body` — e mais apagada —
+   `text-fernandito-off-white/70`): a frase inteira "Feito com ___." rola
+   como um bloco só, não só a palavra dentro de um "Feito com" fixo. Um
+   roller vertical (GSAP, `y` em `em` por cima de uma pilha de `<span>`,
+   `overflow-hidden`) troca entre 10 frases completas — "Feito com Brio.",
+   "Feito com Intenção." etc., com "Feito com" em `font-rampart-sans` e a
+   palavra em `font-rampart-stamp font-bold` (bold sintético — a Stamp só
+   tem peso 400). Duas coisas que não são óbvias:
    - cada linha do roller usa `h-[1.4em]` + `leading-none` (não `1.2em` — a
      Rampart Stamp tem métricas de ascendente/descendente maiores que o
-     normal; com menos folga a palavra vizinha vazava visualmente por
+     normal; com menos folga a linha vizinha vazava visualmente por
      cima/baixo do recorte);
-   - **o ponto final faz parte de cada palavra** (`"Brio."`), não fica solto
-     depois do componente — senão ele gruda na borda da caixa e aparece
-     flutuando longe das palavras curtas;
-   - **a largura da caixa é animada junto com o roll** (medida por palavra
-     depois de `document.fonts.ready`), em vez de ficar travada na palavra
-     mais larga — senão a frase inteira, que é centralizada, fica
-     visivelmente fora do meio da tela nas palavras curtas.
+   - **cada linha é a FRASE INTEIRA, não só a palavra** — como cada frase
+     ocupa a largura toda do bloco e se centraliza sozinha (`items-center`
+     no flex), não precisa medir nem animar largura nenhuma. A versão
+     anterior animava só a palavra dentro de um prefixo fixo, e pra manter
+     a frase centralizada em cada tamanho de palavra também animava a
+     LARGURA da caixa junto com a posição — duas tweens em propriedades de
+     natureza diferente (largura mexe no layout, na thread principal;
+     posição vertical é só `transform`, no compositor), que às vezes
+     dessincronizavam e a palavra parecia entrar "em diagonal". Rolar a
+     frase inteira elimina o problema na raiz.
 
-   `prefers-reduced-motion` trava a primeira palavra, sem animação.
+   `prefers-reduced-motion` trava a primeira frase, sem animação.
 2. `OQueESection` — fundo off-white, "o que é" o produto em linguagem
    direta (elevator pitch, estilo do segundo bloco da home da Lassie):
    grid com placeholder da lata à esquerda (`border-dashed`, aguardando
@@ -348,7 +358,13 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    revelados letra a letra (SplitText `type: "chars"`, stagger de 0.014s —
    efeito de máquina de escrever, combina com a Courier Prime do
    `font-sans`). Abaixo, uma frase de fechamento grande (`font-serif`,
-   reveal por palavra). `prefers-reduced-motion` pula pro estado final.
+   reveal por palavra). **O reveal é preso ao scroll via `scrub` num
+   `ScrollTrigger`** (não um "toca uma vez ao entrar na tela") — as
+   letras/palavras aparecem enquanto rola pra baixo e desaparecem de volta
+   se rolar pra cima, igual ao princípio de reveal usado no resto do site
+   pros títulos grandes. Parágrafos e frase de fechamento têm cada um seu
+   próprio trigger independente (`start`/`end` diferentes), não uma timeline
+   única. `prefers-reduced-motion` pula pro estado final.
 3. `ManifestoSection` — fundo off-white, reescrito como poema contínuo de
    scroll simples (substituiu a versão anterior de 5 "macros" pinados em
    tela cheia, considerada grande demais pro conteúdo). Uma lista de

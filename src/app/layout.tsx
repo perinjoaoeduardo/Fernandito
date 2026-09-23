@@ -12,17 +12,20 @@ import "./globals.css";
 
 // `preload` é o que decide o custo do primeiro carregamento: o Next injeta
 // um `<link rel=preload>` por fonte pré-carregada, e elas competem com o
-// LCP. Só as fontes que aparecem na PRIMEIRA dobra ficam com preload:
-// Courier Prime (nav + indicador de scroll), Rampart Sans e Rampart Stamp
-// (a tagline da Hero). Todo o resto carrega sob demanda quando a seção
-// entra em cena — continua com `display: swap`, então nunca bloqueia texto.
+// LCP. Fontes que aparecem cedo na rolagem ficam com preload: Courier
+// Prime (nav + indicador de scroll), Rampart Sans e Rampart Stamp (a
+// tagline da Hero) — e Instrument Serif, que é o `font-serif` usado em
+// praticamente todo título de seção do site (a SEGUNDA seção já usa),
+// então sem preload dava tempo de aparecer com a fonte de fallback
+// (Georgia) antes do Google Fonts terminar de baixar, num scroll rápido.
+// Todo o resto carrega sob demanda quando a seção entra em cena — continua
+// com `display: swap`, então nunca bloqueia texto.
 const instrumentSerif = Instrument_Serif({
   variable: "--font-instrument-serif",
   subsets: ["latin"],
   weight: ["400"],
   style: ["normal", "italic"],
   display: "swap",
-  preload: false,
 });
 
 // Fonte de texto geral do site (papel do antigo `font-sans`/Inter).
