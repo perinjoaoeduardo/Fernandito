@@ -278,16 +278,22 @@ de exibição**, que é o que os componentes carregam:
 
 | Servido em tela                  | Vem de                     | Peso            | Exibido a       |
 | -------------------------------- | -------------------------- | --------------- | --------------- |
-| `fernandito-logo-text.webp`      | `fernandito-logo-text.svg` | 2.3MB → **59KB** | até 700px (Hero) |
+| `fernandito-logo-text.webp`      | `fernandito-logo-text.svg` | 2.3MB → **192KB** | até 1667px (Hero) |
 | `fernandito-moeda.webp`          | `fernandito-moeda.svg`     | 1.7MB → **23KB** | 40–120px        |
 | `fernandito-horse.webp`          | `fernandito-horse.svg`     | 472KB → **8KB**  | 44px (nav)      |
 
 Os `.svg` continuam no repo como **arquivo-fonte da marca** (é deles que os
 rasters saem). Pra regerar — depois de trocar um SVG, ou se algum lugar
-passar a exibir maior do que a tabela acima —, renderize o SVG no Chromium
-no dobro do tamanho de exibição e salve como WebP (qualidade 90). Regra:
-**o raster tem que ter no mínimo 2x a maior largura CSS em que aparece**,
-senão fica borrado em tela retina.
+passar a exibir maior do que a tabela acima —, use o `sharp` (já é
+dependência do projeto): `sharp(svgPath, { density: 300 }).resize({ width })
+.webp({ quality: 90-92 }).toFile(webpPath)`, com `width` no dobro da maior
+largura CSS de exibição. `fernandito-logo-text.webp` foi regerado assim em
+3400×639 (era 1400×263) quando o logo da Hero passou a chegar a 1667px CSS
+— o raster antigo ficava borrado acima de ~700px. Regra: **o raster tem que
+ter no mínimo 2x a maior largura CSS em que aparece**, senão fica borrado
+em tela retina; lembrar de atualizar `INTRINSIC_WIDTH`/`INTRINSIC_HEIGHT`
+em `Logo.tsx` junto (usados pelo `next/image` pra reservar a caixa certa e
+evitar CLS).
 
 O `<Logo />` usa `next/image` com `priority` (é o LCP: ganha `<link
 rel=preload>` e sai do lazy-loading). Os ícones pequenos seguem em `<img>`
@@ -339,9 +345,9 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    `HeroSection.tsx`). O indicador de scroll no rodapé do cartão também
    rola até essa mesma seção (`scrollToTarget("#o-que-e")`).
 
-   No centro do cartão ficam só o logo (`Logo.tsx`, `max-w-[497px]
-   sm:max-w-[794px] lg:max-w-[926px]`) e, logo abaixo (`mt-3`, bem colado no
-   logo), duas linhas de tagline. O banner "Fernet y Cola"
+   No centro do cartão ficam só o logo (`Logo.tsx`, `max-w-[895px]
+   sm:max-w-[1429px] lg:max-w-[1667px]`) e, logo abaixo (`mt-3`, bem colado
+   no logo), duas linhas de tagline. O banner "Fernet y Cola"
    (`public/images/fernet-y-cola-banner.png`) saiu da Hero — o arquivo segue
    em `/public/images` pra outros usos.
 

@@ -10,9 +10,12 @@ type LogoProps = {
 };
 
 // Dimensões reais do arquivo — passadas pro next/image reservar a caixa
-// certa antes de carregar (sem isso o layout pula: CLS).
-const INTRINSIC_WIDTH = 1400;
-const INTRINSIC_HEIGHT = 263;
+// certa antes de carregar (sem isso o layout pula: CLS). Rasterizado a
+// partir do `.svg` fonte com sharp em 3400px de largura (ver DESIGN_SYSTEM.md,
+// "Assets de logo") — o antigo raster de 1400px ficava borrado quando
+// exibido acima de ~700px CSS (2x) depois do logo crescer pra até 1667px.
+const INTRINSIC_WIDTH = 3400;
+const INTRINSIC_HEIGHT = 639;
 
 /**
  * Lockup completo da marca. Serve o WebP 2x (`fernandito-logo-text.webp`,
@@ -33,8 +36,8 @@ export function Logo({ className, alt = "Fernandito", "aria-hidden": ariaHidden 
       width={INTRINSIC_WIDTH}
       height={INTRINSIC_HEIGHT}
       priority
-      sizes="(min-width: 1024px) 926px, (min-width: 640px) 794px, 497px"
-      className={clsx("h-auto w-full max-w-[497px] sm:max-w-[794px] lg:max-w-[926px]", className)}
+      sizes="(min-width: 1024px) 1667px, (min-width: 640px) 1429px, 895px"
+      className={clsx("h-auto w-full max-w-[895px] sm:max-w-[1429px] lg:max-w-[1667px]", className)}
     />
   );
 }
