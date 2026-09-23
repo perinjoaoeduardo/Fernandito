@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 export default function AvisosPage() {
   return (
     <article>
-      <h1 className="text-display-lg font-serif leading-[0.95]">Avisos e registro</h1>
+      <h1 className="text-display-md font-rampart leading-[1] text-balance">Avisos e registro</h1>
       <p className="text-body mt-4 opacity-60">Última atualização: 22 de setembro de 2026</p>
 
       <div className="mt-10 flex flex-col gap-8 font-sans">

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger, SplitText, prefersReducedMotion } from "@/lib/gsap";
 import { FlipCard } from "@/components/ui/FlipCard";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 
 const SIGNATURES = ["João", "Lorenzo", "Nando", "Matheus"];
 
@@ -81,9 +82,11 @@ export function CartaSection() {
 
       <p className="text-body mt-12 font-sans">Com brio, de Porto Alegre,</p>
 
-      <div className="mt-4 flex flex-wrap items-baseline gap-x-8 gap-y-2">
+      {/* pr-*: as assinaturas quebram antes de chegar no selo (canto
+          inferior direito) em vez de passar por baixo dele no celular. */}
+      <div className="mt-4 flex flex-wrap items-baseline gap-x-6 gap-y-1 pr-20 sm:gap-x-8 sm:pr-24">
         {SIGNATURES.map((name) => (
-          <span key={name} className="text-body-lg font-serif italic">
+          <span key={name} className="text-body sm:text-body-lg font-accent">
             {name}
           </span>
         ))}
@@ -127,7 +130,7 @@ export function CartaSection() {
         {/* Carimbo decorativo, puramente ilustrativo. */}
         <span
           aria-hidden="true"
-          className="text-fernandito-off-white pointer-events-none absolute top-4 right-4 rotate-[-14deg] font-serif text-sm tracking-[0.2em] italic opacity-[0.08]"
+          className="text-fernandito-off-white pointer-events-none absolute top-4 right-4 rotate-[-14deg] font-rampart-stamp text-sm tracking-[0.2em] opacity-[0.1]"
         >
           * FERNANDITO *
         </span>
@@ -140,20 +143,23 @@ export function CartaSection() {
 
   return (
     <section
-      id="carta"
-      aria-label="Carta"
+      id="manifesto"
+      aria-label="Manifesto"
       className="bg-fernandito-off-white text-fernandito-verde-escuro relative w-full py-24 sm:py-32"
     >
-      <div className="mx-auto max-w-4xl px-6 text-center">
+      <div className="mx-auto flex max-w-4xl flex-col items-center px-6 text-center">
+        <SectionLabel index="03" className="mb-8">
+          Manifesto
+        </SectionLabel>
         <h2
           ref={epigraphRef}
-          className="text-display-lg sm:text-display-xl font-serif leading-[0.95] tracking-[-0.02em]"
+          className="text-display-md font-rampart max-w-3xl leading-[1.05] tracking-[0.01em] text-balance"
         >
           A gente não inventou essa entrega. Só deu nome, lata e forma.
         </h2>
       </div>
 
-      <div className="mx-auto mt-16 max-w-[720px] px-6 sm:mt-24">
+      <div className="mx-auto mt-14 max-w-[720px] px-6 sm:mt-20">
         <FlipCard
           front={front}
           back={back}

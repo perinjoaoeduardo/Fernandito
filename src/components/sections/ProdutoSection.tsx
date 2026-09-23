@@ -281,7 +281,7 @@ export function ProdutoSection() {
 
         <h2
           ref={headingRef}
-          className="text-display-lg text-fernandito-off-white font-serif md:col-span-5 md:col-start-1 md:row-start-2"
+          className="text-display-lg text-fernandito-off-white font-rampart md:col-span-5 md:col-start-1 md:row-start-2"
         >
           O gole que conta a história
         </h2>

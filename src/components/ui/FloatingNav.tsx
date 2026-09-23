@@ -7,15 +7,13 @@ import { scrollToTarget } from "@/lib/lenis";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 
-// "Manifesto" e "Produto" saíram da nav junto com as respectivas seções
-// (ManifestoSection e ProdutoSection), removidas da página por enquanto —
-// ver src/app/page.tsx. Com um site de página única, a nav não simula uma
-// estrutura de subpáginas: é navegação por âncora direto pros "andares" já
-// existentes da página. "Onde encontrar" aponta pro CTA do FooterSection.
+// Site de página única: a nav é navegação por âncora pros "andares" da
+// página (mesma numeração dos SectionLabel de cada seção). O contato não
+// entra como link — o botão de WhatsApp ao lado já é esse atalho.
 const LINKS = [
   { label: "O que é", href: "#o-que-e" },
   { label: "Galeria", href: "#galeria" },
-  { label: "Onde encontrar", href: "#onde-encontrar" },
+  { label: "Manifesto", href: "#manifesto" },
 ];
 
 // Ponto de amostragem fixo (canto esquerdo, fora da pill que fica centrada)
@@ -125,14 +123,14 @@ export function FloatingNav() {
         className="fixed top-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 sm:top-6"
         aria-label="Navegação principal"
       >
-        {/* Pill 1 (desktop) — símbolo do cavalo, volta ao topo */}
+        {/* Pill 1 — símbolo do cavalo, volta ao topo (todos os tamanhos) */}
         <motion.button
           type="button"
           animate={pillAnimation}
           transition={{ duration: 0.3, ease: "easeOut" }}
           onClick={() => scrollToTarget("#hero")}
           aria-label="Voltar ao topo"
-          className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio hidden h-11 w-11 shrink-0 items-center justify-center rounded-full backdrop-blur-md transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:flex"
+          className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 w-11 shrink-0 items-center justify-center rounded-full backdrop-blur-md transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- raster estático de tamanho fixo, next/image não traz benefício */}
           <img
@@ -145,39 +143,42 @@ export function FloatingNav() {
           />
         </motion.button>
 
-        {/* Pill 1 (mobile) — mesmo símbolo, vira gatilho do menu fullscreen */}
+        {/* Pill 2 (mobile/tablet) — botão "Menu" explícito: antes o próprio
+            cavalo abria o menu, e ninguém adivinhava isso. */}
         <motion.button
           type="button"
           animate={pillAnimation}
           transition={{ duration: 0.3, ease: "easeOut" }}
           onClick={() => setMenuOpen((open) => !open)}
-          aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
           aria-expanded={menuOpen}
-          className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 w-11 shrink-0 items-center justify-center rounded-full backdrop-blur-md transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:hidden"
+          aria-controls="menu-mobile"
+          className={clsx(
+            "text-label duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 items-center gap-2 rounded-full px-5 font-sans tracking-[0.12em] whitespace-nowrap uppercase backdrop-blur-md transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 md:hidden",
+            overLight ? "text-fernandito-off-white" : "text-fernandito-verde-escuro",
+          )}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- raster estático de tamanho fixo, next/image não traz benefício */}
-          <img
-            src="/logo/fernandito-horse.webp"
-            alt=""
-            width={128}
-            height={129}
-            decoding="async"
-            className="h-full w-full rounded-full"
-          />
+          <span aria-hidden="true" className="flex w-4 flex-col gap-[3px]">
+            <span className="h-px w-full bg-current" />
+            <span className="h-px w-full bg-current" />
+            <span className="h-px w-2/3 bg-current" />
+          </span>
+          {menuOpen ? "Fechar" : "Menu"}
         </motion.button>
 
-        {/* Pill 2 (desktop only) — links + CTA WhatsApp em destaque */}
+        {/* Pill 2 (md+) — links + CTA WhatsApp em destaque. Só a partir de
+            768px: abaixo disso não cabe sem quebrar os links em várias
+            linhas (era o "O / QUE / É" empilhado no tablet). */}
         <motion.div
           animate={pillAnimation}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="hidden items-center gap-1 rounded-full py-2 pr-2 pl-4 backdrop-blur-md sm:flex"
+          className="hidden items-center gap-1 rounded-full py-1.5 pr-1.5 pl-3 backdrop-blur-md md:flex lg:py-2 lg:pr-2 lg:pl-4"
         >
           {LINKS.map((link) => (
             <Link
               key={link.label}
               href={link.href}
               className={clsx(
-                "text-label duration-base ease-out-standard rounded-full px-4 py-2 font-sans tracking-[0.08em] uppercase transition-colors",
+                "text-label duration-base ease-out-standard rounded-full px-3 py-2 font-sans tracking-[0.08em] whitespace-nowrap uppercase transition-colors lg:px-4",
                 overLight ? "text-fernandito-off-white" : "text-fernandito-verde-escuro",
               )}
             >
@@ -187,7 +188,10 @@ export function FloatingNav() {
           {/* Sempre verde-escuro aqui, mesmo quando a pill inverte (fica
               clara sobre fundo claro) — a borda sutil do WhatsAppButton
               garante que ele continue legível como forma própria. */}
-          <WhatsAppButton background="verde-escuro" className="!text-label ml-1 !px-4 !py-2">
+          <WhatsAppButton
+            background="verde-escuro"
+            className="!text-label ml-1 !px-4 !py-2 whitespace-nowrap"
+          >
             Fale no WhatsApp
           </WhatsAppButton>
         </motion.div>
@@ -201,28 +205,24 @@ export function FloatingNav() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="bg-fernandito-verde-escuro fixed inset-0 z-40 flex flex-col items-center justify-center gap-10 sm:hidden"
+            id="menu-mobile"
+            className="bg-fernandito-verde-escuro fixed inset-0 z-40 flex flex-col items-center justify-center gap-10 md:hidden"
           >
-            <button
-              type="button"
-              onClick={() => setMenuOpen(false)}
-              aria-label="Fechar menu"
-              className="text-fernandito-off-white duration-base ease-out-standard focus-visible:outline-fernandito-off-white absolute top-6 right-6 text-3xl leading-none transition-opacity hover:opacity-70 focus-visible:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-            >
-              ×
-            </button>
-
-            {/* Mesma voz tipográfica do resto da navegação do site (pill do
-                desktop, colunas do Footer): font-sans uppercase tracked —
-                não o font-serif de título usado nos headlines das seções. */}
-            <nav className="flex flex-col items-center gap-8">
-              {LINKS.map((link) => (
+            {/* Fechar é o próprio pill "Menu" (vira "Fechar", fica por cima
+                do overlay) + Esc — sem um × separado competindo com ele. */}
+            {/* Títulos grandes na Rampart (fonte de título do site), cada um
+                com o mesmo número do SectionLabel da seção de destino. */}
+            <nav aria-label="Menu" className="flex flex-col items-center gap-7">
+              {[...LINKS, { label: "Contato", href: "#contato" }].map((link, i) => (
                 <Link
                   key={link.label}
                   href={link.href}
                   onClick={() => setMenuOpen(false)}
-                  className="text-fernandito-off-white text-display-md !outline-fernandito-off-white font-sans tracking-[0.02em] uppercase"
+                  className="text-fernandito-off-white text-display-md !outline-fernandito-off-white font-rampart tracking-[0.02em] whitespace-nowrap"
                 >
+                  <span className="text-label font-accent mr-3 align-middle opacity-60">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
                   {link.label}
                 </Link>
               ))}

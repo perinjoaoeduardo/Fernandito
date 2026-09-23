@@ -5,12 +5,13 @@ import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger, EASE, prefersReducedMotion, supportsHover } from "@/lib/gsap";
 import { Button } from "@/components/ui/Button";
 import { InstagramIcon } from "@/components/ui/icons";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 
 const CARD_COUNT = 7;
 const CENTER_INDEX = 3;
 // Índice 0-6 -> rotação final no leque.
 const ROTATIONS = [-12, -8, -4, 0, 4, 8, 12];
-const DROOP_STEP = 14; // px de translateY por "camada" de distância do centro
+const DROOP_STEP = 16; // px de translateY por "camada" de distância do centro
 const HOVER_PUSH = 15; // px que os vizinhos se afastam ao abrir espaço
 const BASE_Z = 10;
 
@@ -53,7 +54,7 @@ function PhotoCard({
       data-cursor-hover
       role="img"
       aria-label={`Fernandito no Instagram — foto ${index + 1}`}
-      className="border-fernandito-off-white relative aspect-[2/3] w-32 shrink-0 overflow-hidden border-[7px] shadow-[3px_3px_0_rgba(36,48,34,0.35)] [will-change:transform] sm:w-36 lg:w-44"
+      className="relative aspect-[4/5] w-56 shrink-0 overflow-hidden rounded-2xl shadow-[0_18px_40px_rgba(36,48,34,0.22)] [will-change:transform] sm:w-60 lg:w-48 xl:w-56"
     >
       <div className={clsx("absolute inset-0 flex items-center justify-center", CARD_TONES[index])}>
         <span className="text-label text-fernandito-off-white font-sans uppercase">{label}</span>
@@ -63,7 +64,7 @@ function PhotoCard({
       {stamp && (
         <div
           aria-hidden="true"
-          className="border-fernandito-off-white/70 text-fernandito-off-white font-accent absolute top-2 right-2 flex h-9 w-9 -rotate-[15deg] items-center justify-center rounded-full border text-[9px] uppercase"
+          className="border-fernandito-off-white/70 text-fernandito-off-white font-accent absolute top-3 right-3 flex h-10 w-10 -rotate-[15deg] items-center justify-center rounded-full border text-[9px] uppercase"
         >
           {stamp}
         </div>
@@ -213,19 +214,26 @@ export function SocialGallerySection() {
       ref={sectionRef}
       id="social"
       aria-label="Redes sociais"
-      className="bg-fernandito-off-white text-fernandito-verde-escuro w-full overflow-hidden py-[15vh] sm:py-[18vh]"
+      className="bg-fernandito-off-white text-fernandito-verde-escuro w-full overflow-hidden py-24 sm:py-32"
     >
-      <div className="mx-auto max-w-5xl px-6 text-center">
-        <h2 className="text-display-xl font-serif leading-[0.9] uppercase">
+      <div className="mx-auto flex max-w-5xl flex-col items-center px-6 text-center">
+        <SectionLabel index="05" className="mb-8">
+          Instagram
+        </SectionLabel>
+        <h2 className="text-display-lg font-rampart leading-[0.95] tracking-[0.01em]">
           <span className="block">O que anda</span>
           <span className="block">rolando</span>
         </h2>
+        <p className="text-body-lg mt-6 max-w-md font-sans text-balance opacity-80">
+          Os rolês, as latas e quem tá junto — direto do nosso Instagram.
+        </p>
       </div>
 
-      {/* Desktop — leque sobreposto */}
-      <div className="relative mt-16 hidden items-end justify-center px-6 sm:mt-20 sm:flex">
+      {/* Desktop (lg+) — leque sobreposto. Abaixo de 1024px o leque não
+          cabe sem cortar as pontas, então vira a fileira com snap. */}
+      <div className="relative mt-20 hidden items-end justify-center px-6 lg:flex">
         {Array.from({ length: CARD_COUNT }).map((_, i) => (
-          <div key={i} className={i === 0 ? undefined : "-ml-8 sm:-ml-10 lg:-ml-14"}>
+          <div key={i} className={i === 0 ? undefined : "lg:-ml-16 xl:-ml-[4.5rem]"}>
             <PhotoCard
               index={i}
               cardRef={(el) => {
@@ -236,20 +244,20 @@ export function SocialGallerySection() {
         ))}
       </div>
 
-      {/* Mobile — fileira com scroll-snap (leque não funciona em tela estreita) */}
+      {/* Mobile/tablet — fileira com scroll-snap */}
       <div
         ref={mobileRowRef}
-        className="mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-4 [will-change:transform,opacity] sm:hidden"
+        className="mt-14 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pt-4 pb-8 [scrollbar-width:none] [will-change:transform,opacity] sm:gap-6 lg:hidden [&::-webkit-scrollbar]:hidden"
       >
         {Array.from({ length: CARD_COUNT }).map((_, i) => (
-          <div key={i} className="snap-center" style={{ transform: `rotate(${ROTATIONS[i]}deg)` }}>
+          <div key={i} className="snap-center" style={{ transform: `rotate(${i % 2 ? 1.5 : -1.5}deg)` }}>
             <PhotoCard index={i} />
           </div>
         ))}
       </div>
 
-      <div className="mx-auto mt-16 flex max-w-5xl flex-col items-center gap-4 px-6 text-center sm:mt-20">
-        <p className="text-body-lg font-sans">Segue o Fernandito</p>
+      <div className="mx-auto mt-12 flex max-w-5xl flex-col items-center gap-3 px-6 text-center lg:mt-24">
+        <p className="text-body font-accent tracking-[0.04em] uppercase">Segue o Fernandito</p>
         <Button
           as="a"
           href="https://www.instagram.com/toma.fernandito/"

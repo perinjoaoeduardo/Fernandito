@@ -2,6 +2,7 @@ import { HeroSection } from "@/components/sections/HeroSection";
 import { OQueESection } from "@/components/sections/OQueESection";
 import { GaleriaSection } from "@/components/sections/GaleriaSection";
 import { CartaSection } from "@/components/sections/CartaSection";
+import { ContatoSection } from "@/components/sections/ContatoSection";
 import { SocialGallerySection } from "@/components/sections/SocialGallerySection";
 import { FichaTecnicaSection } from "@/components/sections/FichaTecnicaSection";
 import { FooterSection } from "@/components/sections/FooterSection";
@@ -16,6 +17,7 @@ export default function Home() {
       <OQueESection />
       <GaleriaSection />
       <CartaSection />
+      <ContatoSection />
       <SocialGallerySection />
       <FichaTecnicaSection />
       <FooterSection />

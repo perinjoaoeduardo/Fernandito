@@ -15,16 +15,20 @@ tokens definidos aqui. Os tokens abaixo estão implementados em
 
 ## Tipografia
 
-- `font-serif` → Instrument Serif, Georgia, serif — **voz rústica/manifesto**
-  (ainda placeholder via `next/font/google`; troca só no import em
-  `layout.tsx`, os tokens de escala abaixo não mudam). **Só tem peso 400 —
-  a família não tem variante bold nenhuma no Google Fonts.** `font-bold`
-  em cima de `font-serif` já causou bug real: em vez de sintetizar negrito,
-  pelo menos um navegador (visto em produção, mobile) descartava a
-  Instrument Serif inteira e caía pro fallback (Georgia Bold), destoando
-  visivelmente do resto do texto — corrigido removendo o `font-bold` em
-  `FooterSection.tsx` (ver seção "Estrutura de seções" abaixo). Pra dar
-  ênfase dentro de `font-serif`, usar `italic`, não `font-bold`.
+**Só as fontes da marca**: Rampart (família do logo), Courier Prime e
+Special Elite. A Instrument Serif (placeholder do Google Fonts que fazia o
+papel de `font-serif`) saiu do site inteiro — o token `serif` não existe
+mais no `tailwind.config.ts`; não usar `font-serif` (cairia no Georgia
+padrão do Tailwind).
+
+- `font-rampart` → **Rampart Regular** — **fonte de título** de todas as
+  seções (headlines, título do menu mobile, frase do rodapé). É **só
+  caixa-alta** (minúsculas mapeiam pros glifos maiúsculos) mas cobre todos
+  os acentos do português. Sem itálico nem bold: ênfase por cor/tamanho.
+  Por ser larga em caixa-alta, títulos usam `text-balance` e tamanhos um
+  degrau abaixo do que uma serifada pediria. Cuidado com
+  `overflow-hidden` em máscaras de animação: corta acento acima da letra
+  (dar `pt-[0.14em]` na máscara).
 - `font-sans` → **Courier Prime**, Courier New, monospace — **fonte de texto
   geral do site** (UI, labels, ficha técnica, texto corrido). Carregada via
   `next/font/local` a partir de `public/fonts/CourierPrime-*.ttf`; regular,
@@ -33,29 +37,27 @@ tokens definidos aqui. Os tokens abaixo estão implementados em
   arquivo certo automaticamente.
 - `font-accent` → **Special Elite**, Courier New, monospace — acompanha a
   Courier Prime, mas **não é fonte de texto corrido**: usar pontualmente
-  para dar destaque a um elemento diferenciado dentro do texto (ainda sem
-  um local fixo definido — aplicar caso a caso conforme instrução). Só tem
-  peso Regular (`public/fonts/SpecialElite-Regular.ttf`).
+  para destaque: rótulos de seção (`SectionLabel`), assinaturas do
+  Manifesto, legenda do rodapé, carimbos, marquee, contador da galeria. Só
+  tem peso Regular (`public/fonts/SpecialElite-Regular.ttf`).
 
 ### Família Rampart — fonte do logo
 
-A Rampart é a fonte que deu origem ao logo da marca. Papel: **texto
-próximo/relacionado ao logo** (ainda sem componente fixo definido — aplicar
-conforme instrução). É uma família maior, com vários sub-estilos, cada um
+A Rampart é a fonte que deu origem ao logo da marca. A Regular é a fonte de
+título do site; Sans/Stamp ficam na tagline da Hero. É uma família maior, com vários sub-estilos, cada um
 seu próprio token (cada `.otf` em `public/fonts/Rampart-*.otf` vira um
 font-family separado, exceto Sans/SansBold que são regular/bold da mesma
 variante):
 
 | Token                      | Arquivo(s)                                                  | Preload |
 | -------------------------- | ----------------------------------------------------------- | ------- |
-| `font-rampart`             | `Rampart-Regular.woff2`                                     | não     |
+| `font-rampart`             | `Rampart-Regular.woff2`                                     | **sim** |
 | `font-rampart-sans`        | `Rampart-Sans.woff2` (400) + `Rampart-SansBold.woff2` (700) | **sim** |
 | `font-rampart-stamp`       | `Rampart-Stamp.woff2`                                       | **sim** |
 | `font-rampart-spurs`       | `Rampart-Spurs.woff2`                                       | não     |
 | `font-rampart-spurs-stamp` | `Rampart-SpursStamp.woff2`                                  | não     |
 
-Papel específico de cada sub-estilo dentro da família ainda não foi
-definido — aguardando instrução de uso.
+`rampart-spurs` e `rampart-spurs-stamp` seguem sem uso.
 
 ### Formato e política de preload
 
@@ -69,16 +71,14 @@ Todas usam `display: "swap"`. O que muda por fonte é o **preload**: cada
 fonte pré-carregada vira um `<link rel=preload>` que disputa banda com o
 LCP, então só pré-carrega quem aparece **cedo na rolagem** — Courier Prime
 (nav + indicador de scroll), Rampart Sans e Rampart Stamp (tagline da
-Hero), e **Instrument Serif** (`font-serif`) — que apesar de não aparecer
-na Hero, é o título usado em praticamente toda seção seguinte (a SEGUNDA
-seção do site já usa), então sem preload dava tempo de mostrar a fonte de
-fallback (Georgia) antes do Google Fonts terminar de baixar num scroll
-rápido — foi reportado ao vivo num celular real. As outras levam
+Hero), e **Rampart Regular** — a fonte de título de toda seção (a SEGUNDA
+seção já usa), então sem preload dava tempo de mostrar o fallback num
+scroll rápido. As outras levam
 `preload: false` em `layout.tsx` e carregam sob demanda quando a seção
 entra em cena.
 
-Isso vale especialmente pras Rampart sem uso hoje (`rampart`,
-`rampart-spurs`, `rampart-spurs-stamp`): seguem disponíveis como token, mas
+Isso vale especialmente pras Rampart sem uso hoje (`rampart-spurs`,
+`rampart-spurs-stamp`): seguem disponíveis como token, mas
 sem preload não custam nada até alguém aplicar a classe. **Ao passar a usar
 uma delas cedo na rolagem, tire o `preload: false`** — e o contrário
 também vale. Regra de bolso: não é só "primeira dobra" que importa, é
@@ -91,13 +91,15 @@ também vale. Regra de bolso: não é só "primeira dobra" que importa, é
 | `display-xl` | `clamp(4rem, 12vw, 12rem)` | 0.9         | Nome da marca, hero                                                                                                                             |
 | `display-lg` | `clamp(3rem, 8vw, 8rem)`   | 0.95        | Títulos de seção grandes                                                                                                                        |
 | `display-md` | `clamp(2rem, 5vw, 4rem)`   | 1.05        | Taglines, subtítulos                                                                                                                            |
+| `display-sm` | `clamp(1.5rem, 3.2vw, 2.5rem)` | 1.1     | Frases de efeito dentro de coluna de texto (O que é, rodapé)                                                                                    |
 | `body-lg`    | `1.25rem`                  | 1.5         | Texto de destaque                                                                                                                               |
 | `body`       | `1rem`                     | 1.6         | Texto corrido                                                                                                                                   |
 | `label`      | `0.75rem`                  | 1.2         | Labels/UI — usar com `uppercase tracking-[0.08em]` (letter-spacing já embutido no token, `tracking-*` é redundante mas documentado por clareza) |
 
-Todas as classes `display-*` usam `font-serif` por padrão no design; `label`
-usa `font-sans`. Aplicar a família manualmente na composição (`font-serif
-text-display-xl`, etc.) — o token de tamanho não força a família.
+Todas as classes `display-*` usam `font-rampart` no design; `label` usa
+`font-sans` (ou `font-accent` em rótulos de seção). Aplicar a família
+manualmente na composição (`font-rampart text-display-md`, etc.) — o token
+de tamanho não força a família.
 
 ## Spacing
 
@@ -312,16 +314,18 @@ apagar quando quiser (o git guarda).
 
 ## Estrutura de seções (`/src/components/sections`)
 
-`ManifestoSection` e `ProdutoSection` saíram da página por enquanto (pedido
-explícito) — os componentes continuam no repositório, só não estão
-montados em `src/app/page.tsx`. Os links de nav que apontavam pra elas
-("Manifesto", "Produto") também saíram de `FloatingNav.tsx` e
-`FooterSection.tsx` — hoje `LINKS`/`NAV_LINKS` têm só "Onde encontrar".
-Reintroduzir qualquer uma das duas exige: (1) importar e montar o
-componente de volta em `page.tsx` na posição certa, (2) devolver o link
-correspondente nos dois arquivos de nav, (3) conferir se o indicador de
-scroll da Hero (`scrollToTarget("#o-que-e")`) ainda deve apontar pra
-`OQueESection` ou voltar a apontar pra `ManifestoSection`.
+`ManifestoSection` e `ProdutoSection` (versões antigas) não estão montadas
+em `src/app/page.tsx` — os componentes seguem no repositório. O "Manifesto"
+de hoje é a `CartaSection` (`#manifesto`).
+
+**Navegação por andares.** Cada seção abre com um `SectionLabel`
+(`components/ui/SectionLabel.tsx` — "01 — O que é", em Special Elite) e a
+mesma numeração aparece no menu mobile. `FloatingNav` (`LINKS`) e
+`FooterSection` (`NAV_LINKS`) apontam pras âncoras: `#o-que-e` (01),
+`#galeria` (02), `#manifesto` (03), `#contato` (04, só no rodapé e no menu
+mobile — no desktop o botão de WhatsApp da pill já é esse atalho). A pill
+de links só aparece a partir de `md` (768px) com `whitespace-nowrap`;
+abaixo disso vira cavalo (topo) + pill "Menu"/"Fechar" que abre o overlay.
 
 Ordem fixa da landing page (ver `src/app/page.tsx`):
 
@@ -345,8 +349,8 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    `HeroSection.tsx`). O indicador de scroll no rodapé do cartão também
    rola até essa mesma seção (`scrollToTarget("#o-que-e")`).
 
-   No centro do cartão ficam só o logo (`Logo.tsx`, `max-w-[895px]
-   sm:max-w-[1429px] lg:max-w-[1667px]`) e, logo abaixo (`mt-3`, bem colado
+   No centro do cartão ficam só o logo (`Logo.tsx`, `max-w-[360px]
+   sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    no logo), duas linhas de tagline. O banner "Fernet y Cola"
    (`public/images/fernet-y-cola-banner.png`) saiu da Hero — o arquivo segue
    em `/public/images` pra outros usos.
@@ -378,105 +382,68 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
      frase inteira elimina o problema na raiz.
 
    `prefers-reduced-motion` trava a primeira frase, sem animação.
-2. `OQueESection` — fundo off-white, "o que é" o produto em linguagem
-   direta (elevator pitch, estilo do segundo bloco da home da Lassie):
-   grid com placeholder da lata à esquerda (`border-dashed`, aguardando
-   arte — "lata (aguardando arte)") e, na mesma coluna à direita, os dois
-   parágrafos curtos seguidos, **logo abaixo, ainda dentro do mesmo bloco**,
-   da frase de fechamento (`text-display-md`, `font-serif`) — não é mais um
-   bloco separado em tela cheia: fica contida na coluna de texto, no mesmo
-   tamanho relativo da frase de efeito da referência da Lassie (maior que o
-   corpo, mas longe de dominar a viewport sozinha). Parágrafos e frase de
-   fechamento são revelados juntos, letra a letra (SplitText `type: "chars"`
-   nos três elementos, um `chars` array só, stagger de 0.014s — efeito de
-   máquina de escrever, combina com a Courier Prime do `font-sans`; a frase
-   de fechamento usa a mesma técnica, não mais um reveal por palavra
-   separado). **O reveal é preso ao scroll via `scrub` num único
-   `ScrollTrigger`** (trigger na coluna inteira, não um "toca uma vez ao
-   entrar na tela") — as letras aparecem enquanto rola pra baixo e
-   desaparecem de volta se rolar pra cima, igual ao princípio de reveal
-   usado no resto do site pros títulos grandes. `prefers-reduced-motion`
-   pula pro estado final. As duas colunas do grid usam `sm:items-center`
-   (não `items-start`) — o bloco de texto fica centralizado verticalmente
-   em relação ao placeholder da lata, não alinhado pelo topo.
-3. `GaleriaSection` — galeria de fotos com animação em duas fases numa
-   seção pinada (ScrollTrigger `pin: true`, `scrub: 1`, total de 280vh).
-   **Fase 1** (progress 0→0.35): foto hero (65vw, 4:5, verde-medio)
-   centralizada, coberta por máscara verde-escuro que revela de cima pra
-   baixo via `scaleY` (`origin-top`, `power2.inOut`); respiração entre
-   0.28→0.35. **Fase 2** (0.35→1.0): hero encolhe (`scale: 0.55`) e
-   reposiciona como primeiro elemento de uma trilha horizontal com
-   paralaxe; 6 fotos adicionais (FOTO 01–06) entram da direita a 3 níveis
-   de velocidade distintos (lento 0.9–1.0, médio 1.3, rápido 1.7–2.0),
-   criando sobreposição intencional e profundidade. Cantos arredondados
-   (`border-radius: 1.5rem`), sem bordas, sombra sutil
-   (`0 20px 60px rgba(36,48,34,0.25)`). Hover (desktop, `hover:hover`):
-   `scale: 1.05` relativo ao tamanho corrente + z-index boost + sombra
-   reforçada, via GSAP no `[data-photo-inner]` interno. Mobile (<768px):
-   Fase 1 mantém o reveal por scrub (sem pin), Fase 2 vira scroll
-   horizontal nativo (`overflow-x: auto`, `scroll-snap-type: x mandatory`,
-   cards 75vw). `prefers-reduced-motion`: grid estático CSS (2 cols
-   mobile, 3 cols desktop).
-4. `CartaSection` — fundo off-white, bloco editorial: epígrafe grande
-   (reveal por palavra via SplitText) + cartão-postal com verso, via
+2. `OQueESection` (`#o-que-e`, 01) — fundo off-white, "o que é" o produto
+   em linguagem direta: placeholder da lata à esquerda e, na coluna da
+   direita, dois parágrafos + frase de fechamento (`font-rampart`,
+   `text-display-sm`). Tudo revelado letra a letra (máquina de escrever)
+   preso ao scroll (`scrub`, volta se rolar pra cima). SplitText usa
+   `type: "words,chars"` — só `"chars"` deixava o navegador quebrar linha
+   no meio da palavra ("qu / anto"). Grid de duas colunas só a partir de
+   `md`.
+3. `GaleriaSection` (`#galeria`, 02) — **a foto inteira que encolhe e vira
+   trilho**. Um palco `h-[100svh]` pinado (ScrollTrigger `pin`, `scrub:
+   0.8`), um trilho `flex` com 7 cards e `gap` constante. O card 0 começa
+   do tamanho do palco (foto "inteira", raio 0) com o título "Onde a lata
+   anda" por cima; na **fase 1** ele encolhe (width/height/raio) até o
+   tamanho de card, centralizado — os outros cards, que já estão no
+   tamanho final logo à direita, entram na tela junto. Na **fase 2** o
+   trilho anda pra esquerda até a última foto centralizar (1.25px na
+   horizontal por px rolado — velocidade constante, `ease: none`). O miolo
+   de cada card é 120% mais largo e desliza em `xPercent` (±7) ao longo do
+   pin inteiro: parallax sutil. Rodapé do palco: rótulo, contador
+   "01 / 07" (card mais perto do centro) e barra de progresso. Tamanhos
+   vêm de `layout()` (altura relativa ao palco, proporções 4:5/3:4/4:3,
+   largura máxima 42vw desktop / 78vw mobile); o timeline é reconstruído
+   só quando a LARGURA da janela muda (no celular a barra de endereço
+   muda a altura a cada rolagem). Mesmo comportamento em todos os
+   tamanhos. Foto real: trocar o conteúdo do `PhotoFill` por
+   `<Image fill className="object-cover" />`. `prefers-reduced-motion`:
+   grid estático.
+4. `CartaSection` (`#manifesto`, 03) — o **Manifesto**: epígrafe em
+   `font-rampart` (`text-display-md`) + cartão-postal com verso via
    `FlipCard` (`components/ui/FlipCard.tsx`, reutilizável). Clique/Enter/
-   Espaço vira o cartão em 3D real (`perspective` no `ElevatedCard`
-   externo, `rotateY` 0→180deg num elemento interno `preserve-3d`,
-   `ease: back.inOut(1.2)` sutil, elevação extra de -10px no meio do
-   giro). Frente: texto, assinaturas, selo (inalterados). Verso: foto dos
-   fundadores (placeholder `bg-verde-medio` com `filter: sepia+saturate`
-   preparando o tom duotone retrô da foto real), legenda mono e um
-   carimbo `* FERNANDITO *` bem sutil. Um ícone de "virar" (setas
-   circulares, respiração contínua leve) fica no canto oposto ao selo;
-   hover no cartão inteiro (`group-hover`, CSS puro — mesmo padrão do
-   `Button.tsx`, sem JS) revela o label "VIRAR"/"VOLTAR". Elevação no
-   hover continua sendo o `ElevatedCard` de sempre, no container externo
-   (fora do `preserve-3d`) — não compete com a rotação do flip por ficar
-   em elemento/eixo diferente. Cada face tem `backface-visibility:hidden`
-   \+ `pointer-events-none` quando de costas (evita clique fantasma); um
-   "sizer" invisível em fluxo normal define a altura do cartão a partir
-   do conteúdo da frente, já que as duas faces reais ficam absolutas.
-   `prefers-reduced-motion`: sem rotação 3D, vira crossfade de opacity
-   simples (`motion-reduce:` puro no CSS, sem detecção JS separada).
-5. `SocialGallerySection` — fundo off-white, leque de 7 fotos sobrepostas
-   (rotação alternada, card central maior) que entra em cascata do centro
-   pras bordas e se "abre" no hover; vira carrossel com scroll-snap no
-   mobile. Ver detalhes na sua própria entrada abaixo.
-6. `FichaTecnicaSection` — só o marquee (`font-accent`, texto curto: "Toma
-   Fernandito · Fernet y Cola · 350ml · 8% vol." em loop) — a versão
-   anterior tinha uma grade de "ficha técnica" completa (specs, ingredientes,
-   registro MAPA) abaixo do marquee; foi removida por conter informação
-   redundante com `/legal/avisos` e não agregar visualmente. Altura do
-   marquee agora vem do padding do conteúdo (`py-6 sm:py-8`), não de `vh` —
-   antes ficava alta demais em qualquer viewport.
-7. `FooterSection` — fundo verde-escuro, versão compacta (estilo do
-    rodapé enxuto da Lassie — substituiu uma versão anterior bem mais alta,
-    com labels decorativos nos 4 cantos e `min-h-[90vh]`). Duas colunas no
-    topo, contidas em `max-w-5xl` com `gap-12` (o gap padrão do site pra
-    esse tipo de grid assimétrico — reduzido de `gap-16`, que deixava um
-    vão vazio grande demais entre o bloco de texto e a navegação): frase
-    de fechamento (`font-serif`, reveal por palavra) + legenda
-    ("Isso toma fernandito.", também `font-serif italic` — é a MESMA voz
-    editorial da frase de fechamento, não a voz de UI/nav; usar `font-sans`
-    aqui foi um erro corrigido, já que ela é a continuação da frase de
-    efeito, não um elemento de interface) + CTA `WhatsAppButton` à
-    esquerda; grid "Navegar"/"Social" à direita, com `gap-14` interno entre
-    as duas colunas de links (reduzido de `gap-16`, mesmo motivo — a coluna
-    "Legal", que só linkava pra `/legal/avisos`, foi removida do rodapé até
-    existir conteúdo real de privacidade/termos — a rota `/legal/avisos`
-    continua existindo, só não tem mais link direto aqui). "Social" usa
-    `Link` `underline-grow` (não mais `underline-swap` — sem sublinha
-    permanente) com `InstagramIcon` explicitamente à esquerda do texto
-    (`<span className="inline-flex items-center gap-2">`, não depende do
-    wrapping interno do `Link`). Base do rodapé: `moeda.svg` no lugar de um
-    símbolo maior do cavalo + copyright, e um botão "topo" circular
-    (`h-11 w-11 rounded-full border`, ícone só — sem grain overlay, fundo
-    sólido de propósito, no futuro entra um placeholder de imagem nessa
-    área). O botão de topo tinha peso visual baixo demais (link de texto
-    solto perto do bloco de copyright) — agora é um círculo com borda, no
-    mesmo idioma visual dos outros elementos circulares do site (pill do
-    cavalo no `FloatingNav`, `moeda.svg` ao lado), com alvo de toque de
-    44×44px.
+   Espaço vira o cartão em 3D (`perspective` no `ElevatedCard` externo,
+   `rotateY` num elemento interno `preserve-3d`, `back.inOut(1.2)`,
+   elevação extra de -10px no meio do giro). Frente: texto, assinaturas
+   (`font-accent`), selo. Verso: foto dos fundadores (placeholder com
+   `sepia+saturate` preparando o tom retrô), legenda e carimbo sutil.
+   Ícone de "virar" com respiração contínua; hover no cartão (`group-hover`)
+   revela "VIRAR"/"VOLTAR". Cada face tem `backface-visibility:hidden` +
+   `pointer-events-none` quando de costas; um "sizer" invisível em fluxo
+   normal define a altura. `prefers-reduced-motion`: crossfade de opacity.
+5. `ContatoSection` (`#contato`, 04) — CTA de contato, fundo
+   **verde-medio**. Título em três linhas ("Se interessou? / Quer
+   Fernandito / no teu rolê?") que sobem de trás de uma máscara presas ao
+   scroll; a máscara tem `pt-[0.14em]` porque o `overflow-hidden` cortava
+   acentos acima da caixa-alta (o circunflexo de "ROLÊ" sumia). Parágrafo +
+   `WhatsAppButton background="verde-escuro"`; a moeda gira conforme a
+   seção atravessa a tela.
+6. `SocialGallerySection` (`#social`, 05 — "O que anda rolando") — fundo
+   off-white, cards 4:5 com cantos arredondados (`rounded-2xl`) e sombra
+   suave, sem a borda grossa de polaroid. Leque de 7 cards só a partir de
+   `lg` (1024px — abaixo disso cortava as pontas); mobile/tablet usam
+   fileira com scroll-snap. Ver detalhes na entrada própria abaixo.
+7. `FichaTecnicaSection` — só o marquee (`font-accent`, "Toma Fernandito ·
+   Fernet y Cola · 350ml · 8% vol." em loop), agora em faixa
+   **verde-claro** com texto off-white — antes era verde-escuro e se
+   fundia com o rodapé logo abaixo.
+8. `FooterSection` — fundo verde-escuro, compacto: frase de fechamento em
+   `font-rampart` ("Pra quem não deixa passar, / vira história." — o
+   contraste da segunda linha é a cor verde-claro, já que a Rampart não tem
+   itálico), legenda "Isso toma fernandito." em `font-accent`, CTA
+   `WhatsAppButton`; colunas "Navegar" (O que é, Galeria, Manifesto,
+   Contato) e "Social" (Instagram). Base: moeda + copyright e botão
+   circular "topo" (44×44).
 
 ## Páginas legais (`/legal`)
 
@@ -506,15 +473,16 @@ pra paleta do site (off-white/verde-escuro em vez de branco/navy).
 
 ### `SocialGallerySection` — detalhes
 
-Inspirada no "What's up on socials" do site do Lando Norris, adaptada pro
-tom rústico da marca (bordas grossas off-white estilo polaroid, sombra dura
-sem blur, grain, 2 selos decorativos tipo carimbo em posições fixas).
+Inspirada no "What's up on socials" do site do Lando Norris. Cards 4:5
+com `rounded-2xl`, sombra suave (`0 18px 40px`), grain e 2 selos tipo
+carimbo em posições fixas — a borda grossa de polaroid e a sombra dura
+saíram (pesavam demais e deixavam os cards pequenos).
 
 - **Leque desktop**: 7 cards em `flex` com margin-left negativo pro
   overlap; cada card tem seu próprio `rotate`/`translateY`/`scale` via
   `gsap.set`/`gsap.to` (nunca via className — precisa mudar no hover).
   Rotação por índice `[-12, -8, -4, 0, 4, 8, 12]`, distância do centro em
-  "camadas" de `translateY` (14px por camada) e z-index (maior no centro).
+  "camadas" de `translateY` (16px por camada) e z-index (maior no centro).
   Entrada em cascata (`ScrollTrigger`, uma vez): todos partem de
   opacity 0/scale 0.7/y 40/rotate 0, e animam pra seus valores finais
   agrupados por distância do centro (stagger 0.08s por camada,
@@ -525,24 +493,24 @@ sem blur, grain, 2 selos decorativos tipo carimbo em posições fixas).
   imediatos se afastam (`translateX` ±15px) pra abrir espaço. Tudo reverte
   no `mouseleave` (z-index só volta ao normal depois que a rotação/escala
   termina de voltar, pra não "furar" atrás do vizinho no meio do caminho).
-- **Mobile (< `sm`)**: os dois DOMs (leque e fileira) coexistem, alternados
-  via `hidden`/`sm:hidden` — mesmo padrão já usado no `FloatingNav` pras
-  pills desktop/mobile. Escolhida a **Opção B** (carrossel com
+- **Mobile e tablet (< `lg`)**: os dois DOMs (leque e fileira) coexistem,
+  alternados via `hidden lg:flex`/`lg:hidden` — o leque só a partir de
+  1024px, porque em 640–1023px ele cortava as pontas. Escolhida a **Opção B** (carrossel com
   `overflow-x-auto` + `snap-x snap-mandatory`) em vez de reduzir pra 3-4
   cards do leque: em tela estreita, cada card do carrossel continua no
   tamanho legível de sempre (o leque forçaria cards minúsculos ou vazaria
   a viewport), é um padrão de swipe que todo mundo já conhece, e não
   disputa o gesto de scroll vertical do Lenis (scroll horizontal num
-  container é um eixo totalmente independente). Cada card mantém sua
-  própria rotação (mesmo array `ROTATIONS`) sem overlap — "fileira", não
-  "leque" —, textura e selo intactos; sem hover (não existe em touch) e
+  container é um eixo totalmente independente). Cada card tem só uma
+  inclinação leve alternada (±1.5°), sem overlap — "fileira", não
+  "leque" —, textura e selo intactos, barra de rolagem escondida; sem hover (não existe em touch) e
   sem cascata por card, só um fade simples na fileira inteira.
 - **Placeholders de foto**: 7 divs com `bg-fernandito-verde-medio`/
   `verde-claro` em variações de opacidade, texto "FOTO 0X" — não há
   arquivos ainda. Quando as fotos reais chegarem, trocar o miolo colorido
   de cada `PhotoCard` (`SocialGallerySection.tsx`) por
-  `<img src="/images/social-0X.jpg" />`, mantendo a borda/sombra/grain do
-  card por fora.
+  `<img src="/images/social-0X.jpg" />`, mantendo o arredondado/sombra/grain
+  do card por fora.
 
 ## Infra de animação (`/src/lib`)
 

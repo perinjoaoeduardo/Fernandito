@@ -7,9 +7,13 @@ import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 import { InstagramIcon } from "@/components/ui/icons";
 
-// "Manifesto" e "Produto" saíram junto com as respectivas seções, removidas
-// da página por enquanto — ver src/app/page.tsx.
-const NAV_LINKS = [{ label: "Onde encontrar", href: "#onde-encontrar" }];
+// Mesmos "andares" da FloatingNav + o bloco de contato (ContatoSection).
+const NAV_LINKS = [
+  { label: "O que é", href: "#o-que-e" },
+  { label: "Galeria", href: "#galeria" },
+  { label: "Manifesto", href: "#manifesto" },
+  { label: "Contato", href: "#contato" },
+];
 
 // Footer é fundo escuro (verde-escuro) — outline de foco precisa contrastar
 // com isso, não com o verde-medio padrão do Link (pensado pra fundos claros).
@@ -116,36 +120,18 @@ export function FooterSection() {
       <div className="mx-auto grid w-full max-w-5xl gap-12 sm:grid-cols-[1fr_auto] sm:items-start sm:gap-12">
         {/* Frase de fechamento + CTA */}
         <div>
-          {/* Instrument Serif só existe em peso 400 (fonte de um peso só,
-              nunca teve variante bold — ver layout.tsx, `weight: ["400"]`).
-              `font-bold` aqui pedia um peso que não existe na família: em
-              vez de sintetizar, o navegador caía pro fallback (Georgia
-              Bold), destoando do resto do texto. Contraste entre as duas
-              linhas vem só do itálico, mesmo padrão usado no resto do
-              site (ver ManifestoSection). */}
-          <h2 className="flex flex-col">
-            <span ref={line1Ref} className="text-display-md font-serif leading-[0.95]">
-              Pra quem não deixa passar,
-            </span>
-            <span ref={line2Ref} className="text-display-md font-serif leading-[0.95] italic">
+          {/* Rampart é só caixa-alta: o contraste entre as linhas vem da
+              cor (off-white → verde-claro), não de itálico/peso. */}
+          <h2 className="font-rampart text-display-sm flex flex-col gap-1 leading-[1.05] tracking-[0.01em]">
+            <span ref={line1Ref}>Pra quem não deixa passar,</span>
+            <span ref={line2Ref} className="text-fernandito-verde-claro">
               vira história.
             </span>
           </h2>
-          {/* Mesma voz editorial do resto do bloco (font-serif itálico,
-              seguindo "vira história.") — não a voz de UI/nav (font-sans)
-              usada nos links e rótulos ao lado; aqui é a continuação da
-              frase de efeito, não um elemento de interface. */}
-          <p
-            ref={taglineRef}
-            className="text-body-lg text-fernandito-verde-claro mt-4 font-serif italic"
-          >
+          <p ref={taglineRef} className="text-body font-accent mt-5 tracking-[0.04em] opacity-80">
             Isso toma fernandito.
           </p>
-          {/* Vídeo e CTA intermediários foram removidos (eram placeholders
-              sem conteúdo) — o link "Onde encontrar" do nav aponta direto
-              pra cá agora, que já é a resposta prática (fala com a gente
-              no WhatsApp). */}
-          <div id="onde-encontrar" className="mt-8">
+          <div className="mt-8">
             <WhatsAppButton>Fale no WhatsApp</WhatsAppButton>
           </div>
         </div>

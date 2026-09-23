@@ -5,8 +5,8 @@ import { gsap, ScrollTrigger, prefersReducedMotion } from "@/lib/gsap";
 
 // Frase curta, só o essencial de marca — nada de texto regulatório aqui
 // (isso mora em /legal/avisos). `font-accent` (Special Elite, o mesmo dos
-// carimbos da SocialGallerySection) em vez do serif genérico do resto do
-// site, pra essa faixa ter uma voz tipográfica própria.
+// carimbos da SocialGallerySection), pra faixa ter voz tipográfica própria.
+// Fundo verde-claro: separa visualmente do rodapé verde-escuro logo abaixo.
 const MARQUEE_PHRASE = "TOMA FERNANDITO · FERNET Y COLA · 350ML · 8% VOL. · ";
 
 // Repetido várias vezes pra garantir que uma "metade" da trilha já seja mais
@@ -57,7 +57,7 @@ function Marquee() {
     <div
       ref={containerRef}
       aria-hidden="true"
-      className="bg-fernandito-verde-escuro flex items-center overflow-hidden py-6 sm:py-8"
+      className="flex items-center overflow-hidden py-5 sm:py-7"
     >
       <div ref={trackRef} className="flex w-max shrink-0 [will-change:transform]">
         <span className="text-display-md text-fernandito-off-white font-accent pr-8 tracking-[0.02em] whitespace-nowrap uppercase">

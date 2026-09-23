@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Serif } from "next/font/google";
 import localFont from "next/font/local";
 import Script from "next/script";
 import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvider";
@@ -14,19 +13,10 @@ import "./globals.css";
 // um `<link rel=preload>` por fonte pré-carregada, e elas competem com o
 // LCP. Fontes que aparecem cedo na rolagem ficam com preload: Courier
 // Prime (nav + indicador de scroll), Rampart Sans e Rampart Stamp (a
-// tagline da Hero) — e Instrument Serif, que é o `font-serif` usado em
-// praticamente todo título de seção do site (a SEGUNDA seção já usa),
-// então sem preload dava tempo de aparecer com a fonte de fallback
-// (Georgia) antes do Google Fonts terminar de baixar, num scroll rápido.
-// Todo o resto carrega sob demanda quando a seção entra em cena — continua
-// com `display: swap`, então nunca bloqueia texto.
-const instrumentSerif = Instrument_Serif({
-  variable: "--font-instrument-serif",
-  subsets: ["latin"],
-  weight: ["400"],
-  style: ["normal", "italic"],
-  display: "swap",
-});
+// tagline da Hero) e Rampart Regular — a fonte de título de todas as
+// seções (a SEGUNDA seção já usa), então sem preload aparecia o fallback
+// num scroll rápido. Todo o resto carrega sob demanda — continua com
+// `display: swap`, então nunca bloqueia texto.
 
 // Fonte de texto geral do site (papel do antigo `font-sans`/Inter).
 const courierPrime = localFont({
@@ -49,17 +39,15 @@ const specialElite = localFont({
   preload: false,
 });
 
-// Família Rampart — é a fonte que deu origem ao logo. Usada pra texto
-// próximo/relacionado ao logo; a família tem vários papéis dentro de si
-// (ver DESIGN_SYSTEM.md), cada sub-variante como seu próprio font-family.
-// `rampart`, `rampart-spurs` e `rampart-spurs-stamp` seguem declaradas como
-// tokens disponíveis, mas hoje nenhum componente usa — sem preload elas não
-// custam nada até alguém aplicar a classe (a SpursStamp sozinha tem 718KB).
+// Família Rampart — a fonte que deu origem ao logo. `rampart` (Regular) é a
+// fonte de título do site inteiro; cada sub-variante é seu próprio
+// font-family (ver DESIGN_SYSTEM.md). `rampart-spurs` e `rampart-spurs-stamp`
+// seguem declaradas como tokens, sem uso hoje — sem preload não custam nada
+// até alguém aplicar a classe (a SpursStamp sozinha tem 718KB).
 const rampart = localFont({
   src: [{ path: "../../public/fonts/Rampart-Regular.woff2", weight: "400", style: "normal" }],
   variable: "--font-rampart",
   display: "swap",
-  preload: false,
 });
 
 const rampartSans = localFont({
@@ -159,7 +147,6 @@ export const viewport: Viewport = {
 };
 
 const fontVariables = [
-  instrumentSerif.variable,
   courierPrime.variable,
   specialElite.variable,
   rampart.variable,

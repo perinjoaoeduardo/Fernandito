@@ -1,332 +1,282 @@
 "use client";
 
+import { clsx } from "clsx";
 import { useEffect, useRef } from "react";
-import {
-  gsap,
-  ScrollTrigger,
-  DURATION,
-  EASE,
-  prefersReducedMotion,
-  supportsHover,
-} from "@/lib/gsap";
+import { gsap, ScrollTrigger, prefersReducedMotion } from "@/lib/gsap";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 
-// ── Photo data ───────────────────────────────────────────────────
+// `ratio` = largura/altura do card; `h` = altura como fração da altura do
+// palco (desktop). Proporções e alturas variam pra dar ritmo editorial ao
+// trilho, mas o espaçamento entre cards é sempre o mesmo (ver `layout`).
+type Photo = { label: string; tone: string; ratio: number; h: number };
 
-type TrackPhoto = {
-  label: string;
-  tone: string;
-  widthVw: number;
-  aspect: string;
-  yPct: number;
-  zIndex: number;
-  speed: number;
-  startXVw: number;
-};
-
-const HERO_LABEL = "FOTO HERO";
-const HERO_TONE = "bg-fernandito-verde-medio";
-const HERO_WIDTH_VW = 65;
-const HERO_ASPECT = "4 / 5";
-const HERO_Z = 10;
-
-// 3 speed tiers: slow/foreground (0.9–1.0), medium (1.3), fast/background (1.7–2.0)
-const TRACK: TrackPhoto[] = [
-  { label: "FOTO 01", tone: "bg-fernandito-verde-claro", widthVw: 30, aspect: "3 / 4", yPct: 10, zIndex: 5, speed: 1.0, startXVw: 55 },
-  { label: "FOTO 02", tone: "bg-fernandito-verde-medio/80", widthVw: 22, aspect: "4 / 5", yPct: -15, zIndex: 3, speed: 1.8, startXVw: 95 },
-  { label: "FOTO 03", tone: "bg-fernandito-verde-claro/90", widthVw: 35, aspect: "3 / 4", yPct: 5, zIndex: 7, speed: 0.9, startXVw: 140 },
-  { label: "FOTO 04", tone: "bg-fernandito-verde-medio", widthVw: 20, aspect: "3 / 5", yPct: -20, zIndex: 2, speed: 2.0, startXVw: 185 },
-  { label: "FOTO 05", tone: "bg-fernandito-verde-claro", widthVw: 28, aspect: "4 / 5", yPct: 12, zIndex: 4, speed: 1.3, startXVw: 225 },
-  { label: "FOTO 06", tone: "bg-fernandito-verde-medio/85", widthVw: 24, aspect: "3 / 4", yPct: -8, zIndex: 3, speed: 1.7, startXVw: 265 },
+const PHOTOS: Photo[] = [
+  { label: "Foto 01", tone: "bg-fernandito-verde-medio", ratio: 4 / 5, h: 0.64 },
+  { label: "Foto 02", tone: "bg-fernandito-verde-claro", ratio: 3 / 4, h: 0.52 },
+  { label: "Foto 03", tone: "bg-fernandito-verde-medio/70", ratio: 4 / 3, h: 0.5 },
+  { label: "Foto 04", tone: "bg-fernandito-verde-claro/85", ratio: 4 / 5, h: 0.66 },
+  { label: "Foto 05", tone: "bg-fernandito-verde-medio", ratio: 3 / 4, h: 0.54 },
+  { label: "Foto 06", tone: "bg-fernandito-verde-claro/70", ratio: 4 / 3, h: 0.48 },
+  { label: "Foto 07", tone: "bg-fernandito-verde-medio/85", ratio: 4 / 5, h: 0.6 },
 ];
 
-const BASE_DISPLACEMENT_VW = 150;
-const SHADOW = "0 20px 60px rgba(36, 48, 34, 0.25)";
-const SHADOW_HOVER = "0 25px 80px rgba(36, 48, 34, 0.4)";
-const RADIUS = "1.5rem";
+const TOTAL = String(PHOTOS.length).padStart(2, "0");
+const RADIUS = 20;
+// Trilho anda 1.25px na horizontal por px rolado — rápido o bastante pra
+// não arrastar, sem pular foto.
+const SPEED = 1.25;
+const PARALLAX = 7; // xPercent da imagem dentro do card (±)
 
-const ALL_PHOTOS = [
-  { label: HERO_LABEL, tone: HERO_TONE, aspect: HERO_ASPECT },
-  ...TRACK.map((p) => ({ label: p.label, tone: p.tone, aspect: p.aspect })),
-];
+function layout(stageW: number, stageH: number) {
+  const mobile = stageW < 768;
+  const gap = mobile ? stageW * 0.06 : Math.max(40, stageW * 0.035);
+  const maxW = stageW * (mobile ? 0.78 : 0.42);
+  const sizes = PHOTOS.map((p) => {
+    let h = stageH * (mobile ? p.h * 0.85 : p.h);
+    let w = h * p.ratio;
+    if (w > maxW) {
+      w = maxW;
+      h = w / p.ratio;
+    }
+    return { w, h };
+  });
+  const lefts: number[] = [];
+  sizes.reduce((acc, s) => {
+    lefts.push(acc);
+    return acc + s.w + gap;
+  }, 0);
+  return { gap, sizes, lefts };
+}
 
-// ── Placeholder ──────────────────────────────────────────────────
-
-function Placeholder({ label, tone }: { label: string; tone: string }) {
+/** Miolo de cada card — hoje placeholder; com a foto real, trocar o
+ * conteúdo por `<Image fill className="object-cover" />` mantendo o wrapper
+ * (ele é mais largo que o card pra sobrar margem pro parallax). */
+function PhotoFill({ photo, innerRef }: { photo: Photo; innerRef?: (el: HTMLDivElement | null) => void }) {
   return (
-    <div className={`${tone} absolute inset-0 flex items-center justify-center`}>
-      <span className="text-label text-fernandito-off-white font-sans uppercase opacity-90">
-        {label}
+    <div
+      ref={innerRef}
+      className={clsx(
+        "absolute inset-y-0 -left-[10%] flex w-[120%] items-center justify-center [will-change:transform]",
+        photo.tone,
+      )}
+    >
+      <span className="text-label text-fernandito-off-white font-sans tracking-[0.12em] uppercase opacity-80">
+        {photo.label}
       </span>
     </div>
   );
 }
 
-// ── Component ────────────────────────────────────────────────────
-
 export function GaleriaSection() {
-  const desktopRef = useRef<HTMLDivElement>(null);
-  const heroRef = useRef<HTMLDivElement>(null);
-  const maskRef = useRef<HTMLDivElement>(null);
-  const trackRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const mobileHeroRef = useRef<HTMLDivElement>(null);
-  const mobileMaskRef = useRef<HTMLDivElement>(null);
-  const mobileScrollRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const innerRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const introRef = useRef<HTMLDivElement>(null);
+  const chromeRef = useRef<HTMLDivElement>(null);
+  const counterRef = useRef<HTMLSpanElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
 
-  // ── Desktop: two-phase pinned animation ──
   useEffect(() => {
     if (prefersReducedMotion()) return;
-    if (!window.matchMedia("(min-width: 768px)").matches) return;
+    const stage = stageRef.current;
+    const track = trackRef.current;
+    const intro = introRef.current;
+    const chrome = chromeRef.current;
+    const counter = counterRef.current;
+    const bar = barRef.current;
+    const cards = cardRefs.current.filter(Boolean) as HTMLDivElement[];
+    const inners = innerRefs.current.filter(Boolean) as HTMLDivElement[];
+    if (!stage || !track || !intro || !chrome || !counter || !bar) return;
+    if (cards.length !== PHOTOS.length) return;
 
-    const container = desktopRef.current;
-    const hero = heroRef.current;
-    const mask = maskRef.current;
-    const photos = trackRefs.current.filter(Boolean) as HTMLDivElement[];
-    if (!container || !hero || !mask || photos.length === 0) return;
+    let ctx: gsap.Context | null = null;
 
-    const vw = window.innerWidth / 100;
-    const vh = window.innerHeight / 100;
+    const build = () => {
+      ctx?.revert();
+      ctx = gsap.context(() => {
+        const stageW = stage.clientWidth;
+        const stageH = stage.clientHeight;
+        const { gap, sizes, lefts } = layout(stageW, stageH);
+        const last = PHOTOS.length - 1;
 
-    gsap.set(hero, { xPercent: -50, yPercent: -50 });
+        // Card 0 começa ocupando o palco inteiro (foto "inteira"); os demais
+        // já no tamanho final, logo à direita dele — fora da tela até o
+        // card 0 encolher e "puxar" a fileira pra dentro.
+        // `gap` direto no style: o CSSPlugin do GSAP não aplica column-gap.
+        track.style.gap = `${gap}px`;
+        gsap.set(track, { x: 0 });
+        gsap.set(cards[0], { width: stageW, height: stageH, borderRadius: 0 });
+        cards.slice(1).forEach((card, i) => {
+          gsap.set(card, { width: sizes[i + 1].w, height: sizes[i + 1].h, borderRadius: RADIUS });
+        });
+        gsap.set(inners, { xPercent: PARALLAX });
+        gsap.set(chrome, { autoAlpha: 0 });
+        gsap.set(bar, { scaleX: 0 });
 
-    photos.forEach((el, i) => {
-      const p = TRACK[i];
-      gsap.set(el, {
-        xPercent: -50,
-        yPercent: -50,
-        x: p.startXVw * vw,
-        y: p.yPct * vh,
-        zIndex: p.zIndex,
-        opacity: 0,
-      });
-    });
+        const xStart = stageW / 2 - sizes[0].w / 2;
+        const xEnd = stageW / 2 - (lefts[last] + sizes[last].w / 2);
+        const p1 = stageH * 0.9;
+        const p2 = (xStart - xEnd) / SPEED;
 
-    const tl = gsap.timeline();
+        let current = 0;
+        const updateCounter = () => {
+          const x = Number(gsap.getProperty(track, "x"));
+          let best = 0;
+          let bestDist = Infinity;
+          for (let i = 0; i <= last; i++) {
+            const d = Math.abs(x + lefts[i] + sizes[i].w / 2 - stageW / 2);
+            if (d < bestDist) {
+              bestDist = d;
+              best = i;
+            }
+          }
+          if (best !== current) {
+            current = best;
+            counter.textContent = String(best + 1).padStart(2, "0");
+          }
+        };
 
-    // PHASE 1: mask reveal (0 → 0.28), breathe (0.28 → 0.35)
-    tl.fromTo(mask, { scaleY: 1 }, { scaleY: 0, duration: 0.28, ease: "power2.inOut" }, 0);
+        const tl = gsap.timeline({ defaults: { ease: "none" }, onUpdate: updateCounter });
 
-    // PHASE 2 (0.35 → 1.0)
+        // Fase 1 — a foto inteira encolhe até virar card, centralizada.
+        tl.to(
+          cards[0],
+          { width: sizes[0].w, height: sizes[0].h, borderRadius: RADIUS, duration: p1, ease: "power2.inOut" },
+          0,
+        )
+          .to(track, { x: xStart, duration: p1, ease: "power2.inOut" }, 0)
+          .to(intro, { autoAlpha: 0, y: -24, duration: p1 * 0.35, ease: "power1.in" }, 0)
+          .to(chrome, { autoAlpha: 1, duration: p1 * 0.25 }, p1 * 0.75)
+          // Fase 2 — trilho anda pra esquerda até a última foto centralizar.
+          .to(track, { x: xEnd, duration: p2 }, p1)
+          .to(inners, { xPercent: -PARALLAX, duration: p1 + p2 }, 0)
+          .to(bar, { scaleX: 1, duration: p1 + p2 }, 0);
 
-    // Hero shrinks and repositions
-    tl.to(hero, { scale: 0.55, x: -28 * vw, y: 4 * vh, duration: 0.13, ease: "power2.inOut" }, 0.35);
+        ScrollTrigger.create({
+          trigger: stage,
+          start: "top top",
+          end: `+=${p1 + p2}`,
+          pin: true,
+          scrub: 0.8,
+          anticipatePin: 1,
+          animation: tl,
+        });
+      }, stage);
+    };
 
-    // Kill mask completely
-    tl.set(mask, { autoAlpha: 0 }, 0.35);
+    build();
 
-    // Track photos fade in quickly
-    tl.to(photos, { opacity: 1, duration: 0.07, ease: "none", stagger: 0.01 }, 0.35);
-
-    // Hero parallax (after reposition)
-    tl.to(hero, { x: (-28 - 1.0 * BASE_DISPLACEMENT_VW * 0.8) * vw, duration: 0.52, ease: "none" }, 0.48);
-
-    // Track photos parallax (each at its own speed)
-    photos.forEach((el, i) => {
-      const p = TRACK[i];
-      tl.to(el, { x: (p.startXVw - p.speed * BASE_DISPLACEMENT_VW) * vw, duration: 0.65, ease: "none" }, 0.35);
-    });
-
-    if (tl.totalDuration() < 1) tl.set({}, {}, 1);
-
-    const trigger = ScrollTrigger.create({
-      trigger: container,
-      start: "top top",
-      end: `+=${280 * vh}`,
-      pin: true,
-      scrub: 1,
-      animation: tl,
-    });
+    // Rebuild só quando a LARGURA muda — no celular a barra de endereço
+    // muda a altura a cada rolagem e reconstruir nisso travaria o scroll.
+    let lastW = window.innerWidth;
+    let timer: number | undefined;
+    const onResize = () => {
+      if (window.innerWidth === lastW) return;
+      lastW = window.innerWidth;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        build();
+        ScrollTrigger.refresh();
+      }, 200);
+    };
+    window.addEventListener("resize", onResize);
 
     return () => {
-      trigger.kill();
-      tl.kill();
+      window.removeEventListener("resize", onResize);
+      window.clearTimeout(timer);
+      ctx?.revert();
+      track.style.gap = "";
     };
   }, []);
 
-  // ── Desktop: hover ──
-  useEffect(() => {
-    if (prefersReducedMotion() || !supportsHover()) return;
-    if (!window.matchMedia("(min-width: 768px)").matches) return;
-
-    const wrappers = [heroRef.current, ...trackRefs.current].filter(Boolean) as HTMLDivElement[];
-    const cleanups: (() => void)[] = [];
-
-    wrappers.forEach((wrapper) => {
-      const inner = wrapper.querySelector("[data-photo-inner]") as HTMLElement;
-      if (!inner) return;
-
-      let savedZ = 0;
-
-      const onEnter = () => {
-        savedZ = Number(gsap.getProperty(wrapper, "zIndex")) || 0;
-        gsap.set(wrapper, { zIndex: 50 });
-        gsap.to(inner, { scale: 1.05, boxShadow: SHADOW_HOVER, duration: DURATION.base, ease: EASE.outStandard });
-      };
-
-      const onLeave = () => {
-        gsap.to(inner, {
-          scale: 1,
-          boxShadow: SHADOW,
-          duration: DURATION.base,
-          ease: EASE.outStandard,
-          onComplete: () => gsap.set(wrapper, { zIndex: savedZ }),
-        });
-      };
-
-      wrapper.addEventListener("mouseenter", onEnter);
-      wrapper.addEventListener("mouseleave", onLeave);
-      cleanups.push(() => {
-        wrapper.removeEventListener("mouseenter", onEnter);
-        wrapper.removeEventListener("mouseleave", onLeave);
-      });
-    });
-
-    return () => cleanups.forEach((fn) => fn());
-  }, []);
-
-  // ── Mobile: Phase 1 mask reveal (scrub, no pin) ──
-  useEffect(() => {
-    if (prefersReducedMotion()) return;
-    if (!window.matchMedia("(max-width: 767px)").matches) return;
-
-    const hero = mobileHeroRef.current;
-    const mask = mobileMaskRef.current;
-    if (!hero || !mask) return;
-
-    const trigger = ScrollTrigger.create({
-      trigger: hero,
-      start: "top 75%",
-      end: "center center",
-      scrub: 0.6,
-      animation: gsap.fromTo(mask, { scaleY: 1 }, { scaleY: 0, ease: "power2.inOut" }),
-    });
-
-    return () => trigger.kill();
-  }, []);
-
-  // ── Mobile: Phase 2 scroll row fade-in ──
-  useEffect(() => {
-    if (prefersReducedMotion()) return;
-    if (!window.matchMedia("(max-width: 767px)").matches) return;
-
-    const row = mobileScrollRef.current;
-    if (!row) return;
-
-    gsap.set(row, { opacity: 0, y: 30 });
-    const trigger = ScrollTrigger.create({
-      trigger: row,
-      start: "top 85%",
-      once: true,
-      onEnter: () => gsap.to(row, { opacity: 1, y: 0, duration: 0.7, ease: "power2.out" }),
-    });
-
-    return () => trigger.kill();
-  }, []);
-
   return (
-    <section
-      id="galeria"
-      aria-label="Galeria de fotos"
-      className="bg-fernandito-verde-escuro relative w-full"
-    >
-      <h2 className="sr-only">Galeria</h2>
-
-      {/* ── Animated (hidden under prefers-reduced-motion) ── */}
-      <div className="motion-reduce:hidden">
-        {/* Desktop: pinned two-phase container */}
-        <div
-          ref={desktopRef}
-          className="bg-fernandito-verde-escuro relative hidden h-screen w-full overflow-hidden md:block"
-        >
-          {/* Hero photo — centered, revealed by mask in Phase 1 */}
-          <div
-            ref={heroRef}
-            className="absolute top-1/2 left-1/2 [will-change:transform]"
-            style={{ zIndex: HERO_Z }}
-          >
-            <div
-              data-photo-inner
-              data-cursor-hover
-              role="img"
-              aria-label="Galeria Fernandito — foto destaque"
-              className="relative overflow-hidden"
-              style={{ width: `${HERO_WIDTH_VW}vw`, aspectRatio: HERO_ASPECT, boxShadow: SHADOW, borderRadius: RADIUS }}
-            >
-              <Placeholder label={HERO_LABEL} tone={HERO_TONE} />
-              <div ref={maskRef} className="bg-fernandito-verde-escuro absolute inset-0 origin-top" />
-            </div>
-          </div>
-
-          {/* Track photos — positioned by GSAP, parallax in Phase 2 */}
-          {TRACK.map((photo, i) => (
+    <section id="galeria" aria-label="Galeria" className="bg-fernandito-verde-escuro relative w-full">
+      {/* ── Animado (some sob prefers-reduced-motion) ── */}
+      <div
+        ref={stageRef}
+        className="text-fernandito-off-white relative h-[100svh] w-full overflow-hidden motion-reduce:hidden"
+      >
+        <div ref={trackRef} className="absolute inset-y-0 left-0 flex items-center [will-change:transform]">
+          {PHOTOS.map((photo, i) => (
             <div
               key={photo.label}
               ref={(el) => {
-                trackRefs.current[i] = el;
+                cardRefs.current[i] = el;
               }}
-              className="absolute top-1/2 left-1/2 [will-change:transform]"
+              role="img"
+              aria-label={`Galeria Fernandito — ${photo.label.toLowerCase()}`}
+              className={clsx(
+                "relative shrink-0 overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.3)]",
+                // Tamanhos antes do JS montar (SSR): card 0 já é a foto
+                // inteira, o resto fica fora da tela à direita.
+                i === 0 ? "h-full w-screen" : "aspect-[4/5] h-[55%] rounded-[20px]",
+              )}
             >
-              <div
-                data-photo-inner
-                data-cursor-hover
-                role="img"
-                aria-label={`Galeria Fernandito — ${photo.label.toLowerCase()}`}
-                className="relative overflow-hidden"
-                style={{ width: `${photo.widthVw}vw`, aspectRatio: photo.aspect, boxShadow: SHADOW, borderRadius: RADIUS }}
-              >
-                <Placeholder label={photo.label} tone={photo.tone} />
-              </div>
+              <PhotoFill
+                photo={photo}
+                innerRef={(el) => {
+                  innerRefs.current[i] = el;
+                }}
+              />
             </div>
           ))}
         </div>
 
-        {/* Mobile: Phase 1 hero reveal + Phase 2 horizontal scroll */}
-        <div className="md:hidden">
-          <div className="flex items-center justify-center px-6 py-20">
-            <div
-              ref={mobileHeroRef}
-              role="img"
-              aria-label="Galeria Fernandito — foto destaque"
-              className="relative w-full max-w-[80vw] overflow-hidden"
-              style={{ aspectRatio: HERO_ASPECT, boxShadow: SHADOW, borderRadius: RADIUS }}
-            >
-              <Placeholder label={HERO_LABEL} tone={HERO_TONE} />
-              <div ref={mobileMaskRef} className="bg-fernandito-verde-escuro absolute inset-0 origin-top" />
-            </div>
-          </div>
+        {/* Abertura sobre a foto inteira — some enquanto ela encolhe. */}
+        <div
+          ref={introRef}
+          className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 to-transparent px-6 pt-32 pb-10 sm:px-10 sm:pb-14 lg:px-16"
+        >
+          <SectionLabel index="02" className="mb-5">
+            Galeria
+          </SectionLabel>
+          <h2 className="font-rampart text-display-lg max-w-3xl leading-[0.95] tracking-[0.01em]">
+            Onde a lata anda
+          </h2>
+          <p className="text-label mt-6 flex items-center gap-2 font-sans tracking-[0.12em] uppercase opacity-80">
+            Role pra ver
+            <span aria-hidden="true">↓</span>
+          </p>
+        </div>
 
-          <div
-            ref={mobileScrollRef}
-            className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-6 pb-12 [will-change:transform,opacity]"
-          >
-            {TRACK.map((photo) => (
-              <div
-                key={photo.label}
-                className="relative shrink-0 snap-center overflow-hidden"
-                role="img"
-                aria-label={`Galeria Fernandito — ${photo.label.toLowerCase()}`}
-                style={{ width: "75vw", aspectRatio: photo.aspect, boxShadow: SHADOW, borderRadius: RADIUS }}
-              >
-                <Placeholder label={photo.label} tone={photo.tone} />
-              </div>
-            ))}
+        {/* Orientação durante o trilho: rótulo, contador e progresso. */}
+        <div
+          ref={chromeRef}
+          className="pointer-events-none absolute inset-x-0 bottom-0 px-6 pb-6 sm:px-10 sm:pb-8 lg:px-16"
+        >
+          <div className="flex items-end justify-between">
+            <SectionLabel index="02">Galeria</SectionLabel>
+            <p className="text-label font-accent tracking-[0.12em]" aria-hidden="true">
+              <span ref={counterRef}>01</span>
+              <span className="opacity-50"> / {TOTAL}</span>
+            </p>
+          </div>
+          <div className="bg-fernandito-off-white/15 mt-4 h-px w-full overflow-hidden">
+            <div ref={barRef} className="bg-fernandito-off-white h-full w-full origin-left" />
           </div>
         </div>
       </div>
 
-      {/* ── Reduced motion: static grid fallback ── */}
-      <div className="hidden motion-reduce:block px-6 py-16">
-        <div className="mx-auto grid max-w-5xl grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
-          {ALL_PHOTOS.map((photo) => (
-            <div
-              key={photo.label}
-              className="relative overflow-hidden"
-              role="img"
-              aria-label={`Galeria Fernandito — ${photo.label.toLowerCase()}`}
-              style={{ aspectRatio: photo.aspect, boxShadow: SHADOW, borderRadius: RADIUS }}
-            >
-              <Placeholder label={photo.label} tone={photo.tone} />
-            </div>
-          ))}
+      {/* ── prefers-reduced-motion: grid estático, sem pin nem scroll ── */}
+      <div className="text-fernandito-off-white hidden px-6 py-24 motion-reduce:block">
+        <div className="mx-auto max-w-5xl">
+          <SectionLabel index="02" className="mb-5">
+            Galeria
+          </SectionLabel>
+          <h2 className="font-rampart text-display-md mb-12 leading-[1]">Onde a lata anda</h2>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
+            {PHOTOS.map((photo) => (
+              <div
+                key={photo.label}
+                role="img"
+                aria-label={`Galeria Fernandito — ${photo.label.toLowerCase()}`}
+                className="relative aspect-[4/5] overflow-hidden rounded-[20px]"
+              >
+                <PhotoFill photo={photo} />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

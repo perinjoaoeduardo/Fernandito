@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger, SplitText, prefersReducedMotion } from "@/lib/gsap";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 
 // Textos curtos ("o que somos") revelados letra a letra, tipo máquina de
 // escrever — combina com a Courier Prime (font-sans) já usada no corpo do
@@ -44,9 +45,12 @@ export function OQueESection() {
 
     let chars: Element[] = [];
     try {
-      const splitP1 = new SplitText(p1, { type: "chars", aria: "none" });
-      const splitP2 = new SplitText(p2, { type: "chars", aria: "none" });
-      const splitStatement = new SplitText(statement, { type: "chars", aria: "none" });
+      // "words,chars": cada palavra vira um inline-block próprio, então a
+      // quebra de linha só acontece entre palavras. Só "chars" deixava o
+      // navegador quebrar no meio da palavra ("qu / anto").
+      const splitP1 = new SplitText(p1, { type: "words,chars", aria: "none" });
+      const splitP2 = new SplitText(p2, { type: "words,chars", aria: "none" });
+      const splitStatement = new SplitText(statement, { type: "words,chars", aria: "none" });
       splitInstances.push(splitP1, splitP2, splitStatement);
       chars = [...splitP1.chars, ...splitP2.chars, ...splitStatement.chars];
     } catch (err) {
@@ -84,9 +88,12 @@ export function OQueESection() {
       aria-label="O que é o Fernandito"
       className="bg-fernandito-off-white text-fernandito-verde-escuro w-full px-6 py-24 sm:py-32"
     >
-      <div className="mx-auto grid max-w-5xl gap-12 sm:grid-cols-[minmax(0,200px)_1fr] sm:items-center sm:gap-16">
+      <SectionLabel index="01" className="mx-auto mb-12 max-w-5xl sm:mb-16">
+        O que é
+      </SectionLabel>
+      <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-[minmax(0,200px)_1fr] md:items-center md:gap-16">
         {/* Placeholder — aqui entra a arte da lata quando o asset chegar. */}
-        <div className="border-fernandito-verde-escuro/25 mx-auto flex aspect-[3/7] w-36 shrink-0 items-center justify-center rounded-[2rem] border-2 border-dashed sm:mx-0 sm:w-full">
+        <div className="border-fernandito-verde-escuro/25 mx-auto flex aspect-[3/7] w-32 shrink-0 items-center justify-center rounded-[2rem] border-2 border-dashed md:mx-0 md:w-full">
           <span className="text-label font-accent px-3 text-center uppercase opacity-80">
             lata
             <br />
@@ -101,7 +108,10 @@ export function OQueESection() {
           <p ref={p2Ref} className="text-body-lg font-sans">
             {PARAGRAPHS[1]}
           </p>
-          <h2 ref={statementRef} className="text-display-md mt-4 font-serif leading-[1.1]">
+          <h2
+            ref={statementRef}
+            className="text-display-sm font-rampart mt-4 leading-[1.15] tracking-[0.01em] text-balance"
+          >
             {STATEMENT}
           </h2>
         </div>

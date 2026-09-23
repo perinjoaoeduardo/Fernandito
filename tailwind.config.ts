@@ -13,7 +13,6 @@ export default {
         },
       },
       fontFamily: {
-        serif: ["var(--font-instrument-serif)", "Georgia", "serif"],
         sans: ["var(--font-courier-prime)", "Courier New", "monospace"],
         accent: ["var(--font-special-elite)", "Courier New", "monospace"],
         rampart: ["var(--font-rampart)", "Georgia", "serif"],
@@ -26,6 +25,7 @@ export default {
         "display-xl": ["clamp(4rem, 12vw, 12rem)", { lineHeight: "0.9" }],
         "display-lg": ["clamp(3rem, 8vw, 8rem)", { lineHeight: "0.95" }],
         "display-md": ["clamp(2rem, 5vw, 4rem)", { lineHeight: "1.05" }],
+        "display-sm": ["clamp(1.5rem, 3.2vw, 2.5rem)", { lineHeight: "1.1" }],
         "body-lg": ["1.25rem", { lineHeight: "1.5" }],
         body: ["1rem", { lineHeight: "1.6" }],
         label: ["0.75rem", { lineHeight: "1.2", letterSpacing: "0.08em" }],

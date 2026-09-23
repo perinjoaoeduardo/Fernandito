@@ -97,7 +97,7 @@ export function ManifestoSection() {
               ref={(el) => {
                 lineRefs.current[i] = el;
               }}
-              className="text-display-md text-center font-serif leading-[1.1] [will-change:transform,opacity]"
+              className="text-display-md text-center font-rampart leading-[1.1] [will-change:transform,opacity]"
             >
               {line.text}
             </p>
@@ -113,10 +113,10 @@ export function ManifestoSection() {
         ref={finaleRef}
         className="mt-[6vh] flex min-h-[70vh] flex-col items-center justify-center gap-6 px-6 text-center [will-change:transform,opacity] sm:min-h-[80vh]"
       >
-        <p className="text-display-md sm:text-display-lg font-serif leading-[1.05]">
+        <p className="text-display-md sm:text-display-lg font-rampart leading-[1.05]">
           Mas, para os que não deixaram passar, esses fazem história.
         </p>
-        <p className="text-display-lg sm:text-display-xl font-serif leading-[0.95] italic">
+        <p className="text-display-lg sm:text-display-xl font-rampart leading-[0.95]">
           Tomam Fernandito.
         </p>
       </div>
