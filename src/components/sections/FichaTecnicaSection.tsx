@@ -7,12 +7,12 @@ import { gsap, ScrollTrigger, prefersReducedMotion } from "@/lib/gsap";
 // (isso mora em /legal/avisos). `font-accent` (Special Elite, o mesmo dos
 // carimbos da SocialGallerySection), pra faixa ter voz tipográfica própria.
 // Fundo verde-claro: separa visualmente do rodapé verde-escuro logo abaixo.
-const MARQUEE_PHRASE = "TOMA FERNANDITO · FERNET Y COLA · 350ML · 8% VOL. · ";
+const MARQUEE_PHRASE = "TOMA FERNANDITO · FERNET Y COLA · ";
 
 // Repetido várias vezes pra garantir que uma "metade" da trilha já seja mais
 // larga que qualquer viewport razoável — condição pro loop xPercent:-50 ficar
 // perfeitamente contínuo (sem "buraco" em telas muito largas).
-const MARQUEE_TRACK_TEXT = MARQUEE_PHRASE.repeat(8);
+const MARQUEE_TRACK_TEXT = MARQUEE_PHRASE.repeat(12);
 
 function Marquee() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -57,13 +57,13 @@ function Marquee() {
     <div
       ref={containerRef}
       aria-hidden="true"
-      className="flex items-center overflow-hidden py-5 sm:py-7"
+      className="flex items-center overflow-hidden py-3 sm:py-4"
     >
       <div ref={trackRef} className="flex w-max shrink-0 [will-change:transform]">
-        <span className="text-display-md text-fernandito-off-white font-accent pr-8 tracking-[0.02em] whitespace-nowrap uppercase">
+        <span className="text-fernandito-off-white font-accent pr-6 text-[clamp(1.25rem,2.4vw,1.875rem)] leading-none tracking-[0.02em] whitespace-nowrap uppercase">
           {MARQUEE_TRACK_TEXT}
         </span>
-        <span className="text-display-md text-fernandito-off-white font-accent pr-8 tracking-[0.02em] whitespace-nowrap uppercase">
+        <span className="text-fernandito-off-white font-accent pr-6 text-[clamp(1.25rem,2.4vw,1.875rem)] leading-none tracking-[0.02em] whitespace-nowrap uppercase">
           {MARQUEE_TRACK_TEXT}
         </span>
       </div>

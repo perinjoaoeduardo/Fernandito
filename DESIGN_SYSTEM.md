@@ -333,6 +333,18 @@ acompanha a última letra digitada e pisca (`@keyframes caret-blink` em
 `globals.css`). SplitText `words,chars` (quebra só entre palavras); texto
 completo no HTML do servidor e em `aria-label`. Usado no Manifesto,
 Contato e "O que anda rolando"; o O que é tem a mesma técnica inline.
+Regra de faixa: o texto tem que terminar de se escrever **enquanto a
+seção ainda está inteira na tela** (padrão `top 85%` → `top 55%`; no O
+que é, `top 90%` → `bottom 85%` da coluna) — nunca só quando ela já está
+saindo por cima.
+
+**Parallax geral (`components/ui/Parallax.tsx`).** Wrapper que translada
+em `y` de +speed a −speed enquanto atravessa a tela (scrub). Positivo =
+camada da frente (sobe mais rápido), negativo = de trás. Aplicado: O que é
+(lata −50, texto +30), Manifesto (título +40, cartão −25), Contato (coluna
+de texto +40; a imagem tem parallax próprio), Social (título +40, leque
+−30). Sempre num nó próprio — nunca no mesmo elemento que já anima
+`transform`.
 
 Ordem fixa da landing page (ver `src/app/page.tsx`):
 
@@ -409,15 +421,22 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    nunca se cruzam dentro da tela, só se sobrepõem de leve (z-index pela
    profundidade). Deriva vertical leve proporcional à velocidade; miolo
    de cada card desliza em `xPercent` (±7). **O fundo do palco vai de
-   verde-escuro pra bege (off-white)** ao longo da fase 2 e termina com a
-   última foto centralizada na mesma cor do Manifesto logo abaixo — emenda
-   sem corte. Sem título, contador ou barra (pedido explícito: só a
+   verde-escuro pra bege (off-white)** ao longo da fase 2, na mesma cor do
+   Manifesto logo abaixo — emenda sem corte. A fase 2 **termina assim que
+   a última foto aparece inteira** com uma folga na direita (`tEnd`,
+   margem de 6% da largura) — não leva a foto até o centro, a página já
+   segue descendo. Sem título, contador ou barra (pedido explícito: só a
    foto). Timeline reconstruído só quando a LARGURA muda. Foto real:
    trocar o conteúdo do `PhotoFill` por `<Image fill className="object-cover" />`.
    Placeholders usam cores sólidas (tons translúcidos ficavam cinza sobre
    o bege). `prefers-reduced-motion`: grid estático.
 4. `CartaSection` (`#manifesto`) — o **Manifesto**: título "Nosso
-   manifesto" (`TypewriterText`, `text-display-lg`) + cartão-postal com verso via
+   manifesto" pequeno (`TypewriterText`, `clamp(1.25rem,2.2vw,1.75rem)` —
+   o protagonista é o cartão, não o título) + cartão-postal (até 830px de
+   largura). Entrada presa ao scroll num wrapper: o cartão sobe inclinado
+   (y 160, −6°, escala 0.9) e assenta; no fim o selo é "carimbado" (escala
+   2.2 → 1 com `back.out`, pego por `data-seal` porque existe em dobro no
+   DOM). Cartão com verso via
    `FlipCard` (`components/ui/FlipCard.tsx`, reutilizável). Clique/Enter/
    Espaço vira o cartão em 3D (`perspective` no `ElevatedCard` externo,
    `rotateY` num elemento interno `preserve-3d`, `back.inOut(1.2)`,
@@ -428,19 +447,24 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    revela "VIRAR"/"VOLTAR". Cada face tem `backface-visibility:hidden` +
    `pointer-events-none` quando de costas; um "sizer" invisível em fluxo
    normal define a altura. `prefers-reduced-motion`: crossfade de opacity.
-5. `ContatoSection` (`#contato`) — CTA de contato, fundo **verde-medio**,
-   tudo centralizado: "Se interessou?" (Special Elite), título "Quer
-   Fernandito no teu rolê?" e parágrafo — os três se escrevem à máquina
-   em faixas de scroll encadeadas — e o `WhatsAppButton
-   background="verde-escuro"` sobe no fim.
+5. `ContatoSection` (`#contato`) — CTA de contato em **tela dividida**
+   (`md:grid-cols-2`, `md:min-h-screen`): à esquerda, fundo verde-medio,
+   título "Quer Fernandito no teu rolê?" + texto de apoio (os dois se
+   escrevendo à máquina) + `WhatsAppButton background="verde-escuro"`,
+   tudo alinhado à esquerda; à direita, imagem de ponta a ponta (hoje
+   placeholder verde-escuro com grain) com parallax próprio (miolo 120% de
+   altura, `yPercent` −8 → 8 e leve zoom desfazendo). No celular a imagem
+   vai pra baixo do texto (`aspect-[4/5]`).
 6. `SocialGallerySection` (`#social`, "O que anda rolando") — título
-   escrito à máquina; fundo off-white, cards 4:5 com cantos arredondados (`rounded-2xl`) e sombra
+   pequeno numa linha, escrito à máquina, sem textos de apoio (só o link
+   @toma.fernandito embaixo); seção compacta (~1 tela). Fundo off-white, cards 4:5 com cantos arredondados (`rounded-2xl`) e sombra
    suave, sem a borda grossa de polaroid. Leque de 7 cards só a partir de
    `lg` (1024px — abaixo disso cortava as pontas), que começa como uma
    pilha de fotos no centro e se abre em leque conforme rola (scrub);
    mobile/tablet usam fileira com scroll-snap. Ver detalhes na entrada própria abaixo.
 7. `FichaTecnicaSection` — só o marquee (`font-accent`, "Toma Fernandito ·
-   Fernet y Cola · 350ml · 8% vol." em loop), agora em faixa
+   Fernet y Cola" em loop — 350ml/8% saíram), faixa baixa (`py-3
+   sm:py-4`, texto `clamp(1.25rem,2.4vw,1.875rem)`), agora em faixa
    **verde-claro** com texto off-white — antes era verde-escuro e se
    fundia com o rodapé logo abaixo.
 8. `FooterSection` — fundo verde-escuro, compacto. A coluna de texto tem

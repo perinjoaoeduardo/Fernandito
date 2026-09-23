@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger, SplitText, prefersReducedMotion } from "@/lib/gsap";
+import { Parallax } from "@/components/ui/Parallax";
 
 // Textos curtos ("o que somos") revelados letra a letra, tipo máquina de
 // escrever — combina com a Courier Prime (font-sans) já usada no corpo do
@@ -69,8 +70,11 @@ export function OQueESection() {
     // independentes.
     const trigger = ScrollTrigger.create({
       trigger: column,
-      start: "top 85%",
-      end: "bottom 60%",
+      // Termina quando o fim da coluna entra na tela (bottom 85%): o texto
+      // tem que estar todo escrito enquanto a seção ainda está à vista,
+      // não só quando ela já está saindo por cima.
+      start: "top 90%",
+      end: "bottom 85%",
       scrub: 0.4,
       animation: gsap.timeline().to(chars, { opacity: 1, stagger: TYPE_STAGGER, ease: "none" }),
     });
@@ -88,29 +92,34 @@ export function OQueESection() {
       className="bg-fernandito-off-white text-fernandito-verde-escuro w-full px-6 py-24 sm:py-32"
     >
       <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-[minmax(0,200px)_1fr] md:items-center md:gap-16">
-        {/* Placeholder — aqui entra a arte da lata quando o asset chegar. */}
-        <div className="border-fernandito-verde-escuro/25 mx-auto flex aspect-[3/7] w-32 shrink-0 items-center justify-center rounded-[2rem] border-2 border-dashed md:mx-0 md:w-full">
-          <span className="text-label font-accent px-3 text-center uppercase opacity-80">
-            lata
-            <br />
-            (aguardando arte)
-          </span>
-        </div>
+        {/* Placeholder — aqui entra a arte da lata quando o asset chegar.
+            Parallax: lata atrás (mais lenta), texto na frente. */}
+        <Parallax speed={-50}>
+          <div className="border-fernandito-verde-escuro/25 mx-auto flex aspect-[3/7] w-32 shrink-0 items-center justify-center rounded-[2rem] border-2 border-dashed md:mx-0 md:w-full">
+            <span className="text-label font-accent px-3 text-center uppercase opacity-80">
+              lata
+              <br />
+              (aguardando arte)
+            </span>
+          </div>
+        </Parallax>
 
-        <div ref={columnRef} className="flex flex-col gap-6">
-          <p ref={p1Ref} className="text-body-lg font-sans">
-            {PARAGRAPHS[0]}
-          </p>
-          <p ref={p2Ref} className="text-body-lg font-sans">
-            {PARAGRAPHS[1]}
-          </p>
-          <h2
-            ref={statementRef}
-            className="text-display-sm font-rampart mt-4 leading-[1.15] tracking-[0.01em] text-balance"
-          >
-            {STATEMENT}
-          </h2>
-        </div>
+        <Parallax speed={30}>
+          <div ref={columnRef} className="flex flex-col gap-6">
+            <p ref={p1Ref} className="text-body-lg font-sans">
+              {PARAGRAPHS[0]}
+            </p>
+            <p ref={p2Ref} className="text-body-lg font-sans">
+              {PARAGRAPHS[1]}
+            </p>
+            <h2
+              ref={statementRef}
+              className="text-display-sm font-rampart mt-4 leading-[1.15] tracking-[0.01em] text-balance"
+            >
+              {STATEMENT}
+            </h2>
+          </div>
+        </Parallax>
       </div>
     </section>
   );

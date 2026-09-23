@@ -3,6 +3,7 @@
 import { clsx } from "clsx";
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger, EASE, prefersReducedMotion, supportsHover } from "@/lib/gsap";
+import { Parallax } from "@/components/ui/Parallax";
 import { Button } from "@/components/ui/Button";
 import { InstagramIcon } from "@/components/ui/icons";
 import { TypewriterText } from "@/components/ui/TypewriterText";
@@ -54,7 +55,7 @@ function PhotoCard({
       data-cursor-hover
       role="img"
       aria-label={`Fernandito no Instagram — foto ${index + 1}`}
-      className="relative aspect-[4/5] w-56 shrink-0 overflow-hidden rounded-2xl shadow-[0_18px_40px_rgba(36,48,34,0.22)] [will-change:transform] sm:w-60 lg:w-48 xl:w-56"
+      className="relative aspect-[4/5] w-56 shrink-0 overflow-hidden rounded-2xl shadow-[0_18px_40px_rgba(36,48,34,0.22)] [will-change:transform] sm:w-60 lg:w-44 xl:w-48"
     >
       <div className={clsx("absolute inset-0 flex items-center justify-center", CARD_TONES[index])}>
         <span className="text-label text-fernandito-off-white font-sans uppercase">{label}</span>
@@ -208,47 +209,51 @@ export function SocialGallerySection() {
       ref={sectionRef}
       id="social"
       aria-label="Redes sociais"
-      className="bg-fernandito-off-white text-fernandito-verde-escuro w-full overflow-hidden py-24 sm:py-32"
+      className="bg-fernandito-off-white text-fernandito-verde-escuro w-full overflow-hidden py-20 sm:py-24"
     >
       <div className="mx-auto flex max-w-5xl flex-col items-center px-6 text-center">
-        <TypewriterText
-          text="O que anda rolando"
-          className="text-display-lg font-rampart max-w-[9ch] leading-[0.95] tracking-[0.01em] text-balance sm:max-w-[10ch]"
-        />
-        <p className="text-body-lg mt-6 max-w-md font-sans text-balance opacity-80">
-          Os rolês, as latas e quem tá junto — direto do nosso Instagram.
-        </p>
+        <Parallax speed={40}>
+          <TypewriterText
+            text="O que anda rolando"
+            className="font-rampart text-[clamp(1.75rem,4vw,3rem)] leading-[1.05] tracking-[0.02em] text-balance"
+          />
+        </Parallax>
       </div>
 
       {/* Desktop (lg+) — leque sobreposto. Abaixo de 1024px o leque não
           cabe sem cortar as pontas, então vira a fileira com snap. */}
-      <div className="relative mt-20 hidden items-end justify-center px-6 lg:flex">
-        {Array.from({ length: CARD_COUNT }).map((_, i) => (
-          <div key={i} className={i === 0 ? undefined : "lg:-ml-16 xl:-ml-[4.5rem]"}>
-            <PhotoCard
-              index={i}
-              cardRef={(el) => {
-                fanCardRefs.current[i] = el;
-              }}
-            />
-          </div>
-        ))}
-      </div>
+      <Parallax speed={-30} className="hidden lg:block">
+        <div className="relative mt-12 hidden items-end justify-center px-6 lg:flex">
+          {Array.from({ length: CARD_COUNT }).map((_, i) => (
+            <div key={i} className={i === 0 ? undefined : "lg:-ml-14 xl:-ml-16"}>
+              <PhotoCard
+                index={i}
+                cardRef={(el) => {
+                  fanCardRefs.current[i] = el;
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      </Parallax>
 
       {/* Mobile/tablet — fileira com scroll-snap */}
       <div
         ref={mobileRowRef}
-        className="mt-14 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pt-4 pb-8 [scrollbar-width:none] [will-change:transform,opacity] sm:gap-6 lg:hidden [&::-webkit-scrollbar]:hidden"
+        className="mt-10 flex snap-x snap-mandatory [scrollbar-width:none] gap-4 overflow-x-auto px-6 pt-4 pb-8 [will-change:transform,opacity] sm:gap-6 lg:hidden [&::-webkit-scrollbar]:hidden"
       >
         {Array.from({ length: CARD_COUNT }).map((_, i) => (
-          <div key={i} className="snap-center" style={{ transform: `rotate(${i % 2 ? 1.5 : -1.5}deg)` }}>
+          <div
+            key={i}
+            className="snap-center"
+            style={{ transform: `rotate(${i % 2 ? 1.5 : -1.5}deg)` }}
+          >
             <PhotoCard index={i} />
           </div>
         ))}
       </div>
 
-      <div className="mx-auto mt-12 flex max-w-5xl flex-col items-center gap-3 px-6 text-center lg:mt-24">
-        <p className="text-body font-accent tracking-[0.04em] uppercase">Segue o Fernandito</p>
+      <div className="mx-auto mt-8 flex max-w-5xl flex-col items-center px-6 text-center lg:mt-16">
         <Button
           as="a"
           href="https://www.instagram.com/toma.fernandito/"

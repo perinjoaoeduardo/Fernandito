@@ -27,7 +27,7 @@ export function TypewriterText({
   as: Tag = "h2",
   className,
   start = "top 85%",
-  end = "top 40%",
+  end = "top 55%",
   caret = true,
 }: TypewriterTextProps) {
   const wrapRef = useRef<HTMLDivElement>(null);

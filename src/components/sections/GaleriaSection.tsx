@@ -96,14 +96,23 @@ export function GaleriaSection() {
         const H = stage.clientHeight;
         const { sizes, D } = layout(W, H);
         const n = PHOTOS.length;
+        const last = n - 1;
         const p1 = H * 0.9;
-        const p2 = D / SPEED;
 
         // Posição (canto superior esquerdo) do card i no instante t da
         // fase 2 (0 → 1): o centro dele cruza o meio da tela em t_i.
         const posX = (i: number, t: number) =>
           W / 2 + PHOTOS[i].speed * D * (i / (n - 1) - t) - sizes[i].w / 2;
         const posY = (i: number) => H / 2 - sizes[i].h / 2 + sizes[i].off;
+
+        // A fase 2 termina assim que a última foto aparece inteira, com uma
+        // folga na direita — não precisa levar ela até o meio da tela.
+        const margin = Math.max(24, W * 0.06);
+        const tEnd = Math.min(
+          1,
+          1 - (W - margin - sizes[last].w - posX(last, 1)) / (PHOTOS[last].speed * D),
+        );
+        const p2 = (D * tEnd) / SPEED;
 
         gsap.set(stage, { backgroundColor: BG_FROM });
         // Foto 0 começa ocupando o palco inteiro, por cima de tudo.
@@ -147,7 +156,7 @@ export function GaleriaSection() {
         // vertical proporcional à velocidade reforça a profundidade.
         cards.forEach((card, i) => {
           const drift = (PHOTOS[i].speed - 1) * H * 0.12;
-          tl.to(card, { x: posX(i, 1), y: posY(i) - drift, duration: p2 }, p1);
+          tl.to(card, { x: posX(i, tEnd), y: posY(i) - drift * tEnd, duration: p2 }, p1);
         });
 
         tl.to(inners, { xPercent: -PARALLAX, duration: p1 + p2 }, 0)
