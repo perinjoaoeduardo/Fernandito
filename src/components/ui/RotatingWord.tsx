@@ -6,18 +6,19 @@ import { gsap, prefersReducedMotion } from "@/lib/gsap";
 // Palavras que completam "Feito com ___." — o clima é sempre de
 // entrega/caráter, ecoando a Crença do Manifesto ("O que se entrega fácil
 // não deixa gosto"). A primeira se repete no fim da lista de render pra
-// fechar o loop do roller sem costura (ver `LOOP_WORDS` abaixo).
+// fechar o loop do roller sem costura (ver `LOOP_WORDS` abaixo). As de
+// liberdade vêm cedo, intercaladas com as de entrega; Teimosia fica no fim.
 const WORDS = [
   "Brio",
-  "Intenção",
-  "Teimosia",
-  "Amargor",
-  "Insistência",
-  "Paciência",
-  "Coragem",
   "Liberdade",
-  "Inquietação",
+  "Intenção",
   "Independência",
+  "Coragem",
+  "Inquietação",
+  "Amargor",
+  "Paciência",
+  "Insistência",
+  "Teimosia",
 ];
 
 const LOOP_WORDS = [...WORDS, WORDS[0]];

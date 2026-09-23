@@ -390,7 +390,9 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    como um bloco só, não só a palavra dentro de um "Feito com" fixo. Um
    roller vertical (GSAP, `y` em `em` por cima de uma pilha de `<span>`,
    `overflow-hidden`) troca entre 10 frases completas — "Feito com Brio.",
-   "Feito com Intenção." etc., com "Feito com" em `font-rampart-sans` e a
+   "Feito com Liberdade.", "Feito com Intenção." etc. (as de liberdade
+   — Liberdade, Independência, Inquietação — intercaladas logo no começo;
+   Teimosia no fim), com "Feito com" em `font-rampart-sans` e a
    palavra em `font-rampart-stamp font-bold` (bold sintético — a Stamp só
    tem peso 400). Duas coisas que não são óbvias:
    - cada linha do roller usa `h-[1.4em]` + `leading-none` (não `1.2em` — a
