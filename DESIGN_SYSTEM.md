@@ -435,14 +435,25 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    margem de 6% da largura) — não leva a foto até o centro, a página já
    segue descendo. **Saída**: cada foto vive numa camada de palco inteiro
    (`layerRefs`, onde também fica o z-index); depois que o pin solta, as
-   camadas seguem pra esquerda (−6% W × speed) e sobem além da rolagem
-   (−30% H × speed²) — as da frente saem mais rápido, as de trás mais
-   devagar, em vez do bloco subir duro. Sem título, contador ou barra (pedido explícito: só a
+   camadas seguem pra esquerda (−6% W × speed) e sobem **relativo à
+   velocidade base** (−60% H × (speed − 1)): a última foto (speed 1) sai
+   junto com a página, as da frente sobem um pouco mais e as de trás um
+   pouco menos. Versão anterior (−30% H × speed²) fazia a última foto
+   subir mais rápido que a página e abria um vão enorme antes do
+   Manifesto. **Palco em `h-lvh`** (não `svh`): no Safari do iPhone a
+   barra recolhe durante a rolagem e a tela fica mais alta que um palco em
+   `svh` — sobrava uma faixa embaixo; a `<section>` também anima a cor de
+   fundo junto com o palco, então qualquer faixa que apareça é da mesma
+   cor. Sem título, contador ou barra (pedido explícito: só a
    foto). Timeline reconstruído só quando a LARGURA muda. Foto real:
    trocar o conteúdo do `PhotoFill` por `<Image fill className="object-cover" />`.
    Placeholders usam cores sólidas (tons translúcidos ficavam cinza sobre
    o bege). `prefers-reduced-motion`: grid estático.
-4. `CartaSection` (`#manifesto`) — o **Manifesto**: título "Nosso
+4. `CartaSection` (`#manifesto`) — o **Manifesto**. Com animação, a
+   seção sobe sobre o fim do palco da galeria (`motion-safe:-mt-[16vh]`,
+   `sm:-mt-[12vh]`, e `pt-8` no celular): o palco termina bege e vazio
+   embaixo da última foto, na mesma cor — sem isso sobrava um vão de meia
+   tela. Sob reduced-motion não há sobreposição (a galeria vira grid). título "Nosso
    manifesto" pequeno (`TypewriterText`, `clamp(1.25rem,2.2vw,1.75rem)` —
    o protagonista é o cartão, não o título) + cartão-postal (até 830px de
    largura). Entrada presa ao scroll num wrapper: o cartão sobe inclinado

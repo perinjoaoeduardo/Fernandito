@@ -138,6 +138,7 @@ function PhotoFill({
 }
 
 export function GaleriaSection() {
+  const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   // Uma camada de palco inteiro por foto: a trilha anima o card (x/y), a
@@ -148,11 +149,13 @@ export function GaleriaSection() {
 
   useEffect(() => {
     if (prefersReducedMotion()) return;
+    const section = sectionRef.current;
     const stage = stageRef.current;
     const cards = cardRefs.current.filter(Boolean) as HTMLDivElement[];
     const layers = layerRefs.current.filter(Boolean) as HTMLDivElement[];
     const inners = innerRefs.current.filter(Boolean) as HTMLDivElement[];
-    if (!stage || cards.length !== PHOTOS.length || layers.length !== PHOTOS.length) return;
+    if (!section || !stage || cards.length !== PHOTOS.length || layers.length !== PHOTOS.length)
+      return;
 
     let ctx: gsap.Context | null = null;
 
@@ -182,7 +185,7 @@ export function GaleriaSection() {
         // No celular a trilha anda mais por px rolado — menos rolagem.
         const p2 = (D * tEnd) / (W < 768 ? SPEED * 1.35 : SPEED);
 
-        gsap.set(stage, { backgroundColor: BG_FROM });
+        gsap.set([stage, section], { backgroundColor: BG_FROM });
         // Foto 0 começa ocupando o palco inteiro, por cima de tudo.
         gsap.set(cards[0], { x: 0, y: 0, width: W, height: H, borderRadius: 0 });
         layers.forEach((layer, i) => gsap.set(layer, { zIndex: i === 0 ? 20 : PHOTOS[i].z }));
@@ -230,7 +233,10 @@ export function GaleriaSection() {
         tl.to(inners, { xPercent: -PARALLAX, duration: p1 + p2 }, 0)
           // Fundo verde-escuro → bege ao longo da trilha, emendando no
           // Manifesto (off-white) logo abaixo.
-          .to(stage, { backgroundColor: BG_TO, duration: p2 * 0.85, ease: "power1.inOut" }, p1);
+          // A seção acompanha a cor do palco: se alguma faixa dela aparecer
+          // por baixo do palco (barra do navegador do celular recolhendo),
+          // é da mesma cor, não uma listra verde-escuro sobre o bege.
+          .to([stage, section], { backgroundColor: BG_TO, duration: p2 * 0.85, ease: "power1.inOut" }, p1);
 
         const pinTrigger = ScrollTrigger.create({
           trigger: stage,
@@ -250,7 +256,10 @@ export function GaleriaSection() {
           const s = PHOTOS[i].speed;
           gsap.to(layer, {
             x: -W * 0.06 * s,
-            y: -H * 0.3 * s * s,
+            // Relativo à rolagem: a velocidade base (1, a da última foto)
+            // sai junto com a página — sem abrir um vão antes do
+            // Manifesto; as da frente sobem um pouco mais, as de trás menos.
+            y: -H * 0.6 * (s - 1),
             ease: "none",
             scrollTrigger: {
               start: () => pinTrigger.end,
@@ -288,6 +297,7 @@ export function GaleriaSection() {
 
   return (
     <section
+      ref={sectionRef}
       id="galeria"
       aria-label="Galeria"
       className="bg-fernandito-verde-escuro relative w-full"
@@ -297,7 +307,10 @@ export function GaleriaSection() {
       {/* ── Animado (some sob prefers-reduced-motion) ── */}
       <div
         ref={stageRef}
-        className="bg-fernandito-verde-escuro relative h-[100svh] w-full overflow-hidden motion-reduce:hidden"
+        // 100lvh (altura com as barras do navegador recolhidas), não svh:
+        // no Safari do iPhone a barra recolhe durante a rolagem e a tela
+        // fica mais alta que um palco em svh — sobrava uma faixa embaixo.
+        className="bg-fernandito-verde-escuro relative h-lvh w-full overflow-hidden motion-reduce:hidden"
       >
         {PHOTOS.map((photo, i) => (
           <div
