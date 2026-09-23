@@ -7,11 +7,9 @@ import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 import { InstagramIcon } from "@/components/ui/icons";
 
-const NAV_LINKS = [
-  { label: "Manifesto", href: "#manifesto" },
-  { label: "Produto", href: "#produto" },
-  { label: "Onde encontrar", href: "#onde-encontrar" },
-];
+// "Manifesto" e "Produto" saíram junto com as respectivas seções, removidas
+// da página por enquanto — ver src/app/page.tsx.
+const NAV_LINKS = [{ label: "Onde encontrar", href: "#onde-encontrar" }];
 
 // Footer é fundo escuro (verde-escuro) — outline de foco precisa contrastar
 // com isso, não com o verde-medio padrão do Link (pensado pra fundos claros).

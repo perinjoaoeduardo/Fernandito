@@ -7,13 +7,11 @@ import { scrollToTarget } from "@/lib/lenis";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 
-// "Onde encontrar" e "Contato" apontam pro CTA do FooterSection por
-// enquanto — não há um bloco de contato dedicado nesta fundação.
-const LINKS = [
-  { label: "Manifesto", href: "#manifesto" },
-  { label: "Produto", href: "#produto" },
-  { label: "Onde encontrar", href: "#onde-encontrar" },
-];
+// "Manifesto" e "Produto" saíram da nav junto com as respectivas seções
+// (ManifestoSection e ProdutoSection), removidas da página por enquanto —
+// ver src/app/page.tsx. "Onde encontrar" aponta pro CTA do FooterSection
+// por enquanto — não há um bloco de contato dedicado nesta fundação.
+const LINKS = [{ label: "Onde encontrar", href: "#onde-encontrar" }];
 
 // Ponto de amostragem fixo (canto esquerdo, fora da pill que fica centrada)
 // — assim `elementFromPoint` sempre pega o fundo da SEÇÃO por trás do nav,

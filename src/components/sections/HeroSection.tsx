@@ -88,7 +88,7 @@ export function HeroSection() {
     // (revela o fundo da própria section nas bordas, como uma moldura — ver
     // comentário no `className` da section abaixo) e desvanece o conteúdo de
     // texto, que já não faz sentido dentro de um cartão pequeno.
-    // Ao fim do range, o sticky solta sozinho e a ManifestoSection continua o
+    // Ao fim do range, o sticky solta sozinho e a OQueESection continua o
     // scroll normalmente — sem precisar de pin/unpin manual via ScrollTrigger.
     let shrinkTrigger: ScrollTrigger | null = null;
     if (!reduceMotion) {
@@ -131,7 +131,7 @@ export function HeroSection() {
       id="hero"
       // O fundo aqui é o que aparece na "moldura" revelada pelo efeito
       // shrink-to-card (ver `shrinkTrigger` acima) — tem que ser sempre a
-      // mesma cor de fundo da PRÓXIMA seção (hoje, `ManifestoSection`,
+      // mesma cor de fundo da PRÓXIMA seção (hoje, `OQueESection`,
       // off-white). Se a cor da próxima seção mudar no futuro, atualizar
       // aqui também — não há sincronia automática entre as duas.
       className="bg-fernandito-off-white relative h-screen motion-safe:h-[160vh]"
@@ -151,7 +151,7 @@ export function HeroSection() {
           </h1>
           <div
             ref={taglineRef}
-            className="text-fernandito-off-white font-rampart-sans mt-5 flex flex-col items-center gap-1"
+            className="text-fernandito-off-white font-rampart-sans mt-3 flex flex-col items-center gap-1"
           >
             <p className="text-body-lg">Fernet y cola em lata.</p>
             <div className="text-body text-fernandito-off-white/70">
@@ -163,8 +163,8 @@ export function HeroSection() {
         <button
           ref={indicatorRef}
           type="button"
-          onClick={() => scrollToTarget("#manifesto")}
-          aria-label="Rolar até a seção Manifesto"
+          onClick={() => scrollToTarget("#o-que-e")}
+          aria-label="Rolar até a próxima seção"
           className="text-fernandito-off-white/70 duration-base ease-out-standard focus-visible:outline-fernandito-off-white text-body hover:text-fernandito-off-white focus-visible:text-fernandito-off-white absolute bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 flex -translate-x-1/2 items-center gap-1 bg-transparent font-sans transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
         >
           scroll

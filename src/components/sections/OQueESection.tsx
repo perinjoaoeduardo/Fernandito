@@ -84,7 +84,7 @@ export function OQueESection() {
       aria-label="O que é o Fernandito"
       className="bg-fernandito-off-white text-fernandito-verde-escuro w-full px-6 py-24 sm:py-32"
     >
-      <div className="mx-auto grid max-w-5xl gap-12 sm:grid-cols-[minmax(0,200px)_1fr] sm:items-start sm:gap-16">
+      <div className="mx-auto grid max-w-5xl gap-12 sm:grid-cols-[minmax(0,200px)_1fr] sm:items-center sm:gap-16">
         {/* Placeholder — aqui entra a arte da lata quando o asset chegar. */}
         <div className="border-fernandito-verde-escuro/25 mx-auto flex aspect-[3/7] w-36 shrink-0 items-center justify-center rounded-[2rem] border-2 border-dashed sm:mx-0 sm:w-full">
           <span className="text-label font-accent px-3 text-center uppercase opacity-80">

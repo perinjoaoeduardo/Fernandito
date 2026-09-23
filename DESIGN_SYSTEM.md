@@ -299,6 +299,17 @@ apagar quando quiser (o git guarda).
 
 ## Estrutura de seções (`/src/components/sections`)
 
+`ManifestoSection` e `ProdutoSection` saíram da página por enquanto (pedido
+explícito) — os componentes continuam no repositório, só não estão
+montados em `src/app/page.tsx`. Os links de nav que apontavam pra elas
+("Manifesto", "Produto") também saíram de `FloatingNav.tsx` e
+`FooterSection.tsx` — hoje `LINKS`/`NAV_LINKS` têm só "Onde encontrar".
+Reintroduzir qualquer uma das duas exige: (1) importar e montar o
+componente de volta em `page.tsx` na posição certa, (2) devolver o link
+correspondente nos dois arquivos de nav, (3) conferir se o indicador de
+scroll da Hero (`scrollToTarget("#o-que-e")`) ainda deve apontar pra
+`OQueESection` ou voltar a apontar pra `ManifestoSection`.
+
 Ordem fixa da landing page (ver `src/app/page.tsx`):
 
 1. `HeroSection` — cartão visual **verde-escuro** (logo + tagline), efeito
@@ -314,13 +325,15 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
 
    **Regra da cor da moldura:** o fundo da `<section>` (a moldura revelada)
    tem que ser **sempre a mesma cor de fundo da seção seguinte** — hoje,
-   `bg-fernandito-off-white` (a cor da `ManifestoSection`). Não é uma
-   sincronia automática: se a cor de fundo da seção que vem depois da Hero
-   mudar no futuro, essa classe precisa ser atualizada manualmente junto
-   (ver comentário no `className` da section em `HeroSection.tsx`).
+   `bg-fernandito-off-white` (a cor da `OQueESection`, que vem logo depois
+   da Hero). Não é uma sincronia automática: se a cor de fundo da seção que
+   vem depois da Hero mudar no futuro, essa classe precisa ser atualizada
+   manualmente junto (ver comentário no `className` da section em
+   `HeroSection.tsx`). O indicador de scroll no rodapé do cartão também
+   rola até essa mesma seção (`scrollToTarget("#o-que-e")`).
 
-   No centro do cartão ficam só o logo (`Logo.tsx`, `max-w-[432px]
-   sm:max-w-[690px] lg:max-w-[805px]`) e, logo abaixo (`mt-5`, aproximado do
+   No centro do cartão ficam só o logo (`Logo.tsx`, `max-w-[497px]
+   sm:max-w-[794px] lg:max-w-[926px]`) e, logo abaixo (`mt-3`, bem colado no
    logo), duas linhas de tagline. O banner "Fernet y Cola"
    (`public/images/fernet-y-cola-banner.png`) saiu da Hero — o arquivo segue
    em `/public/images` pra outros usos.
@@ -370,22 +383,10 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    entrar na tela") — as letras aparecem enquanto rola pra baixo e
    desaparecem de volta se rolar pra cima, igual ao princípio de reveal
    usado no resto do site pros títulos grandes. `prefers-reduced-motion`
-   pula pro estado final.
-3. `ManifestoSection` — fundo off-white, reescrito como poema contínuo de
-   scroll simples (substituiu a versão anterior de 5 "macros" pinados em
-   tela cheia, considerada grande demais pro conteúdo). Uma lista de
-   linhas curtas (array `LINES` no componente — inclui um item
-   `{ type: "placeholder" }` no meio, uma caixa tracejada reservando
-   espaço pra cenas/sensorial de "ser Fernandito", futuramente fotos/vídeo)
-   revela cada linha com fade+y simples (`ScrollTrigger` individual por
-   linha, sem pin/scrub) em `text-display-md` — bem mais contido que o
-   `display-lg/xl` de antes, pra não pesar o scroll. As duas últimas
-   linhas do poema ("Mas, para os que não deixaram passar... Tomam
-   Fernandito.") se repetem de propósito logo em seguida, sozinhas, num
-   bloco de impacto próprio (`min-h-[70vh] sm:min-h-[80vh]`) com entrada em
-   zoom (`scale` 0.85→1) — o único momento "gigante" da seção, contrastando
-   com o resto do poema.
-4. `GaleriaSection` — galeria horizontal animada (referência: landonorris.com,
+   pula pro estado final. As duas colunas do grid usam `sm:items-center`
+   (não `items-start`) — o bloco de texto fica centralizado verticalmente
+   em relação ao placeholder da lata, não alinhado pelo topo.
+3. `GaleriaSection` — galeria horizontal animada (referência: landonorris.com,
    "mas melhor"). Mesmo mecanismo de `sticky` + `ScrollTrigger` scrub da
    Hero (sem `pin` do GSAP — o sticky nativo já resolve): a section é
    `motion-safe:sm:h-[250vh]`, o cartão `sticky top-0` contém uma trilha
@@ -397,23 +398,22 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    placeholder do resto do site (rótulo + tom de verde), aguardando fotos
    reais. Mobile e `prefers-reduced-motion` caem pra uma fileira com
    scroll-snap nativo, fundo fixo verde-escuro, sem pin nem troca de cor.
-5. `CartaSection` — fundo off-white, bloco editorial: epígrafe grande
+4. `CartaSection` — fundo off-white, bloco editorial: epígrafe grande
    (reveal por palavra via SplitText) + cartão-carta (`ElevatedCard`, corpo,
    assinaturas, selo = `fernandito-moeda.svg` rotacionado no canto;
    elevação física no hover, desktop only)
-6. `ProdutoSection` — fundo verde-medio
-7. `SocialGallerySection` — fundo off-white, leque de 7 fotos sobrepostas
+5. `SocialGallerySection` — fundo off-white, leque de 7 fotos sobrepostas
    (rotação alternada, card central maior) que entra em cascata do centro
    pras bordas e se "abre" no hover; vira carrossel com scroll-snap no
    mobile. Ver detalhes na sua própria entrada abaixo.
-8. `FichaTecnicaSection` — só o marquee (`font-accent`, texto curto: "Toma
+6. `FichaTecnicaSection` — só o marquee (`font-accent`, texto curto: "Toma
    Fernandito · Fernet y Cola · 350ml · 8% vol." em loop) — a versão
    anterior tinha uma grade de "ficha técnica" completa (specs, ingredientes,
    registro MAPA) abaixo do marquee; foi removida por conter informação
    redundante com `/legal/avisos` e não agregar visualmente. Altura do
    marquee agora vem do padding do conteúdo (`py-6 sm:py-8`), não de `vh` —
    antes ficava alta demais em qualquer viewport.
-9. `FooterSection` — fundo verde-escuro, versão compacta (estilo do
+7. `FooterSection` — fundo verde-escuro, versão compacta (estilo do
     rodapé enxuto da Lassie — substituiu uma versão anterior bem mais alta,
     com labels decorativos nos 4 cantos e `min-h-[90vh]`). Duas colunas no
     topo, contidas em `max-w-5xl` com `gap-12` (o gap padrão do site pra
