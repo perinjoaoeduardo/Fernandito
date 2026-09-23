@@ -209,13 +209,16 @@ export function FloatingNav() {
               ×
             </button>
 
+            {/* Mesma voz tipográfica do resto da navegação do site (pill do
+                desktop, colunas do Footer): font-sans uppercase tracked —
+                não o font-serif de título usado nos headlines das seções. */}
             <nav className="flex flex-col items-center gap-8">
               {LINKS.map((link) => (
                 <Link
                   key={link.label}
                   href={link.href}
                   onClick={() => setMenuOpen(false)}
-                  className="text-fernandito-off-white text-display-md !outline-fernandito-off-white font-serif"
+                  className="text-fernandito-off-white text-display-md !outline-fernandito-off-white font-sans tracking-[0.02em] uppercase"
                 >
                   {link.label}
                 </Link>
