@@ -1,27 +1,15 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import {
-  gsap,
-  ScrollTrigger,
-  SplitText,
-  EASE,
-  prefersReducedMotion,
-  supportsHover,
-} from "@/lib/gsap";
-import { ElevatedCard } from "@/components/ui/ElevatedCard";
+import { gsap, ScrollTrigger, SplitText, prefersReducedMotion } from "@/lib/gsap";
+import { FlipCard } from "@/components/ui/FlipCard";
 
 const SIGNATURES = ["João", "Lorenzo", "Nando", "Matheus"];
 
-const SEAL_BASE_ROTATION = 8;
-const SEAL_HOVER_ROTATION = SEAL_BASE_ROTATION + 3;
-
 export function CartaSection() {
   const epigraphRef = useRef<HTMLHeadingElement>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const sealRef = useRef<HTMLDivElement>(null);
 
-  // Parte 1 — reveal da epígrafe por palavra.
+  // Reveal da epígrafe por palavra.
   useEffect(() => {
     const epigraph = epigraphRef.current;
     if (!epigraph) return;
@@ -47,7 +35,7 @@ export function CartaSection() {
       const tokens = text.split(" ");
       words = tokens.map((word, idx) => {
         const span = document.createElement("span");
-        span.textContent = idx < tokens.length - 1 ? `${word}\u00A0` : word;
+        span.textContent = idx < tokens.length - 1 ? `${word} ` : word;
         span.style.display = "inline-block";
         epigraph.appendChild(span);
         return span;
@@ -77,42 +65,78 @@ export function CartaSection() {
     };
   }, []);
 
-  // O selo reage ao hover do cartão com leve atraso/rotação extra — a
-  // elevação do cartão em si agora é o ElevatedCard (ver JSX abaixo).
-  useEffect(() => {
-    const card = cardRef.current;
-    const seal = sealRef.current;
-    if (!card || !seal) return;
-    if (prefersReducedMotion() || !supportsHover()) return;
+  // ── Frente: preservada do que já existia (texto, assinaturas, selo). ──
+  const front = (
+    <>
+      <blockquote className="text-body-lg flex flex-col gap-6 font-sans">
+        <p>
+          A gente acredita numa vida que não se entrega fácil. Que escolhe o caminho difícil
+          porque é nele que mora o gosto de verdade.
+        </p>
+        <p>
+          Fernandito nasceu de uma crença simples: existe entrega que é render-se, e existe
+          entrega que é arte. A gente escolheu o segundo caminho — e essa lata é prova disso.
+        </p>
+      </blockquote>
 
-    const handleEnter = () => {
-      gsap.to(seal, {
-        rotate: SEAL_HOVER_ROTATION,
-        y: -4,
-        duration: 0.4,
-        delay: 0.05,
-        ease: EASE.outStandard,
-      });
-    };
+      <p className="text-body mt-12 font-sans">Com brio, de Porto Alegre,</p>
 
-    const handleLeave = () => {
-      gsap.to(seal, {
-        rotate: SEAL_BASE_ROTATION,
-        y: 0,
-        duration: 0.4,
-        delay: 0.05,
-        ease: EASE.outStandard,
-      });
-    };
+      <div className="mt-4 flex flex-wrap items-baseline gap-x-8 gap-y-2">
+        {SIGNATURES.map((name) => (
+          <span key={name} className="text-body-lg font-serif italic">
+            {name}
+          </span>
+        ))}
+      </div>
 
-    card.addEventListener("mouseenter", handleEnter);
-    card.addEventListener("mouseleave", handleLeave);
+      {/* Selo — a rotação extra no hover agora é CSS puro (group-hover),
+          não GSAP+ref: o FlipCard renderiza esse conteúdo duas vezes (um
+          "sizer" invisível pra altura + a face real), então um ref aqui
+          resolveria pra uma cópia arbitrária das duas. */}
+      <div
+        className="text-fernandito-verde-escuro absolute -right-3 -bottom-4 aspect-square w-24 rotate-[8deg] drop-shadow-[0_4px_10px_rgba(36,48,34,0.25)] transition-transform duration-500 ease-out-standard [will-change:transform] group-hover:-translate-y-1 group-hover:rotate-[11deg] sm:-right-5 sm:-bottom-6 sm:w-28 lg:-right-6 lg:-bottom-8 lg:w-[120px]"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- raster estático de tamanho fixo, next/image não traz benefício */}
+        <img
+          src="/logo/fernandito-moeda.webp"
+          alt="Selo Fernandito"
+          width={256}
+          height={258}
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full"
+        />
+      </div>
+    </>
+  );
 
-    return () => {
-      card.removeEventListener("mouseenter", handleEnter);
-      card.removeEventListener("mouseleave", handleLeave);
-    };
-  }, []);
+  // ── Verso: foto dos fundadores (placeholder até a foto real chegar). ──
+  const back = (
+    <div className="flex h-full flex-col gap-4">
+      {/* Filtro sépia/saturação leve sobre o placeholder sólido — proposital:
+          prepara o tom duotone esverdeado retrô que a foto real vai ganhar
+          quando entrar (ver DESIGN_SYSTEM.md, "Assets de logo"). */}
+      <div
+        role="img"
+        aria-label="Foto dos fundadores do Fernandito"
+        className="bg-fernandito-verde-medio relative flex w-full flex-1 items-center justify-center overflow-hidden rounded-sm [filter:sepia(0.35)_saturate(1.4)]"
+      >
+        <span className="text-label text-fernandito-off-white font-sans uppercase opacity-90">
+          Foto fundadores
+        </span>
+        {/* Carimbo decorativo, puramente ilustrativo. */}
+        <span
+          aria-hidden="true"
+          className="text-fernandito-off-white pointer-events-none absolute top-4 right-4 rotate-[-14deg] font-serif text-sm tracking-[0.2em] italic opacity-[0.08]"
+        >
+          * FERNANDITO *
+        </span>
+      </div>
+      <p className="text-label text-fernandito-verde-escuro/70 font-sans uppercase">
+        João · Lorenzo · Nando · Matheus — Porto Alegre, 2026
+      </p>
+    </div>
+  );
 
   return (
     <section
@@ -130,49 +154,15 @@ export function CartaSection() {
       </div>
 
       <div className="mx-auto mt-16 max-w-[720px] px-6 sm:mt-24">
-        <ElevatedCard
-          ref={cardRef}
+        <FlipCard
+          front={front}
+          back={back}
+          frontLabel="o texto"
+          backLabel="os fundadores"
           elevation="md"
           rotateOnHover
-          className="relative rounded-md bg-[#F5F5E9] p-6 sm:p-8 lg:p-12"
-        >
-          <blockquote className="text-body-lg flex flex-col gap-6 font-sans">
-            <p>
-              A gente acredita numa vida que não se entrega fácil. Que escolhe o caminho difícil
-              porque é nele que mora o gosto de verdade.
-            </p>
-            <p>
-              Fernandito nasceu de uma crença simples: existe entrega que é render-se, e existe
-              entrega que é arte. A gente escolheu o segundo caminho — e essa lata é prova disso.
-            </p>
-          </blockquote>
-
-          <p className="text-body mt-12 font-sans">Com brio, de Porto Alegre,</p>
-
-          <div className="mt-4 flex flex-wrap items-baseline gap-x-8 gap-y-2">
-            {SIGNATURES.map((name) => (
-              <span key={name} className="text-body-lg font-serif italic">
-                {name}
-              </span>
-            ))}
-          </div>
-
-          <div
-            ref={sealRef}
-            className="absolute -right-3 -bottom-4 aspect-square w-24 rotate-[8deg] drop-shadow-[0_4px_10px_rgba(36,48,34,0.25)] [will-change:transform] sm:-right-5 sm:-bottom-6 sm:w-28 lg:-right-6 lg:-bottom-8 lg:w-[120px]"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element -- raster estático de tamanho fixo, next/image não traz benefício */}
-            <img
-              src="/logo/fernandito-moeda.webp"
-              alt="Selo Fernandito"
-              width={256}
-              height={258}
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full"
-            />
-          </div>
-        </ElevatedCard>
+          cardClassName="rounded-md bg-[#F5F5E9]"
+        />
       </div>
     </section>
   );

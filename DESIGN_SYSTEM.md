@@ -418,9 +418,26 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    cards 75vw). `prefers-reduced-motion`: grid estático CSS (2 cols
    mobile, 3 cols desktop).
 4. `CartaSection` — fundo off-white, bloco editorial: epígrafe grande
-   (reveal por palavra via SplitText) + cartão-carta (`ElevatedCard`, corpo,
-   assinaturas, selo = `fernandito-moeda.svg` rotacionado no canto;
-   elevação física no hover, desktop only)
+   (reveal por palavra via SplitText) + cartão-postal com verso, via
+   `FlipCard` (`components/ui/FlipCard.tsx`, reutilizável). Clique/Enter/
+   Espaço vira o cartão em 3D real (`perspective` no `ElevatedCard`
+   externo, `rotateY` 0→180deg num elemento interno `preserve-3d`,
+   `ease: back.inOut(1.2)` sutil, elevação extra de -10px no meio do
+   giro). Frente: texto, assinaturas, selo (inalterados). Verso: foto dos
+   fundadores (placeholder `bg-verde-medio` com `filter: sepia+saturate`
+   preparando o tom duotone retrô da foto real), legenda mono e um
+   carimbo `* FERNANDITO *` bem sutil. Um ícone de "virar" (setas
+   circulares, respiração contínua leve) fica no canto oposto ao selo;
+   hover no cartão inteiro (`group-hover`, CSS puro — mesmo padrão do
+   `Button.tsx`, sem JS) revela o label "VIRAR"/"VOLTAR". Elevação no
+   hover continua sendo o `ElevatedCard` de sempre, no container externo
+   (fora do `preserve-3d`) — não compete com a rotação do flip por ficar
+   em elemento/eixo diferente. Cada face tem `backface-visibility:hidden`
+   \+ `pointer-events-none` quando de costas (evita clique fantasma); um
+   "sizer" invisível em fluxo normal define a altura do cartão a partir
+   do conteúdo da frente, já que as duas faces reais ficam absolutas.
+   `prefers-reduced-motion`: sem rotação 3D, vira crossfade de opacity
+   simples (`motion-reduce:` puro no CSS, sem detecção JS separada).
 5. `SocialGallerySection` — fundo off-white, leque de 7 fotos sobrepostas
    (rotação alternada, card central maior) que entra em cascata do centro
    pras bordas e se "abre" no hover; vira carrossel com scroll-snap no
