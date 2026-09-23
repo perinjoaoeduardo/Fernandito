@@ -8,8 +8,8 @@ import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 
 // Site de página única: a nav é navegação por âncora pros "andares" da
-// página (mesma numeração dos SectionLabel de cada seção). O contato não
-// entra como link — o botão de WhatsApp ao lado já é esse atalho.
+// página. O contato não entra como link na pill — o botão de WhatsApp ao
+// lado já é esse atalho (no menu mobile ele aparece).
 const LINKS = [
   { label: "O que é", href: "#o-que-e" },
   { label: "Galeria", href: "#galeria" },
@@ -210,19 +210,15 @@ export function FloatingNav() {
           >
             {/* Fechar é o próprio pill "Menu" (vira "Fechar", fica por cima
                 do overlay) + Esc — sem um × separado competindo com ele. */}
-            {/* Títulos grandes na Rampart (fonte de título do site), cada um
-                com o mesmo número do SectionLabel da seção de destino. */}
+            {/* Títulos grandes na Rampart (fonte de título do site). */}
             <nav aria-label="Menu" className="flex flex-col items-center gap-7">
-              {[...LINKS, { label: "Contato", href: "#contato" }].map((link, i) => (
+              {[...LINKS, { label: "Contato", href: "#contato" }].map((link) => (
                 <Link
                   key={link.label}
                   href={link.href}
                   onClick={() => setMenuOpen(false)}
                   className="text-fernandito-off-white text-display-md !outline-fernandito-off-white font-rampart tracking-[0.02em] whitespace-nowrap"
                 >
-                  <span className="text-label font-accent mr-3 align-middle opacity-60">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
                   {link.label}
                 </Link>
               ))}

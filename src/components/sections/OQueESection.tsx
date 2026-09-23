@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger, SplitText, prefersReducedMotion } from "@/lib/gsap";
-import { SectionLabel } from "@/components/ui/SectionLabel";
 
 // Textos curtos ("o que somos") revelados letra a letra, tipo máquina de
 // escrever — combina com a Courier Prime (font-sans) já usada no corpo do
@@ -88,9 +87,6 @@ export function OQueESection() {
       aria-label="O que é o Fernandito"
       className="bg-fernandito-off-white text-fernandito-verde-escuro w-full px-6 py-24 sm:py-32"
     >
-      <SectionLabel index="01" className="mx-auto mb-12 max-w-5xl sm:mb-16">
-        O que é
-      </SectionLabel>
       <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-[minmax(0,200px)_1fr] md:items-center md:gap-16">
         {/* Placeholder — aqui entra a arte da lata quando o asset chegar. */}
         <div className="border-fernandito-verde-escuro/25 mx-auto flex aspect-[3/7] w-32 shrink-0 items-center justify-center rounded-[2rem] border-2 border-dashed md:mx-0 md:w-full">

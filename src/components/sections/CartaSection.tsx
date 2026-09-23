@@ -1,71 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger, SplitText, prefersReducedMotion } from "@/lib/gsap";
 import { FlipCard } from "@/components/ui/FlipCard";
-import { SectionLabel } from "@/components/ui/SectionLabel";
+import { TypewriterText } from "@/components/ui/TypewriterText";
 
 const SIGNATURES = ["João", "Lorenzo", "Nando", "Matheus"];
 
 export function CartaSection() {
-  const epigraphRef = useRef<HTMLHeadingElement>(null);
-
-  // Reveal da epígrafe por palavra.
-  useEffect(() => {
-    const epigraph = epigraphRef.current;
-    if (!epigraph) return;
-
-    const reduceMotion = prefersReducedMotion();
-
-    if (reduceMotion) {
-      gsap.set(epigraph, { opacity: 1 });
-      return;
-    }
-
-    const splitInstances: SplitText[] = [];
-    let words: Element[] = [];
-
-    try {
-      const split = new SplitText(epigraph, { type: "words", aria: "none" });
-      splitInstances.push(split);
-      words = split.words;
-    } catch (err) {
-      console.warn("[CartaSection] SplitText indisponível, usando fallback manual.", err);
-      const text = epigraph.textContent ?? "";
-      epigraph.innerHTML = "";
-      const tokens = text.split(" ");
-      words = tokens.map((word, idx) => {
-        const span = document.createElement("span");
-        span.textContent = idx < tokens.length - 1 ? `${word} ` : word;
-        span.style.display = "inline-block";
-        epigraph.appendChild(span);
-        return span;
-      });
-    }
-
-    gsap.set(words, { opacity: 0, y: 20 });
-
-    const trigger = ScrollTrigger.create({
-      trigger: epigraph,
-      start: "top 80%",
-      once: true,
-      onEnter: () => {
-        gsap.to(words, {
-          opacity: 1,
-          y: 0,
-          duration: 0.6,
-          stagger: 0.03,
-          ease: "power3.out",
-        });
-      },
-    });
-
-    return () => {
-      trigger.kill();
-      splitInstances.forEach((split) => split.revert());
-    };
-  }, []);
-
   // ── Frente: preservada do que já existia (texto, assinaturas, selo). ──
   const front = (
     <>
@@ -147,16 +87,11 @@ export function CartaSection() {
       aria-label="Manifesto"
       className="bg-fernandito-off-white text-fernandito-verde-escuro relative w-full py-24 sm:py-32"
     >
-      <div className="mx-auto flex max-w-4xl flex-col items-center px-6 text-center">
-        <SectionLabel index="03" className="mb-8">
-          Manifesto
-        </SectionLabel>
-        <h2
-          ref={epigraphRef}
-          className="text-display-md font-rampart max-w-3xl leading-[1.05] tracking-[0.01em] text-balance"
-        >
-          A gente não inventou essa entrega. Só deu nome, lata e forma.
-        </h2>
+      <div className="mx-auto flex max-w-4xl justify-center px-6 text-center">
+        <TypewriterText
+          text="Nosso manifesto"
+          className="text-display-lg font-rampart leading-[1] tracking-[0.01em]"
+        />
       </div>
 
       <div className="mx-auto mt-14 max-w-[720px] px-6 sm:mt-20">

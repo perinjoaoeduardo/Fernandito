@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger, EASE, prefersReducedMotion, supportsHover } from "@/lib/gsap";
 import { Button } from "@/components/ui/Button";
 import { InstagramIcon } from "@/components/ui/icons";
-import { SectionLabel } from "@/components/ui/SectionLabel";
+import { TypewriterText } from "@/components/ui/TypewriterText";
 
 const CARD_COUNT = 7;
 const CENTER_INDEX = 3;
@@ -78,66 +78,60 @@ export function SocialGallerySection() {
   const fanCardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const mobileRowRef = useRef<HTMLDivElement>(null);
 
-  // Entrada em cascata do centro pras bordas — leque desktop.
+  // Leque desktop: as fotos começam empilhadas no centro (uma pilha de
+  // fotos em cima da mesa) e se abrem em leque conforme rola — preso ao
+  // scroll (scrub), fecha de volta se rolar pra cima.
   useEffect(() => {
     const section = sectionRef.current;
     const cards = fanCardRefs.current;
     if (!section || cards.some((card) => !card)) return;
+    const fan = cards[0]?.parentElement?.parentElement;
+    if (!fan) return;
 
-    const reduceMotion = prefersReducedMotion();
+    const final = (i: number) => ({
+      x: 0,
+      scale: baseScale(i),
+      y: distanceFromCenter(i) * DROOP_STEP,
+      rotate: ROTATIONS[i],
+    });
 
-    if (reduceMotion) {
-      cards.forEach((card, i) => {
-        if (!card) return;
-        gsap.set(card, {
-          opacity: 1,
-          scale: baseScale(i),
-          y: distanceFromCenter(i) * DROOP_STEP,
-          rotate: ROTATIONS[i],
-          zIndex: BASE_Z - distanceFromCenter(i),
-        });
-      });
+    cards.forEach((card, i) => {
+      if (card) gsap.set(card, { zIndex: BASE_Z - distanceFromCenter(i) });
+    });
+
+    if (prefersReducedMotion()) {
+      cards.forEach((card, i) => card && gsap.set(card, final(i)));
       return;
     }
 
-    cards.forEach((card, i) => {
-      if (!card) return;
-      gsap.set(card, {
-        opacity: 0,
-        scale: 0.7,
-        y: 40,
-        rotate: 0,
-        zIndex: BASE_Z - distanceFromCenter(i),
-      });
-    });
+    // Distância até a posição do card central — recalculada no refresh
+    // (o leque só existe em lg+, a medida muda com a largura).
+    const stackX = (i: number) => {
+      const wrappers = cards.map((c) => c?.parentElement as HTMLElement);
+      return wrappers[CENTER_INDEX].offsetLeft - wrappers[i].offsetLeft;
+    };
 
-    const tl = gsap.timeline({ paused: true });
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: fan,
+        start: "top 90%",
+        end: "top 35%",
+        scrub: 0.6,
+        invalidateOnRefresh: true,
+      },
+    });
     cards.forEach((card, i) => {
       if (!card) return;
-      const d = distanceFromCenter(i);
-      tl.to(
+      tl.fromTo(
         card,
-        {
-          opacity: 1,
-          scale: baseScale(i),
-          y: d * DROOP_STEP,
-          rotate: ROTATIONS[i],
-          duration: 0.7,
-          ease: "back.out(1.4)",
-        },
-        d * 0.08,
+        { x: () => stackX(i), y: 40, rotate: (i - CENTER_INDEX) * 3, scale: 0.92 },
+        { ...final(i), ease: "power2.out" },
+        0,
       );
     });
 
-    const trigger = ScrollTrigger.create({
-      trigger: section,
-      start: "top 75%",
-      once: true,
-      onEnter: () => tl.play(),
-    });
-
     return () => {
-      trigger.kill();
+      tl.scrollTrigger?.kill();
       tl.kill();
     };
   }, []);
@@ -217,13 +211,10 @@ export function SocialGallerySection() {
       className="bg-fernandito-off-white text-fernandito-verde-escuro w-full overflow-hidden py-24 sm:py-32"
     >
       <div className="mx-auto flex max-w-5xl flex-col items-center px-6 text-center">
-        <SectionLabel index="05" className="mb-8">
-          Instagram
-        </SectionLabel>
-        <h2 className="text-display-lg font-rampart leading-[0.95] tracking-[0.01em]">
-          <span className="block">O que anda</span>
-          <span className="block">rolando</span>
-        </h2>
+        <TypewriterText
+          text="O que anda rolando"
+          className="text-display-lg font-rampart max-w-[9ch] leading-[0.95] tracking-[0.01em] text-balance sm:max-w-[10ch]"
+        />
         <p className="text-body-lg mt-6 max-w-md font-sans text-balance opacity-80">
           Os rolês, as latas e quem tá junto — direto do nosso Instagram.
         </p>

@@ -117,12 +117,14 @@ export function FooterSection() {
       id="footer"
       className="bg-fernandito-verde-escuro text-fernandito-off-white relative w-full px-6 py-14 sm:px-10 sm:py-16 lg:px-16"
     >
-      <div className="mx-auto grid w-full max-w-5xl gap-12 sm:grid-cols-[1fr_auto] sm:items-start sm:gap-12">
+      {/* Coluna de texto com largura máxima: sem ela a frase esticava até
+          encostar no Navegar/Social e sobrava pouco espaço pros links. */}
+      <div className="mx-auto grid w-full max-w-5xl gap-12 md:grid-cols-[minmax(0,26rem)_auto] md:items-start md:justify-between md:gap-16">
         {/* Frase de fechamento + CTA */}
         <div>
           {/* Rampart é só caixa-alta: o contraste entre as linhas vem da
               cor (off-white → verde-claro), não de itálico/peso. */}
-          <h2 className="font-rampart text-display-sm flex flex-col gap-1 leading-[1.05] tracking-[0.01em]">
+          <h2 className="font-rampart flex flex-col gap-1 text-[clamp(1.5rem,2.4vw,2rem)] leading-[1.1] tracking-[0.01em]">
             <span ref={line1Ref}>Pra quem não deixa passar,</span>
             <span ref={line2Ref} className="text-fernandito-verde-claro">
               vira história.
@@ -137,7 +139,7 @@ export function FooterSection() {
         </div>
 
         {/* Navegação em colunas — estilo compacto (Company/Socials da Lassie) */}
-        <div className="grid grid-cols-2 gap-10 sm:gap-14">
+        <div className="grid grid-cols-2 gap-10 sm:gap-16">
           <div>
             <h3 className="text-label mb-4 font-sans tracking-[0.08em] uppercase opacity-80">
               Navegar

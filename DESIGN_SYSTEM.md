@@ -37,8 +37,8 @@ padrão do Tailwind).
   arquivo certo automaticamente.
 - `font-accent` → **Special Elite**, Courier New, monospace — acompanha a
   Courier Prime, mas **não é fonte de texto corrido**: usar pontualmente
-  para destaque: rótulos de seção (`SectionLabel`), assinaturas do
-  Manifesto, legenda do rodapé, carimbos, marquee, contador da galeria. Só
+  para destaque: assinaturas do Manifesto, "Se interessou?" do Contato,
+  legenda do rodapé, carimbos, marquee. Só
   tem peso Regular (`public/fonts/SpecialElite-Regular.ttf`).
 
 ### Família Rampart — fonte do logo
@@ -318,14 +318,21 @@ apagar quando quiser (o git guarda).
 em `src/app/page.tsx` — os componentes seguem no repositório. O "Manifesto"
 de hoje é a `CartaSection` (`#manifesto`).
 
-**Navegação por andares.** Cada seção abre com um `SectionLabel`
-(`components/ui/SectionLabel.tsx` — "01 — O que é", em Special Elite) e a
-mesma numeração aparece no menu mobile. `FloatingNav` (`LINKS`) e
-`FooterSection` (`NAV_LINKS`) apontam pras âncoras: `#o-que-e` (01),
-`#galeria` (02), `#manifesto` (03), `#contato` (04, só no rodapé e no menu
-mobile — no desktop o botão de WhatsApp da pill já é esse atalho). A pill
-de links só aparece a partir de `md` (768px) com `whitespace-nowrap`;
-abaixo disso vira cavalo (topo) + pill "Menu"/"Fechar" que abre o overlay.
+**Navegação.** Sem numeração de seção nem contadores (pareciam slide —
+removidos a pedido). `FloatingNav` (`LINKS`) e `FooterSection`
+(`NAV_LINKS`) apontam pras âncoras `#o-que-e`, `#galeria`, `#manifesto` e
+`#contato` (este só no rodapé e no menu mobile — no desktop o botão de
+WhatsApp da pill já é esse atalho). A pill de links só aparece a partir de
+`md` (768px) com `whitespace-nowrap`; abaixo disso vira cavalo (topo) +
+pill "Menu"/"Fechar" que abre o overlay.
+
+**Escrita à máquina (`components/ui/TypewriterText.tsx`).** Motivo
+recorrente do site: títulos que se escrevem letra a letra presos ao
+scroll (scrub, "desescrevem" se rolar pra cima), com um cursor que
+acompanha a última letra digitada e pisca (`@keyframes caret-blink` em
+`globals.css`). SplitText `words,chars` (quebra só entre palavras); texto
+completo no HTML do servidor e em `aria-label`. Usado no Manifesto,
+Contato e "O que anda rolando"; o O que é tem a mesma técnica inline.
 
 Ordem fixa da landing page (ver `src/app/page.tsx`):
 
@@ -390,27 +397,27 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    `type: "words,chars"` — só `"chars"` deixava o navegador quebrar linha
    no meio da palavra ("qu / anto"). Grid de duas colunas só a partir de
    `md`.
-3. `GaleriaSection` (`#galeria`, 02) — **a foto inteira que encolhe e vira
-   trilho**. Um palco `h-[100svh]` pinado (ScrollTrigger `pin`, `scrub:
-   0.8`), um trilho `flex` com 7 cards e `gap` constante. O card 0 começa
-   do tamanho do palco (foto "inteira", raio 0) com o título "Onde a lata
-   anda" por cima; na **fase 1** ele encolhe (width/height/raio) até o
-   tamanho de card, centralizado — os outros cards, que já estão no
-   tamanho final logo à direita, entram na tela junto. Na **fase 2** o
-   trilho anda pra esquerda até a última foto centralizar (1.25px na
-   horizontal por px rolado — velocidade constante, `ease: none`). O miolo
-   de cada card é 120% mais largo e desliza em `xPercent` (±7) ao longo do
-   pin inteiro: parallax sutil. Rodapé do palco: rótulo, contador
-   "01 / 07" (card mais perto do centro) e barra de progresso. Tamanhos
-   vêm de `layout()` (altura relativa ao palco, proporções 4:5/3:4/4:3,
-   largura máxima 42vw desktop / 78vw mobile); o timeline é reconstruído
-   só quando a LARGURA da janela muda (no celular a barra de endereço
-   muda a altura a cada rolagem). Mesmo comportamento em todos os
-   tamanhos. Foto real: trocar o conteúdo do `PhotoFill` por
-   `<Image fill className="object-cover" />`. `prefers-reduced-motion`:
-   grid estático.
-4. `CartaSection` (`#manifesto`, 03) — o **Manifesto**: epígrafe em
-   `font-rampart` (`text-display-md`) + cartão-postal com verso via
+3. `GaleriaSection` (`#galeria`) — **a foto inteira que vira galeria**.
+   Palco `h-[100svh]` pinado (ScrollTrigger `pin`, `scrub: 0.8`), cards
+   posicionados em absoluto (x/y via GSAP). **Fase 1**: a foto 0 começa do
+   tamanho do palco (raio 0, por cima de tudo) e encolhe até card,
+   centralizada; as outras entram pela direita, cada uma já na sua altura.
+   **Fase 2**: parallax de profundidade — cada foto tem `speed` própria
+   (fotos grandes na frente, 1.15–1.2; pequenas atrás, 0.8–0.85; a
+   primeira e a última na base, 1) e deslocamento vertical `off`; a foto
+   i cruza o centro da tela no instante t = i/(n−1), então os vizinhos
+   nunca se cruzam dentro da tela, só se sobrepõem de leve (z-index pela
+   profundidade). Deriva vertical leve proporcional à velocidade; miolo
+   de cada card desliza em `xPercent` (±7). **O fundo do palco vai de
+   verde-escuro pra bege (off-white)** ao longo da fase 2 e termina com a
+   última foto centralizada na mesma cor do Manifesto logo abaixo — emenda
+   sem corte. Sem título, contador ou barra (pedido explícito: só a
+   foto). Timeline reconstruído só quando a LARGURA muda. Foto real:
+   trocar o conteúdo do `PhotoFill` por `<Image fill className="object-cover" />`.
+   Placeholders usam cores sólidas (tons translúcidos ficavam cinza sobre
+   o bege). `prefers-reduced-motion`: grid estático.
+4. `CartaSection` (`#manifesto`) — o **Manifesto**: título "Nosso
+   manifesto" (`TypewriterText`, `text-display-lg`) + cartão-postal com verso via
    `FlipCard` (`components/ui/FlipCard.tsx`, reutilizável). Clique/Enter/
    Espaço vira o cartão em 3D (`perspective` no `ElevatedCard` externo,
    `rotateY` num elemento interno `preserve-3d`, `back.inOut(1.2)`,
@@ -421,23 +428,24 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    revela "VIRAR"/"VOLTAR". Cada face tem `backface-visibility:hidden` +
    `pointer-events-none` quando de costas; um "sizer" invisível em fluxo
    normal define a altura. `prefers-reduced-motion`: crossfade de opacity.
-5. `ContatoSection` (`#contato`, 04) — CTA de contato, fundo
-   **verde-medio**. Título em três linhas ("Se interessou? / Quer
-   Fernandito / no teu rolê?") que sobem de trás de uma máscara presas ao
-   scroll; a máscara tem `pt-[0.14em]` porque o `overflow-hidden` cortava
-   acentos acima da caixa-alta (o circunflexo de "ROLÊ" sumia). Parágrafo +
-   `WhatsAppButton background="verde-escuro"`; a moeda gira conforme a
-   seção atravessa a tela.
-6. `SocialGallerySection` (`#social`, 05 — "O que anda rolando") — fundo
-   off-white, cards 4:5 com cantos arredondados (`rounded-2xl`) e sombra
+5. `ContatoSection` (`#contato`) — CTA de contato, fundo **verde-medio**,
+   tudo centralizado: "Se interessou?" (Special Elite), título "Quer
+   Fernandito no teu rolê?" e parágrafo — os três se escrevem à máquina
+   em faixas de scroll encadeadas — e o `WhatsAppButton
+   background="verde-escuro"` sobe no fim.
+6. `SocialGallerySection` (`#social`, "O que anda rolando") — título
+   escrito à máquina; fundo off-white, cards 4:5 com cantos arredondados (`rounded-2xl`) e sombra
    suave, sem a borda grossa de polaroid. Leque de 7 cards só a partir de
-   `lg` (1024px — abaixo disso cortava as pontas); mobile/tablet usam
-   fileira com scroll-snap. Ver detalhes na entrada própria abaixo.
+   `lg` (1024px — abaixo disso cortava as pontas), que começa como uma
+   pilha de fotos no centro e se abre em leque conforme rola (scrub);
+   mobile/tablet usam fileira com scroll-snap. Ver detalhes na entrada própria abaixo.
 7. `FichaTecnicaSection` — só o marquee (`font-accent`, "Toma Fernandito ·
    Fernet y Cola · 350ml · 8% vol." em loop), agora em faixa
    **verde-claro** com texto off-white — antes era verde-escuro e se
    fundia com o rodapé logo abaixo.
-8. `FooterSection` — fundo verde-escuro, compacto: frase de fechamento em
+8. `FooterSection` — fundo verde-escuro, compacto. A coluna de texto tem
+   largura máxima (`minmax(0,26rem)`, frase em `clamp(1.5rem,2.4vw,2rem)`)
+   pra não espremer as colunas de links. Frase de fechamento em
    `font-rampart` ("Pra quem não deixa passar, / vira história." — o
    contraste da segunda linha é a cor verde-claro, já que a Rampart não tem
    itálico), legenda "Isso toma fernandito." em `font-accent`, CTA
@@ -483,10 +491,10 @@ saíram (pesavam demais e deixavam os cards pequenos).
   `gsap.set`/`gsap.to` (nunca via className — precisa mudar no hover).
   Rotação por índice `[-12, -8, -4, 0, 4, 8, 12]`, distância do centro em
   "camadas" de `translateY` (16px por camada) e z-index (maior no centro).
-  Entrada em cascata (`ScrollTrigger`, uma vez): todos partem de
-  opacity 0/scale 0.7/y 40/rotate 0, e animam pra seus valores finais
-  agrupados por distância do centro (stagger 0.08s por camada,
-  `back.out(1.4)` — dá o leve "assentar" com bounce).
+  Entrada presa ao scroll (scrub, `invalidateOnRefresh`): todos partem
+  empilhados na posição do card central (x medido por `offsetLeft`),
+  levemente girados, e se abrem até os valores finais do leque — fecha de
+  volta se rolar pra cima.
   Hover: card sob o mouse zera a rotação e cresce (+0.08 sobre a própria
   escala-base, não um valor absoluto — o card central já começa maior, um
   alvo fixo de 1.08 encolheria ele), z-index vai pro topo; os DOIS vizinhos
