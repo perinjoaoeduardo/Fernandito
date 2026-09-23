@@ -343,7 +343,9 @@ em `y` de +speed a −speed enquanto atravessa a tela (scrub). Positivo =
 camada da frente (sobe mais rápido), negativo = de trás. Aplicado: O que é
 (lata −50, texto +30), Manifesto (título +40, cartão −25), Contato (coluna
 de texto +40; a imagem tem parallax próprio), Social (título +40, leque
-−30). Sempre num nó próprio — nunca no mesmo elemento que já anima
+−30, link +20), rodapé (texto +24, links −16). A galeria tem saída própria
+(abaixo) e o marquee desliza na horizontal com a rolagem (x +80 → −80, por
+cima do loop). Sempre num nó próprio — nunca no mesmo elemento que já anima
 `transform`.
 
 Ordem fixa da landing page (ver `src/app/page.tsx`):
@@ -425,7 +427,11 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    Manifesto logo abaixo — emenda sem corte. A fase 2 **termina assim que
    a última foto aparece inteira** com uma folga na direita (`tEnd`,
    margem de 6% da largura) — não leva a foto até o centro, a página já
-   segue descendo. Sem título, contador ou barra (pedido explícito: só a
+   segue descendo. **Saída**: cada foto vive numa camada de palco inteiro
+   (`layerRefs`, onde também fica o z-index); depois que o pin solta, as
+   camadas seguem pra esquerda (−6% W × speed) e sobem além da rolagem
+   (−30% H × speed²) — as da frente saem mais rápido, as de trás mais
+   devagar, em vez do bloco subir duro. Sem título, contador ou barra (pedido explícito: só a
    foto). Timeline reconstruído só quando a LARGURA muda. Foto real:
    trocar o conteúdo do `PhotoFill` por `<Image fill className="object-cover" />`.
    Placeholders usam cores sólidas (tons translúcidos ficavam cinza sobre
@@ -452,7 +458,8 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    título "Quer Fernandito no teu rolê?" + texto de apoio (os dois se
    escrevendo à máquina) + `WhatsAppButton background="verde-escuro"`,
    tudo alinhado à esquerda; à direita, imagem de ponta a ponta (hoje
-   placeholder verde-escuro com grain) com parallax próprio (miolo 120% de
+   placeholder verde-escuro com grain) com parallax próprio. O título se
+   escreve devagar (faixa `top 95%` → `top 30%`, ~2× a original) (miolo 120% de
    altura, `yPercent` −8 → 8 e leve zoom desfazendo). No celular a imagem
    vai pra baixo do texto (`aspect-[4/5]`).
 6. `SocialGallerySection` (`#social`, "O que anda rolando") — título
@@ -464,12 +471,16 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    mobile/tablet usam fileira com scroll-snap. Ver detalhes na entrada própria abaixo.
 7. `FichaTecnicaSection` — só o marquee (`font-accent`, "Toma Fernandito ·
    Fernet y Cola" em loop — 350ml/8% saíram), faixa baixa (`py-3
-   sm:py-4`, texto `clamp(1.25rem,2.4vw,1.875rem)`), agora em faixa
+   sm:py-4`, texto `clamp(1.25rem,2.4vw,1.875rem)`, `translate-y-[0.15em]` pra
+   centralizar as maiúsculas — a Special Elite reserva ~30% da linha pras
+   descendentes), agora em faixa
    **verde-claro** com texto off-white — antes era verde-escuro e se
    fundia com o rodapé logo abaixo.
-8. `FooterSection` — fundo verde-escuro, compacto. A coluna de texto tem
-   largura máxima (`minmax(0,26rem)`, frase em `clamp(1.5rem,2.4vw,2rem)`)
-   pra não espremer as colunas de links. Frase de fechamento em
+8. `FooterSection` — fundo verde-escuro, compacto, **largura total** (só o
+   padding da página). Coluna de texto até 34rem (frase em
+   `clamp(1.75rem,3vw,2.75rem)`), escrita à máquina (`TypewriterText`, faixas
+   que terminam com o rodapé entrando), pra não espremer as colunas de
+   links. Frase de fechamento em
    `font-rampart` ("Pra quem não deixa passar, / vira história." — o
    contraste da segunda linha é a cor verde-claro, já que a Rampart não tem
    itálico), legenda "Isso toma fernandito." em `font-accent`, CTA

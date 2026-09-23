@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger, SplitText, prefersReducedMotion } from "@/lib/gsap";
 import { scrollToTarget } from "@/lib/lenis";
+import { Parallax } from "@/components/ui/Parallax";
+import { TypewriterText } from "@/components/ui/TypewriterText";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 import { InstagramIcon } from "@/components/ui/icons";
@@ -38,108 +38,47 @@ function TopoIcon() {
 }
 
 export function FooterSection() {
-  const footerRef = useRef<HTMLElement>(null);
-  const line1Ref = useRef<HTMLHeadingElement>(null);
-  const line2Ref = useRef<HTMLHeadingElement>(null);
-  const taglineRef = useRef<HTMLParagraphElement>(null);
-
-  useEffect(() => {
-    const footer = footerRef.current;
-    const line1 = line1Ref.current;
-    const line2 = line2Ref.current;
-    const tagline = taglineRef.current;
-    if (!footer || !line1 || !line2 || !tagline) return;
-
-    const reduceMotion = prefersReducedMotion();
-
-    // Split as duas linhas por palavra. SplitText é gratuito desde o gsap
-    // 3.13 (sem Club GreenSock) — fallback abaixo só por segurança.
-    const splitInstances: SplitText[] = [];
-    let words: Element[] = [];
-    try {
-      const split1 = new SplitText(line1, { type: "words", aria: "none" });
-      const split2 = new SplitText(line2, { type: "words", aria: "none" });
-      splitInstances.push(split1, split2);
-      words = [...split1.words, ...split2.words];
-    } catch (err) {
-      console.warn("[FooterSection] SplitText indisponível, usando fallback manual.", err);
-      [line1, line2].forEach((line) => {
-        const text = line.textContent ?? "";
-        line.innerHTML = "";
-        const tokens = text.split(" ");
-        tokens.forEach((word, idx) => {
-          const span = document.createElement("span");
-          span.textContent = idx < tokens.length - 1 ? `${word} ` : word;
-          span.style.display = "inline-block";
-          line.appendChild(span);
-          words.push(span);
-        });
-      });
-    }
-
-    if (reduceMotion) {
-      gsap.set(words, { opacity: 1, y: 0 });
-      gsap.set(tagline, { opacity: 1, y: 0 });
-    } else {
-      gsap.set(words, { opacity: 0, y: 40 });
-      gsap.set(tagline, { opacity: 0, y: 20 });
-    }
-
-    let tl: gsap.core.Timeline | null = null;
-    let trigger: ScrollTrigger | null = null;
-
-    if (!reduceMotion) {
-      tl = gsap.timeline({ paused: true });
-      tl.to(words, { opacity: 1, y: 0, duration: 0.7, stagger: 0.04, ease: "power3.out" }).to(
-        tagline,
-        { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" },
-        "-=0.3",
-      );
-
-      trigger = ScrollTrigger.create({
-        trigger: footer,
-        start: "top 80%",
-        once: true,
-        onEnter: () => tl?.play(),
-      });
-    }
-
-    return () => {
-      trigger?.kill();
-      tl?.kill();
-      splitInstances.forEach((split) => split.revert());
-    };
-  }, []);
-
   return (
     <footer
-      ref={footerRef}
       id="footer"
       className="bg-fernandito-verde-escuro text-fernandito-off-white relative w-full px-6 py-14 sm:px-10 sm:py-16 lg:px-16"
     >
-      {/* Coluna de texto com largura máxima: sem ela a frase esticava até
-          encostar no Navegar/Social e sobrava pouco espaço pros links. */}
-      <div className="mx-auto grid w-full max-w-5xl gap-12 md:grid-cols-[minmax(0,26rem)_auto] md:items-start md:justify-between md:gap-16">
-        {/* Frase de fechamento + CTA */}
-        <div>
-          {/* Rampart é só caixa-alta: o contraste entre as linhas vem da
-              cor (off-white → verde-claro), não de itálico/peso. */}
-          <h2 className="font-rampart flex flex-col gap-1 text-[clamp(1.5rem,2.4vw,2rem)] leading-[1.1] tracking-[0.01em]">
-            <span ref={line1Ref}>Pra quem não deixa passar,</span>
-            <span ref={line2Ref} className="text-fernandito-verde-claro">
-              vira história.
-            </span>
-          </h2>
-          <p ref={taglineRef} className="text-body font-accent mt-5 tracking-[0.04em] opacity-80">
-            Isso toma fernandito.
-          </p>
+      {/* Largura total (só o padding da página), com a coluna de texto
+          limitada pra não espremer Navegar/Social. */}
+      <div className="grid w-full gap-12 md:grid-cols-[minmax(0,34rem)_auto] md:items-start md:justify-between md:gap-16">
+        {/* Frase de fechamento + CTA — escrita à máquina como o resto do
+            site. Rampart é só caixa-alta: o contraste entre as linhas vem
+            da cor (off-white → verde-claro), não de itálico/peso. */}
+        <Parallax speed={24}>
+          <TypewriterText
+            text="Pra quem não deixa passar,"
+            caret={false}
+            start="top 98%"
+            end="top 75%"
+            className="font-rampart text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em]"
+          />
+          <TypewriterText
+            as="p"
+            text="vira história."
+            start="top 98%"
+            end="top 80%"
+            className="font-rampart text-fernandito-verde-claro mt-1 text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em]"
+          />
+          <TypewriterText
+            as="p"
+            text="Isso toma fernandito."
+            caret={false}
+            start="top 98%"
+            end="top 85%"
+            className="text-body-lg font-accent mt-5 tracking-[0.04em] opacity-80"
+          />
           <div className="mt-8">
             <WhatsAppButton>Fale no WhatsApp</WhatsAppButton>
           </div>
-        </div>
+        </Parallax>
 
         {/* Navegação em colunas — estilo compacto (Company/Socials da Lassie) */}
-        <div className="grid grid-cols-2 gap-10 sm:gap-16">
+        <Parallax speed={-16} className="grid grid-cols-2 gap-10 sm:gap-16">
           <div>
             <h3 className="text-label mb-4 font-sans tracking-[0.08em] uppercase opacity-80">
               Navegar
@@ -176,14 +115,14 @@ export function FooterSection() {
               </li>
             </ul>
           </div>
-        </div>
+        </Parallax>
       </div>
 
       {/* Base do footer — moeda no lugar de um mascote/flor genérico + botão
           de voltar ao topo, igual ao rodapé enxuto da Lassie (sem o grain e
           sem o texto gigante de fundo: aqui embaixo entra um placeholder de
           imagem futuramente, por isso o fundo fica sólido). */}
-      <div className="relative mx-auto mt-12 flex w-full max-w-5xl flex-col items-center gap-6 border-t border-white/10 pt-6 text-center sm:flex-row sm:justify-between sm:text-left">
+      <div className="relative mt-12 flex w-full flex-col items-center gap-6 border-t border-white/10 pt-6 text-center sm:flex-row sm:justify-between sm:text-left">
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático */}
           <img

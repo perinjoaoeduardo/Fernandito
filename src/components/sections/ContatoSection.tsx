@@ -61,16 +61,16 @@ export function ContatoSection() {
         <Parallax speed={40}>
           <TypewriterText
             text="Quer Fernandito no teu rolê?"
-            start="top 88%"
-            end="top 55%"
+            start="top 95%"
+            end="top 30%"
             className="font-rampart max-w-[13ch] text-[clamp(2.5rem,5vw,5rem)] leading-[1] tracking-[0.01em]"
           />
           <TypewriterText
             as="p"
             text="Bar, festa, evento ou só curiosidade — chama a gente no WhatsApp que a gente responde."
             caret={false}
-            start="top 92%"
-            end="top 72%"
+            start="top 95%"
+            end="top 50%"
             className="text-body-lg mt-8 max-w-md font-sans"
           />
           <div ref={ctaRef} className="mt-10">

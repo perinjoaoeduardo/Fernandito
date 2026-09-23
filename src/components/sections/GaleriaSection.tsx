@@ -20,13 +20,69 @@ type Photo = {
 };
 
 const PHOTOS: Photo[] = [
-  { label: "Foto 01", tone: "bg-fernandito-verde-medio", ratio: 4 / 5, h: 0.62, off: 0, speed: 1, z: 5 },
-  { label: "Foto 02", tone: "bg-fernandito-verde-claro", ratio: 3 / 4, h: 0.42, off: -0.17, speed: 0.85, z: 2 },
-  { label: "Foto 03", tone: "bg-fernandito-verde-medio", ratio: 4 / 3, h: 0.5, off: 0.13, speed: 1.2, z: 6 },
-  { label: "Foto 04", tone: "bg-fernandito-verde-claro", ratio: 4 / 5, h: 0.58, off: -0.06, speed: 1, z: 4 },
-  { label: "Foto 05", tone: "bg-fernandito-verde-escuro", ratio: 3 / 4, h: 0.4, off: 0.19, speed: 0.8, z: 1 },
-  { label: "Foto 06", tone: "bg-fernandito-verde-claro", ratio: 4 / 3, h: 0.46, off: -0.13, speed: 1.15, z: 6 },
-  { label: "Foto 07", tone: "bg-fernandito-verde-medio", ratio: 4 / 5, h: 0.6, off: 0.04, speed: 1, z: 5 },
+  {
+    label: "Foto 01",
+    tone: "bg-fernandito-verde-medio",
+    ratio: 4 / 5,
+    h: 0.62,
+    off: 0,
+    speed: 1,
+    z: 5,
+  },
+  {
+    label: "Foto 02",
+    tone: "bg-fernandito-verde-claro",
+    ratio: 3 / 4,
+    h: 0.42,
+    off: -0.17,
+    speed: 0.85,
+    z: 2,
+  },
+  {
+    label: "Foto 03",
+    tone: "bg-fernandito-verde-medio",
+    ratio: 4 / 3,
+    h: 0.5,
+    off: 0.13,
+    speed: 1.2,
+    z: 6,
+  },
+  {
+    label: "Foto 04",
+    tone: "bg-fernandito-verde-claro",
+    ratio: 4 / 5,
+    h: 0.58,
+    off: -0.06,
+    speed: 1,
+    z: 4,
+  },
+  {
+    label: "Foto 05",
+    tone: "bg-fernandito-verde-escuro",
+    ratio: 3 / 4,
+    h: 0.4,
+    off: 0.19,
+    speed: 0.8,
+    z: 1,
+  },
+  {
+    label: "Foto 06",
+    tone: "bg-fernandito-verde-claro",
+    ratio: 4 / 3,
+    h: 0.46,
+    off: -0.13,
+    speed: 1.15,
+    z: 6,
+  },
+  {
+    label: "Foto 07",
+    tone: "bg-fernandito-verde-medio",
+    ratio: 4 / 5,
+    h: 0.6,
+    off: 0.04,
+    speed: 1,
+    z: 5,
+  },
 ];
 
 const RADIUS = 20;
@@ -59,7 +115,13 @@ function layout(W: number, H: number) {
 /** Miolo de cada card — hoje placeholder; com a foto real, trocar o
  * conteúdo por `<Image fill className="object-cover" />` mantendo o wrapper
  * (ele é mais largo que o card pra sobrar margem pro parallax). */
-function PhotoFill({ photo, innerRef }: { photo: Photo; innerRef?: (el: HTMLDivElement | null) => void }) {
+function PhotoFill({
+  photo,
+  innerRef,
+}: {
+  photo: Photo;
+  innerRef?: (el: HTMLDivElement | null) => void;
+}) {
   return (
     <div
       ref={innerRef}
@@ -78,14 +140,19 @@ function PhotoFill({ photo, innerRef }: { photo: Photo; innerRef?: (el: HTMLDivE
 export function GaleriaSection() {
   const stageRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  // Uma camada de palco inteiro por foto: a trilha anima o card (x/y), a
+  // saída depois do pin anima a camada — nós diferentes, sem conflito de
+  // transform. O z-index mora na camada (ela cria o contexto de empilhamento).
+  const layerRefs = useRef<(HTMLDivElement | null)[]>([]);
   const innerRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     if (prefersReducedMotion()) return;
     const stage = stageRef.current;
     const cards = cardRefs.current.filter(Boolean) as HTMLDivElement[];
+    const layers = layerRefs.current.filter(Boolean) as HTMLDivElement[];
     const inners = innerRefs.current.filter(Boolean) as HTMLDivElement[];
-    if (!stage || cards.length !== PHOTOS.length) return;
+    if (!stage || cards.length !== PHOTOS.length || layers.length !== PHOTOS.length) return;
 
     let ctx: gsap.Context | null = null;
 
@@ -116,7 +183,8 @@ export function GaleriaSection() {
 
         gsap.set(stage, { backgroundColor: BG_FROM });
         // Foto 0 começa ocupando o palco inteiro, por cima de tudo.
-        gsap.set(cards[0], { x: 0, y: 0, width: W, height: H, borderRadius: 0, zIndex: 20 });
+        gsap.set(cards[0], { x: 0, y: 0, width: W, height: H, borderRadius: 0 });
+        layers.forEach((layer, i) => gsap.set(layer, { zIndex: i === 0 ? 20 : PHOTOS[i].z }));
         cards.slice(1).forEach((card, k) => {
           const i = k + 1;
           gsap.set(card, {
@@ -125,7 +193,6 @@ export function GaleriaSection() {
             width: sizes[i].w,
             height: sizes[i].h,
             borderRadius: RADIUS,
-            zIndex: PHOTOS[i].z,
             opacity: 1,
           });
         });
@@ -147,7 +214,7 @@ export function GaleriaSection() {
             ease: "power2.inOut",
           },
           0,
-        ).set(cards[0], { zIndex: PHOTOS[0].z }, p1);
+        ).set(layers[0], { zIndex: PHOTOS[0].z }, p1);
         cards.slice(1).forEach((card, k) => {
           tl.to(card, { x: posX(k + 1, 0), duration: p1, ease: "power2.out" }, 0);
         });
@@ -164,7 +231,7 @@ export function GaleriaSection() {
           // Manifesto (off-white) logo abaixo.
           .to(stage, { backgroundColor: BG_TO, duration: p2 * 0.85, ease: "power1.inOut" }, p1);
 
-        ScrollTrigger.create({
+        const pinTrigger = ScrollTrigger.create({
           trigger: stage,
           start: "top top",
           end: `+=${p1 + p2}`,
@@ -172,6 +239,24 @@ export function GaleriaSection() {
           scrub: 0.8,
           anticipatePin: 1,
           animation: tl,
+        });
+
+        // Saída — depois que o pin solta, as fotos não sobem como um bloco:
+        // seguem um pouco pra esquerda e sobem cada uma no seu ritmo (as da
+        // frente mais rápido, as de trás mais devagar) enquanto o palco sai
+        // da tela.
+        layers.forEach((layer, i) => {
+          const s = PHOTOS[i].speed;
+          gsap.to(layer, {
+            x: -W * 0.06 * s,
+            y: -H * 0.3 * s * s,
+            ease: "none",
+            scrollTrigger: {
+              start: () => pinTrigger.end,
+              end: () => pinTrigger.end + H,
+              scrub: 0.8,
+            },
+          });
         });
       }, stage);
     };
@@ -201,7 +286,11 @@ export function GaleriaSection() {
   }, []);
 
   return (
-    <section id="galeria" aria-label="Galeria" className="bg-fernandito-verde-escuro relative w-full">
+    <section
+      id="galeria"
+      aria-label="Galeria"
+      className="bg-fernandito-verde-escuro relative w-full"
+    >
       <h2 className="sr-only">Galeria</h2>
 
       {/* ── Animado (some sob prefers-reduced-motion) ── */}
@@ -213,24 +302,31 @@ export function GaleriaSection() {
           <div
             key={photo.label}
             ref={(el) => {
-              cardRefs.current[i] = el;
+              layerRefs.current[i] = el;
             }}
-            role="img"
-            aria-label={`Galeria Fernandito — ${photo.label.toLowerCase()}`}
-            className={clsx(
-              "absolute top-0 left-0 overflow-hidden shadow-[0_24px_60px_rgba(36,48,34,0.3)] [will-change:transform]",
-              // Antes do JS (SSR): foto 0 já é a foto inteira; o resto fica
-              // invisível até o GSAP posicionar (translate via classe
-              // somaria com o transform do GSAP, por isso opacity).
-              i === 0 ? "h-full w-full" : "h-[50%] w-[30%] rounded-[20px] opacity-0",
-            )}
+            className="pointer-events-none absolute inset-0 [will-change:transform]"
           >
-            <PhotoFill
-              photo={photo}
-              innerRef={(el) => {
-                innerRefs.current[i] = el;
+            <div
+              ref={(el) => {
+                cardRefs.current[i] = el;
               }}
-            />
+              role="img"
+              aria-label={`Galeria Fernandito — ${photo.label.toLowerCase()}`}
+              className={clsx(
+                "absolute top-0 left-0 overflow-hidden shadow-[0_24px_60px_rgba(36,48,34,0.3)] [will-change:transform]",
+                // Antes do JS (SSR): foto 0 já é a foto inteira; o resto fica
+                // invisível até o GSAP posicionar (translate via classe
+                // somaria com o transform do GSAP, por isso opacity).
+                i === 0 ? "h-full w-full" : "h-[50%] w-[30%] rounded-[20px] opacity-0",
+              )}
+            >
+              <PhotoFill
+                photo={photo}
+                innerRef={(el) => {
+                  innerRefs.current[i] = el;
+                }}
+              />
+            </div>
           </div>
         ))}
       </div>

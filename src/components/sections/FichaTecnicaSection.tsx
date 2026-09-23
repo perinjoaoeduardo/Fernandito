@@ -17,6 +17,7 @@ const MARQUEE_TRACK_TEXT = MARQUEE_PHRASE.repeat(12);
 function Marquee() {
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const driftRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -47,25 +48,52 @@ function Marquee() {
       repeat: -1,
     });
 
+    // Parallax horizontal: além do loop, a faixa inteira desliza pro lado
+    // enquanto atravessa a tela — anda junto com a rolagem.
+    const drift = driftRef.current
+      ? gsap.fromTo(
+          driftRef.current,
+          { x: 80 },
+          {
+            x: -80,
+            ease: "none",
+            scrollTrigger: {
+              trigger: container,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: true,
+            },
+          },
+        )
+      : null;
+
     return () => {
       fadeTrigger.kill();
       loop.kill();
+      drift?.scrollTrigger?.kill();
+      drift?.kill();
     };
   }, []);
 
   return (
+    // translate-y 0.15em: na Special Elite a linha reserva ~30% da altura
+    // pras descendentes (asc 1440 / desc 608 de 2048); com o texto todo em
+    // caixa-alta, o centro das maiúsculas fica 0.15em acima do centro da
+    // faixa. O deslocamento compensa isso exatamente.
     <div
       ref={containerRef}
       aria-hidden="true"
       className="flex items-center overflow-hidden py-3 sm:py-4"
     >
-      <div ref={trackRef} className="flex w-max shrink-0 [will-change:transform]">
-        <span className="text-fernandito-off-white font-accent pr-6 text-[clamp(1.25rem,2.4vw,1.875rem)] leading-none tracking-[0.02em] whitespace-nowrap uppercase">
-          {MARQUEE_TRACK_TEXT}
-        </span>
-        <span className="text-fernandito-off-white font-accent pr-6 text-[clamp(1.25rem,2.4vw,1.875rem)] leading-none tracking-[0.02em] whitespace-nowrap uppercase">
-          {MARQUEE_TRACK_TEXT}
-        </span>
+      <div ref={driftRef} className="shrink-0 [will-change:transform]">
+        <div ref={trackRef} className="flex w-max shrink-0 [will-change:transform]">
+          <span className="text-fernandito-off-white font-accent translate-y-[0.15em] pr-6 text-[clamp(1.25rem,2.4vw,1.875rem)] leading-none tracking-[0.02em] whitespace-nowrap uppercase">
+            {MARQUEE_TRACK_TEXT}
+          </span>
+          <span className="text-fernandito-off-white font-accent translate-y-[0.15em] pr-6 text-[clamp(1.25rem,2.4vw,1.875rem)] leading-none tracking-[0.02em] whitespace-nowrap uppercase">
+            {MARQUEE_TRACK_TEXT}
+          </span>
+        </div>
       </div>
     </div>
   );

@@ -253,7 +253,10 @@ export function SocialGallerySection() {
         ))}
       </div>
 
-      <div className="mx-auto mt-8 flex max-w-5xl flex-col items-center px-6 text-center lg:mt-16">
+      <Parallax
+        speed={20}
+        className="mx-auto mt-8 flex max-w-5xl flex-col items-center px-6 text-center lg:mt-16"
+      >
         <Button
           as="a"
           href="https://www.instagram.com/toma.fernandito/"
@@ -268,7 +271,7 @@ export function SocialGallerySection() {
         >
           @toma.fernandito
         </Button>
-      </div>
+      </Parallax>
     </section>
   );
 }
