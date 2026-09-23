@@ -61,7 +61,7 @@ const PHOTOS: Photo[] = [
     tone: "bg-fernandito-verde-escuro",
     ratio: 3 / 4,
     h: 0.4,
-    off: 0.19,
+    off: 0.15,
     speed: 0.8,
     z: 1,
   },
@@ -223,10 +223,11 @@ export function GaleriaSection() {
           tl.to(card, { x: posX(k + 1, 0), duration: p1, ease: "power2.out" }, 0);
         });
 
-        // Fase 2 — cada foto anda na sua velocidade; um leve desvio
-        // vertical proporcional à velocidade reforça a profundidade.
+        // Fase 2 — cada foto anda na sua velocidade; as da frente sobem um
+        // pouco (profundidade). As de trás não descem: o palco recorta o que
+        // passa da borda de baixo e a sombra delas era cortada reta ali.
         cards.forEach((card, i) => {
-          const drift = (PHOTOS[i].speed - 1) * H * 0.12;
+          const drift = Math.max(0, PHOTOS[i].speed - 1) * H * 0.12;
           tl.to(card, { x: posX(i, tEnd), y: posY(i) - drift * tEnd, duration: p2 }, p1);
         });
 
@@ -257,9 +258,9 @@ export function GaleriaSection() {
           gsap.to(layer, {
             x: -W * 0.06 * s,
             // Relativo à rolagem: a velocidade base (1, a da última foto)
-            // sai junto com a página — sem abrir um vão antes do
-            // Manifesto; as da frente sobem um pouco mais, as de trás menos.
-            y: -H * 0.6 * (s - 1),
+            // sai junto com a página; as da frente sobem um pouco mais. As
+            // de trás não descem (mesma razão da fase 2: borda de baixo).
+            y: -H * 0.6 * Math.max(0, s - 1),
             ease: "none",
             scrollTrigger: {
               start: () => pinTrigger.end,

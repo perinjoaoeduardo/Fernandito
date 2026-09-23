@@ -429,7 +429,11 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    primeira e a última na base, 1) e deslocamento vertical `off`; a foto
    i cruza o centro da tela no instante t = i/(n−1), então os vizinhos
    nunca se cruzam dentro da tela, só se sobrepõem de leve (z-index pela
-   profundidade). Deriva vertical leve proporcional à velocidade; miolo
+   profundidade). Deriva vertical leve, **só pra cima** e só nas da frente
+   (`max(0, speed − 1)`): o palco recorta o que passa da borda de baixo, e
+   a sombra das fotos de trás que desciam era cortada reta ali (virava uma
+   linha entre a galeria e o Manifesto). Pelo mesmo motivo a Foto 05 fica
+   em `off` 0.15 — card + sombra sempre acima da borda do palco; miolo
    de cada card desliza em `xPercent` (±7). **O fundo do palco vai de
    verde-escuro pra bege (off-white)** ao longo da fase 2, na mesma cor do
    Manifesto logo abaixo — emenda sem corte. A fase 2 **termina assim que
@@ -438,9 +442,9 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    segue descendo. **Saída**: cada foto vive numa camada de palco inteiro
    (`layerRefs`, onde também fica o z-index); depois que o pin solta, as
    camadas seguem pra esquerda (−6% W × speed) e sobem **relativo à
-   velocidade base** (−60% H × (speed − 1)): a última foto (speed 1) sai
-   junto com a página, as da frente sobem um pouco mais e as de trás um
-   pouco menos. Versão anterior (−30% H × speed²) fazia a última foto
+   velocidade base** (−60% H × max(0, speed − 1)): a última foto (speed 1)
+   sai junto com a página, as da frente sobem um pouco mais e as de trás
+   acompanham a página (nunca descem, pra sombra não ser cortada). Versão anterior (−30% H × speed²) fazia a última foto
    subir mais rápido que a página e abria um vão enorme antes do
    Manifesto. **Palco em `h-lvh`** (não `svh`): no Safari do iPhone a
    barra recolhe durante a rolagem e a tela fica mais alta que um palco em
@@ -451,12 +455,11 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    trocar o conteúdo do `PhotoFill` por `<Image fill className="object-cover" />`.
    Placeholders usam cores sólidas (tons translúcidos ficavam cinza sobre
    o bege). `prefers-reduced-motion`: grid estático.
-4. `CartaSection` (`#manifesto`) — o **Manifesto**. Com animação, a
-   seção sobe sobre o fim do palco da galeria (`motion-safe:-mt-[16vh]`,
-   `sm:-mt-[12vh]`, e `pt-8` no celular): o palco termina bege e vazio
-   embaixo da última foto, na mesma cor — sem isso sobrava um vão de meia
-   tela. Sob reduced-motion não há sobreposição (a galeria vira grid). título "Nosso
-   manifesto" pequeno (`TypewriterText`, `clamp(1.25rem,2.2vw,1.75rem)` —
+4. `CartaSection` (`#manifesto`) — o **Manifesto**. Emenda com a galeria
+   sem sobreposição nem gradiente (as duas versões anteriores deixavam uma
+   linha fina na junção): fundo off-white sólido, mesma cor do fim do
+   palco, com espaçamento normal (`pt-16` no celular, `sm:py-24`). Título "Nosso
+   manifesto" pequeno (`TypewriterText`, `clamp(1.625rem,3vw,2.25rem)` —
    o protagonista é o cartão, não o título) + cartão-postal (até 830px de
    largura). Entrada presa ao scroll num wrapper: o cartão sobe inclinado
    (y 160, −6°, escala 0.9) e assenta; no fim o selo é "carimbado" (escala

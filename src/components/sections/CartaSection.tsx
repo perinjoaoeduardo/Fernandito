@@ -126,16 +126,10 @@ export function CartaSection() {
   );
 
   return (
-    // -mt (só com animação): o fim do palco da galeria é bege vazio embaixo
-    // da última foto, da mesma cor desta seção — puxar o Manifesto pra cima
-    // sobrepõe esse vazio em vez de deixar um vão enorme entre os dois. Sob
-    // prefers-reduced-motion a galeria vira grid e não pode ter sobreposição.
-    // A faixa sobreposta (--overlap) é transparente: um fundo bege sólido
-    // ali cortava a sombra da última foto numa linha reta.
     <section
       id="manifesto"
       aria-label="Manifesto"
-      className="bg-fernandito-off-white text-fernandito-verde-escuro relative w-full overflow-x-clip pt-8 pb-24 [--overlap:16vh] motion-safe:-mt-[var(--overlap)] motion-safe:bg-transparent motion-safe:bg-[linear-gradient(to_bottom,transparent_var(--overlap),#e6e6cb_var(--overlap))] sm:py-32 sm:[--overlap:12vh]"
+      className="bg-fernandito-off-white text-fernandito-verde-escuro relative w-full overflow-x-clip pt-16 pb-24 sm:py-24"
     >
       <div className="mx-auto flex max-w-4xl justify-center px-6 text-center">
         <Parallax speed={40}>
