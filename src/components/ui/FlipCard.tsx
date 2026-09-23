@@ -58,9 +58,9 @@ function FlipHint({ label }: { label: string }) {
       aria-hidden="true"
       className="text-fernandito-verde-escuro absolute bottom-1 left-1 flex h-11 w-11 items-center gap-1.5 sm:bottom-2 sm:left-2"
     >
-      <span className="duration-base ease-out-standard flex items-center gap-1.5 opacity-50 transition-opacity group-hover:opacity-100">
+      <span className="duration-base ease-out-standard flex items-center gap-1.5 opacity-50 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100">
         <RotateIcon />
-        <span className="text-label duration-base ease-out-standard font-sans tracking-[0.08em] uppercase opacity-0 transition-opacity group-hover:opacity-100">
+        <span className="text-label duration-base ease-out-standard font-sans tracking-[0.08em] uppercase opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100">
           {label}
         </span>
       </span>

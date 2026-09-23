@@ -43,9 +43,11 @@ export function FooterSection() {
       id="footer"
       className="bg-fernandito-verde-escuro text-fernandito-off-white relative w-full px-6 py-14 sm:px-10 sm:py-16 lg:px-16"
     >
-      {/* Largura total (só o padding da página), com a coluna de texto
-          limitada pra não espremer Navegar/Social. */}
-      <div className="grid w-full gap-12 md:grid-cols-[minmax(0,34rem)_auto] md:items-start md:justify-between md:gap-16">
+      {/* Largura total (só o padding da página). A partir de lg, "Pra quem
+          não deixa passar," cabe numa linha: a frase mede ~17em na Rampart,
+          então o tamanho é (100vw − 36rem de padding+links) / 17, com teto
+          de 2.75rem. */}
+      <div className="grid w-full gap-12 md:grid-cols-[minmax(0,34rem)_auto] lg:grid-cols-[minmax(0,1fr)_auto] md:items-start md:justify-between md:gap-16">
         {/* Frase de fechamento + CTA — escrita à máquina como o resto do
             site. Rampart é só caixa-alta: o contraste entre as linhas vem
             da cor (off-white → verde-claro), não de itálico/peso. */}
@@ -53,23 +55,26 @@ export function FooterSection() {
           <TypewriterText
             text="Pra quem não deixa passar,"
             caret={false}
-            start="top 98%"
-            end="top 75%"
-            className="font-rampart text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em]"
+            triggerSelector="#footer"
+            start="top 100%"
+            end="top 80%"
+            className="font-rampart text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em] lg:text-[min(2.75rem,calc((100vw-36rem)/17))] lg:whitespace-nowrap"
           />
           <TypewriterText
             as="p"
             text="vira história."
-            start="top 98%"
-            end="top 80%"
-            className="font-rampart text-fernandito-verde-claro mt-1 text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em]"
+            triggerSelector="#footer"
+            start="top 80%"
+            end="top 70%"
+            className="font-rampart text-fernandito-verde-claro mt-1 text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em] lg:text-[min(2.75rem,calc((100vw-36rem)/17))]"
           />
           <TypewriterText
             as="p"
             text="Isso toma fernandito."
             caret={false}
-            start="top 98%"
-            end="top 85%"
+            triggerSelector="#footer"
+            start="top 70%"
+            end="top 62%"
             className="text-body-lg font-accent mt-5 tracking-[0.04em] opacity-80"
           />
           <div className="mt-8">

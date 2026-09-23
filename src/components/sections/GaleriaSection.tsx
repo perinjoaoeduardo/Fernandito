@@ -179,7 +179,8 @@ export function GaleriaSection() {
           1,
           1 - (W - margin - sizes[last].w - posX(last, 1)) / (PHOTOS[last].speed * D),
         );
-        const p2 = (D * tEnd) / SPEED;
+        // No celular a trilha anda mais por px rolado — menos rolagem.
+        const p2 = (D * tEnd) / (W < 768 ? SPEED * 1.35 : SPEED);
 
         gsap.set(stage, { backgroundColor: BG_FROM });
         // Foto 0 começa ocupando o palco inteiro, por cima de tudo.

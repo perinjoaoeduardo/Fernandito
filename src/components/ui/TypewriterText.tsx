@@ -13,6 +13,11 @@ type TypewriterTextProps = {
   end?: string;
   /** Cursor de máquina de escrever que acompanha a última letra digitada. */
   caret?: boolean;
+  /** Seletor de um ancestral pra usar como gatilho em vez do próprio texto
+   * (via `closest`). Vários textos com o mesmo gatilho e faixas encadeadas
+   * digitam em sequência — cada um com o próprio gatilho, um texto mais
+   * curto de baixo podia "passar na frente" do de cima. */
+  triggerSelector?: string;
 };
 
 /**
@@ -29,6 +34,7 @@ export function TypewriterText({
   start = "top 85%",
   end = "top 55%",
   caret = true,
+  triggerSelector,
 }: TypewriterTextProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLHeadingElement>(null);
@@ -80,14 +86,15 @@ export function TypewriterText({
     });
     tl.to(chars, { opacity: 1, duration: 0.001, stagger: 1, ease: "none" });
 
-    const trigger = ScrollTrigger.create({ trigger: el, start, end, scrub: 0.5, animation: tl });
+    const triggerEl = (triggerSelector && el.closest(triggerSelector)) || el;
+    const trigger = ScrollTrigger.create({ trigger: triggerEl, start, end, scrub: 0.5, animation: tl });
 
     return () => {
       trigger.kill();
       tl.kill();
       split.revert();
     };
-  }, [start, end]);
+  }, [start, end, triggerSelector]);
 
   return (
     <div ref={wrapRef} className="relative">

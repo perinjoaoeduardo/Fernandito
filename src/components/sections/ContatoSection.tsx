@@ -30,7 +30,9 @@ export function ContatoSection() {
           autoAlpha: 1,
           y: 0,
           ease: "power2.out",
-          scrollTrigger: { trigger: cta, start: "top 95%", end: "top 78%", scrub: 0.5 },
+          // Mesmo gatilho dos textos (a seção), logo depois do parágrafo
+          // terminar de se escrever — o botão é o último da sequência.
+          scrollTrigger: { trigger: section, start: "top 8%", end: "top -4%", scrub: 0.5 },
         },
       );
       // Imagem 120% da altura da moldura: desliza de cima pra baixo e
@@ -61,16 +63,18 @@ export function ContatoSection() {
         <Parallax speed={40}>
           <TypewriterText
             text="Quer Fernandito no teu rolê?"
-            start="top 95%"
+            triggerSelector="#contato"
+            start="top 90%"
             end="top 30%"
             className="font-rampart max-w-[13ch] text-[clamp(2.5rem,5vw,5rem)] leading-[1] tracking-[0.01em]"
           />
           <TypewriterText
             as="p"
-            text="Bar, festa, evento ou só curiosidade — chama a gente no WhatsApp que a gente responde."
+            text="Bar, festa, evento ou só curiosidade? Chama a gente no WhatsApp que a gente responde."
             caret={false}
-            start="top 95%"
-            end="top 50%"
+            triggerSelector="#contato"
+            start="top 30%"
+            end="top 5%"
             className="text-body-lg mt-8 max-w-md font-sans"
           />
           <div ref={ctaRef} className="mt-10">

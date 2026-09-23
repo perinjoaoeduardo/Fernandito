@@ -89,13 +89,13 @@ export function OQueESection() {
     <section
       id="o-que-e"
       aria-label="O que é o Fernandito"
-      className="bg-fernandito-off-white text-fernandito-verde-escuro w-full px-6 py-24 sm:py-32"
+      className="bg-fernandito-off-white text-fernandito-verde-escuro w-full px-6 py-20 sm:py-32"
     >
       <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-[minmax(0,200px)_1fr] md:items-center md:gap-16">
         {/* Placeholder — aqui entra a arte da lata quando o asset chegar.
             Parallax: lata atrás (mais lenta), texto na frente. */}
         <Parallax speed={-50}>
-          <div className="border-fernandito-verde-escuro/25 mx-auto flex aspect-[3/7] w-32 shrink-0 items-center justify-center rounded-[2rem] border-2 border-dashed md:mx-0 md:w-full">
+          <div className="border-fernandito-verde-escuro/25 mx-auto flex aspect-[3/7] w-24 shrink-0 items-center justify-center rounded-[2rem] border-2 border-dashed md:mx-0 md:w-full">
             <span className="text-label font-accent px-3 text-center uppercase opacity-80">
               lata
               <br />

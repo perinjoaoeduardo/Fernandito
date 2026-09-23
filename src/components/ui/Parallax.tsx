@@ -24,11 +24,14 @@ export function Parallax({ speed = 40, className, children }: ParallaxProps) {
   useEffect(() => {
     const el = ref.current;
     if (!el || prefersReducedMotion()) return;
+    // Em tela estreita os blocos ficam empilhados e mais perto uns dos
+    // outros — a amplitude cheia do desktop os faria se encostar.
+    const amp = window.innerWidth < 768 ? speed * 0.5 : speed;
     const tween = gsap.fromTo(
       el,
-      { y: speed },
+      { y: amp },
       {
-        y: -speed,
+        y: -amp,
         ease: "none",
         scrollTrigger: { trigger: el, start: "top bottom", end: "bottom top", scrub: true },
       },

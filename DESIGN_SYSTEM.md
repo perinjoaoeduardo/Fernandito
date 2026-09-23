@@ -333,7 +333,11 @@ acompanha a última letra digitada e pisca (`@keyframes caret-blink` em
 `globals.css`). SplitText `words,chars` (quebra só entre palavras); texto
 completo no HTML do servidor e em `aria-label`. Usado no Manifesto,
 Contato e "O que anda rolando"; o O que é tem a mesma técnica inline.
-Regra de faixa: o texto tem que terminar de se escrever **enquanto a
+**Vários textos em sequência** (Contato, rodapé) usam o mesmo gatilho
+(`triggerSelector`, ex. `"#contato"`) com faixas encadeadas (título
+`top 90%→30%`, parágrafo `top 30%→5%`, botão logo depois) — com o
+próprio texto como gatilho, um parágrafo curto embaixo "passava na
+frente" do título. Regra de faixa: o texto tem que terminar de se escrever **enquanto a
 seção ainda está inteira na tela** (padrão `top 85%` → `top 55%`; no O
 que é, `top 90%` → `bottom 85%` da coluna) — nunca só quando ela já está
 saindo por cima.
@@ -343,7 +347,9 @@ em `y` de +speed a −speed enquanto atravessa a tela (scrub). Positivo =
 camada da frente (sobe mais rápido), negativo = de trás. Aplicado: O que é
 (lata −50, texto +30), Manifesto (título +40, cartão −25), Contato (coluna
 de texto +40; a imagem tem parallax próprio), Social (título +40, leque
-−30, link +20), rodapé (texto +24, links −16). A galeria tem saída própria
+−30, link +20), rodapé (texto +24, links −16). **Abaixo de 768px a
+amplitude cai pela metade** (blocos empilhados e mais próximos — a
+amplitude cheia fazia a lata encostar no texto do O que é). A galeria tem saída própria
 (abaixo) e o marquee desliza na horizontal com a rolagem (x +80 → −80, por
 cima do loop). Sempre num nó próprio — nunca no mesmo elemento que já anima
 `transform`.
@@ -639,3 +645,23 @@ Regras que o site já segue e que vale manter:
   `<span>` sem role — era o que segurava a nota de acessibilidade em 92.
 - Labels pequenos (`text-label`) não descem de `opacity-80`: a 50% o
   contraste caía pra 2.77, abaixo do mínimo de 4.5.
+
+## Celular — adaptações do desktop
+
+Regras aplicadas na revisão mobile (390px e 360px, com emulação de toque):
+
+- **Nada pode passar da largura da tela**, nem durante animação: um
+  elemento que estoura faz o navegador do celular reduzir o zoom da
+  página inteira. O selo do Manifesto começa 2.2× maior na animação de
+  carimbo — a seção tem `overflow-x-clip` (recorta sem criar container de
+  scroll, não quebra sticky/pin).
+- **Hover não existe no toque**: o que só aparecia no hover e comunica
+  função (label "VIRAR"/"VOLTAR" do cartão) fica sempre visível em
+  `[@media(hover:none)]`.
+- **Proporções**: texto do cartão do Manifesto `text-body` (não
+  `body-lg`), assinaturas em grade 2×2 (4 numa linha passavam por baixo do
+  selo), placeholder da lata `w-24`, parallax com metade da amplitude.
+- **Rolagem**: a trilha da galeria anda 1.35× mais por px rolado no
+  celular (o pin ficava longo demais pra tela estreita).
+- O leque do Instagram e a trilha com hover são do desktop; no celular
+  viram fileira com snap e trilha pinada sem hover.
