@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import Script from "next/script";
 import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvider";
 import { IntroLoader } from "@/components/providers/IntroLoader";
+import { ThemeColorSync } from "@/components/providers/ThemeColorSync";
 import { FloatingNav } from "@/components/ui/FloatingNav";
 import { CustomCursor } from "@/components/ui/CustomCursor";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
@@ -234,6 +235,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <ScrollProgress />
           <CustomCursor />
           <FloatingNav />
+          <ThemeColorSync />
           {children}
         </SmoothScrollProvider>
       </body>

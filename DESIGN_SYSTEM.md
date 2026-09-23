@@ -674,5 +674,12 @@ Regras aplicadas na revisão mobile (390px e 360px, com emulação de toque):
   selo), placeholder da lata `w-24`, parallax com metade da amplitude.
 - **Rolagem**: a trilha da galeria anda 1.35× mais por px rolado no
   celular (o pin ficava longo demais pra tela estreita).
+- **Barras do Safari (iPhone)**: o Safari pinta a área das barras (a de
+  cima e a flutuante de baixo, com o endereço) com a cor "tema" da página.
+  Ela era fixa em verde-escuro e sobrava uma faixa escura embaixo das
+  seções bege. `components/providers/ThemeColorSync.tsx` amostra a cor de
+  fundo nas bordas da tela a cada rolagem (e quando a cortina de abertura
+  sai): `theme-color` = cor na borda de cima, fundo do `<html>` = cor na
+  borda de baixo.
 - O leque do Instagram e a trilha com hover são do desktop; no celular
   viram fileira com snap e trilha pinada sem hover.
