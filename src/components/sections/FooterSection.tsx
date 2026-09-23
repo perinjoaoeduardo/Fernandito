@@ -116,8 +116,15 @@ export function FooterSection() {
       <div className="mx-auto grid w-full max-w-5xl gap-12 sm:grid-cols-[1fr_auto] sm:items-start sm:gap-12">
         {/* Frase de fechamento + CTA */}
         <div>
+          {/* Instrument Serif só existe em peso 400 (fonte de um peso só,
+              nunca teve variante bold — ver layout.tsx, `weight: ["400"]`).
+              `font-bold` aqui pedia um peso que não existe na família: em
+              vez de sintetizar, o navegador caía pro fallback (Georgia
+              Bold), destoando do resto do texto. Contraste entre as duas
+              linhas vem só do itálico, mesmo padrão usado no resto do
+              site (ver ManifestoSection). */}
           <h2 className="flex flex-col">
-            <span ref={line1Ref} className="text-display-md font-serif leading-[0.95] font-bold">
+            <span ref={line1Ref} className="text-display-md font-serif leading-[0.95]">
               Pra quem não deixa passar,
             </span>
             <span ref={line2Ref} className="text-display-md font-serif leading-[0.95] italic">

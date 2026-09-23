@@ -17,7 +17,14 @@ tokens definidos aqui. Os tokens abaixo estão implementados em
 
 - `font-serif` → Instrument Serif, Georgia, serif — **voz rústica/manifesto**
   (ainda placeholder via `next/font/google`; troca só no import em
-  `layout.tsx`, os tokens de escala abaixo não mudam)
+  `layout.tsx`, os tokens de escala abaixo não mudam). **Só tem peso 400 —
+  a família não tem variante bold nenhuma no Google Fonts.** `font-bold`
+  em cima de `font-serif` já causou bug real: em vez de sintetizar negrito,
+  pelo menos um navegador (visto em produção, mobile) descartava a
+  Instrument Serif inteira e caía pro fallback (Georgia Bold), destoando
+  visivelmente do resto do texto — corrigido removendo o `font-bold` em
+  `FooterSection.tsx` (ver seção "Estrutura de seções" abaixo). Pra dar
+  ênfase dentro de `font-serif`, usar `italic`, não `font-bold`.
 - `font-sans` → **Courier Prime**, Courier New, monospace — **fonte de texto
   geral do site** (UI, labels, ficha técnica, texto corrido). Carregada via
   `next/font/local` a partir de `public/fonts/CourierPrime-*.ttf`; regular,
