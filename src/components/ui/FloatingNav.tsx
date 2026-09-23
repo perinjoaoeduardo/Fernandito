@@ -9,9 +9,14 @@ import { Link } from "@/components/ui/Link";
 
 // "Manifesto" e "Produto" saíram da nav junto com as respectivas seções
 // (ManifestoSection e ProdutoSection), removidas da página por enquanto —
-// ver src/app/page.tsx. "Onde encontrar" aponta pro CTA do FooterSection
-// por enquanto — não há um bloco de contato dedicado nesta fundação.
-const LINKS = [{ label: "Onde encontrar", href: "#onde-encontrar" }];
+// ver src/app/page.tsx. Com um site de página única, a nav não simula uma
+// estrutura de subpáginas: é navegação por âncora direto pros "andares" já
+// existentes da página. "Onde encontrar" aponta pro CTA do FooterSection.
+const LINKS = [
+  { label: "O que é", href: "#o-que-e" },
+  { label: "Galeria", href: "#galeria" },
+  { label: "Onde encontrar", href: "#onde-encontrar" },
+];
 
 // Ponto de amostragem fixo (canto esquerdo, fora da pill que fica centrada)
 // — assim `elementFromPoint` sempre pega o fundo da SEÇÃO por trás do nav,
