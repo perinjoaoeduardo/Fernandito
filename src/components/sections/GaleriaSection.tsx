@@ -1,175 +1,215 @@
 "use client";
 
-import { clsx } from "clsx";
 import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger, prefersReducedMotion } from "@/lib/gsap";
+import {
+  gsap,
+  ScrollTrigger,
+  DURATION,
+  EASE,
+  prefersReducedMotion,
+  supportsHover,
+} from "@/lib/gsap";
 
-type PhotoCard = {
-  type: "photo";
+// ── Photo data ───────────────────────────────────────────────────
+
+type TrackPhoto = {
   label: string;
   tone: string;
+  widthVw: number;
   aspect: string;
-  width: string;
-  offset: number; // px de deslocamento vertical — dá o ar "desalinhado" de mosaico
+  yPct: number;
+  zIndex: number;
+  speed: number;
+  startXVw: number;
 };
 
-type QuoteCard = { type: "quote" };
+const HERO_LABEL = "FOTO HERO";
+const HERO_TONE = "bg-fernandito-verde-medio";
+const HERO_WIDTH_VW = 65;
+const HERO_ASPECT = "4 / 5";
+const HERO_Z = 10;
 
-type Card = PhotoCard | QuoteCard;
-
-// Fotos ainda não chegaram — placeholders no mesmo espírito do resto do
-// site (rótulo + tom de verde variando). O cartão de citação fica bem no
-// meio da trilha, coincidindo com a troca de cor de fundo (ver `onUpdate`).
-const CARDS: Card[] = [
-  {
-    type: "photo",
-    label: "FOTO 01",
-    tone: "bg-fernandito-verde-medio",
-    aspect: "aspect-[3/4]",
-    width: "w-56 sm:w-64",
-    offset: 20,
-  },
-  {
-    type: "photo",
-    label: "FOTO 02",
-    tone: "bg-fernandito-verde-claro",
-    aspect: "aspect-[4/5]",
-    width: "w-64 sm:w-72",
-    offset: -40,
-  },
-  {
-    type: "photo",
-    label: "FOTO 03",
-    tone: "bg-fernandito-verde-medio/85",
-    aspect: "aspect-square",
-    width: "w-52 sm:w-60",
-    offset: 50,
-  },
-  { type: "quote" },
-  {
-    type: "photo",
-    label: "FOTO 04",
-    tone: "bg-fernandito-verde-claro/90",
-    aspect: "aspect-[4/5]",
-    width: "w-64 sm:w-72",
-    offset: -30,
-  },
-  {
-    type: "photo",
-    label: "FOTO 05",
-    tone: "bg-fernandito-verde-medio",
-    aspect: "aspect-[3/4]",
-    width: "w-56 sm:w-64",
-    offset: 40,
-  },
-  {
-    type: "photo",
-    label: "FOTO 06",
-    tone: "bg-fernandito-verde-claro",
-    aspect: "aspect-square",
-    width: "w-52 sm:w-60",
-    offset: -20,
-  },
+// 3 speed tiers: slow/foreground (0.9–1.0), medium (1.3), fast/background (1.7–2.0)
+const TRACK: TrackPhoto[] = [
+  { label: "FOTO 01", tone: "bg-fernandito-verde-claro", widthVw: 30, aspect: "3 / 4", yPct: 10, zIndex: 5, speed: 1.0, startXVw: 55 },
+  { label: "FOTO 02", tone: "bg-fernandito-verde-medio/80", widthVw: 22, aspect: "4 / 5", yPct: -15, zIndex: 3, speed: 1.8, startXVw: 95 },
+  { label: "FOTO 03", tone: "bg-fernandito-verde-claro/90", widthVw: 35, aspect: "3 / 4", yPct: 5, zIndex: 7, speed: 0.9, startXVw: 140 },
+  { label: "FOTO 04", tone: "bg-fernandito-verde-medio", widthVw: 20, aspect: "3 / 5", yPct: -20, zIndex: 2, speed: 2.0, startXVw: 185 },
+  { label: "FOTO 05", tone: "bg-fernandito-verde-claro", widthVw: 28, aspect: "4 / 5", yPct: 12, zIndex: 4, speed: 1.3, startXVw: 225 },
+  { label: "FOTO 06", tone: "bg-fernandito-verde-medio/85", widthVw: 24, aspect: "3 / 4", yPct: -8, zIndex: 3, speed: 1.7, startXVw: 265 },
 ];
 
-const BG_DARK: [number, number, number] = [36, 48, 34]; // verde-escuro
-const BG_LIGHT: [number, number, number] = [230, 230, 203]; // off-white
+const BASE_DISPLACEMENT_VW = 150;
+const SHADOW = "0 20px 60px rgba(36, 48, 34, 0.25)";
+const SHADOW_HOVER = "0 25px 80px rgba(36, 48, 34, 0.4)";
+const RADIUS = "1.5rem";
 
-function mixRgb(from: [number, number, number], to: [number, number, number], t: number) {
-  const clamped = Math.min(1, Math.max(0, t));
-  return `rgb(${from.map((v, i) => Math.round(v + (to[i] - v) * clamped)).join(", ")})`;
-}
+const ALL_PHOTOS = [
+  { label: HERO_LABEL, tone: HERO_TONE, aspect: HERO_ASPECT },
+  ...TRACK.map((p) => ({ label: p.label, tone: p.tone, aspect: p.aspect })),
+];
 
-function QuoteBlock() {
+// ── Placeholder ──────────────────────────────────────────────────
+
+function Placeholder({ label, tone }: { label: string; tone: string }) {
   return (
-    <div className="bg-fernandito-off-white text-fernandito-verde-escuro flex h-72 w-64 shrink-0 flex-col justify-between rounded-md p-6 shadow-[3px_3px_0_rgba(36,48,34,0.35)] sm:h-80 sm:w-72">
-      <p className="text-body-lg font-serif italic">O que se entrega fácil não deixa gosto.</p>
-      {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático */}
-      <img
-        src="/logo/fernandito-moeda.webp"
-        alt=""
-        aria-hidden="true"
-        width={256}
-        height={258}
-        loading="lazy"
-        decoding="async"
-        className="ml-auto h-14 w-14 -rotate-6 opacity-90"
-      />
+    <div className={`${tone} absolute inset-0 flex items-center justify-center`}>
+      <span className="text-label text-fernandito-off-white font-sans uppercase opacity-90">
+        {label}
+      </span>
     </div>
   );
 }
 
-function PhotoCardEl({ card }: { card: PhotoCard }) {
-  return (
-    <div
-      style={{ marginTop: card.offset }}
-      className={clsx(
-        "border-fernandito-off-white relative shrink-0 overflow-hidden border-[7px] shadow-[3px_3px_0_rgba(36,48,34,0.35)]",
-        card.aspect,
-        card.width,
-      )}
-    >
-      <div className={clsx("absolute inset-0 flex items-center justify-center", card.tone)}>
-        <span className="text-label text-fernandito-off-white font-sans uppercase">
-          {card.label}
-        </span>
-      </div>
-      <div className="grain-overlay pointer-events-none absolute inset-0 opacity-[0.06] mix-blend-overlay" />
-    </div>
-  );
-}
+// ── Component ────────────────────────────────────────────────────
 
 export function GaleriaSection() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const stickyRef = useRef<HTMLDivElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const mobileRowRef = useRef<HTMLDivElement>(null);
+  const desktopRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const maskRef = useRef<HTMLDivElement>(null);
+  const trackRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const mobileHeroRef = useRef<HTMLDivElement>(null);
+  const mobileMaskRef = useRef<HTMLDivElement>(null);
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
 
-  // Desktop — igual ao "shrink-to-card" da Hero: section mais alta que a
-  // viewport, cartão `sticky top-0`, e um ScrollTrigger com `scrub` (sem
-  // `pin`, o sticky nativo já resolve isso) traduz a trilha horizontalmente
-  // conforme rola. A cor de fundo troca de verde-escuro pra off-white
-  // concentrada no meio do percurso, onde fica o cartão de citação.
+  // ── Desktop: two-phase pinned animation ──
   useEffect(() => {
-    const section = sectionRef.current;
-    const sticky = stickyRef.current;
-    const track = trackRef.current;
-    if (!section || !sticky || !track) return;
+    if (prefersReducedMotion()) return;
+    if (!window.matchMedia("(min-width: 768px)").matches) return;
 
-    const isDesktop = window.matchMedia("(min-width: 640px)").matches;
-    if (prefersReducedMotion() || !isDesktop) return;
+    const container = desktopRef.current;
+    const hero = heroRef.current;
+    const mask = maskRef.current;
+    const photos = trackRefs.current.filter(Boolean) as HTMLDivElement[];
+    if (!container || !hero || !mask || photos.length === 0) return;
 
-    const maxTranslate = Math.max(0, track.scrollWidth - sticky.clientWidth);
+    const vw = window.innerWidth / 100;
+    const vh = window.innerHeight / 100;
+
+    gsap.set(hero, { xPercent: -50, yPercent: -50 });
+
+    photos.forEach((el, i) => {
+      const p = TRACK[i];
+      gsap.set(el, {
+        xPercent: -50,
+        yPercent: -50,
+        x: p.startXVw * vw,
+        y: p.yPct * vh,
+        zIndex: p.zIndex,
+        opacity: 0,
+      });
+    });
+
+    const tl = gsap.timeline();
+
+    // PHASE 1: mask reveal (0 → 0.28), breathe (0.28 → 0.35)
+    tl.fromTo(mask, { scaleY: 1 }, { scaleY: 0, duration: 0.28, ease: "power2.inOut" }, 0);
+
+    // PHASE 2 (0.35 → 1.0)
+
+    // Hero shrinks and repositions
+    tl.to(hero, { scale: 0.55, x: -28 * vw, y: 4 * vh, duration: 0.13, ease: "power2.inOut" }, 0.35);
+
+    // Kill mask completely
+    tl.set(mask, { autoAlpha: 0 }, 0.35);
+
+    // Track photos fade in quickly
+    tl.to(photos, { opacity: 1, duration: 0.07, ease: "none", stagger: 0.01 }, 0.35);
+
+    // Hero parallax (after reposition)
+    tl.to(hero, { x: (-28 - 1.0 * BASE_DISPLACEMENT_VW * 0.8) * vw, duration: 0.52, ease: "none" }, 0.48);
+
+    // Track photos parallax (each at its own speed)
+    photos.forEach((el, i) => {
+      const p = TRACK[i];
+      tl.to(el, { x: (p.startXVw - p.speed * BASE_DISPLACEMENT_VW) * vw, duration: 0.65, ease: "none" }, 0.35);
+    });
+
+    if (tl.totalDuration() < 1) tl.set({}, {}, 1);
 
     const trigger = ScrollTrigger.create({
-      trigger: section,
+      trigger: container,
       start: "top top",
-      end: "bottom bottom",
-      scrub: 0.6,
-      invalidateOnRefresh: true,
-      onUpdate: (self) => {
-        const progress = self.progress;
-        gsap.set(track, { x: -progress * maxTranslate });
+      end: `+=${280 * vh}`,
+      pin: true,
+      scrub: 1,
+      animation: tl,
+    });
 
-        // Troca de cor concentrada no meio do percurso (0.35 → 0.65).
-        const colorT = (progress - 0.35) / 0.3;
-        gsap.set(sticky, { backgroundColor: mixRgb(BG_DARK, BG_LIGHT, colorT) });
-      },
+    return () => {
+      trigger.kill();
+      tl.kill();
+    };
+  }, []);
+
+  // ── Desktop: hover ──
+  useEffect(() => {
+    if (prefersReducedMotion() || !supportsHover()) return;
+    if (!window.matchMedia("(min-width: 768px)").matches) return;
+
+    const wrappers = [heroRef.current, ...trackRefs.current].filter(Boolean) as HTMLDivElement[];
+    const cleanups: (() => void)[] = [];
+
+    wrappers.forEach((wrapper) => {
+      const inner = wrapper.querySelector("[data-photo-inner]") as HTMLElement;
+      if (!inner) return;
+
+      let savedZ = 0;
+
+      const onEnter = () => {
+        savedZ = Number(gsap.getProperty(wrapper, "zIndex")) || 0;
+        gsap.set(wrapper, { zIndex: 50 });
+        gsap.to(inner, { scale: 1.05, boxShadow: SHADOW_HOVER, duration: DURATION.base, ease: EASE.outStandard });
+      };
+
+      const onLeave = () => {
+        gsap.to(inner, {
+          scale: 1,
+          boxShadow: SHADOW,
+          duration: DURATION.base,
+          ease: EASE.outStandard,
+          onComplete: () => gsap.set(wrapper, { zIndex: savedZ }),
+        });
+      };
+
+      wrapper.addEventListener("mouseenter", onEnter);
+      wrapper.addEventListener("mouseleave", onLeave);
+      cleanups.push(() => {
+        wrapper.removeEventListener("mouseenter", onEnter);
+        wrapper.removeEventListener("mouseleave", onLeave);
+      });
+    });
+
+    return () => cleanups.forEach((fn) => fn());
+  }, []);
+
+  // ── Mobile: Phase 1 mask reveal (scrub, no pin) ──
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+    if (!window.matchMedia("(max-width: 767px)").matches) return;
+
+    const hero = mobileHeroRef.current;
+    const mask = mobileMaskRef.current;
+    if (!hero || !mask) return;
+
+    const trigger = ScrollTrigger.create({
+      trigger: hero,
+      start: "top 75%",
+      end: "center center",
+      scrub: 0.6,
+      animation: gsap.fromTo(mask, { scaleY: 1 }, { scaleY: 0, ease: "power2.inOut" }),
     });
 
     return () => trigger.kill();
   }, []);
 
-  // Mobile / reduced-motion — fileira com scroll-snap, fundo fixo, sem
-  // translação por scroll; só um fade-in simples ao entrar na tela.
+  // ── Mobile: Phase 2 scroll row fade-in ──
   useEffect(() => {
-    const row = mobileRowRef.current;
-    if (!row) return;
+    if (prefersReducedMotion()) return;
+    if (!window.matchMedia("(max-width: 767px)").matches) return;
 
-    if (prefersReducedMotion()) {
-      gsap.set(row, { opacity: 1, y: 0 });
-      return;
-    }
+    const row = mobileScrollRef.current;
+    if (!row) return;
 
     gsap.set(row, { opacity: 0, y: 30 });
     const trigger = ScrollTrigger.create({
@@ -184,37 +224,107 @@ export function GaleriaSection() {
 
   return (
     <section
-      ref={sectionRef}
       id="galeria"
-      aria-label="Galeria"
-      className="relative w-full motion-safe:sm:h-[250vh]"
+      aria-label="Galeria de fotos"
+      className="bg-fernandito-verde-escuro relative w-full"
     >
       <h2 className="sr-only">Galeria</h2>
 
-      {/* Desktop — pin horizontal + troca de cor */}
-      <div
-        ref={stickyRef}
-        className="bg-fernandito-verde-escuro hidden h-screen w-full items-center overflow-hidden motion-safe:sm:sticky motion-safe:sm:top-0 motion-safe:sm:flex"
-      >
+      {/* ── Animated (hidden under prefers-reduced-motion) ── */}
+      <div className="motion-reduce:hidden">
+        {/* Desktop: pinned two-phase container */}
         <div
-          ref={trackRef}
-          className="flex w-max shrink-0 items-center gap-8 px-[10vw] [will-change:transform]"
+          ref={desktopRef}
+          className="bg-fernandito-verde-escuro relative hidden h-screen w-full overflow-hidden md:block"
         >
-          {CARDS.map((card, i) =>
-            card.type === "quote" ? <QuoteBlock key={i} /> : <PhotoCardEl key={i} card={card} />,
-          )}
+          {/* Hero photo — centered, revealed by mask in Phase 1 */}
+          <div
+            ref={heroRef}
+            className="absolute top-1/2 left-1/2 [will-change:transform]"
+            style={{ zIndex: HERO_Z }}
+          >
+            <div
+              data-photo-inner
+              data-cursor-hover
+              role="img"
+              aria-label="Galeria Fernandito — foto destaque"
+              className="relative overflow-hidden"
+              style={{ width: `${HERO_WIDTH_VW}vw`, aspectRatio: HERO_ASPECT, boxShadow: SHADOW, borderRadius: RADIUS }}
+            >
+              <Placeholder label={HERO_LABEL} tone={HERO_TONE} />
+              <div ref={maskRef} className="bg-fernandito-verde-escuro absolute inset-0 origin-top" />
+            </div>
+          </div>
+
+          {/* Track photos — positioned by GSAP, parallax in Phase 2 */}
+          {TRACK.map((photo, i) => (
+            <div
+              key={photo.label}
+              ref={(el) => {
+                trackRefs.current[i] = el;
+              }}
+              className="absolute top-1/2 left-1/2 [will-change:transform]"
+            >
+              <div
+                data-photo-inner
+                data-cursor-hover
+                role="img"
+                aria-label={`Galeria Fernandito — ${photo.label.toLowerCase()}`}
+                className="relative overflow-hidden"
+                style={{ width: `${photo.widthVw}vw`, aspectRatio: photo.aspect, boxShadow: SHADOW, borderRadius: RADIUS }}
+              >
+                <Placeholder label={photo.label} tone={photo.tone} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Mobile: Phase 1 hero reveal + Phase 2 horizontal scroll */}
+        <div className="md:hidden">
+          <div className="flex items-center justify-center px-6 py-20">
+            <div
+              ref={mobileHeroRef}
+              role="img"
+              aria-label="Galeria Fernandito — foto destaque"
+              className="relative w-full max-w-[80vw] overflow-hidden"
+              style={{ aspectRatio: HERO_ASPECT, boxShadow: SHADOW, borderRadius: RADIUS }}
+            >
+              <Placeholder label={HERO_LABEL} tone={HERO_TONE} />
+              <div ref={mobileMaskRef} className="bg-fernandito-verde-escuro absolute inset-0 origin-top" />
+            </div>
+          </div>
+
+          <div
+            ref={mobileScrollRef}
+            className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-6 pb-12 [will-change:transform,opacity]"
+          >
+            {TRACK.map((photo) => (
+              <div
+                key={photo.label}
+                className="relative shrink-0 snap-center overflow-hidden"
+                role="img"
+                aria-label={`Galeria Fernandito — ${photo.label.toLowerCase()}`}
+                style={{ width: "75vw", aspectRatio: photo.aspect, boxShadow: SHADOW, borderRadius: RADIUS }}
+              >
+                <Placeholder label={photo.label} tone={photo.tone} />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Mobile / reduced-motion — fileira com scroll-snap nativo */}
-      <div className="bg-fernandito-verde-escuro w-full overflow-hidden py-16 motion-safe:sm:hidden">
-        <div
-          ref={mobileRowRef}
-          className="flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-4 [will-change:transform,opacity]"
-        >
-          {CARDS.map((card, i) => (
-            <div key={i} className="shrink-0 snap-center">
-              {card.type === "quote" ? <QuoteBlock /> : <PhotoCardEl card={card} />}
+      {/* ── Reduced motion: static grid fallback ── */}
+      <div className="hidden motion-reduce:block px-6 py-16">
+        <div className="mx-auto grid max-w-5xl grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
+          {ALL_PHOTOS.map((photo) => (
+            <div
+              key={photo.label}
+              className="relative overflow-hidden"
+              role="img"
+              aria-label={`Galeria Fernandito — ${photo.label.toLowerCase()}`}
+              style={{ aspectRatio: photo.aspect, boxShadow: SHADOW, borderRadius: RADIUS }}
+            >
+              <Placeholder label={photo.label} tone={photo.tone} />
             </div>
           ))}
         </div>

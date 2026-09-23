@@ -399,18 +399,24 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    pula pro estado final. As duas colunas do grid usam `sm:items-center`
    (não `items-start`) — o bloco de texto fica centralizado verticalmente
    em relação ao placeholder da lata, não alinhado pelo topo.
-3. `GaleriaSection` — galeria horizontal animada (referência: landonorris.com,
-   "mas melhor"). Mesmo mecanismo de `sticky` + `ScrollTrigger` scrub da
-   Hero (sem `pin` do GSAP — o sticky nativo já resolve): a section é
-   `motion-safe:sm:h-[250vh]`, o cartão `sticky top-0` contém uma trilha
-   horizontal (`flex w-max`) que translada em `x` conforme o progresso do
-   scroll. A cor de fundo troca de verde-escuro pra off-white concentrada
-   no meio do percurso (interpolação RGB entre progress 0.35→0.65), onde
-   fica um cartão de citação (fundo off-white fixo, não depende da cor de
-   fundo da section) entre os placeholders de foto — mesmo padrão de
-   placeholder do resto do site (rótulo + tom de verde), aguardando fotos
-   reais. Mobile e `prefers-reduced-motion` caem pra uma fileira com
-   scroll-snap nativo, fundo fixo verde-escuro, sem pin nem troca de cor.
+3. `GaleriaSection` — galeria de fotos com animação em duas fases numa
+   seção pinada (ScrollTrigger `pin: true`, `scrub: 1`, total de 280vh).
+   **Fase 1** (progress 0→0.35): foto hero (65vw, 4:5, verde-medio)
+   centralizada, coberta por máscara verde-escuro que revela de cima pra
+   baixo via `scaleY` (`origin-top`, `power2.inOut`); respiração entre
+   0.28→0.35. **Fase 2** (0.35→1.0): hero encolhe (`scale: 0.55`) e
+   reposiciona como primeiro elemento de uma trilha horizontal com
+   paralaxe; 6 fotos adicionais (FOTO 01–06) entram da direita a 3 níveis
+   de velocidade distintos (lento 0.9–1.0, médio 1.3, rápido 1.7–2.0),
+   criando sobreposição intencional e profundidade. Cantos arredondados
+   (`border-radius: 1.5rem`), sem bordas, sombra sutil
+   (`0 20px 60px rgba(36,48,34,0.25)`). Hover (desktop, `hover:hover`):
+   `scale: 1.05` relativo ao tamanho corrente + z-index boost + sombra
+   reforçada, via GSAP no `[data-photo-inner]` interno. Mobile (<768px):
+   Fase 1 mantém o reveal por scrub (sem pin), Fase 2 vira scroll
+   horizontal nativo (`overflow-x: auto`, `scroll-snap-type: x mandatory`,
+   cards 75vw). `prefers-reduced-motion`: grid estático CSS (2 cols
+   mobile, 3 cols desktop).
 4. `CartaSection` — fundo off-white, bloco editorial: epígrafe grande
    (reveal por palavra via SplitText) + cartão-carta (`ElevatedCard`, corpo,
    assinaturas, selo = `fernandito-moeda.svg` rotacionado no canto;
