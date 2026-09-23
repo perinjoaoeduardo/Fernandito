@@ -36,8 +36,8 @@ export function Logo({ className, alt = "Fernandito", "aria-hidden": ariaHidden 
       width={INTRINSIC_WIDTH}
       height={INTRINSIC_HEIGHT}
       priority
-      sizes="(min-width: 1024px) 1667px, (min-width: 640px) 1429px, 895px"
-      className={clsx("h-auto w-full max-w-[895px] sm:max-w-[1429px] lg:max-w-[1667px]", className)}
+      sizes="(min-width: 1024px) 700px, (min-width: 640px) 520px, 360px"
+      className={clsx("h-auto w-full max-w-[360px] sm:max-w-[520px] lg:max-w-[700px]", className)}
     />
   );
 }
