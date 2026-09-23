@@ -130,16 +130,18 @@ export function CartaSection() {
     // da última foto, da mesma cor desta seção — puxar o Manifesto pra cima
     // sobrepõe esse vazio em vez de deixar um vão enorme entre os dois. Sob
     // prefers-reduced-motion a galeria vira grid e não pode ter sobreposição.
+    // A faixa sobreposta (--overlap) é transparente: um fundo bege sólido
+    // ali cortava a sombra da última foto numa linha reta.
     <section
       id="manifesto"
       aria-label="Manifesto"
-      className="bg-fernandito-off-white text-fernandito-verde-escuro relative w-full overflow-x-clip pt-8 pb-24 sm:py-32 motion-safe:-mt-[16vh] motion-safe:sm:-mt-[12vh]"
+      className="bg-fernandito-off-white text-fernandito-verde-escuro relative w-full overflow-x-clip pt-8 pb-24 [--overlap:16vh] motion-safe:-mt-[var(--overlap)] motion-safe:bg-transparent motion-safe:bg-[linear-gradient(to_bottom,transparent_var(--overlap),#e6e6cb_var(--overlap))] sm:py-32 sm:[--overlap:12vh]"
     >
       <div className="mx-auto flex max-w-4xl justify-center px-6 text-center">
         <Parallax speed={40}>
           <TypewriterText
             text="Nosso manifesto"
-            className="font-rampart text-[clamp(1.25rem,2.2vw,1.75rem)] leading-[1.1] tracking-[0.08em]"
+            className="font-rampart text-[clamp(1.625rem,3vw,2.25rem)] leading-[1.1] tracking-[0.06em]"
           />
         </Parallax>
       </div>
@@ -148,7 +150,7 @@ export function CartaSection() {
       <Parallax speed={-25}>
         <div
           ref={cardWrapRef}
-          className="mx-auto mt-10 max-w-[830px] px-6 [will-change:transform] sm:mt-14"
+          className="mx-auto mt-6 max-w-[830px] px-6 [will-change:transform] sm:mt-8"
         >
           <FlipCard
             front={front}

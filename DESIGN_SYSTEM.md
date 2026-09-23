@@ -468,8 +468,13 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    elevação extra de -10px no meio do giro). Frente: texto, assinaturas
    (`font-accent`), selo. Verso: foto dos fundadores (placeholder com
    `sepia+saturate` preparando o tom retrô), legenda e carimbo sutil.
-   Ícone de "virar" com respiração contínua; hover no cartão (`group-hover`)
-   revela "VIRAR"/"VOLTAR". Cada face tem `backface-visibility:hidden` +
+   Dica "Girar" / "Girar de volta" **embaixo do cartão** (fora dele — dentro
+   brigava com assinaturas e legenda), com ícone de respiração contínua,
+   clicável também; sempre visível no toque. **Safari**: `backface-visibility`
+   não esconde filhos com camada própria (selo com `will-change`, ícone
+   animado) — eles apareciam espelhados por cima do verso. A face de costas
+   fica `visibility: hidden` de verdade e troca quando o giro passa de 90°
+   (`onUpdate` lendo `rotationY`). Cada face tem `backface-visibility:hidden` +
    `pointer-events-none` quando de costas; um "sizer" invisível em fluxo
    normal define a altura. `prefers-reduced-motion`: crossfade de opacity.
 5. `ContatoSection` (`#contato`) — CTA de contato em **tela dividida**
@@ -482,8 +487,12 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    altura, `yPercent` −8 → 8 e leve zoom desfazendo). No celular a imagem
    vai pra baixo do texto (`aspect-[4/5]`).
 6. `SocialGallerySection` (`#social`, "O que anda rolando") — título
-   pequeno numa linha, escrito à máquina, sem textos de apoio (só o link
-   @toma.fernandito embaixo); seção compacta (~1 tela). Fundo off-white, cards 4:5 com cantos arredondados (`rounded-2xl`) e sombra
+   pequeno numa linha, escrito à máquina; embaixo "Segue a gente no
+   Instagram" + link @toma.fernandito; seção compacta (~1 tela). **No
+   celular (< md)**: só 3 fotos empilhadas (alternando de lado e
+   inclinação, levemente sobrepostas), cada uma numa camada de `Parallax`
+   com velocidade própria — nada de arrastar pro lado no meio da página.
+   Tablet mantém a fileira com snap; desktop, o leque. Fundo off-white, cards 4:5 com cantos arredondados (`rounded-2xl`) e sombra
    suave, sem a borda grossa de polaroid. Leque de 7 cards só a partir de
    `lg` (1024px — abaixo disso cortava as pontas), que começa como uma
    pilha de fotos no centro e se abre em leque conforme rola (scrub);

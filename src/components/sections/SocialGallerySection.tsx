@@ -27,6 +27,14 @@ const CARD_TONES = [
   "bg-fernandito-verde-medio",
 ];
 
+// Pilha do celular: 3 fotos (a do meio é a do selo "★"), alternando de
+// lado; a do meio fica na frente (parallax mais rápido).
+const STACK = [
+  { index: 0, speed: 30, shift: "-12%", rotate: -3 },
+  { index: 1, speed: 70, shift: "12%", rotate: 2.5 },
+  { index: 3, speed: 40, shift: "-8%", rotate: -1.5 },
+];
+
 // 2 selos decorativos — índices fixos (não Math.random, pra não divergir
 // entre SSR e hydration), estilo carimbo torto.
 const STAMPS: Record<number, string> = { 1: "★", 5: "TOMA" };
@@ -42,9 +50,12 @@ function baseScale(index: number) {
 function PhotoCard({
   index,
   cardRef,
+  stacked = false,
 }: {
   index: number;
   cardRef?: (el: HTMLDivElement | null) => void;
+  /** Versão da pilha do celular: mais larga (fração da tela). */
+  stacked?: boolean;
 }) {
   const label = `FOTO ${String(index + 1).padStart(2, "0")}`;
   const stamp = STAMPS[index];
@@ -55,7 +66,10 @@ function PhotoCard({
       data-cursor-hover
       role="img"
       aria-label={`Fernandito no Instagram — foto ${index + 1}`}
-      className="relative aspect-[4/5] w-56 shrink-0 overflow-hidden rounded-2xl shadow-[0_18px_40px_rgba(36,48,34,0.22)] [will-change:transform] sm:w-60 lg:w-44 xl:w-48"
+      className={clsx(
+        "relative aspect-[4/5] shrink-0 overflow-hidden rounded-2xl shadow-[0_18px_40px_rgba(36,48,34,0.22)] [will-change:transform]",
+        stacked ? "w-[68vw] max-w-72" : "w-56 sm:w-60 lg:w-44 xl:w-48",
+      )}
     >
       <div className={clsx("absolute inset-0 flex items-center justify-center", CARD_TONES[index])}>
         <span className="text-label text-fernandito-off-white font-sans uppercase">{label}</span>
@@ -237,10 +251,23 @@ export function SocialGallerySection() {
         </div>
       </Parallax>
 
-      {/* Mobile/tablet — fileira com scroll-snap */}
+      {/* Celular — só 3 fotos empilhadas, alternando de lado e inclinação,
+          cada uma numa camada de parallax com velocidade própria. Arrastar
+          pro lado num bloco no meio da página disputava com a rolagem. */}
+      <div className="mt-10 flex flex-col items-center px-6 md:hidden">
+        {STACK.map(({ index, speed, shift, rotate }, k) => (
+          <Parallax key={index} speed={speed} className={k === 0 ? undefined : "-mt-10"}>
+            <div style={{ transform: `translateX(${shift}) rotate(${rotate}deg)` }}>
+              <PhotoCard index={index} stacked />
+            </div>
+          </Parallax>
+        ))}
+      </div>
+
+      {/* Tablet — fileira com scroll-snap */}
       <div
         ref={mobileRowRef}
-        className="mt-10 flex snap-x snap-mandatory [scrollbar-width:none] gap-4 overflow-x-auto px-6 pt-4 pb-8 [will-change:transform,opacity] sm:gap-6 lg:hidden [&::-webkit-scrollbar]:hidden"
+        className="mt-10 hidden snap-x snap-mandatory [scrollbar-width:none] gap-4 overflow-x-auto px-6 pt-4 pb-8 [will-change:transform,opacity] sm:gap-6 md:flex lg:hidden [&::-webkit-scrollbar]:hidden"
       >
         {Array.from({ length: CARD_COUNT }).map((_, i) => (
           <div
@@ -257,6 +284,7 @@ export function SocialGallerySection() {
         speed={20}
         className="mx-auto mt-8 flex max-w-5xl flex-col items-center px-6 text-center lg:mt-16"
       >
+        <p className="text-body font-accent mb-2 tracking-[0.04em]">Segue a gente no Instagram</p>
         <Button
           as="a"
           href="https://www.instagram.com/toma.fernandito/"

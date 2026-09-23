@@ -49,25 +49,6 @@ function RotateIcon() {
   );
 }
 
-/** Área de toque confortável (44×44) com o ícone visualmente menor dentro —
- * opacidade e label reagem via `group-hover` do cartão inteiro (mesmo
- * padrão do Button.tsx: CSS puro, sem listener JS de hover próprio). */
-function FlipHint({ label }: { label: string }) {
-  return (
-    <div
-      aria-hidden="true"
-      className="text-fernandito-verde-escuro absolute bottom-1 left-1 flex h-11 w-11 items-center gap-1.5 sm:bottom-2 sm:left-2"
-    >
-      <span className="duration-base ease-out-standard flex items-center gap-1.5 opacity-50 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100">
-        <RotateIcon />
-        <span className="text-label duration-base ease-out-standard font-sans tracking-[0.08em] uppercase opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100">
-          {label}
-        </span>
-      </span>
-    </div>
-  );
-}
-
 export type FlipCardProps = {
   front: ReactNode;
   back: ReactNode;
@@ -96,8 +77,8 @@ export function FlipCard({
   back,
   frontLabel,
   backLabel,
-  frontFlipLabel = "Virar",
-  backFlipLabel = "Voltar",
+  frontFlipLabel = "Girar",
+  backFlipLabel = "Girar de volta",
   paddingClassName = "p-6 sm:p-8 lg:p-12",
   cardClassName,
   elevation = "md",
@@ -105,6 +86,8 @@ export function FlipCard({
 }: FlipCardProps) {
   const outerRef = useRef<HTMLDivElement>(null);
   const flipperRef = useRef<HTMLDivElement>(null);
+  const frontRef = useRef<HTMLDivElement>(null);
+  const backRef = useRef<HTMLDivElement>(null);
   const [flipped, setFlipped] = useState(false);
   const isAnimatingRef = useRef(false);
 
@@ -122,7 +105,18 @@ export function FlipCard({
     }
 
     isAnimatingRef.current = true;
+    // A face de costas fica `visibility: hidden` de verdade e só troca
+    // quando o giro passa de 90°: no Safari, `backface-visibility` não
+    // esconde filhos com camada própria (selo, ícone animado) — eles
+    // apareciam espelhados por cima do verso.
+    const front = frontRef.current;
+    const backFace = backRef.current;
     const tl = gsap.timeline({
+      onUpdate: () => {
+        const showBack = Math.abs(Number(gsap.getProperty(flipper, "rotationY"))) > 90;
+        if (front) front.style.visibility = showBack ? "hidden" : "visible";
+        if (backFace) backFace.style.visibility = showBack ? "visible" : "hidden";
+      },
       onComplete: () => {
         isAnimatingRef.current = false;
         setFlipped(next);
@@ -133,9 +127,17 @@ export function FlipCard({
     // físico, como se o cartão fosse levantado e virado na mão) — a
     // elevação usa valores relativos ("-=","+=") pra compor sem conflito
     // com o y que o hover do ElevatedCard já pode estar controlando.
-    tl.to(flipper, { rotationY: next ? 180 : 0, duration: FLIP_DURATION, ease: "back.inOut(1.2)" }, 0);
+    tl.to(
+      flipper,
+      { rotationY: next ? 180 : 0, duration: FLIP_DURATION, ease: "back.inOut(1.2)" },
+      0,
+    );
     tl.to(outer, { y: `-=${LIFT_PX}`, duration: FLIP_DURATION / 2, ease: "power2.out" }, 0);
-    tl.to(outer, { y: `+=${LIFT_PX}`, duration: FLIP_DURATION / 2, ease: "power2.in" }, FLIP_DURATION / 2);
+    tl.to(
+      outer,
+      { y: `+=${LIFT_PX}`, duration: FLIP_DURATION / 2, ease: "power2.in" },
+      FLIP_DURATION / 2,
+    );
   };
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -145,65 +147,85 @@ export function FlipCard({
     }
   };
 
-  const frontActionLabel = `Virar cartão para ver ${backLabel}`;
-  const backActionLabel = `Virar cartão para ver ${frontLabel}`;
+  const frontActionLabel = `Girar cartão para ver ${backLabel}`;
+  const backActionLabel = `Girar cartão para ver ${frontLabel}`;
 
   return (
-    <ElevatedCard
-      ref={outerRef}
-      elevation={elevation}
-      rotateOnHover={rotateOnHover}
-      className={clsx("group relative", cardClassName)}
-      style={{ perspective: "1200px" }}
-    >
-      {/* Sizer invisível em fluxo normal — as duas faces reais abaixo são
+    <div className="group">
+      <ElevatedCard
+        ref={outerRef}
+        elevation={elevation}
+        rotateOnHover={rotateOnHover}
+        className={clsx("relative", cardClassName)}
+        style={{ perspective: "1200px" }}
+      >
+        {/* Sizer invisível em fluxo normal — as duas faces reais abaixo são
           absolutas (sem altura própria), então isso reserva o espaço do
           cartão a partir do conteúdo da frente. */}
-      <div aria-hidden="true" className={clsx("pointer-events-none invisible", paddingClassName)}>
-        {front}
-      </div>
+        <div aria-hidden="true" className={clsx("pointer-events-none invisible", paddingClassName)}>
+          {front}
+        </div>
 
-      <div
-        ref={flipperRef}
-        role="button"
-        tabIndex={0}
-        aria-label={flipped ? backActionLabel : frontActionLabel}
-        data-cursor-hover
-        onClick={flip}
-        onKeyDown={handleKeyDown}
-        className="absolute inset-0 cursor-pointer [transform-style:preserve-3d] [will-change:transform] motion-reduce:[transform-style:flat]"
-      >
-        {/* Enquanto uma face está de costas ela some (backface-visibility)
+        <div
+          ref={flipperRef}
+          role="button"
+          tabIndex={0}
+          aria-label={flipped ? backActionLabel : frontActionLabel}
+          data-cursor-hover
+          onClick={flip}
+          onKeyDown={handleKeyDown}
+          className="absolute inset-0 cursor-pointer [will-change:transform] [transform-style:preserve-3d] motion-reduce:[transform-style:flat]"
+        >
+          {/* Enquanto uma face está de costas ela some (backface-visibility)
             e ainda ganha pointer-events:none como reforço — evita clique
             fantasma em conteúdo interativo que essa face venha a ter no
             futuro. Sob prefers-reduced-motion a rotação 3D não acontece:
             as classes motion-reduce: trocam pra um crossfade de opacity. */}
-        <div
-          className={clsx(
-            "absolute inset-0 [backface-visibility:hidden] motion-reduce:transition-opacity motion-reduce:duration-fast motion-reduce:ease-out-standard",
-            paddingClassName,
-            flipped ? "pointer-events-none motion-reduce:opacity-0" : "motion-reduce:opacity-100",
-          )}
-        >
-          {front}
-          <FlipHint label={frontFlipLabel} />
+          <div
+            ref={frontRef}
+            className={clsx(
+              "motion-reduce:duration-fast motion-reduce:ease-out-standard absolute inset-0 [-webkit-backface-visibility:hidden] [backface-visibility:hidden] motion-reduce:transition-opacity",
+              paddingClassName,
+              flipped
+                ? "pointer-events-none motion-safe:invisible motion-reduce:opacity-0"
+                : "motion-reduce:opacity-100",
+            )}
+          >
+            {front}
+          </div>
+          <div
+            ref={backRef}
+            className={clsx(
+              "motion-reduce:duration-fast motion-reduce:ease-out-standard absolute inset-0 [transform:rotateY(180deg)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden] motion-reduce:[transform:none] motion-reduce:transition-opacity",
+              paddingClassName,
+              flipped
+                ? "motion-reduce:opacity-100"
+                : "pointer-events-none motion-safe:invisible motion-reduce:opacity-0",
+            )}
+          >
+            {back}
+          </div>
         </div>
-        <div
-          className={clsx(
-            "absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] motion-reduce:[transform:none] motion-reduce:transition-opacity motion-reduce:duration-fast motion-reduce:ease-out-standard",
-            paddingClassName,
-            flipped ? "motion-reduce:opacity-100" : "pointer-events-none motion-reduce:opacity-0",
-          )}
-        >
-          {back}
-          <FlipHint label={backFlipLabel} />
-        </div>
-      </div>
 
-      <span className="sr-only" aria-live="polite">
-        {flipped ? `Mostrando ${backLabel}.` : `Mostrando ${frontLabel}.`}
-      </span>
-    </ElevatedCard>
+        <span className="sr-only" aria-live="polite">
+          {flipped ? `Mostrando ${backLabel}.` : `Mostrando ${frontLabel}.`}
+        </span>
+      </ElevatedCard>
+
+      {/* Dica de "girar" fora do cartão, embaixo — dentro dele brigava com
+        as assinaturas e a legenda do verso. Clicável também; o controle
+        acessível continua sendo o próprio cartão (role="button"). */}
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-hidden="true"
+        onClick={flip}
+        className="text-fernandito-verde-escuro text-label duration-base ease-out-standard mx-auto mt-6 flex min-h-11 items-center gap-2 px-3 font-sans tracking-[0.12em] uppercase opacity-60 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+      >
+        <RotateIcon />
+        {flipped ? backFlipLabel : frontFlipLabel}
+      </button>
+    </div>
   );
 }
 
