@@ -241,7 +241,11 @@ export function SocialGallerySection() {
         <Parallax speed={40}>
           <TypewriterText
             text={SOCIAL.title}
-            className="font-rampart text-[clamp(1.75rem,4vw,3rem)] leading-[1.05] tracking-[0.02em] text-balance"
+            // Uma linha só em qualquer celular: o título mede ~12,3em, então
+            // abaixo de sm a fonte acompanha a largura (6,8vw ≈ 24px em 360px,
+            // com 312px livres) até o teto de 1.75rem. De sm pra cima, o
+            // tamanho de sempre.
+            className="font-rampart text-[min(6.8vw,1.75rem)] leading-[1.05] tracking-[0.02em] whitespace-nowrap sm:text-[clamp(1.75rem,4vw,3rem)]"
           />
         </Parallax>
       </div>

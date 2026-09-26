@@ -572,7 +572,10 @@ inset(100% 0 0 0)` → `inset(0)`, gatilho na própria moldura, `top 90%`
    meia tela). Foto em `src/content/site.ts` (`CONTATO.photo`). O botão é o
    mesmo `cta-destaque` magnético do menu e do rodapé.
 6. `SocialGallerySection` (`#social`, "O que anda rolando") — título
-   pequeno numa linha, escrito à máquina; embaixo "Segue a gente no
+   pequeno numa linha, escrito à máquina (`whitespace-nowrap`; abaixo de sm
+   a fonte é `min(6.8vw, 1.75rem)`, porque o título mede ~12,3em e em 390px
+   ele quebrava, deixando um "R" solto durante a digitação; cabe numa linha
+   de 320px pra cima); embaixo "Segue a gente no
    Instagram" + link @toma.fernandito; seção compacta (~1 tela). **No
    celular (< md)**: só 3 fotos empilhadas (alternando de lado e
    inclinação, levemente sobrepostas), cada uma numa camada de `Parallax`
