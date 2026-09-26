@@ -33,6 +33,7 @@ export function HeroSection() {
   const logoRef = useRef<HTMLHeadingElement>(null);
   const taglineRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLButtonElement>(null);
+  const indicatorFadeRef = useRef<HTMLDivElement>(null);
   const chevronRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -42,7 +43,8 @@ export function HeroSection() {
     const logo = logoRef.current;
     const tagline = taglineRef.current;
     const indicator = indicatorRef.current;
-    if (!section || !box || !exit || !logo || !tagline || !indicator) return;
+    const indicatorFade = indicatorFadeRef.current;
+    if (!section || !box || !exit || !logo || !tagline || !indicator || !indicatorFade) return;
 
     const reduceMotion = prefersReducedMotion();
 
@@ -130,7 +132,10 @@ export function HeroSection() {
             scale: 1 - boxProgress * (1 - SHRINK_SCALE),
             borderRadius: boxProgress * SHRINK_RADIUS,
           });
-          gsap.set(indicator, { opacity: 1 - indicatorProgress });
+          // No wrapper, não no botão: a entrada anima a opacidade do botão
+          // e, se a pessoa rolasse antes dela terminar, o "scroll" voltava
+          // a aparecer por cima do logo.
+          gsap.set(indicatorFade, { autoAlpha: 1 - indicatorProgress });
         },
       });
 
@@ -205,28 +210,33 @@ export function HeroSection() {
           </div>
         </div>
 
-        <button
-          ref={indicatorRef}
-          type="button"
-          onClick={() => scrollToTarget("#o-que-e")}
-          aria-label="Rolar até a próxima seção"
-          className="text-fernandito-off-white/70 duration-base ease-out-standard focus-visible:outline-fernandito-off-white text-body hover:text-fernandito-off-white focus-visible:text-fernandito-off-white absolute bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 flex -translate-x-1/2 items-center gap-1 bg-transparent font-sans transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
+        <div
+          ref={indicatorFadeRef}
+          className="absolute bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2"
         >
-          {HERO.scrollHint}
-          <svg
-            ref={chevronRef}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            className="h-4 w-4"
+          <button
+            ref={indicatorRef}
+            type="button"
+            onClick={() => scrollToTarget("#o-que-e")}
+            aria-label="Rolar até a próxima seção"
+            className="text-fernandito-off-white/70 duration-base ease-out-standard focus-visible:outline-fernandito-off-white text-body hover:text-fernandito-off-white focus-visible:text-fernandito-off-white flex items-center gap-1 bg-transparent font-sans transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
           >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </button>
+            {HERO.scrollHint}
+            <svg
+              ref={chevronRef}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className="h-4 w-4"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+        </div>
       </div>
     </section>
   );

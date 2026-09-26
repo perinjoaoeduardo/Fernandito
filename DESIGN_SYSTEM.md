@@ -419,7 +419,10 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    `scale`/`border-radius` do cartão animam via `ScrollTrigger` (`scrub`)
    de tela cheia (scale 1, raio 0) até um cartão menor e arredondado
    (`scale 0.9`, raio 40px), revelando o fundo da própria `<section>`
-   como moldura. Só o indicador "scroll" desvanece (nos primeiros 15%).
+   como moldura. Só o indicador "scroll" desvanece (nos primeiros 15%),
+   num wrapper próprio (`indicatorFadeRef`): a entrada anima a opacidade
+   do botão, e se a pessoa rolasse antes dela terminar o "scroll" voltava
+   por cima do logo.
    **O logo e a frase nunca saem do cartão**: encolhem junto com ele e,
    quando o sticky solta e o cartão sobe com a página, o bloco do logo
    (`exitRef`, da altura do cartão) desce 55% do caminho (`EXIT_LAG`)
