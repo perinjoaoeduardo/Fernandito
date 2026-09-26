@@ -419,9 +419,15 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    `scale`/`border-radius` do cartão animam via `ScrollTrigger` (`scrub`)
    de tela cheia (scale 1, raio 0) até um cartão menor e arredondado
    (`scale 0.9`, raio 40px), revelando o fundo da própria `<section>`
-   como moldura. Texto/indicador desvanecem antes do cartão terminar de
-   encolher. `prefers-reduced-motion` volta a section pra um `h-screen`
-   simples, sem o efeito.
+   como moldura. Só o indicador "scroll" desvanece (nos primeiros 15%).
+   **O logo e a frase nunca saem do cartão**: encolhem junto com ele e,
+   quando o sticky solta e o cartão sobe com a página, o bloco do logo
+   (`exitRef`, da altura do cartão) desce 55% do caminho (`EXIT_LAG`)
+   — parallax que mantém o logo no meio da faixa do cartão que ainda está
+   na tela (medido: no máximo ~12px fora do centro, no celular e no
+   desktop). Antes o texto sumia no primeiro terço e sobrava quase uma
+   tela de cartão verde vazio. `prefers-reduced-motion` volta a section
+   pra um `h-screen` simples, sem o efeito.
 
    **Regra da cor da moldura:** o fundo da `<section>` (a moldura revelada)
    tem que ser **sempre a mesma cor de fundo da seção seguinte** — hoje,

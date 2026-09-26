@@ -20,11 +20,16 @@ import { HERO } from "@/content/site";
 // abaixo) — sutil o bastante pra não parecer um zoom brusco.
 const SHRINK_SCALE = 0.9;
 const SHRINK_RADIUS = 40; // px
+// Na saída o bloco do logo (da altura do cartão) desce um pouco mais que
+// metade do que o cartão sobe: assim o logo fica no meio da parte do
+// cartão que ainda está na tela (a metade exata deixaria ele ~35px acima,
+// porque a frase embaixo puxa o centro do bloco pra baixo do logo).
+const EXIT_LAG = 55;
 
 export function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const exitRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLHeadingElement>(null);
   const taglineRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLButtonElement>(null);
@@ -33,11 +38,11 @@ export function HeroSection() {
   useEffect(() => {
     const section = sectionRef.current;
     const box = boxRef.current;
-    const content = contentRef.current;
+    const exit = exitRef.current;
     const logo = logoRef.current;
     const tagline = taglineRef.current;
     const indicator = indicatorRef.current;
-    if (!section || !box || !content || !logo || !tagline || !indicator) return;
+    if (!section || !box || !exit || !logo || !tagline || !indicator) return;
 
     const reduceMotion = prefersReducedMotion();
 
@@ -103,11 +108,13 @@ export function HeroSection() {
     // e o cartão (`box`) fica `sticky top-0` — enquanto o resto da altura extra
     // rola por baixo dele, a gente anima scale + border-radius do cartão
     // (revela o fundo da própria section nas bordas, como uma moldura — ver
-    // comentário no `className` da section abaixo) e desvanece o conteúdo de
-    // texto, que já não faz sentido dentro de um cartão pequeno.
+    // comentário no `className` da section abaixo). O logo e a frase FICAM
+    // no cartão, encolhendo junto: antes eles sumiam no
+    // primeiro terço e sobrava quase uma tela de cartão verde vazio.
     // Ao fim do range, o sticky solta sozinho e a OQueESection continua o
     // scroll normalmente — sem precisar de pin/unpin manual via ScrollTrigger.
     let shrinkTrigger: ScrollTrigger | null = null;
+    let exitTween: gsap.core.Tween | null = null;
     if (!reduceMotion) {
       shrinkTrigger = ScrollTrigger.create({
         trigger: section,
@@ -117,20 +124,34 @@ export function HeroSection() {
         onUpdate: (self) => {
           const progress = self.progress;
           const boxProgress = Math.min(1, progress / 0.7);
-          const contentProgress = Math.min(1, progress / 0.35);
           const indicatorProgress = Math.min(1, progress / 0.15);
 
           gsap.set(box, {
             scale: 1 - boxProgress * (1 - SHRINK_SCALE),
             borderRadius: boxProgress * SHRINK_RADIUS,
           });
-          gsap.set(content, {
-            opacity: 1 - contentProgress,
-            y: -contentProgress * 40,
-          });
           gsap.set(indicator, { opacity: 1 - indicatorProgress });
         },
       });
+
+      // Saída: quando o sticky solta e o cartão sobe com a página, o logo
+      // sobe mais devagar que ele (parallax) e fica centrado na faixa do
+      // cartão que ainda aparece — é a última coisa a deixar a tela, nunca
+      // sobra cartão vazio.
+      exitTween = gsap.fromTo(
+        exit,
+        { yPercent: 0 },
+        {
+          yPercent: EXIT_LAG,
+          ease: "none",
+          scrollTrigger: {
+            trigger: section,
+            start: "bottom bottom",
+            end: "bottom top",
+            scrub: true,
+          },
+        },
+      );
     }
 
     return () => {
@@ -138,6 +159,8 @@ export function HeroSection() {
       entranceTimeline?.kill();
       removeMouseMove?.();
       shrinkTrigger?.kill();
+      exitTween?.scrollTrigger?.kill();
+      exitTween?.kill();
       ctx.revert();
     };
   }, []);
@@ -157,22 +180,27 @@ export function HeroSection() {
         ref={boxRef}
         className="bg-fernandito-verde-escuro sticky top-0 flex h-screen w-full flex-col items-center justify-center overflow-hidden [will-change:transform,border-radius]"
       >
-        <div ref={contentRef} className="flex flex-col items-center px-6 text-center">
-          {/* O texto do h1 vive num `sr-only` de verdade (não só no `alt` da
+        <div
+          ref={exitRef}
+          className="absolute inset-0 flex items-center justify-center [will-change:transform]"
+        >
+          <div className="flex flex-col items-center px-6 text-center">
+            {/* O texto do h1 vive num `sr-only` de verdade (não só no `alt` da
               imagem): garante um h1 com texto rastreável no HTML do servidor,
               independente do raster do logo carregar ou não. A imagem vira
               decorativa (`alt=""`) pra não duplicar o anúncio no leitor. */}
-          <h1 ref={logoRef} className="flex justify-center">
-            <span className="sr-only">{HERO.srTitle}</span>
-            <Logo alt="" aria-hidden />
-          </h1>
-          <div
-            ref={taglineRef}
-            className="text-fernandito-off-white font-rampart-sans mt-3 flex flex-col items-center gap-1"
-          >
-            <p className="text-body-lg">{HERO.tagline}</p>
-            <div className="text-body text-fernandito-off-white/70">
-              <RotatingWord />
+            <h1 ref={logoRef} className="flex justify-center">
+              <span className="sr-only">{HERO.srTitle}</span>
+              <Logo alt="" aria-hidden />
+            </h1>
+            <div
+              ref={taglineRef}
+              className="text-fernandito-off-white font-rampart-sans mt-3 flex flex-col items-center gap-1"
+            >
+              <p className="text-body-lg">{HERO.tagline}</p>
+              <div className="text-body text-fernandito-off-white/70">
+                <RotatingWord />
+              </div>
             </div>
           </div>
         </div>
