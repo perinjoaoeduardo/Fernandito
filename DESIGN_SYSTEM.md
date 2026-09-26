@@ -534,8 +534,11 @@ sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    linha fina na junção): fundo off-white sólido, mesma cor do fim do
    palco, com espaçamento normal (`pt-16` no celular, `sm:py-24`). Título "Nosso
    manifesto" pequeno (`TypewriterText`, `clamp(1.625rem,3vw,2.25rem)` —
-   o protagonista é o cartão, não o título) + cartão-postal (até 830px de
-   largura). Entrada presa ao scroll num wrapper: o cartão sobe inclinado
+   o protagonista é o cartão, não o título) + cartão-postal (até 782px de
+   largura; wrapper `max-w-[878px]` com `px-6 sm:px-12`: o selo fica
+   pendurado ~20px pra fora do cartão e, com só 24px de margem, era cortado
+   pela borda da tela entre 640 e 830px. Folga medida do selo até a borda:
+   10px no celular, 21px no tablet). Entrada presa ao scroll num wrapper: o cartão sobe inclinado
    (y 160, −6°, escala 0.9) e assenta; no fim o selo é "carimbado" (escala
    2.2 → 1 com `back.out`, pego por `data-seal` porque existe em dobro no
    DOM). Cartão com verso via

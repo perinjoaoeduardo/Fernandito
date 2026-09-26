@@ -76,7 +76,7 @@ export function CartaSection() {
           não GSAP+ref: o FlipCard renderiza esse conteúdo duas vezes (um
           "sizer" invisível pra altura + a face real), então um ref aqui
           resolveria pra uma cópia arbitrária das duas. */}
-      <div className="text-fernandito-verde-escuro ease-out-standard absolute -right-3 -bottom-4 aspect-square w-24 rotate-[8deg] drop-shadow-[0_4px_10px_rgba(36,48,34,0.25)] transition-transform duration-500 [will-change:transform] group-hover:-translate-y-1 group-hover:rotate-[11deg] sm:-right-5 sm:-bottom-6 sm:w-28 lg:-right-6 lg:-bottom-8 lg:w-[120px]">
+      <div className="text-fernandito-verde-escuro ease-out-standard absolute -right-2 -bottom-4 aspect-square w-24 rotate-[8deg] drop-shadow-[0_4px_10px_rgba(36,48,34,0.25)] transition-transform duration-500 [will-change:transform] group-hover:-translate-y-1 group-hover:rotate-[11deg] sm:-right-5 sm:-bottom-6 sm:w-28 lg:-right-6 lg:-bottom-8 lg:w-[120px]">
         {/* eslint-disable-next-line @next/next/no-img-element -- raster estático de tamanho fixo, next/image não traz benefício */}
         <img
           data-seal
@@ -133,11 +133,14 @@ export function CartaSection() {
         </Parallax>
       </div>
 
-      {/* 830px ≈ 720 + 15%: o cartão é o protagonista da seção. */}
+      {/* Cartão de até 782px (≈ 680 + 15%): o protagonista da seção. A
+          margem lateral cresce a partir de sm (48px) porque o selo fica
+          pendurado ~20px pra fora do cartão — com 24px ele era cortado pela
+          borda da tela entre 640 e 830px. max-w 878 = 782 + 2 × 48. */}
       <Parallax speed={-25}>
         <div
           ref={cardWrapRef}
-          className="mx-auto mt-6 max-w-[830px] px-6 [will-change:transform] sm:mt-8"
+          className="mx-auto mt-6 max-w-[878px] px-6 [will-change:transform] sm:mt-8 sm:px-12"
         >
           <FlipCard
             front={front}
