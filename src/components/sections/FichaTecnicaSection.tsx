@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger, prefersReducedMotion } from "@/lib/gsap";
+import { gsap, ScrollTrigger, DURATION, EASE, prefersReducedMotion } from "@/lib/gsap";
+import { MARQUEE } from "@/content/site";
 
 // Frase curta, só o essencial de marca — nada de texto regulatório aqui
 // (isso mora em /legal/avisos). `font-accent` (Special Elite, o mesmo dos
 // carimbos da SocialGallerySection), pra faixa ter voz tipográfica própria.
 // Fundo verde-claro: separa visualmente do rodapé verde-escuro logo abaixo.
-const MARQUEE_PHRASE = "TOMA FERNANDITO · FERNET Y COLA · ";
+const MARQUEE_PHRASE = MARQUEE.phrases.map((phrase) => `${phrase} · `).join("");
 
 // Repetido várias vezes pra garantir que uma "metade" da trilha já seja mais
 // larga que qualquer viewport razoável — condição pro loop xPercent:-50 ficar
@@ -34,7 +35,8 @@ function Marquee() {
       trigger: container,
       start: "top 90%",
       once: true,
-      onEnter: () => gsap.to(container, { opacity: 1, duration: 0.6, ease: "power1.out" }),
+      onEnter: () =>
+        gsap.to(container, { opacity: 1, duration: DURATION.enter, ease: EASE.outStandard }),
     });
 
     // Velocidade constante (px/s) independente da largura da trilha, pra não

@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { gsap, prefersReducedMotion } from "@/lib/gsap";
+import { gsap, EASE, SCRUB, prefersReducedMotion } from "@/lib/gsap";
 import { Parallax } from "@/components/ui/Parallax";
 import { TypewriterText } from "@/components/ui/TypewriterText";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
+import { PhotoSlot } from "@/components/ui/PhotoSlot";
+import { CONTATO } from "@/content/site";
 
 /**
  * CTA de contato, tela dividida: texto à esquerda (título escrito à máquina
@@ -29,10 +31,10 @@ export function ContatoSection() {
         {
           autoAlpha: 1,
           y: 0,
-          ease: "power2.out",
+          ease: EASE.outStandard,
           // Mesmo gatilho dos textos (a seção), logo depois do parágrafo
           // terminar de se escrever — o botão é o último da sequência.
-          scrollTrigger: { trigger: section, start: "top 8%", end: "top -4%", scrub: 0.5 },
+          scrollTrigger: { trigger: section, start: "top 8%", end: "top -4%", scrub: SCRUB.base },
         },
       );
       // Imagem 120% da altura da moldura: desliza de cima pra baixo e
@@ -62,7 +64,7 @@ export function ContatoSection() {
       <div className="flex flex-col items-start justify-center px-6 py-24 sm:px-10 md:py-32 lg:px-16">
         <Parallax speed={40}>
           <TypewriterText
-            text="Quer Fernandito no teu rolê?"
+            text={CONTATO.title}
             triggerSelector="#contato"
             start="top 90%"
             end="top 30%"
@@ -70,7 +72,7 @@ export function ContatoSection() {
           />
           <TypewriterText
             as="p"
-            text="Bar, festa, evento ou só curiosidade? Chama a gente no WhatsApp que a gente responde."
+            text={CONTATO.text}
             caret={false}
             triggerSelector="#contato"
             start="top 30%"
@@ -78,24 +80,23 @@ export function ContatoSection() {
             className="text-body-lg mt-8 max-w-md font-sans"
           />
           <div ref={ctaRef} className="mt-10">
-            <WhatsAppButton background="verde-escuro">Chamar no WhatsApp</WhatsAppButton>
+            <WhatsAppButton background="verde-escuro">{CONTATO.cta}</WhatsAppButton>
           </div>
         </Parallax>
       </div>
 
-      {/* Metade da imagem — placeholder; com a foto real, trocar o miolo
-          por `<Image fill className="object-cover" />` dentro do wrapper
-          com parallax. */}
+      {/* Metade da imagem (foto em `src/content/site.ts`), 120% da altura
+          da moldura pra sobrar margem pro parallax. */}
       <div className="relative aspect-[4/5] overflow-hidden md:aspect-auto">
         <div
           ref={imageRef}
-          role="img"
-          aria-label="Fernandito no rolê"
-          className="bg-fernandito-verde-escuro absolute inset-x-0 -top-[10%] flex h-[120%] items-center justify-center [will-change:transform]"
+          className="absolute inset-x-0 -top-[10%] h-[120%] [will-change:transform]"
         >
-          <span className="text-label font-sans tracking-[0.12em] uppercase opacity-70">
-            Foto contato
-          </span>
+          <PhotoSlot
+            image={CONTATO.photo}
+            sizes="(max-width: 767px) 100vw, 50vw"
+            placeholderClassName="bg-fernandito-verde-escuro"
+          />
           <div className="grain-overlay pointer-events-none absolute inset-0 opacity-[0.06] mix-blend-overlay" />
         </div>
       </div>

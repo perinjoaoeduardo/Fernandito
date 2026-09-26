@@ -2,7 +2,9 @@
 
 import { clsx } from "clsx";
 import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger, prefersReducedMotion } from "@/lib/gsap";
+import { gsap, ScrollTrigger, SCRUB, prefersReducedMotion } from "@/lib/gsap";
+import { GALERIA } from "@/content/site";
+import { PhotoSlot } from "@/components/ui/PhotoSlot";
 
 // Cada foto tem proporção (`ratio` = largura/altura), altura relativa ao
 // palco (`h`), deslocamento vertical (`off`, fração da altura do palco) e
@@ -10,7 +12,6 @@ import { gsap, ScrollTrigger, prefersReducedMotion } from "@/lib/gsap";
 // frente e correm mais rápido; as pequenas ficam atrás e correm mais
 // devagar. A foto 0 (a "inteira") e a última andam na velocidade base.
 type Photo = {
-  label: string;
   tone: string;
   ratio: number;
   h: number;
@@ -21,7 +22,6 @@ type Photo = {
 
 const PHOTOS: Photo[] = [
   {
-    label: "Foto 01",
     tone: "bg-fernandito-verde-medio",
     ratio: 4 / 5,
     h: 0.62,
@@ -30,7 +30,6 @@ const PHOTOS: Photo[] = [
     z: 5,
   },
   {
-    label: "Foto 02",
     tone: "bg-fernandito-verde-claro",
     ratio: 3 / 4,
     h: 0.42,
@@ -39,7 +38,6 @@ const PHOTOS: Photo[] = [
     z: 2,
   },
   {
-    label: "Foto 03",
     tone: "bg-fernandito-verde-medio",
     ratio: 4 / 3,
     h: 0.5,
@@ -48,7 +46,6 @@ const PHOTOS: Photo[] = [
     z: 6,
   },
   {
-    label: "Foto 04",
     tone: "bg-fernandito-verde-claro",
     ratio: 4 / 5,
     h: 0.58,
@@ -57,7 +54,6 @@ const PHOTOS: Photo[] = [
     z: 4,
   },
   {
-    label: "Foto 05",
     tone: "bg-fernandito-verde-escuro",
     ratio: 3 / 4,
     h: 0.4,
@@ -66,7 +62,6 @@ const PHOTOS: Photo[] = [
     z: 1,
   },
   {
-    label: "Foto 06",
     tone: "bg-fernandito-verde-claro",
     ratio: 4 / 3,
     h: 0.46,
@@ -75,7 +70,6 @@ const PHOTOS: Photo[] = [
     z: 6,
   },
   {
-    label: "Foto 07",
     tone: "bg-fernandito-verde-medio",
     ratio: 4 / 5,
     h: 0.6,
@@ -112,27 +106,22 @@ function layout(W: number, H: number) {
   return { sizes, D };
 }
 
-/** Miolo de cada card — hoje placeholder; com a foto real, trocar o
- * conteúdo por `<Image fill className="object-cover" />` mantendo o wrapper
- * (ele é mais largo que o card pra sobrar margem pro parallax). */
+/** Miolo de cada card: a foto de `src/content/site.ts` (ou o placeholder).
+ * O wrapper é mais largo que o card pra sobrar margem pro parallax. */
 function PhotoFill({
-  photo,
+  index,
   innerRef,
 }: {
-  photo: Photo;
+  index: number;
   innerRef?: (el: HTMLDivElement | null) => void;
 }) {
   return (
-    <div
-      ref={innerRef}
-      className={clsx(
-        "absolute inset-y-0 -left-[10%] flex w-[120%] items-center justify-center [will-change:transform]",
-        photo.tone,
-      )}
-    >
-      <span className="text-label text-fernandito-off-white font-sans tracking-[0.12em] uppercase opacity-80">
-        {photo.label}
-      </span>
+    <div ref={innerRef} className="absolute inset-y-0 -left-[10%] w-[120%] [will-change:transform]">
+      <PhotoSlot
+        image={GALERIA.photos[index]}
+        sizes="(max-width: 767px) 90vw, 60vw"
+        placeholderClassName={PHOTOS[index].tone}
+      />
     </div>
   );
 }
@@ -237,14 +226,18 @@ export function GaleriaSection() {
           // A seção acompanha a cor do palco: se alguma faixa dela aparecer
           // por baixo do palco (barra do navegador do celular recolhendo),
           // é da mesma cor, não uma listra verde-escuro sobre o bege.
-          .to([stage, section], { backgroundColor: BG_TO, duration: p2 * 0.85, ease: "power1.inOut" }, p1);
+          .to(
+            [stage, section],
+            { backgroundColor: BG_TO, duration: p2 * 0.85, ease: "power1.inOut" },
+            p1,
+          );
 
         const pinTrigger = ScrollTrigger.create({
           trigger: stage,
           start: "top top",
           end: `+=${p1 + p2}`,
           pin: true,
-          scrub: 0.8,
+          scrub: SCRUB.soft,
           anticipatePin: 1,
           animation: tl,
         });
@@ -265,7 +258,7 @@ export function GaleriaSection() {
             scrollTrigger: {
               start: () => pinTrigger.end,
               end: () => pinTrigger.end + H,
-              scrub: 0.8,
+              scrub: SCRUB.soft,
             },
           });
         });
@@ -313,9 +306,9 @@ export function GaleriaSection() {
         // fica mais alta que um palco em svh — sobrava uma faixa embaixo.
         className="bg-fernandito-verde-escuro relative h-lvh w-full overflow-hidden motion-reduce:hidden"
       >
-        {PHOTOS.map((photo, i) => (
+        {PHOTOS.map((_, i) => (
           <div
-            key={photo.label}
+            key={i}
             ref={(el) => {
               layerRefs.current[i] = el;
             }}
@@ -325,8 +318,6 @@ export function GaleriaSection() {
               ref={(el) => {
                 cardRefs.current[i] = el;
               }}
-              role="img"
-              aria-label={`Galeria Fernandito — ${photo.label.toLowerCase()}`}
               className={clsx(
                 "absolute top-0 left-0 overflow-hidden shadow-[0_24px_60px_rgba(36,48,34,0.3)] [will-change:transform]",
                 // Antes do JS (SSR): foto 0 já é a foto inteira; o resto fica
@@ -336,7 +327,7 @@ export function GaleriaSection() {
               )}
             >
               <PhotoFill
-                photo={photo}
+                index={i}
                 innerRef={(el) => {
                   innerRefs.current[i] = el;
                 }}
@@ -349,14 +340,9 @@ export function GaleriaSection() {
       {/* ── prefers-reduced-motion: grid estático, sem pin nem scroll ── */}
       <div className="hidden px-6 py-24 motion-reduce:block">
         <div className="mx-auto grid max-w-5xl grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
-          {PHOTOS.map((photo) => (
-            <div
-              key={photo.label}
-              role="img"
-              aria-label={`Galeria Fernandito — ${photo.label.toLowerCase()}`}
-              className="relative aspect-[4/5] overflow-hidden rounded-[20px]"
-            >
-              <PhotoFill photo={photo} />
+          {PHOTOS.map((_, i) => (
+            <div key={i} className="relative aspect-[4/5] overflow-hidden rounded-[20px]">
+              <PhotoFill index={i} />
             </div>
           ))}
         </div>

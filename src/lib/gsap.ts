@@ -17,11 +17,29 @@ export const EASE = {
   inOutSmooth: "in-out-smooth",
 } as const;
 
-// Segundos (GSAP), espelhando os tokens `duration-*` em ms do Tailwind.
+// A mesma `out-standard` como array, pro framer-motion (FloatingNav).
+export const EASE_BEZIER = {
+  outStandard: [0.22, 1, 0.36, 1],
+} as const;
+
+// Segundos (GSAP). fast/base/slow espelham os tokens `duration-*` do
+// Tailwind: base é todo hover e troca de estado; slow é o que tem peso
+// físico (cartão levantando). `enter` é a entrada única de um bloco.
 export const DURATION = {
   fast: 0.15,
   base: 0.3,
   slow: 0.5,
+  enter: 0.7,
+} as const;
+
+// Atraso (s) com que uma animação presa à rolagem alcança a posição da
+// rolagem. tight: texto e detalhes que têm que responder na hora
+// (máquina de escrever, carimbo). base: blocos entrando. soft: objetos
+// grandes com "peso" (galeria saindo, cartão do Manifesto).
+export const SCRUB = {
+  tight: 0.4,
+  base: 0.6,
+  soft: 0.8,
 } as const;
 
 /**

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger, SplitText, prefersReducedMotion } from "@/lib/gsap";
+import { gsap, ScrollTrigger, SplitText, SCRUB, prefersReducedMotion } from "@/lib/gsap";
+import Image from "next/image";
+import { O_QUE_E } from "@/content/site";
 import { Parallax } from "@/components/ui/Parallax";
 
 // Textos curtos ("o que somos") revelados letra a letra, tipo máquina de
@@ -12,14 +14,7 @@ import { Parallax } from "@/components/ui/Parallax";
 // bloco gigante à parte) e usa a mesma máquina de escrever, só que num
 // tamanho bem mais contido — estilo do segundo bloco da home da Lassie,
 // onde a frase de efeito fica logo abaixo do texto curto, não domina a
-// tela sozinha.
-const PARAGRAPHS = [
-  "Fernandito é uma bebida mista pronta pra beber: fernet e cola numa lata só, gaseificada, 8% vol.",
-  "Sem coqueteleira, sem gelo, sem enrolação — só abrir e virar. O ritual gaúcho do fernet, do jeito que a vida moderna pede.",
-];
-
-const STATEMENT = "Onde tomar fernet vira tão fácil quanto abrir uma lata.";
-
+// tela sozinha. Textos em `src/content/site.ts`.
 const TYPE_STAGGER = 0.014;
 
 export function OQueESection() {
@@ -75,7 +70,7 @@ export function OQueESection() {
       // não só quando ela já está saindo por cima.
       start: "top 90%",
       end: "bottom 85%",
-      scrub: 0.4,
+      scrub: SCRUB.tight,
       animation: gsap.timeline().to(chars, { opacity: 1, stagger: TYPE_STAGGER, ease: "none" }),
     });
 
@@ -92,31 +87,45 @@ export function OQueESection() {
       className="bg-fernandito-off-white text-fernandito-verde-escuro w-full px-6 py-20 sm:py-32"
     >
       <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-[minmax(0,200px)_1fr] md:items-center md:gap-16">
-        {/* Placeholder — aqui entra a arte da lata quando o asset chegar.
-            Parallax: lata atrás (mais lenta), texto na frente. */}
+        {/* A lata (arte em `src/content/site.ts`; sem arte, placeholder
+            tracejado). Parallax: lata atrás (mais lenta), texto na frente. */}
         <Parallax speed={-50}>
-          <div className="border-fernandito-verde-escuro/25 mx-auto flex aspect-[3/7] w-24 shrink-0 items-center justify-center rounded-[2rem] border-2 border-dashed md:mx-0 md:w-full">
-            <span className="text-label font-accent px-3 text-center uppercase opacity-80">
-              lata
-              <br />
-              (aguardando arte)
-            </span>
+          <div
+            className={
+              O_QUE_E.lata.src
+                ? "relative mx-auto aspect-[3/7] w-24 shrink-0 md:mx-0 md:w-full"
+                : "border-fernandito-verde-escuro/25 mx-auto flex aspect-[3/7] w-24 shrink-0 items-center justify-center rounded-[2rem] border-2 border-dashed md:mx-0 md:w-full"
+            }
+          >
+            {O_QUE_E.lata.src ? (
+              <Image
+                src={O_QUE_E.lata.src}
+                alt={O_QUE_E.lata.alt}
+                fill
+                sizes="(max-width: 767px) 96px, 200px"
+                className="object-contain"
+              />
+            ) : (
+              <span className="text-label font-accent px-3 text-center uppercase opacity-80">
+                {O_QUE_E.lata.placeholder}
+              </span>
+            )}
           </div>
         </Parallax>
 
         <Parallax speed={30}>
           <div ref={columnRef} className="flex flex-col gap-6">
             <p ref={p1Ref} className="text-body-lg font-sans">
-              {PARAGRAPHS[0]}
+              {O_QUE_E.paragraphs[0]}
             </p>
             <p ref={p2Ref} className="text-body-lg font-sans">
-              {PARAGRAPHS[1]}
+              {O_QUE_E.paragraphs[1]}
             </p>
             <h2
               ref={statementRef}
               className="text-display-sm font-rampart mt-4 leading-[1.15] tracking-[0.01em] text-balance"
             >
-              {STATEMENT}
+              {O_QUE_E.statement}
             </h2>
           </div>
         </Parallax>

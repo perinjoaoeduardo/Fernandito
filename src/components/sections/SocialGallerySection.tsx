@@ -2,11 +2,21 @@
 
 import { clsx } from "clsx";
 import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger, EASE, prefersReducedMotion, supportsHover } from "@/lib/gsap";
+import {
+  gsap,
+  ScrollTrigger,
+  DURATION,
+  EASE,
+  SCRUB,
+  prefersReducedMotion,
+  supportsHover,
+} from "@/lib/gsap";
 import { Parallax } from "@/components/ui/Parallax";
 import { Button } from "@/components/ui/Button";
 import { InstagramIcon } from "@/components/ui/icons";
 import { TypewriterText } from "@/components/ui/TypewriterText";
+import { PhotoSlot } from "@/components/ui/PhotoSlot";
+import { LINKS, SOCIAL } from "@/content/site";
 
 const CARD_COUNT = 7;
 const CENTER_INDEX = 3;
@@ -57,23 +67,22 @@ function PhotoCard({
   /** Versão da pilha do celular: mais larga (fração da tela). */
   stacked?: boolean;
 }) {
-  const label = `FOTO ${String(index + 1).padStart(2, "0")}`;
   const stamp = STAMPS[index];
 
   return (
     <div
       ref={cardRef}
       data-cursor-hover
-      role="img"
-      aria-label={`Fernandito no Instagram — foto ${index + 1}`}
       className={clsx(
         "relative aspect-[4/5] shrink-0 overflow-hidden rounded-2xl shadow-[0_18px_40px_rgba(36,48,34,0.22)] [will-change:transform]",
         stacked ? "w-[68vw] max-w-72" : "w-56 sm:w-60 lg:w-44 xl:w-48",
       )}
     >
-      <div className={clsx("absolute inset-0 flex items-center justify-center", CARD_TONES[index])}>
-        <span className="text-label text-fernandito-off-white font-sans uppercase">{label}</span>
-      </div>
+      <PhotoSlot
+        image={SOCIAL.photos[index]}
+        sizes={stacked ? "68vw" : "(max-width: 1023px) 240px, 192px"}
+        placeholderClassName={CARD_TONES[index]}
+      />
       {/* Textura de grão — mesma técnica do FooterSection, reaproveitada. */}
       <div className="grain-overlay pointer-events-none absolute inset-0 opacity-[0.06] mix-blend-overlay" />
       {stamp && (
@@ -131,7 +140,7 @@ export function SocialGallerySection() {
         trigger: fan,
         start: "top 90%",
         end: "top 35%",
-        scrub: 0.6,
+        scrub: SCRUB.base,
         invalidateOnRefresh: true,
       },
     });
@@ -140,7 +149,7 @@ export function SocialGallerySection() {
       tl.fromTo(
         card,
         { x: () => stackX(i), y: 40, rotate: (i - CENTER_INDEX) * 3, scale: 0.92 },
-        { ...final(i), ease: "power2.out" },
+        { ...final(i), ease: EASE.outStandard },
         0,
       );
     });
@@ -167,22 +176,24 @@ export function SocialGallerySection() {
         gsap.to(card, {
           rotate: 0,
           scale: baseScale(i) + 0.08,
-          duration: 0.35,
-          ease: "power2.out",
+          duration: DURATION.base,
+          ease: EASE.outStandard,
         });
-        if (left) gsap.to(left, { x: -HOVER_PUSH, duration: 0.35, ease: "power2.out" });
-        if (right) gsap.to(right, { x: HOVER_PUSH, duration: 0.35, ease: "power2.out" });
+        if (left)
+          gsap.to(left, { x: -HOVER_PUSH, duration: DURATION.base, ease: EASE.outStandard });
+        if (right)
+          gsap.to(right, { x: HOVER_PUSH, duration: DURATION.base, ease: EASE.outStandard });
       };
       const handleLeave = () => {
         gsap.to(card, {
           rotate: ROTATIONS[i],
           scale: baseScale(i),
-          duration: 0.35,
-          ease: "power2.out",
+          duration: DURATION.base,
+          ease: EASE.outStandard,
           onComplete: () => gsap.set(card, { zIndex: BASE_Z - distanceFromCenter(i) }),
         });
-        if (left) gsap.to(left, { x: 0, duration: 0.35, ease: "power2.out" });
-        if (right) gsap.to(right, { x: 0, duration: 0.35, ease: "power2.out" });
+        if (left) gsap.to(left, { x: 0, duration: DURATION.base, ease: EASE.outStandard });
+        if (right) gsap.to(right, { x: 0, duration: DURATION.base, ease: EASE.outStandard });
       };
 
       card.addEventListener("mouseenter", handleEnter);
@@ -212,7 +223,8 @@ export function SocialGallerySection() {
       trigger: row,
       start: "top 85%",
       once: true,
-      onEnter: () => gsap.to(row, { opacity: 1, y: 0, duration: 0.7, ease: EASE.outStandard }),
+      onEnter: () =>
+        gsap.to(row, { opacity: 1, y: 0, duration: DURATION.enter, ease: EASE.outStandard }),
     });
 
     return () => trigger.kill();
@@ -228,7 +240,7 @@ export function SocialGallerySection() {
       <div className="mx-auto flex max-w-5xl flex-col items-center px-6 text-center">
         <Parallax speed={40}>
           <TypewriterText
-            text="O que anda rolando"
+            text={SOCIAL.title}
             className="font-rampart text-[clamp(1.75rem,4vw,3rem)] leading-[1.05] tracking-[0.02em] text-balance"
           />
         </Parallax>
@@ -284,10 +296,10 @@ export function SocialGallerySection() {
         speed={20}
         className="mx-auto mt-8 flex max-w-5xl flex-col items-center px-6 text-center lg:mt-16"
       >
-        <p className="text-body font-accent mb-2 tracking-[0.04em]">Segue a gente no Instagram</p>
+        <p className="text-body font-accent mb-2 tracking-[0.04em]">{SOCIAL.follow}</p>
         <Button
           as="a"
-          href="https://www.instagram.com/toma.fernandito/"
+          href={LINKS.instagramUrl}
           target="_blank"
           rel="noopener noreferrer"
           variant="ghost"
@@ -295,9 +307,9 @@ export function SocialGallerySection() {
           iconPosition="left"
           // O nome acessível precisa CONTER o texto visível — senão quem usa
           // controle por voz fala "@toma.fernandito" e o comando não casa.
-          aria-label="@toma.fernandito — seguir no Instagram, abre em nova aba"
+          aria-label={`${LINKS.instagramHandle} — seguir no Instagram, abre em nova aba`}
         >
-          @toma.fernandito
+          {LINKS.instagramHandle}
         </Button>
       </Parallax>
     </section>

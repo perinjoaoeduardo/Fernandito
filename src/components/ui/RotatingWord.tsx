@@ -1,25 +1,16 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { gsap, prefersReducedMotion } from "@/lib/gsap";
+import { gsap, EASE, prefersReducedMotion } from "@/lib/gsap";
+import { HERO } from "@/content/site";
 
 // Palavras que completam "Feito com ___." — o clima é sempre de
 // entrega/caráter, ecoando a Crença do Manifesto ("O que se entrega fácil
 // não deixa gosto"). A primeira se repete no fim da lista de render pra
 // fechar o loop do roller sem costura (ver `LOOP_WORDS` abaixo). As de
 // liberdade vêm cedo, intercaladas com as de entrega; Teimosia fica no fim.
-const WORDS = [
-  "Brio",
-  "Liberdade",
-  "Intenção",
-  "Independência",
-  "Coragem",
-  "Inquietação",
-  "Amargor",
-  "Paciência",
-  "Insistência",
-  "Teimosia",
-];
+// A lista mora em `src/content/site.ts`.
+const WORDS = HERO.rotatingWords;
 
 const LOOP_WORDS = [...WORDS, WORDS[0]];
 
@@ -64,7 +55,7 @@ export function RotatingWord() {
       const step = i + 1;
       tl.to(
         track,
-        { y: `${-step * LINE_HEIGHT_EM}em`, duration: STEP_SECONDS, ease: "power3.inOut" },
+        { y: `${-step * LINE_HEIGHT_EM}em`, duration: STEP_SECONDS, ease: EASE.inOutSmooth },
         `+=${HOLD_SECONDS}`,
       );
       if (step === WORDS.length) {
@@ -88,12 +79,14 @@ export function RotatingWord() {
             aria-hidden={i !== 0}
             className="flex h-[1.4em] shrink-0 items-center justify-center gap-1.5 leading-none whitespace-nowrap"
           >
-            <span className="font-rampart-sans">Feito com</span>
+            <span className="font-rampart-sans">{HERO.rotatingPrefix}</span>
             <span className="font-rampart-stamp font-bold">{word}.</span>
           </span>
         ))}
       </span>
-      <span className="sr-only">Feito com {WORDS.join(". Feito com ")}.</span>
+      <span className="sr-only">
+        {HERO.rotatingPrefix} {WORDS.join(`. ${HERO.rotatingPrefix} `)}.
+      </span>
     </span>
   );
 }

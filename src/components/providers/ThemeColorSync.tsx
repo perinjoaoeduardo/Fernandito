@@ -1,19 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
+import { backgroundAt } from "@/lib/background";
 import { onIntroComplete } from "@/lib/introSignal";
-
-/** Primeira cor de fundo não-transparente subindo a árvore a partir do
- * elemento naquele ponto da tela (mesma lógica do FloatingNav). */
-function sampleBackground(x: number, y: number): string | null {
-  let node: Element | null = document.elementFromPoint(x, y);
-  while (node) {
-    const bg = getComputedStyle(node).backgroundColor;
-    if (bg && bg !== "transparent" && !/rgba\(0,\s*0,\s*0,\s*0\)/.test(bg)) return bg;
-    node = node.parentElement;
-  }
-  return null;
-}
 
 /**
  * O Safari do iPhone pinta a área das barras (a de cima e a flutuante de
@@ -36,8 +25,8 @@ export function ThemeColorSync() {
       ticking = false;
       // x=12: fora da pill centralizada do nav; y=6 passa por baixo da barra
       // de progresso (2px) e acima do nav (top-4).
-      const top = sampleBackground(12, 6);
-      const bottom = sampleBackground(12, window.innerHeight - 2);
+      const top = backgroundAt(12, 6)?.css;
+      const bottom = backgroundAt(12, window.innerHeight - 2)?.css;
       if (top && top !== lastTop) {
         lastTop = top;
         meta?.setAttribute("content", top);

@@ -6,14 +6,10 @@ import { TypewriterText } from "@/components/ui/TypewriterText";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 import { InstagramIcon } from "@/components/ui/icons";
+import { FOOTER, LINKS, NAV } from "@/content/site";
 
 // Mesmos "andares" da FloatingNav + o bloco de contato (ContatoSection).
-const NAV_LINKS = [
-  { label: "O que é", href: "#o-que-e" },
-  { label: "Galeria", href: "#galeria" },
-  { label: "Manifesto", href: "#manifesto" },
-  { label: "Contato", href: "#contato" },
-];
+const NAV_LINKS = [...NAV.links, NAV.contactLink];
 
 // Footer é fundo escuro (verde-escuro) — outline de foco precisa contrastar
 // com isso, não com o verde-medio padrão do Link (pensado pra fundos claros).
@@ -47,13 +43,13 @@ export function FooterSection() {
           não deixa passar," cabe numa linha: a frase mede ~17em na Rampart,
           então o tamanho é (100vw − 36rem de padding+links) / 17, com teto
           de 2.75rem. */}
-      <div className="grid w-full gap-12 md:grid-cols-[minmax(0,34rem)_auto] lg:grid-cols-[minmax(0,1fr)_auto] md:items-start md:justify-between md:gap-16">
+      <div className="grid w-full gap-12 md:grid-cols-[minmax(0,34rem)_auto] md:items-start md:justify-between md:gap-16 lg:grid-cols-[minmax(0,1fr)_auto]">
         {/* Frase de fechamento + CTA — escrita à máquina como o resto do
             site. Rampart é só caixa-alta: o contraste entre as linhas vem
             da cor (off-white → verde-claro), não de itálico/peso. */}
         <Parallax speed={24}>
           <TypewriterText
-            text="Pra quem não deixa passar,"
+            text={FOOTER.line1}
             caret={false}
             triggerSelector="#footer"
             start="top 100%"
@@ -62,7 +58,7 @@ export function FooterSection() {
           />
           <TypewriterText
             as="p"
-            text="vira história."
+            text={FOOTER.line2}
             triggerSelector="#footer"
             start="top 80%"
             end="top 70%"
@@ -70,7 +66,7 @@ export function FooterSection() {
           />
           <TypewriterText
             as="p"
-            text="Isso toma fernandito."
+            text={FOOTER.tagline}
             caret={false}
             triggerSelector="#footer"
             start="top 70%"
@@ -78,7 +74,7 @@ export function FooterSection() {
             className="text-body-lg font-accent mt-5 tracking-[0.04em] opacity-80"
           />
           <div className="mt-8">
-            <WhatsAppButton>Fale no WhatsApp</WhatsAppButton>
+            <WhatsAppButton>{NAV.whatsappLabel}</WhatsAppButton>
           </div>
         </Parallax>
 
@@ -86,7 +82,7 @@ export function FooterSection() {
         <Parallax speed={-16} className="grid grid-cols-2 gap-10 sm:gap-16">
           <div>
             <h3 className="text-label mb-4 font-sans tracking-[0.08em] uppercase opacity-80">
-              Navegar
+              {FOOTER.navTitle}
             </h3>
             <ul className="flex flex-col gap-3">
               {NAV_LINKS.map((link) => (
@@ -101,12 +97,12 @@ export function FooterSection() {
 
           <div>
             <h3 className="text-label mb-4 font-sans tracking-[0.08em] uppercase opacity-80">
-              Social
+              {FOOTER.socialTitle}
             </h3>
             <ul className="flex flex-col gap-3">
               <li>
                 <Link
-                  href="https://www.instagram.com/toma.fernandito/"
+                  href={LINKS.instagramUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   variant="underline-grow"
@@ -141,8 +137,8 @@ export function FooterSection() {
             className="h-10 w-10 shrink-0 opacity-90"
           />
           <div className="font-sans text-[13px] opacity-70">
-            <p>© 2026 Fernandito. Todos os direitos reservados.</p>
-            <p>Feito com brio. Porto Alegre, RS.</p>
+            <p>{FOOTER.copyright}</p>
+            <p>{FOOTER.madeIn}</p>
           </div>
         </div>
 

@@ -3,11 +3,12 @@
 import { clsx } from "clsx";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
+import { LINKS } from "@/content/site";
 
 // Número comercial ainda não definido — ver README ("Ativar o botão do
 // WhatsApp") para como preencher em produção (Vercel > Environment Variables).
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.trim();
-const WHATSAPP_MESSAGE = "Oi! Quero comprar Fernandito 🐎";
+const WHATSAPP_MESSAGE = LINKS.whatsappMessage;
 
 function WhatsAppIcon() {
   return (

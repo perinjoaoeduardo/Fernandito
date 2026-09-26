@@ -4,6 +4,21 @@ Fonte única de verdade do projeto. Todo prompt/feature futura deve seguir os
 tokens definidos aqui. Os tokens abaixo estão implementados em
 `tailwind.config.ts` e disponíveis como classes utilitárias do Tailwind.
 
+## Conteúdo (`src/content/site.ts`)
+
+Todo texto e toda foto do site mora num arquivo só, `src/content/site.ts`,
+separado por seção (`HERO`, `O_QUE_E`, `GALERIA`, `MANIFESTO`, `CONTATO`,
+`SOCIAL`, `MARQUEE`, `FOOTER`, `NAV`, `LINKS`). Pra trocar texto, edita a
+string ali. Pra trocar foto: salva o arquivo em `public/images/`, preenche
+o `src` (ex.: `"/images/galeria-01.jpg"`) e escreve o `alt`. Com `src:
+null`, o site mostra o placeholder verde com o nome da foto.
+
+As fotos passam pelo `PhotoSlot` (`components/ui/PhotoSlot.tsx`):
+`next/image` com `fill` + `object-cover` e `sizes` por lugar de uso, ou o
+placeholder. A lata do "O que é" é a exceção: `object-contain`, porque a
+arte tem fundo transparente. Os metadados de SEO (título, descrição,
+domínio) continuam em `src/lib/site.ts`.
+
 ## Cores
 
 | Nome         | Hex       | Classe Tailwind                                               | Uso                                           |
@@ -86,15 +101,15 @@ também vale. Regra de bolso: não é só "primeira dobra" que importa, é
 
 ### Escala (classes `text-*` do Tailwind)
 
-| Token        | Tamanho                    | line-height | Uso típico                                                                                                                                      |
-| ------------ | -------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `display-xl` | `clamp(4rem, 12vw, 12rem)` | 0.9         | Nome da marca, hero                                                                                                                             |
-| `display-lg` | `clamp(3rem, 8vw, 8rem)`   | 0.95        | Títulos de seção grandes                                                                                                                        |
-| `display-md` | `clamp(2rem, 5vw, 4rem)`   | 1.05        | Taglines, subtítulos                                                                                                                            |
-| `display-sm` | `clamp(1.5rem, 3.2vw, 2.5rem)` | 1.1     | Frases de efeito dentro de coluna de texto (O que é, rodapé)                                                                                    |
-| `body-lg`    | `1.25rem`                  | 1.5         | Texto de destaque                                                                                                                               |
-| `body`       | `1rem`                     | 1.6         | Texto corrido                                                                                                                                   |
-| `label`      | `0.75rem`                  | 1.2         | Labels/UI — usar com `uppercase tracking-[0.08em]` (letter-spacing já embutido no token, `tracking-*` é redundante mas documentado por clareza) |
+| Token        | Tamanho                        | line-height | Uso típico                                                                                                                                      |
+| ------------ | ------------------------------ | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `display-xl` | `clamp(4rem, 12vw, 12rem)`     | 0.9         | Nome da marca, hero                                                                                                                             |
+| `display-lg` | `clamp(3rem, 8vw, 8rem)`       | 0.95        | Títulos de seção grandes                                                                                                                        |
+| `display-md` | `clamp(2rem, 5vw, 4rem)`       | 1.05        | Taglines, subtítulos                                                                                                                            |
+| `display-sm` | `clamp(1.5rem, 3.2vw, 2.5rem)` | 1.1         | Frases de efeito dentro de coluna de texto (O que é, rodapé)                                                                                    |
+| `body-lg`    | `1.25rem`                      | 1.5         | Texto de destaque                                                                                                                               |
+| `body`       | `1rem`                         | 1.6         | Texto corrido                                                                                                                                   |
+| `label`      | `0.75rem`                      | 1.2         | Labels/UI — usar com `uppercase tracking-[0.08em]` (letter-spacing já embutido no token, `tracking-*` é redundante mas documentado por clareza) |
 
 Todas as classes `display-*` usam `font-rampart` no design; `label` usa
 `font-sans` (ou `font-accent` em rótulos de seção). Aplicar a família
@@ -150,7 +165,24 @@ mesmos nomes registrados como `CustomEase` pro GSAP usar a curva idêntica).
 
 Classes Tailwind: `duration-fast/base/slow`, `ease-out-standard/out-back/in-out-smooth`.
 Em GSAP: `import { DURATION, EASE } from "@/lib/gsap"` — `EASE.outStandard`
-etc. já é o nome registrado via `CustomEase`, mesma curva do CSS.
+etc. já é o nome registrado via `CustomEase`, mesma curva do CSS. No
+framer-motion (só o `FloatingNav`): `EASE_BEZIER.outStandard`, a mesma curva
+em array.
+
+Tokens só do GSAP, pra todas as seções terem o mesmo "peso":
+
+| Token            | Valor  | Uso                                                                  |
+| ---------------- | ------ | -------------------------------------------------------------------- |
+| `DURATION.enter` | `0.7s` | Entrada única de um bloco (logo da Hero, fileira do tablet, faixa)   |
+| `SCRUB.tight`    | `0.4`  | Presos à rolagem que respondem na hora: máquina de escrever, carimbo |
+| `SCRUB.base`     | `0.6`  | Blocos entrando com a rolagem (Hero encolhendo, leque, CTA)          |
+| `SCRUB.soft`     | `0.8`  | Objetos grandes com peso: cartão do Manifesto, galeria saindo        |
+
+Regra: hover e troca de estado = `DURATION.base` + `EASE.outStandard`;
+entrada = `DURATION.enter` + `EASE.outStandard`; loops = `EASE.inOutSmooth`.
+Exceções deliberadas, com curva própria: o giro do cartão
+(`back.inOut(1.2)`), o carimbo do selo (`back.out(2.2)`), o seguir do
+cursor (`power2`, 0.18s) e as fases internas da galeria.
 
 ### Regra geral: nada instantâneo
 
@@ -204,10 +236,14 @@ no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
   não no próprio nav) e decide clara/escura pela luminância (`> 150` =
   fundo claro). Sobre fundo escuro/verde a pill fica clara (off-white,
   comportamento padrão); sobre fundo claro/off-white ela inverte pra
-  verde-escuro, com texto off-white — sempre com a mesma transição suave
-  do "shrunk" ao rolar. Funciona pra qualquer seção presente ou futura sem
-  precisar marcar cada uma com um data-attribute (é systemic, não
-  hardcoded por seção).
+  verde-escuro, com texto off-white. Fora do topo a pill fica mais opaca
+  (0.95), pra ler por cima de qualquer conteúdo. **Recolhe descendo, volta
+  subindo**: passando de 160px, rolar pra baixo sobe a nav pra fora da
+  tela e rolar pra cima (mais de 6px) traz de volta; ela nunca some na
+  Hero, com o menu do celular aberto ou com foco de teclado dentro dela
+  (antes ela passava por cima dos títulos durante a leitura). A amostra
+  de fundo vem de `backgroundAt` (`src/lib/background.ts`), a mesma usada
+  pelo cursor e pelo `ThemeColorSync`.
 - **`Container`** (`Container.tsx`) — max-width com padding responsivo,
   usado para limitar a largura de conteúdo dentro das seções full-bleed.
 - **`WhatsAppButton`** (`WhatsAppButton.tsx`) — wrapper do `Button` variante
@@ -232,8 +268,12 @@ no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
 - **`Logo`** (`Logo.tsx`) — wordmark da marca, `/public/logo/fernandito-logo-text.svg`
   via `<img>`. Ver "Assets de logo" abaixo pro resto dos arquivos
   (recebidos e ainda esperados).
-- **`CustomCursor`** (`CustomCursor.tsx`) — bolinha de 12px, sempre
-  off-white, `mix-blend-mode: difference` permanente. Segue o mouse via
+- **`CustomCursor`** (`CustomCursor.tsx`) — bolinha de 12px, sólida, que
+  **troca de cor conforme o fundo**: off-white sobre fundo escuro,
+  verde-escuro sobre fundo claro (`data-tone`, amostrado com
+  `backgroundAt` no ponto do cursor, no máximo uma vez por quadro, ao
+  mover e ao rolar). Um anel fino da cor oposta mantém a bolinha visível
+  sobre fotos, que o amostrador não enxerga. Segue o mouse via
   `gsap.quickTo`; no hover de qualquer `a`/`button`/`[role=button]`/
   `[data-cursor-hover]`, cresce só ~8% (`scale: 1.08`) — sutil, só indica
   "isso é clicável". A identidade visual do hover mora nos componentes
@@ -255,7 +295,23 @@ no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
 
 Todos os arquivos recebidos chegaram com cores aproximadas, fora do hex
 exato da paleta (ex: `#3a4936` em vez de `#405139`) — foram todos
-corrigidos por substituição direta de cor pra bater exato com `## Cores`
+corrigidos por substituição direta de cor pra bater exato com `## Conteúdo (`src/content/site.ts`)
+
+Todo texto e toda foto do site mora num arquivo só, `src/content/site.ts`,
+separado por seção (`HERO`, `O_QUE_E`, `GALERIA`, `MANIFESTO`, `CONTATO`,
+`SOCIAL`, `MARQUEE`, `FOOTER`, `NAV`, `LINKS`). Pra trocar texto, edita a
+string ali. Pra trocar foto: salva o arquivo em `public/images/`, preenche
+o `src` (ex.: `"/images/galeria-01.jpg"`) e escreve o `alt`. Com `src:
+null`, o site mostra o placeholder verde com o nome da foto.
+
+As fotos passam pelo `PhotoSlot` (`components/ui/PhotoSlot.tsx`):
+`next/image` com `fill` + `object-cover` e `sizes` por lugar de uso, ou o
+placeholder. A lata do "O que é" é a exceção: `object-contain`, porque a
+arte tem fundo transparente. Os metadados de SEO (título, descrição,
+domínio) continuam em `src/lib/site.ts`.
+
+## Cores`
+
 (vetores: replace de string nos hex; raster: remapeamento linear no eixo
 escuro→claro via PIL/numpy, preservando o anti-aliasing original).
 
@@ -278,11 +334,11 @@ wordmark sozinho tinha **2.3MB** e era o elemento de LCP da Hero. Passaram
 por `svgo` e, principalmente, viraram **rasters WebP em 2x do tamanho real
 de exibição**, que é o que os componentes carregam:
 
-| Servido em tela                  | Vem de                     | Peso            | Exibido a       |
-| -------------------------------- | -------------------------- | --------------- | --------------- |
-| `fernandito-logo-text.webp`      | `fernandito-logo-text.svg` | 2.3MB → **192KB** | até 1667px (Hero) |
-| `fernandito-moeda.webp`          | `fernandito-moeda.svg`     | 1.7MB → **23KB** | 40–120px        |
-| `fernandito-horse.webp`          | `fernandito-horse.svg`     | 472KB → **8KB**  | 44px (nav)      |
+| Servido em tela             | Vem de                     | Peso              | Exibido a         |
+| --------------------------- | -------------------------- | ----------------- | ----------------- |
+| `fernandito-logo-text.webp` | `fernandito-logo-text.svg` | 2.3MB → **192KB** | até 1667px (Hero) |
+| `fernandito-moeda.webp`     | `fernandito-moeda.svg`     | 1.7MB → **23KB**  | 40–120px          |
+| `fernandito-horse.webp`     | `fernandito-horse.svg`     | 472KB → **8KB**   | 44px (nav)        |
 
 Os `.svg` continuam no repo como **arquivo-fonte da marca** (é deles que os
 rasters saem). Pra regerar — depois de trocar um SVG, ou se algum lugar
@@ -377,7 +433,7 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    rola até essa mesma seção (`scrollToTarget("#o-que-e")`).
 
    No centro do cartão ficam só o logo (`Logo.tsx`, `max-w-[360px]
-   sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
+sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    no logo), duas linhas de tagline. O banner "Fernet y Cola"
    (`public/images/fernet-y-cola-banner.png`) saiu da Hero — o arquivo segue
    em `/public/images` pra outros usos.
@@ -411,6 +467,7 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
      frase inteira elimina o problema na raiz.
 
    `prefers-reduced-motion` trava a primeira frase, sem animação.
+
 2. `OQueESection` (`#o-que-e`, 01) — fundo off-white, "o que é" o produto
    em linguagem direta: placeholder da lata à esquerda e, na coluna da
    direita, dois parágrafos + frase de fechamento (`font-rampart`,
@@ -502,7 +559,7 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    mobile/tablet usam fileira com scroll-snap. Ver detalhes na entrada própria abaixo.
 7. `FichaTecnicaSection` — só o marquee (`font-accent`, "Toma Fernandito ·
    Fernet y Cola" em loop — 350ml/8% saíram), faixa baixa (`py-3
-   sm:py-4`, texto `clamp(1.25rem,2.4vw,1.875rem)`, `translate-y-[0.15em]` pra
+sm:py-4`, texto `clamp(1.25rem,2.4vw,1.875rem)`, `translate-y-[0.15em]` pra
    centralizar as maiúsculas — a Special Elite reserva ~30% da linha pras
    descendentes), agora em faixa
    **verde-claro** com texto off-white — antes era verde-escuro e se
@@ -589,7 +646,12 @@ saíram (pesavam demais e deixavam os cards pequenos).
 ## Infra de animação (`/src/lib`)
 
 - **`gsap.ts`** — registra `ScrollTrigger` e `SplitText` uma única vez
-  (client-side) e exporta `gsap` + helpers.
+  (client-side) e exporta `gsap` + helpers e os tokens de motion
+  (`EASE`, `EASE_BEZIER`, `DURATION`, `SCRUB`).
+- **`background.ts`** — `backgroundAt(x, y)`: a cor de fundo que está de
+  fato na tela num ponto (sobe a árvore até o primeiro fundo não
+  transparente) e se ela é clara. Usado pelo menu, pelo cursor e pelo
+  `ThemeColorSync`.
 - **`lenis.ts`** — inicializa o Lenis (smooth scroll) e sincroniza com o
   ticker do GSAP, para que `ScrollTrigger` e o scroll suave fiquem no mesmo
   relógio.

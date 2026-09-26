@@ -2,7 +2,7 @@
 
 import { clsx } from "clsx";
 import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger, SplitText, prefersReducedMotion } from "@/lib/gsap";
+import { gsap, ScrollTrigger, SplitText, SCRUB, prefersReducedMotion } from "@/lib/gsap";
 
 type TypewriterTextProps = {
   text: string;
@@ -87,7 +87,13 @@ export function TypewriterText({
     tl.to(chars, { opacity: 1, duration: 0.001, stagger: 1, ease: "none" });
 
     const triggerEl = (triggerSelector && el.closest(triggerSelector)) || el;
-    const trigger = ScrollTrigger.create({ trigger: triggerEl, start, end, scrub: 0.5, animation: tl });
+    const trigger = ScrollTrigger.create({
+      trigger: triggerEl,
+      start,
+      end,
+      scrub: SCRUB.tight,
+      animation: tl,
+    });
 
     return () => {
       trigger.kill();

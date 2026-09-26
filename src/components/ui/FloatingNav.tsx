@@ -3,56 +3,33 @@
 import { clsx } from "clsx";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { backgroundAt } from "@/lib/background";
+import { DURATION, EASE_BEZIER } from "@/lib/gsap";
 import { scrollToTarget } from "@/lib/lenis";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
+import { NAV } from "@/content/site";
 
 // Site de página única: a nav é navegação por âncora pros "andares" da
 // página. O contato não entra como link na pill — o botão de WhatsApp ao
 // lado já é esse atalho (no menu mobile ele aparece).
-const LINKS = [
-  { label: "O que é", href: "#o-que-e" },
-  { label: "Galeria", href: "#galeria" },
-  { label: "Manifesto", href: "#manifesto" },
-];
+const LINKS = NAV.links;
 
 // Ponto de amostragem fixo (canto esquerdo, fora da pill que fica centrada)
-// — assim `elementFromPoint` sempre pega o fundo da SEÇÃO por trás do nav,
-// nunca o próprio nav. Funciona pra qualquer seção presente ou futura, sem
-// precisar marcar cada uma manualmente com um data-attribute: a gente lê a
-// cor de fundo computada de verdade e decide clara/escura pela luminância.
+// — assim a amostra sempre pega o fundo da SEÇÃO por trás do nav, nunca o
+// próprio nav (ver `backgroundAt`).
 const PROBE_X = 12;
 const PROBE_Y = 40;
-const LIGHT_LUMINANCE_THRESHOLD = 150;
 
-function luminance(r: number, g: number, b: number) {
-  return 0.299 * r + 0.587 * g + 0.114 * b;
-}
-
-/** Sobe a árvore a partir do ponto amostrado até achar um background-color
- * não-transparente — a maioria dos wrappers internos não define bg próprio. */
-function sampleIsOverLight(): boolean | null {
-  const el = document.elementFromPoint(PROBE_X, PROBE_Y);
-  let node: Element | null = el;
-  while (node) {
-    const bg = getComputedStyle(node).backgroundColor;
-    const match = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-    if (match) {
-      const [, r, g, b] = match;
-      const alpha = bg.match(/[\d.]+\)$/)?.[0];
-      // Ignora transparente total (rgba(0,0,0,0)) — continua subindo.
-      if (!(alpha === "0)" && r === "0" && g === "0" && b === "0")) {
-        return luminance(Number(r), Number(g), Number(b)) > LIGHT_LUMINANCE_THRESHOLD;
-      }
-    }
-    node = node.parentElement;
-  }
-  return null;
-}
+// Abaixo disso (px) a nav nunca se recolhe — na Hero ela é parte da capa.
+const TUCK_AFTER = 160;
 
 export function FloatingNav() {
   const [visible, setVisible] = useState(false);
-  const [shrunk, setShrunk] = useState(false);
+  // `scrolled`: saiu do topo (pill mais opaca). `tucked`: recolhida pra cima
+  // porque a pessoa está descendo — volta assim que ela sobe um pouco.
+  const [scrolled, setScrolled] = useState(false);
+  const [tucked, setTucked] = useState(false);
   const [overLight, setOverLight] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const lastScrollY = useRef(0);
@@ -73,13 +50,17 @@ export function FloatingNav() {
         const currentY = window.scrollY;
         const delta = currentY - lastScrollY.current;
 
-        if (Math.abs(delta) > 4) {
-          setShrunk(delta > 0 && currentY > 80);
+        setScrolled(currentY > 80);
+        if (currentY < TUCK_AFTER) {
+          setTucked(false);
+          lastScrollY.current = currentY;
+        } else if (Math.abs(delta) > 6) {
+          setTucked(delta > 0);
           lastScrollY.current = currentY;
         }
 
-        const isLight = sampleIsOverLight();
-        if (isLight !== null) setOverLight(isLight);
+        const sampled = backgroundAt(PROBE_X, PROBE_Y);
+        if (sampled) setOverLight(sampled.light);
 
         ticking = false;
       });
@@ -102,32 +83,41 @@ export function FloatingNav() {
 
   // Cor do fundo por trás do nav decide o tom da pill — clara (off-white,
   // padrão) sobre fundo escuro/verde, escura (verde-escuro) sobre fundo
-  // claro/off-white, sempre com a mesma transição suave do "shrunk".
+  // claro/off-white. Fora do topo ela fica mais opaca, pra ler por cima
+  // de qualquer conteúdo.
   const pillAnimation = {
-    scale: shrunk ? 0.95 : 1,
     backgroundColor: overLight
-      ? shrunk
+      ? scrolled
         ? "rgba(36, 48, 34, 0.95)"
         : "rgba(36, 48, 34, 0.7)"
-      : shrunk
+      : scrolled
         ? "rgba(230, 230, 203, 0.95)"
         : "rgba(230, 230, 203, 0.7)",
   };
+  const pillTransition = { duration: DURATION.base, ease: EASE_BEZIER.outStandard };
+
+  // Com o menu do celular aberto a nav nunca se recolhe (o "Fechar" mora nela).
+  const hidden = tucked && !menuOpen;
 
   return (
     <>
       <motion.div
         initial={{ opacity: 0, y: -16 }}
-        animate={visible ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="fixed top-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 sm:top-6"
+        animate={!visible ? {} : hidden ? { opacity: 0, y: "-160%" } : { opacity: 1, y: 0 }}
+        transition={{ duration: DURATION.slow, ease: EASE_BEZIER.outStandard }}
+        // Foco de teclado entrando na nav traz ela de volta.
+        onFocus={() => setTucked(false)}
+        className={clsx(
+          "fixed top-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 sm:top-6",
+          hidden && "pointer-events-none",
+        )}
         aria-label="Navegação principal"
       >
         {/* Pill 1 — símbolo do cavalo, volta ao topo (todos os tamanhos) */}
         <motion.button
           type="button"
           animate={pillAnimation}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          transition={pillTransition}
           onClick={() => scrollToTarget("#hero")}
           aria-label="Voltar ao topo"
           className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 w-11 shrink-0 items-center justify-center rounded-full backdrop-blur-md transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
@@ -148,7 +138,7 @@ export function FloatingNav() {
         <motion.button
           type="button"
           animate={pillAnimation}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          transition={pillTransition}
           onClick={() => setMenuOpen((open) => !open)}
           aria-expanded={menuOpen}
           aria-controls="menu-mobile"
@@ -170,7 +160,7 @@ export function FloatingNav() {
             linhas (era o "O / QUE / É" empilhado no tablet). */}
         <motion.div
           animate={pillAnimation}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          transition={pillTransition}
           className="hidden items-center gap-1 rounded-full py-1.5 pr-1.5 pl-3 backdrop-blur-md md:flex lg:py-2 lg:pr-2 lg:pl-4"
         >
           {LINKS.map((link) => (
@@ -192,7 +182,7 @@ export function FloatingNav() {
             background="verde-escuro"
             className="!text-label ml-1 !px-4 !py-2 whitespace-nowrap"
           >
-            Fale no WhatsApp
+            {NAV.whatsappLabel}
           </WhatsAppButton>
         </motion.div>
       </motion.div>
@@ -204,7 +194,7 @@ export function FloatingNav() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
+            transition={{ duration: DURATION.base, ease: EASE_BEZIER.outStandard }}
             id="menu-mobile"
             className="bg-fernandito-verde-escuro fixed inset-0 z-40 flex flex-col items-center justify-center gap-10 md:hidden"
           >
@@ -212,7 +202,7 @@ export function FloatingNav() {
                 do overlay) + Esc — sem um × separado competindo com ele. */}
             {/* Títulos grandes na Rampart (fonte de título do site). */}
             <nav aria-label="Menu" className="flex flex-col items-center gap-7">
-              {[...LINKS, { label: "Contato", href: "#contato" }].map((link) => (
+              {[...LINKS, NAV.contactLink].map((link) => (
                 <Link
                   key={link.label}
                   href={link.href}
@@ -226,7 +216,7 @@ export function FloatingNav() {
 
             {/* Fundo padrão (verde-medio) aqui — o overlay já é verde-escuro,
                 então o CTA "verde-escuro" do pill ficaria invisível contra ele. */}
-            <WhatsAppButton>Fale no WhatsApp</WhatsAppButton>
+            <WhatsAppButton>{NAV.whatsappLabel}</WhatsAppButton>
           </motion.div>
         )}
       </AnimatePresence>

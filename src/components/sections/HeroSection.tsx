@@ -1,11 +1,20 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger, prefersReducedMotion, supportsHover } from "@/lib/gsap";
+import {
+  gsap,
+  ScrollTrigger,
+  DURATION,
+  EASE,
+  SCRUB,
+  prefersReducedMotion,
+  supportsHover,
+} from "@/lib/gsap";
 import { onIntroComplete } from "@/lib/introSignal";
 import { scrollToTarget } from "@/lib/lenis";
 import { Logo } from "@/components/ui/Logo";
 import { RotatingWord } from "@/components/ui/RotatingWord";
+import { HERO } from "@/content/site";
 
 // Quanto o cartão encolhe/arredonda ao rolar (ver efeito "shrink-to-card"
 // abaixo) — sutil o bastante pra não parecer um zoom brusco.
@@ -49,9 +58,17 @@ export function HeroSection() {
       : onIntroComplete(() => {
           entranceTimeline = gsap
             .timeline()
-            .to(logo, { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" }, 0.2)
-            .to(tagline, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 0.8)
-            .to(indicator, { opacity: 1, duration: 0.4, ease: "power1.out" }, 1.4)
+            .to(
+              logo,
+              { opacity: 1, scale: 1, duration: DURATION.enter, ease: EASE.outStandard },
+              0.2,
+            )
+            .to(
+              tagline,
+              { opacity: 1, y: 0, duration: DURATION.enter, ease: EASE.outStandard },
+              0.8,
+            )
+            .to(indicator, { opacity: 1, duration: DURATION.slow, ease: EASE.outStandard }, 1.4)
             .fromTo(
               chevronRef.current,
               { y: -2 },
@@ -96,7 +113,7 @@ export function HeroSection() {
         trigger: section,
         start: "top top",
         end: "bottom bottom",
-        scrub: 0.6,
+        scrub: SCRUB.base,
         onUpdate: (self) => {
           const progress = self.progress;
           const boxProgress = Math.min(1, progress / 0.7);
@@ -146,14 +163,14 @@ export function HeroSection() {
               independente do raster do logo carregar ou não. A imagem vira
               decorativa (`alt=""`) pra não duplicar o anúncio no leitor. */}
           <h1 ref={logoRef} className="flex justify-center">
-            <span className="sr-only">Fernandito — fernet com cola, direto da lata</span>
+            <span className="sr-only">{HERO.srTitle}</span>
             <Logo alt="" aria-hidden />
           </h1>
           <div
             ref={taglineRef}
             className="text-fernandito-off-white font-rampart-sans mt-3 flex flex-col items-center gap-1"
           >
-            <p className="text-body-lg">Fernet y cola em lata.</p>
+            <p className="text-body-lg">{HERO.tagline}</p>
             <div className="text-body text-fernandito-off-white/70">
               <RotatingWord />
             </div>
@@ -167,7 +184,7 @@ export function HeroSection() {
           aria-label="Rolar até a próxima seção"
           className="text-fernandito-off-white/70 duration-base ease-out-standard focus-visible:outline-fernandito-off-white text-body hover:text-fernandito-off-white focus-visible:text-fernandito-off-white absolute bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 flex -translate-x-1/2 items-center gap-1 bg-transparent font-sans transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
         >
-          scroll
+          {HERO.scrollHint}
           <svg
             ref={chevronRef}
             viewBox="0 0 24 24"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { gsap, prefersReducedMotion } from "@/lib/gsap";
+import { gsap, EASE, prefersReducedMotion } from "@/lib/gsap";
 import { markIntroComplete } from "@/lib/introSignal";
 
 // Cortina de abertura: cavalinho por ~2s, depois sobe e revela o site —
@@ -53,7 +53,7 @@ export function IntroLoader() {
     tl.to(overlay, {
       yPercent: -100,
       duration: REVEAL_DURATION,
-      ease: "power3.inOut",
+      ease: EASE.inOutSmooth,
     });
 
     return () => {

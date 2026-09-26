@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { gsap, prefersReducedMotion } from "@/lib/gsap";
+import { gsap, EASE, SCRUB, prefersReducedMotion } from "@/lib/gsap";
 import { Parallax } from "@/components/ui/Parallax";
 import { FlipCard } from "@/components/ui/FlipCard";
 import { TypewriterText } from "@/components/ui/TypewriterText";
-
-const SIGNATURES = ["João", "Lorenzo", "Nando", "Matheus"];
+import { PhotoSlot } from "@/components/ui/PhotoSlot";
+import { MANIFESTO } from "@/content/site";
 
 export function CartaSection() {
   const cardWrapRef = useRef<HTMLDivElement>(null);
@@ -31,8 +31,8 @@ export function CartaSection() {
           y: 0,
           rotate: 0,
           scale: 1,
-          ease: "power3.out",
-          scrollTrigger: { trigger: wrap, start: "top 100%", end: "top 45%", scrub: 0.7 },
+          ease: EASE.outStandard,
+          scrollTrigger: { trigger: wrap, start: "top 100%", end: "top 45%", scrub: SCRUB.soft },
         },
       );
       gsap.fromTo(
@@ -43,7 +43,7 @@ export function CartaSection() {
           scale: 1,
           rotate: 0,
           ease: "back.out(2.2)",
-          scrollTrigger: { trigger: wrap, start: "top 50%", end: "top 32%", scrub: 0.4 },
+          scrollTrigger: { trigger: wrap, start: "top 50%", end: "top 32%", scrub: SCRUB.tight },
         },
       );
     }, wrap);
@@ -55,22 +55,17 @@ export function CartaSection() {
   const front = (
     <>
       <blockquote className="text-body sm:text-body-lg flex flex-col gap-5 font-sans sm:gap-6">
-        <p>
-          A gente acredita numa vida que não se entrega fácil. Que escolhe o caminho difícil porque
-          é nele que mora o gosto de verdade.
-        </p>
-        <p>
-          Fernandito nasceu de uma crença simples: existe entrega que é render-se, e existe entrega
-          que é arte. A gente escolheu o segundo caminho — e essa lata é prova disso.
-        </p>
+        {MANIFESTO.paragraphs.map((paragraph) => (
+          <p key={paragraph}>{paragraph}</p>
+        ))}
       </blockquote>
 
-      <p className="text-body mt-10 font-sans sm:mt-12">Com brio, de Porto Alegre,</p>
+      <p className="text-body mt-10 font-sans sm:mt-12">{MANIFESTO.closing}</p>
 
       {/* No celular, grade 2×2 (não cabem 4 numa linha sem passar por baixo
           do selo); a partir de sm, uma linha só com folga pro selo. */}
       <div className="mt-4 grid w-fit grid-cols-2 gap-x-8 gap-y-1 pb-6 sm:flex sm:flex-wrap sm:items-baseline sm:pr-24 sm:pb-0">
-        {SIGNATURES.map((name) => (
+        {MANIFESTO.signatures.map((name) => (
           <span key={name} className="text-body sm:text-body-lg font-accent">
             {name}
           </span>
@@ -103,14 +98,12 @@ export function CartaSection() {
       {/* Filtro sépia/saturação leve sobre o placeholder sólido — proposital:
           prepara o tom duotone esverdeado retrô que a foto real vai ganhar
           quando entrar (ver DESIGN_SYSTEM.md, "Assets de logo"). */}
-      <div
-        role="img"
-        aria-label="Foto dos fundadores do Fernandito"
-        className="bg-fernandito-verde-medio relative flex w-full flex-1 items-center justify-center overflow-hidden rounded-sm [filter:sepia(0.35)_saturate(1.4)]"
-      >
-        <span className="text-label text-fernandito-off-white font-sans uppercase opacity-90">
-          Foto fundadores
-        </span>
+      <div className="relative w-full flex-1 overflow-hidden rounded-sm [filter:sepia(0.35)_saturate(1.4)]">
+        <PhotoSlot
+          image={MANIFESTO.back.photo}
+          sizes="(max-width: 767px) 90vw, 780px"
+          placeholderClassName="bg-fernandito-verde-medio"
+        />
         {/* Carimbo decorativo, puramente ilustrativo. */}
         <span
           aria-hidden="true"
@@ -120,7 +113,7 @@ export function CartaSection() {
         </span>
       </div>
       <p className="text-label text-fernandito-verde-escuro/70 font-sans uppercase">
-        João · Lorenzo · Nando · Matheus — Porto Alegre, 2026
+        {MANIFESTO.back.caption}
       </p>
     </div>
   );
@@ -134,7 +127,7 @@ export function CartaSection() {
       <div className="mx-auto flex max-w-4xl justify-center px-6 text-center">
         <Parallax speed={40}>
           <TypewriterText
-            text="Nosso manifesto"
+            text={MANIFESTO.title}
             className="font-rampart text-[clamp(1.625rem,3vw,2.25rem)] leading-[1.1] tracking-[0.06em]"
           />
         </Parallax>
@@ -149,6 +142,8 @@ export function CartaSection() {
           <FlipCard
             front={front}
             back={back}
+            frontFlipLabel={MANIFESTO.flipLabel}
+            backFlipLabel={MANIFESTO.flipBackLabel}
             frontLabel="o texto"
             backLabel="os fundadores"
             elevation="md"
