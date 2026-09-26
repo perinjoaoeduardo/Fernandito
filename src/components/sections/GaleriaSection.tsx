@@ -82,6 +82,16 @@ const PHOTOS: Photo[] = [
 const RADIUS = 20;
 const BG_FROM = "#243022"; // verde-escuro
 const BG_TO = "#e6e6cb"; // off-white (bege) — mesma cor do Manifesto, logo abaixo
+// Paradas no meio do caminho: indo direto do verde-escuro pro bege, o meio
+// da mistura era um cinza-barro que não é da marca. Passando pelos verdes
+// da própria paleta, a rolagem inteira fica dentro dela.
+const BG_STOPS = {
+  "0%": { backgroundColor: BG_FROM },
+  "32%": { backgroundColor: "#405139" }, // verde-medio
+  "62%": { backgroundColor: "#6c7d4f" }, // verde-claro
+  "100%": { backgroundColor: BG_TO },
+  easeEach: "none", // a curva é a da tween inteira (power1.inOut)
+};
 // px de deslocamento horizontal da trilha base por px rolado.
 const SPEED = 1.1;
 const PARALLAX = 7; // xPercent da imagem dentro do card (±)
@@ -117,11 +127,16 @@ function PhotoFill({
 }) {
   return (
     <div ref={innerRef} className="absolute inset-y-0 -left-[10%] w-[120%] [will-change:transform]">
-      <PhotoSlot
-        image={GALERIA.photos[index]}
-        sizes="(max-width: 767px) 90vw, 60vw"
-        placeholderClassName={PHOTOS[index].tone}
-      />
+      {/* Hover "respira": a foto dá zoom por dentro e a moldura fica
+          parada. Só em aparelho com mouse (o group-hover do Tailwind v4 já
+          vem dentro de @media (hover: hover)). */}
+      <div className="duration-slow ease-out-standard absolute inset-0 transition-transform group-hover:scale-[1.06]">
+        <PhotoSlot
+          image={GALERIA.photos[index]}
+          sizes="(max-width: 767px) 90vw, 60vw"
+          placeholderClassName={PHOTOS[index].tone}
+        />
+      </div>
     </div>
   );
 }
@@ -228,7 +243,7 @@ export function GaleriaSection() {
           // é da mesma cor, não uma listra verde-escuro sobre o bege.
           .to(
             [stage, section],
-            { backgroundColor: BG_TO, duration: p2 * 0.85, ease: "power1.inOut" },
+            { keyframes: BG_STOPS, duration: p2 * 0.85, ease: "power1.inOut" },
             p1,
           );
 
@@ -319,7 +334,8 @@ export function GaleriaSection() {
                 cardRefs.current[i] = el;
               }}
               className={clsx(
-                "absolute top-0 left-0 overflow-hidden shadow-[0_24px_60px_rgba(36,48,34,0.3)] [will-change:transform]",
+                // pointer-events de volta no card (a camada não recebe) pro hover.
+                "group pointer-events-auto absolute top-0 left-0 overflow-hidden shadow-[0_24px_60px_rgba(36,48,34,0.3)] [will-change:transform]",
                 // Antes do JS (SSR): foto 0 já é a foto inteira; o resto fica
                 // invisível até o GSAP posicionar (translate via classe
                 // somaria com o transform do GSAP, por isso opacity).
@@ -341,7 +357,7 @@ export function GaleriaSection() {
       <div className="hidden px-6 py-24 motion-reduce:block">
         <div className="mx-auto grid max-w-5xl grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
           {PHOTOS.map((_, i) => (
-            <div key={i} className="relative aspect-[4/5] overflow-hidden rounded-[20px]">
+            <div key={i} className="group relative aspect-[4/5] overflow-hidden rounded-[20px]">
               <PhotoFill index={i} />
             </div>
           ))}

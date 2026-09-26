@@ -502,7 +502,10 @@ sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    em `off` 0.15 — card + sombra sempre acima da borda do palco; miolo
    de cada card desliza em `xPercent` (±7). **O fundo do palco vai de
    verde-escuro pra bege (off-white)** ao longo da fase 2, na mesma cor do
-   Manifesto logo abaixo — emenda sem corte. A fase 2 **termina assim que
+   Manifesto logo abaixo — emenda sem corte. No caminho passa pelo
+   verde-medio (32%) e pelo verde-claro (62%) (`BG_STOPS`, keyframes com
+   `easeEach: "none"` dentro de uma tween `power1.inOut`): direto, o meio
+   da mistura era um cinza-barro fora da paleta. A fase 2 **termina assim que
    a última foto aparece inteira** com uma folga na direita (`tEnd`,
    margem de 6% da largura) — não leva a foto até o centro, a página já
    segue descendo. **Saída**: cada foto vive numa camada de palco inteiro
@@ -517,8 +520,13 @@ sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    `svh` — sobrava uma faixa embaixo; a `<section>` também anima a cor de
    fundo junto com o palco, então qualquer faixa que apareça é da mesma
    cor. Sem título, contador ou barra (pedido explícito: só a
-   foto). Timeline reconstruído só quando a LARGURA muda. Foto real:
-   trocar o conteúdo do `PhotoFill` por `<Image fill className="object-cover" />`.
+   foto). Timeline reconstruído só quando a LARGURA muda. Fotos em
+   `src/content/site.ts` (`GALERIA.photos`), via `PhotoSlot`. **Hover
+   "respira"** (só com mouse): a foto dá zoom de 6% por dentro
+   (`group-hover:scale-[1.06]`, `duration-slow`) e a moldura fica parada;
+   o card volta a receber `pointer-events` (a camada não recebe). Testada
+   e descartada: inclinação dos cards pela velocidade da rolagem (±3°)
+   — deformava as fotos e brigava com o parallax de profundidade.
    Placeholders usam cores sólidas (tons translúcidos ficavam cinza sobre
    o bege). `prefers-reduced-motion`: grid estático.
 4. `CartaSection` (`#manifesto`) — o **Manifesto**. Emenda com a galeria
