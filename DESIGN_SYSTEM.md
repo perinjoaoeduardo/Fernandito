@@ -564,8 +564,13 @@ sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    tudo alinhado à esquerda; à direita, imagem de ponta a ponta (hoje
    placeholder verde-escuro com grain) com parallax próprio. O título se
    escreve devagar (faixa `top 95%` → `top 30%`, ~2× a original) (miolo 120% de
-   altura, `yPercent` −8 → 8 e leve zoom desfazendo). No celular a imagem
-   vai pra baixo do texto (`aspect-[4/5]`).
+   altura, `yPercent` −8 → 8 e leve zoom desfazendo). **Entrada em
+   cortina**: a moldura da imagem abre de baixo pra cima (`clip-path:
+inset(100% 0 0 0)` → `inset(0)`, gatilho na própria moldura, `top 90%`
+   → `top 30%`, `SCRUB.base`), em vez de o bloco aparecer já inteiro. No
+   celular a imagem vai pra baixo do texto (`aspect-[4/5]`, pouco mais de
+   meia tela). Foto em `src/content/site.ts` (`CONTATO.photo`). O botão é o
+   mesmo `cta-destaque` magnético do menu e do rodapé.
 6. `SocialGallerySection` (`#social`, "O que anda rolando") — título
    pequeno numa linha, escrito à máquina; embaixo "Segue a gente no
    Instagram" + link @toma.fernandito; seção compacta (~1 tela). **No

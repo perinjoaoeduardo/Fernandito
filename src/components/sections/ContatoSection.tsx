@@ -17,12 +17,14 @@ export function ContatoSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const section = sectionRef.current;
     const cta = ctaRef.current;
     const image = imageRef.current;
-    if (!section || !cta || !image || prefersReducedMotion()) return;
+    const frame = frameRef.current;
+    if (!section || !cta || !image || !frame || prefersReducedMotion()) return;
 
     const ctx = gsap.context(() => {
       gsap.fromTo(
@@ -35,6 +37,18 @@ export function ContatoSection() {
           // Mesmo gatilho dos textos (a seção), logo depois do parágrafo
           // terminar de se escrever — o botão é o último da sequência.
           scrollTrigger: { trigger: section, start: "top 8%", end: "top -4%", scrub: SCRUB.base },
+        },
+      );
+      // Cortina: a moldura da imagem abre de baixo pra cima enquanto entra
+      // na tela, em vez de o bloco aparecer já inteiro. Gatilho na própria
+      // moldura — no celular ela vem depois do texto.
+      gsap.fromTo(
+        frame,
+        { clipPath: "inset(100% 0% 0% 0%)" },
+        {
+          clipPath: "inset(0% 0% 0% 0%)",
+          ease: "power2.out",
+          scrollTrigger: { trigger: frame, start: "top 90%", end: "top 30%", scrub: SCRUB.base },
         },
       );
       // Imagem 120% da altura da moldura: desliza de cima pra baixo e
@@ -87,7 +101,7 @@ export function ContatoSection() {
 
       {/* Metade da imagem (foto em `src/content/site.ts`), 120% da altura
           da moldura pra sobrar margem pro parallax. */}
-      <div className="relative aspect-[4/5] overflow-hidden md:aspect-auto">
+      <div ref={frameRef} className="relative aspect-[4/5] overflow-hidden md:aspect-auto">
         <div
           ref={imageRef}
           className="absolute inset-x-0 -top-[10%] h-[120%] [will-change:transform]"
