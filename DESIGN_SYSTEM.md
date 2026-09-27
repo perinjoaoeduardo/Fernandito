@@ -433,10 +433,11 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    moldura** ao rolar: a section é `motion-safe:h-[160vh]` (`140vh` abaixo
    de md), o cartão é `sticky top-0 h-screen` e encolhe (scale 0.9, raio
    40px) revelando o fundo bege da section em volta. **O logo e a frase
-   sobem no ritmo exato da rolagem** (y = −rolado ÷ escala, sem scrub),
-   como conteúdo normal — o que incomodava nas versões anteriores era eles
-   ficarem parados na tela (parecendo "descer junto") ou andarem mais
-   devagar que a página. O indicador "scroll" desvanece nos primeiros 15%
+   não têm movimento próprio**: fazem parte do cartão, encolhem com ele e
+   saem com ele (sem scrub, o cartão responde direto à rolagem). Tentativas
+   descartadas: sumir cedo (sobrava cartão vazio), andar mais devagar que o
+   cartão na saída (parecia descer junto), subir no ritmo da rolagem
+   (disparava pra cima no primeiro gesto). O indicador "scroll" desvanece nos primeiros 15%
    num wrapper próprio. A moldura é bege porque a seção seguinte (O que é)
    é bege — se ela mudar de cor, trocar aqui também.
 
