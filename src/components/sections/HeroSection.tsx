@@ -1,25 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import {
-  gsap,
-  ScrollTrigger,
-  DURATION,
-  EASE,
-  SCRUB,
-  prefersReducedMotion,
-  supportsHover,
-} from "@/lib/gsap";
+import { gsap, DURATION, EASE, prefersReducedMotion, supportsHover } from "@/lib/gsap";
 import { onIntroComplete } from "@/lib/introSignal";
 import { scrollToTarget } from "@/lib/lenis";
 import { Logo } from "@/components/ui/Logo";
 import { RotatingWord } from "@/components/ui/RotatingWord";
 import { HERO } from "@/content/site";
-
-// Quanto o cartão encolhe/arredonda ao rolar (ver efeito "shrink-to-card"
-// abaixo) — sutil o bastante pra não parecer um zoom brusco.
-const SHRINK_SCALE = 0.9;
-const SHRINK_RADIUS = 40; // px
 
 export function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -99,47 +86,10 @@ export function HeroSection() {
       }
     }, section);
 
-    // "Shrink-to-card": a section é mais alta que a viewport (motion-safe:h-[160vh])
-    // e o cartão (`box`) fica `sticky top-0` — enquanto o resto da altura extra
-    // rola por baixo dele, a gente anima scale + border-radius do cartão
-    // (revela o fundo da própria section nas bordas, como uma moldura — ver
-    // comentário no `className` da section abaixo). O logo e a frase FICAM
-    // no cartão, encolhendo junto e saindo com ele, presos a ele: antes eles
-    // sumiam no primeiro terço e sobrava quase uma tela de cartão verde
-    // vazio. (Já tiveram parallax na saída, mais lento que o cartão, pra
-    // ficarem no meio da faixa visível; saiu porque parecia que o logo
-    // seguia a rolagem.)
-    // Ao fim do range, o sticky solta sozinho e a OQueESection continua o
-    // scroll normalmente — sem precisar de pin/unpin manual via ScrollTrigger.
-    let shrinkTrigger: ScrollTrigger | null = null;
-    if (!reduceMotion) {
-      shrinkTrigger = ScrollTrigger.create({
-        trigger: section,
-        start: "top top",
-        end: "bottom bottom",
-        scrub: SCRUB.base,
-        onUpdate: (self) => {
-          const progress = self.progress;
-          const boxProgress = Math.min(1, progress / 0.7);
-          const indicatorProgress = Math.min(1, progress / 0.15);
-
-          gsap.set(box, {
-            scale: 1 - boxProgress * (1 - SHRINK_SCALE),
-            borderRadius: boxProgress * SHRINK_RADIUS,
-          });
-          // No wrapper, não no botão: a entrada anima a opacidade do botão
-          // e, se a pessoa rolasse antes dela terminar, o "scroll" voltava
-          // a aparecer por cima do logo.
-          gsap.set(indicatorFade, { autoAlpha: 1 - indicatorProgress });
-        },
-      });
-    }
-
     return () => {
       unsubscribeIntro?.();
       entranceTimeline?.kill();
       removeMouseMove?.();
-      shrinkTrigger?.kill();
       ctx.revert();
     };
   }, []);
@@ -148,17 +98,14 @@ export function HeroSection() {
     <section
       ref={sectionRef}
       id="hero"
-      // O fundo aqui é o que aparece na "moldura" revelada pelo efeito
-      // shrink-to-card (ver `shrinkTrigger` acima) — tem que ser sempre a
-      // mesma cor de fundo da PRÓXIMA seção (hoje, `OQueESection`,
-      // off-white). Se a cor da próxima seção mudar no futuro, atualizar
-      // aqui também — não há sincronia automática entre as duas.
-      // 140vh no celular (o cartão fica preso 0,4 tela, não 0,6).
-      className="bg-fernandito-off-white relative h-screen motion-safe:h-[140vh] md:motion-safe:h-[160vh]"
+      // Tela cheia comum, que sai com a rolagem como qualquer seção. Já foi
+      // um cartão preso (sticky) que encolhia enquanto a página rolava por
+      // baixo; saiu porque parecia que a Hero seguia a rolagem.
+      className="bg-fernandito-verde-escuro relative h-screen"
     >
       <div
         ref={boxRef}
-        className="bg-fernandito-verde-escuro sticky top-0 flex h-screen w-full flex-col items-center justify-center overflow-hidden [will-change:transform,border-radius]"
+        className="flex h-full w-full flex-col items-center justify-center overflow-hidden"
       >
         <div className="flex flex-col items-center px-6 text-center">
           {/* O texto do h1 vive num `sr-only` de verdade (não só no `alt` da

@@ -8,7 +8,10 @@ import { MARQUEE } from "@/content/site";
 // (isso mora em /legal/avisos). `font-accent` (Special Elite, o mesmo dos
 // carimbos da SocialGallerySection), pra faixa ter voz tipográfica própria.
 // Fundo verde-claro: separa visualmente do rodapé verde-escuro logo abaixo.
-const MARQUEE_PHRASE = MARQUEE.phrases.map((phrase) => `${phrase} · `).join("");
+// Espaços inquebráveis em volta do "·": um espaço comum no fim do texto
+// some na emenda do loop, e o padding que compensava deixava um buraco
+// maior ali ("COLA ·    TOMA").
+const MARQUEE_PHRASE = MARQUEE.phrases.map((phrase) => `${phrase}\u00A0·\u00A0`).join("");
 
 // Repetido várias vezes pra garantir que uma "metade" da trilha já seja mais
 // larga que qualquer viewport razoável — condição pro loop (que volta ao
@@ -62,10 +65,10 @@ function Marquee() {
     <div aria-hidden="true" className="flex items-center overflow-hidden py-3 sm:py-4">
       <div className="shrink-0">
         <div ref={trackRef} className="flex w-max shrink-0 [will-change:transform]">
-          <span className="text-fernandito-off-white font-accent translate-y-[0.15em] pr-6 text-[clamp(1.25rem,2.4vw,1.875rem)] leading-none tracking-[0.02em] whitespace-nowrap uppercase">
+          <span className="text-fernandito-off-white font-accent translate-y-[0.15em] text-[clamp(1.25rem,2.4vw,1.875rem)] leading-none tracking-[0.02em] whitespace-nowrap uppercase">
             {MARQUEE_TRACK_TEXT}
           </span>
-          <span className="text-fernandito-off-white font-accent translate-y-[0.15em] pr-6 text-[clamp(1.25rem,2.4vw,1.875rem)] leading-none tracking-[0.02em] whitespace-nowrap uppercase">
+          <span className="text-fernandito-off-white font-accent translate-y-[0.15em] text-[clamp(1.25rem,2.4vw,1.875rem)] leading-none tracking-[0.02em] whitespace-nowrap uppercase">
             {MARQUEE_TRACK_TEXT}
           </span>
         </div>

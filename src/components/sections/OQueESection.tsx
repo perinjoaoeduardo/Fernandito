@@ -88,7 +88,8 @@ export function OQueESection() {
     >
       <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-[minmax(0,200px)_1fr] md:items-center md:gap-16">
         {/* A lata (arte em `src/content/site.ts`; sem arte, placeholder
-            tracejado). Parallax: lata atrás (mais lenta), texto na frente. */}
+            tracejado). Só a lata tem parallax (mais lenta, atrás); o texto fica
+            parado — texto andando fora do ritmo da rolagem parecia solto. */}
         <Parallax speed={-50}>
           <div
             className={
@@ -113,22 +114,20 @@ export function OQueESection() {
           </div>
         </Parallax>
 
-        <Parallax speed={30}>
-          <div ref={columnRef} className="flex flex-col gap-6">
-            <p ref={p1Ref} className="text-body-lg font-sans">
-              {O_QUE_E.paragraphs[0]}
-            </p>
-            <p ref={p2Ref} className="text-body-lg font-sans">
-              {O_QUE_E.paragraphs[1]}
-            </p>
-            <h2
-              ref={statementRef}
-              className="text-display-sm font-rampart mt-4 leading-[1.15] tracking-[0.01em] text-balance"
-            >
-              {O_QUE_E.statement}
-            </h2>
-          </div>
-        </Parallax>
+        <div ref={columnRef} className="flex flex-col gap-6">
+          <p ref={p1Ref} className="text-body-lg font-sans">
+            {O_QUE_E.paragraphs[0]}
+          </p>
+          <p ref={p2Ref} className="text-body-lg font-sans">
+            {O_QUE_E.paragraphs[1]}
+          </p>
+          <h2
+            ref={statementRef}
+            className="text-display-sm font-rampart mt-4 leading-[1.15] tracking-[0.01em] text-balance"
+          >
+            {O_QUE_E.statement}
+          </h2>
+        </div>
       </div>
     </section>
   );

@@ -55,11 +55,20 @@ let teleporting = false;
  * seções (galeria, manifesto...) no caminho. Sob reduced motion, pulo seco.
  */
 export function teleportToTop() {
+  teleportTo(0);
+}
+
+/** Mesmo teletransporte, pra uma âncora (links do menu e do rodapé). */
+export function teleportTo(target: string | 0) {
   if (teleporting) return;
   const lenis = getLenis();
+  const element = target === 0 ? null : document.querySelector<HTMLElement>(target);
+  if (target !== 0 && !element) return;
+  const destination = () => (element ? element.getBoundingClientRect().top + window.scrollY : 0);
   const jump = () => {
-    if (lenis) lenis.scrollTo(0, { immediate: true, force: true });
-    else window.scrollTo(0, 0);
+    const y = destination();
+    if (lenis) lenis.scrollTo(y, { immediate: true, force: true });
+    else window.scrollTo(0, y);
     ScrollTrigger.update();
     // Animações presas à rolagem chegam no lugar na hora, sem "correr"
     // atrás da posição nova depois que a cortina abre.
@@ -70,7 +79,7 @@ export function teleportToTop() {
     });
   };
 
-  if (prefersReducedMotion() || window.scrollY < 8) {
+  if (prefersReducedMotion() || Math.abs(window.scrollY - destination()) < 8) {
     jump();
     return;
   }

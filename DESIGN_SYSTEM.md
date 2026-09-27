@@ -413,10 +413,10 @@ saindo por cima.
 
 **Parallax geral (`components/ui/Parallax.tsx`).** Wrapper que translada
 em `y` de +speed a −speed enquanto atravessa a tela (scrub). Positivo =
-camada da frente (sobe mais rápido), negativo = de trás. Aplicado: O que é
-(lata −50, texto +30), Manifesto (título +40, cartão −25), Contato (coluna
-de texto +40; a imagem tem parallax próprio), Social (só a pilha de 3
-fotos do celular). Social (título, leque, link) e rodapé já tiveram
+camada da frente (sobe mais rápido), negativo = de trás. **Só em imagens,
+nunca em texto** (texto andando fora do ritmo da rolagem parecia "seguir
+o scroll"): O que é (lata −50), Manifesto (cartão −25), Social (só a
+pilha de 3 fotos do celular); a imagem do Contato tem parallax próprio. Social (título, leque, link) e rodapé já tiveram
 parallax; saiu porque o fim da página tinha movimento demais ao mesmo
 tempo. **Abaixo de 768px a
 amplitude cai pela metade** (blocos empilhados e mais próximos — a
@@ -429,33 +429,12 @@ cima do loop). Sempre num nó próprio — nunca no mesmo elemento que já anima
 
 Ordem fixa da landing page (ver `src/app/page.tsx`):
 
-1. `HeroSection` — cartão visual **verde-escuro** (logo + tagline), efeito
-   "shrink-to-card" ao rolar (inspirado no hero da
-   Lassie): a section é `motion-safe:h-[160vh]` (`140vh` abaixo de md: no
-   celular o cartão fica preso 0,4 tela, não 0,6), o cartão visual é
-   `sticky top-0 h-screen` — enquanto a altura extra rola por baixo,
-   `scale`/`border-radius` do cartão animam via `ScrollTrigger` (`scrub`)
-   de tela cheia (scale 1, raio 0) até um cartão menor e arredondado
-   (`scale 0.9`, raio 40px), revelando o fundo da própria `<section>`
-   como moldura. Só o indicador "scroll" desvanece (nos primeiros 15%),
-   num wrapper próprio (`indicatorFadeRef`): a entrada anima a opacidade
-   do botão, e se a pessoa rolasse antes dela terminar o "scroll" voltava
-   por cima do logo.
-   **O logo e a frase nunca somem do cartão**: encolhem junto com ele e
-   saem da tela presos a ele, como conteúdo normal. Antes o texto sumia no
-   primeiro terço e sobrava quase uma tela de cartão verde vazio. Testado
-   e descartado: parallax na saída (logo mais lento que o cartão, sempre no
-   meio da faixa visível) — parecia que o logo seguia a rolagem. `prefers-reduced-motion` volta a section
-   pra um `h-screen` simples, sem o efeito.
-
-   **Regra da cor da moldura:** o fundo da `<section>` (a moldura revelada)
-   tem que ser **sempre a mesma cor de fundo da seção seguinte** — hoje,
-   `bg-fernandito-off-white` (a cor da `OQueESection`, que vem logo depois
-   da Hero). Não é uma sincronia automática: se a cor de fundo da seção que
-   vem depois da Hero mudar no futuro, essa classe precisa ser atualizada
-   manualmente junto (ver comentário no `className` da section em
-   `HeroSection.tsx`). O indicador de scroll no rodapé do cartão também
-   rola até essa mesma seção (`scrollToTarget("#o-que-e")`).
+1. `HeroSection` — tela cheia **verde-escuro** (`h-screen`, logo + tagline)
+   que sai com a rolagem como qualquer seção. Já foi um cartão preso
+   (sticky, 160vh) que encolhia enquanto a página rolava por baixo, e
+   depois teve o logo andando mais devagar que o cartão; as duas coisas
+   saíram porque pareciam seguir a rolagem. O indicador "scroll" rola até
+   o O que é (`scrollToTarget("#o-que-e")`).
 
    No centro do cartão ficam só o logo (`Logo.tsx`, `max-w-[360px]
 sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
@@ -502,11 +481,13 @@ sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    no meio da palavra ("qu / anto"). Grid de duas colunas só a partir de
    `md`.
 3. `GaleriaSection` (`#galeria`) — **a foto inteira que vira galeria**.
-   Palco `h-[100svh]` pinado (ScrollTrigger `pin`, `scrub: 0.8`), cards
-   posicionados em absoluto (x/y via GSAP). **Fase 1** (0,9 tela de
-   rolagem; 0,5 no celular, onde prendia demais): a foto 0 começa do
-   tamanho do palco (raio 0, por cima de tudo) e encolhe até card,
-   centralizada; as outras entram pela direita, cada uma já na sua altura.
+   Palco `h-lvh` pinado (ScrollTrigger `pin`, `SCRUB.soft`), cards
+   posicionados em absoluto (x/y via GSAP). **Fase 1 acontece na
+   entrada, antes do pin** (timeline `enter`, `top bottom` → `top top`):
+   enquanto o palco sobe entrando na tela, a foto 0 encolhe do tamanho do
+   palco até card e as outras entram pela direita. Quando o pin pega, a
+   foto já é card e a trilha já começa a andar — antes a página "travava"
+   parada só pra foto encolher (0,9 tela no desktop).
    **Fase 2**: parallax de profundidade — cada foto tem `speed` própria
    (fotos grandes na frente, 1.15–1.2; pequenas atrás, 0.8–0.85; a
    primeira e a última na base, 1) e deslocamento vertical `off`; a foto
@@ -527,7 +508,11 @@ sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    margem de 6% da largura) — não leva a foto até o centro, a página já
    segue descendo. **Saída**: cada foto vive numa camada de palco inteiro
    (`layerRefs`, onde também fica o z-index); depois que o pin solta, as
-   camadas seguem pra esquerda (−6% W × speed) e sobem **relativo à
+   camadas **seguem pra esquerda na mesma velocidade que tinham na trilha
+   e desaceleram** (x = −speed × v × H / 2 com `power2.out`, cuja derivada
+   inicial 2 devolve a velocidade de antes; medido: 148px por 100px
+   rolados antes e logo depois do pin, caindo pra 62 no fim) — antes o
+   movimento lateral parava de uma vez. E sobem **relativo à
    velocidade base** (−60% H × max(0, speed − 1)): a última foto (speed 1)
    sai junto com a página, as da frente sobem um pouco mais e as de trás
    acompanham a página (nunca descem, pra sombra não ser cortada). Versão anterior (−30% H × speed²) fazia a última foto
@@ -619,8 +604,10 @@ sm:py-4`, texto `clamp(1.25rem,2.4vw,1.875rem)`, `translate-y-[0.15em]` pra
    frase de fechamento surgia por último e já digitada, e no celular ele é
    mais alto que a tela (o topo nunca apareceria). Coluna de texto até 34rem (frase em
    `clamp(1.75rem,3vw,2.75rem)`); só a frase principal se escreve à
-   máquina (`TypewriterText`, faixas que terminam com o rodapé entrando),
-   a legenda e o resto já estão lá, e nada tem parallax — o fim da página
+   máquina, **sozinha, não presa à rolagem** (`TypewriterText
+mode="play"`: quando o rodapé chega a 75% da tela, 13 letras por
+   segundo, a segunda linha depois da primeira), a legenda e o resto já
+   estão lá, e nada tem parallax — o fim da página
    estava com animação demais ao mesmo tempo. Coluna estreita pra não
    espremer as colunas de links. Frase de fechamento em
    `font-rampart` ("Pra quem não deixa passar, / vira história." — o
@@ -629,7 +616,9 @@ sm:py-4`, texto `clamp(1.25rem,2.4vw,1.875rem)`, `translate-y-[0.15em]` pra
    `WhatsAppButton`; colunas "Navegar" (O que é, Galeria, Manifesto,
    Contato) e "Social" (Instagram). Base: moeda + copyright e botão
    circular "topo" (44×44). **Voltar ao topo** (esse botão e o cavalo do
-   menu) é um teletransporte (`teleportToTop`, `src/lib/lenis.ts`): uma
+   menu) e **todo link de âncora** (menu, menu do celular, "Navegar" do
+   rodapé — o `Link` faz isso sozinho pra `href="#..."`) são um
+   teletransporte (`teleportTo`/`teleportToTop`, `src/lib/lenis.ts`): uma
    cortina verde-medio sobe e cobre a tela (0,35s), a página pula pro topo
    por trás dela (as animações presas à rolagem chegam no lugar na hora) e
    a cortina segue subindo, revelando a Hero (0,55s). Rolar suave até o

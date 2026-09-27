@@ -1,6 +1,9 @@
+"use client";
+
 import { clsx } from "clsx";
 import NextLink from "next/link";
 import type { AnchorHTMLAttributes, ReactNode } from "react";
+import { teleportTo } from "@/lib/lenis";
 
 type LinkVariant = "underline-grow" | "underline-swap";
 
@@ -66,6 +69,27 @@ export function Link({
       <NextLink href={href} className={classes} {...props}>
         {content}
       </NextLink>
+    );
+  }
+
+  // Âncoras da própria página teletransportam (cortina + pulo), em vez de
+  // rolar passando por todas as seções no caminho.
+  if (href && href.startsWith("#") && target === undefined) {
+    const { onClick, ...rest } = props;
+    return (
+      <a
+        href={href}
+        className={classes}
+        onClick={(event) => {
+          onClick?.(event);
+          if (event.defaultPrevented) return;
+          event.preventDefault();
+          teleportTo(href);
+        }}
+        {...rest}
+      >
+        {content}
+      </a>
     );
   }
 

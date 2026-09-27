@@ -18,6 +18,12 @@ type TypewriterTextProps = {
    * digitam em sequência — cada um com o próprio gatilho, um texto mais
    * curto de baixo podia "passar na frente" do de cima. */
   triggerSelector?: string;
+  /** "scrub" (padrão): a digitação acompanha a rolagem. "play": quando o
+   * gatilho entra (`start`), digita sozinha uma vez, no ritmo de
+   * `charsPerSecond`, depois de `delay` segundos. */
+  mode?: "scrub" | "play";
+  charsPerSecond?: number;
+  delay?: number;
 };
 
 /**
@@ -35,6 +41,9 @@ export function TypewriterText({
   end = "top 55%",
   caret = true,
   triggerSelector,
+  mode = "scrub",
+  charsPerSecond = 14,
+  delay = 0,
 }: TypewriterTextProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLHeadingElement>(null);
@@ -87,20 +96,39 @@ export function TypewriterText({
     tl.to(chars, { opacity: 1, duration: 0.001, stagger: 1, ease: "none" });
 
     const triggerEl = (triggerSelector && el.closest(triggerSelector)) || el;
-    const trigger = ScrollTrigger.create({
-      trigger: triggerEl,
-      start,
-      end,
-      scrub: SCRUB.tight,
-      animation: tl,
-    });
+    let trigger: ScrollTrigger;
+    let delayed: gsap.core.Tween | null = null;
+    if (mode === "play") {
+      // Cada letra ocupa 1 unidade de tempo da timeline; timeScale converte
+      // isso em letras por segundo.
+      tl.pause().timeScale(charsPerSecond);
+      trigger = ScrollTrigger.create({
+        trigger: triggerEl,
+        start,
+        once: true,
+        onEnter: () => {
+          delayed = gsap.delayedCall(delay, () => {
+            tl.play();
+          });
+        },
+      });
+    } else {
+      trigger = ScrollTrigger.create({
+        trigger: triggerEl,
+        start,
+        end,
+        scrub: SCRUB.tight,
+        animation: tl,
+      });
+    }
 
     return () => {
+      delayed?.kill();
       trigger.kill();
       tl.kill();
       split.revert();
     };
-  }, [start, end, triggerSelector]);
+  }, [start, end, triggerSelector, mode, charsPerSecond, delay]);
 
   return (
     <div ref={wrapRef} className="relative">

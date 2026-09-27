@@ -7,6 +7,10 @@ import { Link } from "@/components/ui/Link";
 import { InstagramIcon } from "@/components/ui/icons";
 import { FOOTER, LINKS, NAV } from "@/content/site";
 
+// Ritmo da frase de fechamento, que se escreve sozinha quando o rodapé
+// aparece (não acompanha a rolagem): devagar, como máquina de escrever.
+const FOOTER_CPS = 13;
+
 // Mesmos "andares" da FloatingNav + o bloco de contato (ContatoSection).
 const NAV_LINKS = [...NAV.links, NAV.contactLink];
 
@@ -46,7 +50,8 @@ export function FooterSection() {
         {/* Frase de fechamento + CTA — escrita à máquina como o resto do
             site. Rampart é só caixa-alta: o contraste entre as linhas vem
             da cor (off-white → verde-claro), não de itálico/peso. */}
-        {/* Só a frase principal se escreve; o resto já está lá. Sem
+        {/* Só a frase principal se escreve, sozinha, quando o rodapé entra
+            (não presa à rolagem); o resto já está lá. Sem
             parallax: no fim da página, com a Social e a faixa na tela ao
             mesmo tempo, era movimento demais. */}
         <div>
@@ -54,16 +59,20 @@ export function FooterSection() {
             text={FOOTER.line1}
             caret={false}
             triggerSelector="#footer"
-            start="top 100%"
-            end="top 80%"
+            mode="play"
+            start="top 75%"
+            charsPerSecond={FOOTER_CPS}
             className="font-rampart text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em] lg:text-[min(2.75rem,calc((100vw-36rem)/17))] lg:whitespace-nowrap"
           />
           <TypewriterText
             as="p"
             text={FOOTER.line2}
             triggerSelector="#footer"
-            start="top 80%"
-            end="top 70%"
+            mode="play"
+            start="top 75%"
+            charsPerSecond={FOOTER_CPS}
+            // Começa quando a primeira linha termina (+ uma pausa curta).
+            delay={FOOTER.line1.length / FOOTER_CPS + 0.3}
             className="font-rampart text-fernandito-verde-claro mt-1 text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em] lg:text-[min(2.75rem,calc((100vw-36rem)/17))]"
           />
           <p className="text-body-lg font-accent mt-5 tracking-[0.04em] opacity-80">
