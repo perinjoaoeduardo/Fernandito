@@ -93,7 +93,7 @@ const BG_STOPS = {
   easeEach: "none", // a curva é a da tween inteira (power1.inOut)
 };
 // px de deslocamento horizontal da trilha base por px rolado.
-const SPEED = 1.1;
+const SPEED = 0.9;
 const PARALLAX = 7; // xPercent da imagem dentro do card (±)
 
 function layout(W: number, H: number) {
@@ -185,10 +185,17 @@ export function GaleriaSection() {
           1,
           1 - (W - margin - sizes[last].w - posX(last, 1)) / (PHOTOS[last].speed * D),
         );
-        // px que a trilha base anda por px rolado. No celular, mais — menos
-        // rolagem presa.
-        const v = W < 768 ? SPEED * 1.35 : SPEED;
+        // px que a trilha base anda por px rolado: um pouco mais devagar que
+        // o dedo, pra dar tempo de ver cada foto (a 1,1 — e 1,5 no celular —
+        // ficava tudo rápido demais; a 0,75 a seção ficava presa ~5 telas).
+        const v = W < 768 ? SPEED * 1.25 : SPEED;
         const p2 = (D * tEnd) / v;
+        // Ritmo da seção presa: pausa com a foto inteira → a foto reduz →
+        // as fotos passam → pausa com a última foto inteira → solta.
+        const holdIn = H * 0.2;
+        const p1 = H * 0.7;
+        const holdOut = H * 0.2;
+        const a2 = holdIn + p1;
 
         gsap.set([stage, section], { backgroundColor: BG_FROM });
         // Foto 0 começa ocupando o palco inteiro, por cima de tudo.
@@ -207,81 +214,72 @@ export function GaleriaSection() {
         });
         gsap.set(inners, { xPercent: PARALLAX });
 
-        // Fase 1 — ENQUANTO o palco sobe entrando na tela (antes de prender):
-        // a foto inteira encolhe até virar card e as outras entram pela
-        // direita. Quando o pin pega, a foto já é card e a trilha já está
-        // andando — antes a página "travava" parada só pra foto encolher.
-        const enter = gsap.timeline({
-          defaults: { ease: "none" },
-          scrollTrigger: { trigger: stage, start: "top bottom", end: "top top", scrub: SCRUB.soft },
-        });
-        enter
-          .to(
-            cards[0],
-            {
-              x: posX(0, 0),
-              y: posY(0),
-              width: sizes[0].w,
-              height: sizes[0].h,
-              borderRadius: RADIUS,
-              duration: 1,
-              ease: "power1.inOut",
-            },
-            0,
-          )
-          .set(layers[0], { zIndex: PHOTOS[0].z }, 1);
-        cards.slice(1).forEach((card, k) => {
-          enter.to(card, { x: posX(k + 1, 0), duration: 1, ease: "power1.out" }, 0);
-        });
-
         const tl = gsap.timeline({ defaults: { ease: "none" } });
+
+        // Pausa: a galeria prende com a foto inteira na tela e segura um
+        // pouco antes de qualquer coisa mexer.
+        tl.to({}, { duration: holdIn }, 0);
+
+        // Fase 1 — com a rolagem seguindo, a foto inteira reduz até virar
+        // card; as outras entram pela direita, cada uma já na sua altura.
+        tl.to(
+          cards[0],
+          {
+            x: posX(0, 0),
+            y: posY(0),
+            width: sizes[0].w,
+            height: sizes[0].h,
+            borderRadius: RADIUS,
+            duration: p1,
+            ease: "power2.inOut",
+          },
+          holdIn,
+        ).set(layers[0], { zIndex: PHOTOS[0].z }, a2);
+        cards.slice(1).forEach((card, k) => {
+          tl.to(card, { x: posX(k + 1, 0), duration: p1, ease: "power2.out" }, holdIn);
+        });
 
         // Fase 2 — cada foto anda na sua velocidade; as da frente sobem um
         // pouco (profundidade). As de trás não descem: o palco recorta o que
         // passa da borda de baixo e a sombra delas era cortada reta ali.
         cards.forEach((card, i) => {
           const drift = Math.max(0, PHOTOS[i].speed - 1) * H * 0.12;
-          tl.to(card, { x: posX(i, tEnd), y: posY(i) - drift * tEnd, duration: p2 }, 0);
+          tl.to(card, { x: posX(i, tEnd), y: posY(i) - drift * tEnd, duration: p2 }, a2);
         });
 
-        tl.to(inners, { xPercent: -PARALLAX, duration: p2 }, 0)
+        tl.to(inners, { xPercent: -PARALLAX, duration: p1 + p2 }, holdIn)
           // Fundo verde-escuro → bege ao longo da trilha, emendando no
-          // Manifesto (off-white) logo abaixo.
-          // A seção acompanha a cor do palco: se alguma faixa dela aparecer
-          // por baixo do palco (barra do navegador do celular recolhendo),
-          // é da mesma cor, não uma listra verde-escuro sobre o bege.
+          // Manifesto (off-white) logo abaixo. A seção acompanha a cor do
+          // palco (faixa que apareça embaixo no celular fica da mesma cor).
           .to(
             [stage, section],
             { keyframes: BG_STOPS, duration: p2 * 0.85, ease: "power1.inOut" },
-            0,
-          );
+            a2,
+          )
+          // Pausa final: a última foto inteira na tela, tudo parado, antes
+          // de soltar.
+          .to({}, { duration: holdOut }, a2 + p2);
 
         const pinTrigger = ScrollTrigger.create({
           trigger: stage,
           start: "top top",
-          end: `+=${p2}`,
+          end: `+=${a2 + p2 + holdOut}`,
           pin: true,
           scrub: SCRUB.soft,
           anticipatePin: 1,
           animation: tl,
         });
 
-        // Saída — depois que o pin solta, as fotos seguem pra esquerda na
-        // MESMA velocidade que tinham na trilha e vão desacelerando
-        // (power2.out: começa com a derivada certa) enquanto o palco sai da
-        // tela, e sobem cada uma no seu ritmo. Antes o movimento lateral
-        // parava de uma vez quando o pin soltava.
+        // Saída — depois da pausa, o palco sai com a página e as fotos
+        // deslizam de leve pra esquerda, subindo cada uma no seu ritmo (as da
+        // frente um pouco mais; as de trás nunca descem, pra sombra não ser
+        // cortada na borda de baixo).
         layers.forEach((layer, i) => {
           const s = PHOTOS[i].speed;
           gsap.to(layer, {
-            // power2.out tem derivada inicial 2: distância/2 dá a velocidade
-            // de antes (s × v px por px rolado) no primeiro instante.
-            x: (-s * v * H) / 2,
-            // Relativo à rolagem: a velocidade base (1, a da última foto)
-            // sai junto com a página; as da frente sobem um pouco mais. As
-            // de trás não descem (mesma razão da fase 2: borda de baixo).
+            x: -W * 0.05 * s,
             y: -H * 0.6 * Math.max(0, s - 1),
-            ease: "power2.out",
+            ease: "none",
             scrollTrigger: {
               start: () => pinTrigger.end,
               end: () => pinTrigger.end + H,

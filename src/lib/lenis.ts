@@ -49,10 +49,12 @@ export function scrollToTarget(target: string) {
 let teleporting = false;
 
 /**
- * "Voltar ao topo" sem atravessar a página: uma cortina verde-medio sobe
- * e cobre a tela, a página pula pro topo por trás dela e a cortina continua
- * subindo, revelando a Hero. Rolar suave até o topo passava por todas as
- * seções (galeria, manifesto...) no caminho. Sob reduced motion, pulo seco.
+ * "Voltar ao topo" sem atravessar a página: a página rola um pouco rumo ao
+ * destino enquanto uma cortina verde-medio sobe e cobre a tela; por trás
+ * dela, pula pra perto do destino; a cortina segue subindo e a página
+ * termina de rolar os últimos metros até ele. Rolar suave o caminho todo
+ * passava por todas as seções (galeria, manifesto...). Sob reduced motion,
+ * pulo seco.
  */
 export function teleportToTop() {
   teleportTo(0);
@@ -65,24 +67,32 @@ export function teleportTo(target: string | 0) {
   const element = target === 0 ? null : document.querySelector<HTMLElement>(target);
   if (target !== 0 && !element) return;
   const destination = () => (element ? element.getBoundingClientRect().top + window.scrollY : 0);
-  const jump = () => {
-    const y = destination();
-    if (lenis) lenis.scrollTo(y, { immediate: true, force: true });
-    else window.scrollTo(0, y);
-    ScrollTrigger.update();
+  const settle = () => {
     // Animações presas à rolagem chegam no lugar na hora, sem "correr"
-    // atrás da posição nova depois que a cortina abre.
-    // (Nem todo gatilho tem uma tween de scrub com `progress`.)
+    // atrás da posição nova depois que a cortina abre. (Nem todo gatilho
+    // tem uma tween de scrub com `progress`.)
+    ScrollTrigger.update();
     ScrollTrigger.getAll().forEach((trigger) => {
       const tween = trigger.getTween?.() as gsap.core.Tween | undefined;
       if (tween && typeof tween.progress === "function") tween.progress(1);
     });
   };
 
-  if (prefersReducedMotion() || Math.abs(window.scrollY - destination()) < 8) {
-    jump();
+  const goal = destination();
+  if (prefersReducedMotion() || !lenis || Math.abs(window.scrollY - goal) < 8) {
+    if (lenis) lenis.scrollTo(goal, { immediate: true, force: true });
+    else window.scrollTo(0, goal);
+    settle();
     return;
   }
+
+  // A página também anda um pouco no sentido da viagem, dos dois lados da
+  // cortina: sai rolando uns 18% de tela e chega rolando os últimos 18%.
+  // Sente que foi pra lá, sem mostrar tudo passando no caminho.
+  const nudge = window.innerHeight * 0.18;
+  const dir = goal < window.scrollY ? -1 : 1;
+  const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+  const clamp = (y: number) => Math.min(maxScroll, Math.max(0, y));
 
   teleporting = true;
   const curtain = document.createElement("div");
@@ -91,6 +101,7 @@ export function teleportTo(target: string | 0) {
     "position:fixed;inset:0;z-index:90;background:#405139;pointer-events:none;will-change:transform";
   document.body.appendChild(curtain);
 
+  lenis.scrollTo(clamp(window.scrollY + dir * nudge), { duration: 0.45, force: true });
   gsap
     .timeline({
       onComplete: () => {
@@ -99,6 +110,11 @@ export function teleportTo(target: string | 0) {
       },
     })
     .fromTo(curtain, { yPercent: 100 }, { yPercent: 0, duration: 0.35, ease: "power2.in" })
-    .add(jump)
+    .add(() => {
+      const end = destination();
+      lenis.scrollTo(clamp(end - dir * nudge), { immediate: true, force: true });
+      settle();
+      lenis.scrollTo(end, { duration: 0.6, force: true, easing: (t) => 1 - Math.pow(1 - t, 3) });
+    })
     .to(curtain, { yPercent: -100, duration: 0.55, ease: "power3.out" }, "+=0.08");
 }

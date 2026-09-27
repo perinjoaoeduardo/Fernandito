@@ -429,12 +429,16 @@ cima do loop). Sempre num nó próprio — nunca no mesmo elemento que já anima
 
 Ordem fixa da landing page (ver `src/app/page.tsx`):
 
-1. `HeroSection` — tela cheia **verde-escuro** (`h-screen`, logo + tagline)
-   que sai com a rolagem como qualquer seção. Já foi um cartão preso
-   (sticky, 160vh) que encolhia enquanto a página rolava por baixo, e
-   depois teve o logo andando mais devagar que o cartão; as duas coisas
-   saíram porque pareciam seguir a rolagem. O indicador "scroll" rola até
-   o O que é (`scrollToTarget("#o-que-e")`).
+1. `HeroSection` — cartão **verde-escuro** (logo + tagline) que **fecha na
+   moldura** ao rolar: a section é `motion-safe:h-[160vh]` (`140vh` abaixo
+   de md), o cartão é `sticky top-0 h-screen` e encolhe (scale 0.9, raio
+   40px) revelando o fundo bege da section em volta. **O logo e a frase
+   sobem no ritmo exato da rolagem** (y = −rolado ÷ escala, sem scrub),
+   como conteúdo normal — o que incomodava nas versões anteriores era eles
+   ficarem parados na tela (parecendo "descer junto") ou andarem mais
+   devagar que a página. O indicador "scroll" desvanece nos primeiros 15%
+   num wrapper próprio. A moldura é bege porque a seção seguinte (O que é)
+   é bege — se ela mudar de cor, trocar aqui também.
 
    No centro do cartão ficam só o logo (`Logo.tsx`, `max-w-[360px]
 sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
@@ -482,12 +486,15 @@ sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    `md`.
 3. `GaleriaSection` (`#galeria`) — **a foto inteira que vira galeria**.
    Palco `h-lvh` pinado (ScrollTrigger `pin`, `SCRUB.soft`), cards
-   posicionados em absoluto (x/y via GSAP). **Fase 1 acontece na
-   entrada, antes do pin** (timeline `enter`, `top bottom` → `top top`):
-   enquanto o palco sobe entrando na tela, a foto 0 encolhe do tamanho do
-   palco até card e as outras entram pela direita. Quando o pin pega, a
-   foto já é card e a trilha já começa a andar — antes a página "travava"
-   parada só pra foto encolher (0,9 tela no desktop).
+   posicionados em absoluto (x/y via GSAP). **Ritmo da parte presa**:
+   pausa com a foto inteira (0,2 tela, nada mexe) → a foto reduz até card
+   e as outras entram pela direita (0,7 tela) → as fotos passam → pausa com
+   a última foto inteira (0,2 tela) → solta. A trilha anda **0,9 px por px
+   rolado** (1,125 no celular): a 1,1 (1,5 no celular) ficava tudo rápido
+   demais, a 0,75 a seção ficava presa ~5 telas. Presa por ~4,1 telas no
+   desktop e ~2,9 no celular. (Testado e descartado: reduzir a foto
+   enquanto a galeria ainda entrava na tela — a pessoa não chegava a ver a
+   foto inteira.)
    **Fase 2**: parallax de profundidade — cada foto tem `speed` própria
    (fotos grandes na frente, 1.15–1.2; pequenas atrás, 0.8–0.85; a
    primeira e a última na base, 1) e deslocamento vertical `off`; a foto
@@ -508,12 +515,8 @@ sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    margem de 6% da largura) — não leva a foto até o centro, a página já
    segue descendo. **Saída**: cada foto vive numa camada de palco inteiro
    (`layerRefs`, onde também fica o z-index); depois que o pin solta, as
-   camadas **seguem pra esquerda na mesma velocidade que tinham na trilha
-   e desaceleram** (x = −speed × v × H / 2 com `power2.out`, cuja derivada
-   inicial 2 devolve a velocidade de antes; medido: 148px por 100px
-   rolados antes e logo depois do pin, caindo pra 62 no fim) — antes o
-   movimento lateral parava de uma vez. E sobem **relativo à
-   velocidade base** (−60% H × max(0, speed − 1)): a última foto (speed 1)
+   camadas, depois da pausa final, deslizam de leve pra esquerda (−5% W ×
+   speed) e sobem **relativo à velocidade base** (−60% H × max(0, speed − 1)): a última foto (speed 1)
    sai junto com a página, as da frente sobem um pouco mais e as de trás
    acompanham a página (nunca descem, pra sombra não ser cortada). Versão anterior (−30% H × speed²) fazia a última foto
    subir mais rápido que a página e abria um vão enorme antes do
@@ -618,10 +621,12 @@ mode="play"`: quando o rodapé chega a 75% da tela, 13 letras por
    circular "topo" (44×44). **Voltar ao topo** (esse botão e o cavalo do
    menu) e **todo link de âncora** (menu, menu do celular, "Navegar" do
    rodapé — o `Link` faz isso sozinho pra `href="#..."`) são um
-   teletransporte (`teleportTo`/`teleportToTop`, `src/lib/lenis.ts`): uma
-   cortina verde-medio sobe e cobre a tela (0,35s), a página pula pro topo
-   por trás dela (as animações presas à rolagem chegam no lugar na hora) e
-   a cortina segue subindo, revelando a Hero (0,55s). Rolar suave até o
+   teletransporte (`teleportTo`/`teleportToTop`, `src/lib/lenis.ts`): a
+   página rola 18% de tela rumo ao destino enquanto uma cortina verde-medio
+   sobe e cobre a tela (0,35s); por trás dela pula pra 18% antes do destino
+   (as animações presas à rolagem chegam no lugar na hora); a cortina segue
+   subindo (0,55s) enquanto a página rola os últimos 18% até o destino.
+   Sente a viagem sem mostrar tudo passando; ~1s no total. Rolar suave até o
    topo passava por todas as seções no caminho. Sob reduced motion, pulo
    seco.
 

@@ -1,16 +1,29 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { gsap, DURATION, EASE, prefersReducedMotion, supportsHover } from "@/lib/gsap";
+import {
+  gsap,
+  ScrollTrigger,
+  DURATION,
+  EASE,
+  prefersReducedMotion,
+  supportsHover,
+} from "@/lib/gsap";
 import { onIntroComplete } from "@/lib/introSignal";
 import { scrollToTarget } from "@/lib/lenis";
 import { Logo } from "@/components/ui/Logo";
 import { RotatingWord } from "@/components/ui/RotatingWord";
 import { HERO } from "@/content/site";
 
+// Quanto o cartão encolhe/arredonda ao rolar (a "moldura") — sutil o
+// bastante pra não parecer um zoom brusco.
+const SHRINK_SCALE = 0.9;
+const SHRINK_RADIUS = 40; // px
+
 export function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLHeadingElement>(null);
   const taglineRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLButtonElement>(null);
@@ -20,11 +33,12 @@ export function HeroSection() {
   useEffect(() => {
     const section = sectionRef.current;
     const box = boxRef.current;
+    const content = contentRef.current;
     const logo = logoRef.current;
     const tagline = taglineRef.current;
     const indicator = indicatorRef.current;
     const indicatorFade = indicatorFadeRef.current;
-    if (!section || !box || !logo || !tagline || !indicator || !indicatorFade) return;
+    if (!section || !box || !content || !logo || !tagline || !indicator || !indicatorFade) return;
 
     const reduceMotion = prefersReducedMotion();
 
@@ -86,7 +100,32 @@ export function HeroSection() {
       }
     }, section);
 
+    // Moldura: a section é mais alta que a tela e o cartão fica `sticky` —
+    // enquanto a altura extra rola, o cartão encolhe e arredonda, revelando
+    // o fundo bege da section em volta. O logo e a frase NÃO ficam parados
+    // na tela junto com o cartão: sobem exatamente no ritmo da rolagem
+    // (y = −rolado ÷ escala, porque estão dentro do cartão escalado), como
+    // conteúdo normal. Sem scrub (sem atraso): qualquer atraso aqui parecia
+    // o conteúdo "descendo junto".
+    let shrinkTrigger: ScrollTrigger | null = null;
+    if (!reduceMotion) {
+      shrinkTrigger = ScrollTrigger.create({
+        trigger: section,
+        start: "top top",
+        end: "bottom bottom",
+        onUpdate: (self) => {
+          const boxProgress = Math.min(1, self.progress / 0.7);
+          const scale = 1 - boxProgress * (1 - SHRINK_SCALE);
+          gsap.set(box, { scale, borderRadius: boxProgress * SHRINK_RADIUS });
+          gsap.set(content, { y: -(self.scroll() - self.start) / scale });
+          // No wrapper, não no botão: a entrada anima a opacidade do botão.
+          gsap.set(indicatorFade, { autoAlpha: 1 - Math.min(1, self.progress / 0.15) });
+        },
+      });
+    }
+
     return () => {
+      shrinkTrigger?.kill();
       unsubscribeIntro?.();
       entranceTimeline?.kill();
       removeMouseMove?.();
@@ -98,16 +137,19 @@ export function HeroSection() {
     <section
       ref={sectionRef}
       id="hero"
-      // Tela cheia comum, que sai com a rolagem como qualquer seção. Já foi
-      // um cartão preso (sticky) que encolhia enquanto a página rolava por
-      // baixo; saiu porque parecia que a Hero seguia a rolagem.
-      className="bg-fernandito-verde-escuro relative h-screen"
+      // O fundo aqui é a "moldura" revelada quando o cartão encolhe — tem
+      // que ser a cor da PRÓXIMA seção (OQueESection, off-white). 140vh no
+      // celular (cartão preso 0,4 tela), 160vh do md pra cima.
+      className="bg-fernandito-off-white relative h-screen motion-safe:h-[140vh] md:motion-safe:h-[160vh]"
     >
       <div
         ref={boxRef}
-        className="flex h-full w-full flex-col items-center justify-center overflow-hidden"
+        className="bg-fernandito-verde-escuro sticky top-0 flex h-screen w-full flex-col items-center justify-center overflow-hidden [will-change:transform,border-radius]"
       >
-        <div className="flex flex-col items-center px-6 text-center">
+        <div
+          ref={contentRef}
+          className="flex flex-col items-center px-6 text-center [will-change:transform]"
+        >
           {/* O texto do h1 vive num `sr-only` de verdade (não só no `alt` da
               imagem): garante um h1 com texto rastreável no HTML do servidor,
               independente do raster do logo carregar ou não. A imagem vira
