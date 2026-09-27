@@ -243,7 +243,13 @@ no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
   Hero, com o menu do celular aberto ou com foco de teclado dentro dela
   (antes ela passava por cima dos títulos durante a leitura). A amostra
   de fundo vem de `backgroundAt` (`src/lib/background.ts`), a mesma usada
-  pelo cursor e pelo `ThemeColorSync`.
+  pelo cursor e pelo `ThemeColorSync`. **O segredo**: três toques em menos
+  de 0,9s no cavalo do menu fazem o cavalinho da abertura atravessar a
+  tela galopando uma vez (`Gallop.tsx`: o mesmo `cavalinho-intro.gif`, já
+  em cache pela intro, `fixed` no rodapé da tela, 2,4s da esquerda pra
+  direita, some no fim). Um toque só continua sendo "voltar ao topo". Sob
+  `prefers-reduced-motion` não acontece nada. Não está anunciado em lugar
+  nenhum do site, de propósito.
 - **`Container`** (`Container.tsx`) — max-width com padding responsivo,
   usado para limitar a largura de conteúdo dentro das seções full-bleed.
 - **`WhatsAppButton`** (`WhatsAppButton.tsx`) — wrapper do `Button` variante

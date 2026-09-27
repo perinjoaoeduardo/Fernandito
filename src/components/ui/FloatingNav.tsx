@@ -1,13 +1,14 @@
 "use client";
 
 import { clsx } from "clsx";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { backgroundAt } from "@/lib/background";
-import { DURATION, EASE_BEZIER } from "@/lib/gsap";
+import { DURATION, EASE_BEZIER, prefersReducedMotion } from "@/lib/gsap";
 import { scrollToTarget } from "@/lib/lenis";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
+import { Gallop } from "@/components/ui/Gallop";
 import { NAV } from "@/content/site";
 
 // Site de página única: a nav é navegação por âncora pros "andares" da
@@ -24,6 +25,9 @@ const PROBE_Y = 40;
 // Abaixo disso (px) a nav nunca se recolhe — na Hero ela é parte da capa.
 const TUCK_AFTER = 160;
 
+// Janela (ms) em que três toques no cavalo contam como "três toques".
+const TAP_WINDOW_MS = 900;
+
 export function FloatingNav() {
   const [visible, setVisible] = useState(false);
   // `scrolled`: saiu do topo (pill mais opaca). `tucked`: recolhida pra cima
@@ -33,6 +37,20 @@ export function FloatingNav() {
   const [overLight, setOverLight] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const lastScrollY = useRef(0);
+  // Segredo: três toques rápidos no cavalo fazem ele galopar pela tela.
+  const [galloping, setGalloping] = useState(false);
+  const horseTaps = useRef<number[]>([]);
+  const endGallop = useCallback(() => setGalloping(false), []);
+
+  const handleHorseClick = () => {
+    scrollToTarget("#hero");
+    const now = performance.now();
+    horseTaps.current = [...horseTaps.current, now].filter((t) => now - t < TAP_WINDOW_MS);
+    if (horseTaps.current.length >= 3 && !galloping && !prefersReducedMotion()) {
+      horseTaps.current = [];
+      setGalloping(true);
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setVisible(true), 500);
@@ -118,7 +136,7 @@ export function FloatingNav() {
           type="button"
           animate={pillAnimation}
           transition={pillTransition}
-          onClick={() => scrollToTarget("#hero")}
+          onClick={handleHorseClick}
           aria-label="Voltar ao topo"
           className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 w-11 shrink-0 items-center justify-center rounded-full backdrop-blur-md transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
         >
@@ -220,6 +238,8 @@ export function FloatingNav() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {galloping && <Gallop onDone={endGallop} />}
     </>
   );
 }
