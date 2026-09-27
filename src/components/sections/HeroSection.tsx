@@ -6,6 +6,7 @@ import {
   ScrollTrigger,
   DURATION,
   EASE,
+  IS_TOUCH,
   prefersReducedMotion,
   supportsHover,
 } from "@/lib/gsap";
@@ -19,10 +20,14 @@ import { HERO } from "@/content/site";
 // bastante pra não parecer um zoom brusco.
 const SHRINK_SCALE = 0.9;
 const SHRINK_RADIUS = 40; // px
+// Parallax BEM sutil do logo e da frase dentro do cartão: sobem só isso (px)
+// enquanto o cartão fecha na moldura. Menos no toque.
+const CONTENT_DRIFT = IS_TOUCH ? 22 : 36;
 
 export function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLHeadingElement>(null);
   const taglineRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLButtonElement>(null);
@@ -32,11 +37,12 @@ export function HeroSection() {
   useEffect(() => {
     const section = sectionRef.current;
     const box = boxRef.current;
+    const content = contentRef.current;
     const logo = logoRef.current;
     const tagline = taglineRef.current;
     const indicator = indicatorRef.current;
     const indicatorFade = indicatorFadeRef.current;
-    if (!section || !box || !logo || !tagline || !indicator || !indicatorFade) return;
+    if (!section || !box || !content || !logo || !tagline || !indicator || !indicatorFade) return;
 
     const reduceMotion = prefersReducedMotion();
 
@@ -100,8 +106,10 @@ export function HeroSection() {
 
     // Moldura: a section é mais alta que a tela e o cartão fica `sticky` —
     // enquanto a altura extra rola, o cartão encolhe e arredonda, revelando
-    // o fundo bege da section em volta. O logo e a frase não têm movimento
-    // próprio: são parte do cartão, encolhem com ele e saem com ele. (Já
+    // o fundo bege da section em volta. O logo e a frase são parte do
+    // cartão, encolhem com ele e saem com ele; o único movimento próprio é
+    // um parallax bem sutil (CONTENT_DRIFT px pra cima ao longo do
+    // fechamento). (Já
     // tentamos: sumir cedo — sobrava cartão vazio; andar mais devagar que o
     // cartão na saída — parecia descer junto; subir no ritmo da rolagem —
     // disparava pra cima no primeiro gesto.) Sem scrub: o cartão responde
@@ -116,6 +124,7 @@ export function HeroSection() {
           const boxProgress = Math.min(1, self.progress / 0.7);
           const scale = 1 - boxProgress * (1 - SHRINK_SCALE);
           gsap.set(box, { scale, borderRadius: boxProgress * SHRINK_RADIUS });
+          gsap.set(content, { y: -self.progress * CONTENT_DRIFT });
           // No wrapper, não no botão: a entrada anima a opacidade do botão.
           gsap.set(indicatorFade, { autoAlpha: 1 - Math.min(1, self.progress / 0.15) });
         },
@@ -144,7 +153,10 @@ export function HeroSection() {
         ref={boxRef}
         className="bg-fernandito-verde-escuro sticky top-0 flex h-screen w-full flex-col items-center justify-center overflow-hidden [will-change:transform,border-radius]"
       >
-        <div className="flex flex-col items-center px-6 text-center">
+        <div
+          ref={contentRef}
+          className="flex flex-col items-center px-6 text-center [will-change:transform]"
+        >
           {/* O texto do h1 vive num `sr-only` de verdade (não só no `alt` da
               imagem): garante um h1 com texto rastreável no HTML do servidor,
               independente do raster do logo carregar ou não. A imagem vira

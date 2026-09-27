@@ -40,16 +40,16 @@ export function ContatoSection() {
           scrollTrigger: { trigger: section, start: "top 8%", end: "top -4%", scrub: SCRUB.base },
         },
       );
-      // Cortina: a moldura da imagem abre de baixo pra cima enquanto entra
-      // na tela, em vez de o bloco aparecer já inteiro. Gatilho na própria
-      // moldura — no celular ela vem depois do texto.
+      // Entrada suave da imagem: só um fade longo, somado ao parallax e ao
+      // zoom leve que já existem por dentro. (Já foi uma cortina de
+      // clip-path abrindo de baixo pra cima — agressiva demais.)
       gsap.fromTo(
         frame,
-        { clipPath: "inset(100% 0% 0% 0%)" },
+        { opacity: 0 },
         {
-          clipPath: "inset(0% 0% 0% 0%)",
-          ease: "power2.out",
-          scrollTrigger: { trigger: frame, start: "top 90%", end: "top 30%", scrub: SCRUB.base },
+          opacity: 1,
+          ease: "none",
+          scrollTrigger: { trigger: frame, start: "top 95%", end: "top 45%", scrub: SCRUB.base },
         },
       );
       // Imagem 120% da altura da moldura: desliza de cima pra baixo e
