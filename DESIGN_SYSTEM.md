@@ -433,8 +433,10 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    moldura** ao rolar: a section é `motion-safe:h-[160vh]` (`140vh` abaixo
    de md), o cartão é `sticky top-0 h-screen` e encolhe (scale 0.9, raio
    40px) revelando o fundo bege da section em volta. **O logo e a frase
-   não têm movimento próprio**: fazem parte do cartão, encolhem com ele e
-   saem com ele (sem scrub, o cartão responde direto à rolagem). Tentativas
+   fazem parte do cartão**: encolhem com ele e saem com ele (sem scrub, o
+   cartão responde direto à rolagem), com um único movimento próprio, um
+   parallax **bem sutil**: sobem `CONTENT_DRIFT` (36px; 22 no toque) ao
+   longo do fechamento — descontado o encolhimento, ~15px na tela. Tentativas
    descartadas: sumir cedo (sobrava cartão vazio), andar mais devagar que o
    cartão na saída (parecia descer junto), subir no ritmo da rolagem
    (disparava pra cima no primeiro gesto). O indicador "scroll" desvanece nos primeiros 15%
@@ -570,10 +572,10 @@ sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    tudo alinhado à esquerda; à direita, imagem de ponta a ponta (hoje
    placeholder verde-escuro com grain) com parallax próprio. O título se
    escreve devagar (faixa `top 95%` → `top 30%`, ~2× a original) (miolo 120% de
-   altura, `yPercent` −8 → 8 e leve zoom desfazendo). **Entrada em
-   cortina**: a moldura da imagem abre de baixo pra cima (`clip-path:
-inset(100% 0 0 0)` → `inset(0)`, gatilho na própria moldura, `top 90%`
-   → `top 30%`, `SCRUB.base`), em vez de o bloco aparecer já inteiro. No
+   altura, `yPercent` −8 → 8 e leve zoom desfazendo). **Entrada suave**:
+   só um fade longo da moldura (`top 95%` → `top 45%`), somado ao parallax
+   de dentro. Já foi uma cortina de clip-path abrindo de baixo pra cima —
+   agressiva demais. No
    celular a imagem vai pra baixo do texto (`aspect-[4/5]`, pouco mais de
    meia tela). Foto em `src/content/site.ts` (`CONTATO.photo`). O botão é o
    mesmo `cta-destaque` magnético do menu e do rodapé.
