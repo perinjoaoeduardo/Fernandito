@@ -1,7 +1,6 @@
 "use client";
 
-import { scrollToTarget } from "@/lib/lenis";
-import { Parallax } from "@/components/ui/Parallax";
+import { teleportToTop } from "@/lib/lenis";
 import { TypewriterText } from "@/components/ui/TypewriterText";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
@@ -47,7 +46,10 @@ export function FooterSection() {
         {/* Frase de fechamento + CTA — escrita à máquina como o resto do
             site. Rampart é só caixa-alta: o contraste entre as linhas vem
             da cor (off-white → verde-claro), não de itálico/peso. */}
-        <Parallax speed={24}>
+        {/* Só a frase principal se escreve; o resto já está lá. Sem
+            parallax: no fim da página, com a Social e a faixa na tela ao
+            mesmo tempo, era movimento demais. */}
+        <div>
           <TypewriterText
             text={FOOTER.line1}
             caret={false}
@@ -64,22 +66,16 @@ export function FooterSection() {
             end="top 70%"
             className="font-rampart text-fernandito-verde-claro mt-1 text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em] lg:text-[min(2.75rem,calc((100vw-36rem)/17))]"
           />
-          <TypewriterText
-            as="p"
-            text={FOOTER.tagline}
-            caret={false}
-            triggerSelector="#footer"
-            start="top 70%"
-            end="top 62%"
-            className="text-body-lg font-accent mt-5 tracking-[0.04em] opacity-80"
-          />
+          <p className="text-body-lg font-accent mt-5 tracking-[0.04em] opacity-80">
+            {FOOTER.tagline}
+          </p>
           <div className="mt-8">
             <WhatsAppButton>{NAV.whatsappLabel}</WhatsAppButton>
           </div>
-        </Parallax>
+        </div>
 
         {/* Navegação em colunas — estilo compacto (Company/Socials da Lassie) */}
-        <Parallax speed={-16} className="grid grid-cols-2 gap-10 sm:gap-16">
+        <div className="grid grid-cols-2 gap-10 sm:gap-16">
           <div>
             <h3 className="text-label mb-4 font-sans tracking-[0.08em] uppercase opacity-80">
               {FOOTER.navTitle}
@@ -116,7 +112,7 @@ export function FooterSection() {
               </li>
             </ul>
           </div>
-        </Parallax>
+        </div>
       </div>
 
       {/* Base do footer — moeda no lugar de um mascote/flor genérico + botão
@@ -148,7 +144,7 @@ export function FooterSection() {
             copyright. */}
         <button
           type="button"
-          onClick={() => scrollToTarget("#hero")}
+          onClick={teleportToTop}
           aria-label="Voltar ao topo"
           title="Voltar ao topo"
           className="border-fernandito-off-white/25 text-fernandito-off-white/80 duration-base ease-out-standard hover:border-fernandito-off-white/50 hover:text-fernandito-off-white hover:bg-fernandito-off-white/5 focus-visible:outline-fernandito-off-white flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-all hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"

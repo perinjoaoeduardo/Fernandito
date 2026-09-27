@@ -415,8 +415,10 @@ saindo por cima.
 em `y` de +speed a −speed enquanto atravessa a tela (scrub). Positivo =
 camada da frente (sobe mais rápido), negativo = de trás. Aplicado: O que é
 (lata −50, texto +30), Manifesto (título +40, cartão −25), Contato (coluna
-de texto +40; a imagem tem parallax próprio), Social (título +40, leque
-−30, link +20), rodapé (texto +24, links −16). **Abaixo de 768px a
+de texto +40; a imagem tem parallax próprio), Social (só a pilha de 3
+fotos do celular). Social (título, leque, link) e rodapé já tiveram
+parallax; saiu porque o fim da página tinha movimento demais ao mesmo
+tempo. **Abaixo de 768px a
 amplitude cai pela metade** (blocos empilhados e mais próximos — a
 amplitude cheia fazia a lata encostar no texto do O que é) **e no toque
 cai pra 30%**: texto andando em velocidade diferente do dedo deixava a
@@ -439,13 +441,11 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    num wrapper próprio (`indicatorFadeRef`): a entrada anima a opacidade
    do botão, e se a pessoa rolasse antes dela terminar o "scroll" voltava
    por cima do logo.
-   **O logo e a frase nunca saem do cartão**: encolhem junto com ele e,
-   quando o sticky solta e o cartão sobe com a página, o bloco do logo
-   (`exitRef`, da altura do cartão) desce 55% do caminho (`EXIT_LAG`)
-   — parallax que mantém o logo no meio da faixa do cartão que ainda está
-   na tela (medido: no máximo ~12px fora do centro, no celular e no
-   desktop). Antes o texto sumia no primeiro terço e sobrava quase uma
-   tela de cartão verde vazio. `prefers-reduced-motion` volta a section
+   **O logo e a frase nunca somem do cartão**: encolhem junto com ele e
+   saem da tela presos a ele, como conteúdo normal. Antes o texto sumia no
+   primeiro terço e sobrava quase uma tela de cartão verde vazio. Testado
+   e descartado: parallax na saída (logo mais lento que o cartão, sempre no
+   meio da faixa visível) — parecia que o logo seguia a rolagem. `prefers-reduced-motion` volta a section
    pra um `h-screen` simples, sem o efeito.
 
    **Regra da cor da moldura:** o fundo da `<section>` (a moldura revelada)
@@ -608,26 +608,33 @@ sm:py-4`, texto `clamp(1.25rem,2.4vw,1.875rem)`, `translate-y-[0.15em]` pra
    centralizar as maiúsculas — a Special Elite reserva ~30% da linha pras
    descendentes), agora em faixa
    **verde-claro** com texto off-white — antes era verde-escuro e se
-   fundia com o rodapé logo abaixo. **Reage à rolagem**: o loop é movido à
-   mão num `gsap.ticker` (não uma tween infinita), 90px/s pra esquerda em
-   repouso; rolar dá um empurrão proporcional à velocidade (até 5×) que
-   decai sozinho em ~1s, e rolar pra cima inverte o sentido até a pessoa
-   voltar a descer. Só anda enquanto está na tela. Frases em
+   fundia com o rodapé logo abaixo. **Movimento contínuo e constante**:
+   loop de 90px/s pra esquerda, sem reagir à rolagem, sem fade de entrada
+   e sem deslizar junto com a página (já acelerou/inverteu com a rolagem e
+   já deslizou com ela; as duas coisas saíram por pedido). Frases em
    `src/content/site.ts` (`MARQUEE.phrases`).
 8. `FooterSection` — fundo verde-escuro, compacto, **largura total** (só o
    padding da página). Testado e descartado: rodapé "revelado" (preso no
    fundo, por baixo do conteúdo) — ele aparece de baixo pra cima, então a
    frase de fechamento surgia por último e já digitada, e no celular ele é
    mais alto que a tela (o topo nunca apareceria). Coluna de texto até 34rem (frase em
-   `clamp(1.75rem,3vw,2.75rem)`), escrita à máquina (`TypewriterText`, faixas
-   que terminam com o rodapé entrando), pra não espremer as colunas de
-   links. Frase de fechamento em
+   `clamp(1.75rem,3vw,2.75rem)`); só a frase principal se escreve à
+   máquina (`TypewriterText`, faixas que terminam com o rodapé entrando),
+   a legenda e o resto já estão lá, e nada tem parallax — o fim da página
+   estava com animação demais ao mesmo tempo. Coluna estreita pra não
+   espremer as colunas de links. Frase de fechamento em
    `font-rampart` ("Pra quem não deixa passar, / vira história." — o
    contraste da segunda linha é a cor verde-claro, já que a Rampart não tem
    itálico), legenda "Isso toma fernandito." em `font-accent`, CTA
    `WhatsAppButton`; colunas "Navegar" (O que é, Galeria, Manifesto,
    Contato) e "Social" (Instagram). Base: moeda + copyright e botão
-   circular "topo" (44×44).
+   circular "topo" (44×44). **Voltar ao topo** (esse botão e o cavalo do
+   menu) é um teletransporte (`teleportToTop`, `src/lib/lenis.ts`): uma
+   cortina verde-medio sobe e cobre a tela (0,35s), a página pula pro topo
+   por trás dela (as animações presas à rolagem chegam no lugar na hora) e
+   a cortina segue subindo, revelando a Hero (0,55s). Rolar suave até o
+   topo passava por todas as seções no caminho. Sob reduced motion, pulo
+   seco.
 
 ## Páginas legais (`/legal`)
 

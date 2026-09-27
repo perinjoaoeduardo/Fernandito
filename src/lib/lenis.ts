@@ -1,7 +1,7 @@
 "use client";
 
 import Lenis from "lenis";
-import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { gsap, ScrollTrigger, prefersReducedMotion } from "@/lib/gsap";
 
 let lenisInstance: Lenis | null = null;
 
@@ -44,4 +44,52 @@ export function scrollToTarget(target: string) {
     return;
   }
   document.querySelector(target)?.scrollIntoView();
+}
+
+let teleporting = false;
+
+/**
+ * "Voltar ao topo" sem atravessar a página: uma cortina verde-medio sobe
+ * e cobre a tela, a página pula pro topo por trás dela e a cortina continua
+ * subindo, revelando a Hero. Rolar suave até o topo passava por todas as
+ * seções (galeria, manifesto...) no caminho. Sob reduced motion, pulo seco.
+ */
+export function teleportToTop() {
+  if (teleporting) return;
+  const lenis = getLenis();
+  const jump = () => {
+    if (lenis) lenis.scrollTo(0, { immediate: true, force: true });
+    else window.scrollTo(0, 0);
+    ScrollTrigger.update();
+    // Animações presas à rolagem chegam no lugar na hora, sem "correr"
+    // atrás da posição nova depois que a cortina abre.
+    // (Nem todo gatilho tem uma tween de scrub com `progress`.)
+    ScrollTrigger.getAll().forEach((trigger) => {
+      const tween = trigger.getTween?.() as gsap.core.Tween | undefined;
+      if (tween && typeof tween.progress === "function") tween.progress(1);
+    });
+  };
+
+  if (prefersReducedMotion() || window.scrollY < 8) {
+    jump();
+    return;
+  }
+
+  teleporting = true;
+  const curtain = document.createElement("div");
+  curtain.setAttribute("aria-hidden", "true");
+  curtain.style.cssText =
+    "position:fixed;inset:0;z-index:90;background:#405139;pointer-events:none;will-change:transform";
+  document.body.appendChild(curtain);
+
+  gsap
+    .timeline({
+      onComplete: () => {
+        curtain.remove();
+        teleporting = false;
+      },
+    })
+    .fromTo(curtain, { yPercent: 100 }, { yPercent: 0, duration: 0.35, ease: "power2.in" })
+    .add(jump)
+    .to(curtain, { yPercent: -100, duration: 0.55, ease: "power3.out" }, "+=0.08");
 }

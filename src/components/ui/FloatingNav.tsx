@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { backgroundAt } from "@/lib/background";
 import { DURATION, EASE_BEZIER, prefersReducedMotion } from "@/lib/gsap";
-import { scrollToTarget } from "@/lib/lenis";
+import { teleportToTop } from "@/lib/lenis";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 import { Gallop } from "@/components/ui/Gallop";
@@ -43,7 +43,7 @@ export function FloatingNav() {
   const endGallop = useCallback(() => setGalloping(false), []);
 
   const handleHorseClick = () => {
-    scrollToTarget("#hero");
+    teleportToTop();
     const now = performance.now();
     horseTaps.current = [...horseTaps.current, now].filter((t) => now - t < TAP_WINDOW_MS);
     if (horseTaps.current.length >= 3 && !galloping && !prefersReducedMotion()) {
