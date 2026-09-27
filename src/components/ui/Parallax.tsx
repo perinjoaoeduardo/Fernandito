@@ -3,7 +3,7 @@
 import { clsx } from "clsx";
 import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
-import { gsap, prefersReducedMotion } from "@/lib/gsap";
+import { gsap, IS_TOUCH, prefersReducedMotion } from "@/lib/gsap";
 
 type ParallaxProps = {
   /** px de deslocamento em cada ponta. Positivo = sobe mais rápido que a
@@ -24,9 +24,10 @@ export function Parallax({ speed = 40, className, children }: ParallaxProps) {
   useEffect(() => {
     const el = ref.current;
     if (!el || prefersReducedMotion()) return;
-    // Em tela estreita os blocos ficam empilhados e mais perto uns dos
-    // outros — a amplitude cheia do desktop os faria se encostar.
-    const amp = window.innerWidth < 768 ? speed * 0.5 : speed;
+    // No toque, bem mais leve: texto e blocos andando em velocidades
+    // diferentes do dedo davam a sensação de página "solta". Em tela
+    // estreita os blocos também ficam mais perto uns dos outros.
+    const amp = IS_TOUCH ? speed * 0.3 : window.innerWidth < 768 ? speed * 0.5 : speed;
     const tween = gsap.fromTo(
       el,
       { y: amp },

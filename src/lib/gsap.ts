@@ -32,15 +32,23 @@ export const DURATION = {
   enter: 0.7,
 } as const;
 
+// Tela de toque como ponteiro principal (celular, tablet). Avaliado no
+// navegador (este módulo é client); no servidor fica false, mas lá nenhuma
+// animação roda.
+export const IS_TOUCH =
+  typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+
 // Atraso (s) com que uma animação presa à rolagem alcança a posição da
 // rolagem. tight: texto e detalhes que têm que responder na hora
 // (máquina de escrever, carimbo). base: blocos entrando. soft: objetos
 // grandes com "peso" (galeria saindo, cartão do Manifesto).
-export const SCRUB = {
-  tight: 0.4,
-  base: 0.6,
-  soft: 0.8,
-} as const;
+// No toque o atraso é quase zero: a rolagem do dedo já tem inércia própria
+// e um atraso por cima vira elástico (a animação seguia andando ~0,8s
+// depois que o dedo e a inércia já tinham parado). No mouse o atraso é o
+// que esconde os "degraus" da roda.
+export const SCRUB = IS_TOUCH
+  ? { tight: 0.1, base: 0.15, soft: 0.2 }
+  : { tight: 0.4, base: 0.6, soft: 0.8 };
 
 /**
  * Registers GSAP plugins exactly once on the client.
@@ -49,6 +57,9 @@ export const SCRUB = {
 export function registerGsapPlugins() {
   if (registered || typeof window === "undefined") return;
   gsap.registerPlugin(ScrollTrigger, SplitText, CustomEase);
+  // A barra de endereço do celular muda a altura da tela a cada rolagem;
+  // recalcular tudo nisso dava pulos no meio do gesto.
+  ScrollTrigger.config({ ignoreMobileResize: true });
   CustomEase.create(EASE.outStandard, "0.22, 1, 0.36, 1");
   CustomEase.create(EASE.outBack, "0.34, 1.56, 0.64, 1");
   CustomEase.create(EASE.inOutSmooth, "0.65, 0, 0.35, 1");

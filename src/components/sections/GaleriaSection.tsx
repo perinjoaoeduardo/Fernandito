@@ -171,7 +171,9 @@ export function GaleriaSection() {
         const { sizes, D } = layout(W, H);
         const n = PHOTOS.length;
         const last = n - 1;
-        const p1 = H * 0.9;
+        // Fase 1 (a foto inteira encolhendo) mais curta no celular: lá ela
+        // prendia quase uma tela inteira de rolagem só pra encolher.
+        const p1 = H * (W < 768 ? 0.5 : 0.9);
 
         // Posição (canto superior esquerdo) do card i no instante t da
         // fase 2 (0 → 1): o centro dele cruza o meio da tela em t_i.

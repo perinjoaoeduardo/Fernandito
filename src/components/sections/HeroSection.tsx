@@ -179,7 +179,8 @@ export function HeroSection() {
       // mesma cor de fundo da PRÓXIMA seção (hoje, `OQueESection`,
       // off-white). Se a cor da próxima seção mudar no futuro, atualizar
       // aqui também — não há sincronia automática entre as duas.
-      className="bg-fernandito-off-white relative h-screen motion-safe:h-[160vh]"
+      // 140vh no celular (o cartão fica preso 0,4 tela, não 0,6).
+      className="bg-fernandito-off-white relative h-screen motion-safe:h-[140vh] md:motion-safe:h-[160vh]"
     >
       <div
         ref={boxRef}

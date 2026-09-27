@@ -178,6 +178,13 @@ Tokens só do GSAP, pra todas as seções terem o mesmo "peso":
 | `SCRUB.base`     | `0.6`  | Blocos entrando com a rolagem (Hero encolhendo, leque, CTA)          |
 | `SCRUB.soft`     | `0.8`  | Objetos grandes com peso: cartão do Manifesto, galeria saindo        |
 
+**No toque (`IS_TOUCH`, `pointer: coarse`) os SCRUB caem pra 0.1 / 0.15 /
+0.2.** A rolagem do dedo já tem inércia própria; o atraso pensado pra roda
+do mouse, por cima dela, virava elástico: a galeria seguia andando ~800ms
+depois que o dedo e a inércia paravam (medido com toque simulado). Agora
+são ~200ms. `ScrollTrigger.config({ ignoreMobileResize: true })` evita
+recálculo quando a barra de endereço muda a altura no meio do gesto.
+
 Regra: hover e troca de estado = `DURATION.base` + `EASE.outStandard`;
 entrada = `DURATION.enter` + `EASE.outStandard`; loops = `EASE.inOutSmooth`.
 Exceções deliberadas, com curva própria: o giro do cartão
@@ -411,7 +418,9 @@ camada da frente (sobe mais rápido), negativo = de trás. Aplicado: O que é
 de texto +40; a imagem tem parallax próprio), Social (título +40, leque
 −30, link +20), rodapé (texto +24, links −16). **Abaixo de 768px a
 amplitude cai pela metade** (blocos empilhados e mais próximos — a
-amplitude cheia fazia a lata encostar no texto do O que é). A galeria tem saída própria
+amplitude cheia fazia a lata encostar no texto do O que é) **e no toque
+cai pra 30%**: texto andando em velocidade diferente do dedo deixava a
+página com cara de "solta". A galeria tem saída própria
 (abaixo) e o marquee desliza na horizontal com a rolagem (x +80 → −80, por
 cima do loop). Sempre num nó próprio — nunca no mesmo elemento que já anima
 `transform`.
@@ -420,7 +429,8 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
 
 1. `HeroSection` — cartão visual **verde-escuro** (logo + tagline), efeito
    "shrink-to-card" ao rolar (inspirado no hero da
-   Lassie): a section é `motion-safe:h-[160vh]`, o cartão visual é
+   Lassie): a section é `motion-safe:h-[160vh]` (`140vh` abaixo de md: no
+   celular o cartão fica preso 0,4 tela, não 0,6), o cartão visual é
    `sticky top-0 h-screen` — enquanto a altura extra rola por baixo,
    `scale`/`border-radius` do cartão animam via `ScrollTrigger` (`scrub`)
    de tela cheia (scale 1, raio 0) até um cartão menor e arredondado
@@ -493,7 +503,8 @@ sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    `md`.
 3. `GaleriaSection` (`#galeria`) — **a foto inteira que vira galeria**.
    Palco `h-[100svh]` pinado (ScrollTrigger `pin`, `scrub: 0.8`), cards
-   posicionados em absoluto (x/y via GSAP). **Fase 1**: a foto 0 começa do
+   posicionados em absoluto (x/y via GSAP). **Fase 1** (0,9 tela de
+   rolagem; 0,5 no celular, onde prendia demais): a foto 0 começa do
    tamanho do palco (raio 0, por cima de tudo) e encolhe até card,
    centralizada; as outras entram pela direita, cada uma já na sua altura.
    **Fase 2**: parallax de profundidade — cada foto tem `speed` própria
