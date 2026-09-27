@@ -29,9 +29,11 @@ export function ContatoSection() {
     const ctx = gsap.context(() => {
       gsap.fromTo(
         cta,
-        { autoAlpha: 0, y: 24 },
+        // opacity, não autoAlpha: com visibility:hidden o botão saía da
+        // ordem do Tab e quem navega pelo teclado não chegava nele.
+        { opacity: 0, y: 24 },
         {
-          autoAlpha: 1,
+          opacity: 1,
           y: 0,
           ease: EASE.outStandard,
           // Mesmo gatilho dos textos (a seção), logo depois do parágrafo

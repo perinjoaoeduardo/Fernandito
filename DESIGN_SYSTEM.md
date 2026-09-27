@@ -705,6 +705,10 @@ Qualquer nova seção com animação deve:
 - Respeitar `prefers-reduced-motion` (helper `prefersReducedMotion()` em
   `src/lib/gsap.ts`).
 - Limpar `ScrollTrigger`/timelines no cleanup do `useEffect`.
+- Entrada de elemento **focável** (botão, link, cartão com `role=button`)
+  anima `opacity`, nunca `autoAlpha`: `visibility: hidden` tira o elemento
+  da ordem do Tab, e quem navega pelo teclado não chegava no cartão do
+  Manifesto nem no botão do Contato antes de rolar até eles.
 
 ## Comportamento de refresh
 
@@ -774,6 +778,24 @@ Regras que o site já segue e que vale manter:
   `<span>` sem role — era o que segurava a nota de acessibilidade em 92.
 - Labels pequenos (`text-label`) não descem de `opacity-80`: a 50% o
   contraste caía pra 2.77, abaixo do mínimo de 4.5.
+
+### Conferência final dos blocos de refinamento (0 a 9)
+
+- Lighthouse (celular, build de produção, 2 rodadas): Performance 70–73,
+  Acessibilidade 100, Boas práticas 100, SEO 100; LCP 4.8–6.0s; CLS 0–0.01.
+- Tempo de bloqueio no carregamento, medido direto (Playwright, CPU 4×
+  mais lenta, 3 rodadas): mediana 850ms agora contra 869ms antes do Bloco
+  1 — os refinamentos não pesaram. O TBT maior de uma rodada de
+  Lighthouse pra outra é variação da simulação. A maior tarefa (~500ms,
+  hidratação + montagem de todos os ScrollTriggers) já existia antes e é
+  o próximo teto a atacar, se for preciso.
+- Rolagem da página inteira no desktop (Chromium sem GPU): mediana de
+  16,7ms por quadro (60fps), 5% dos quadros acima de 33ms.
+- Teclado: todo item focável mostra contorno; o menu recolhido volta no
+  primeiro Tab; o cartão do Manifesto e o botão do Contato entram na
+  ordem do Tab (antes ficavam de fora, ver regra do `autoAlpha` acima).
+- `prefers-reduced-motion`: sem erros, todo texto visível (galeria vira
+  grid estático, sem pin, digitação ou parallax).
 
 ## Celular — adaptações do desktop
 

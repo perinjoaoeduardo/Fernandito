@@ -25,9 +25,11 @@ export function CartaSection() {
     const ctx = gsap.context(() => {
       gsap.fromTo(
         wrap,
-        { autoAlpha: 0, y: 160, rotate: -6, scale: 0.9 },
+        // opacity, não autoAlpha: com visibility:hidden o cartão (que é um
+        // botão, gira com Enter) saía da ordem do Tab.
+        { opacity: 0, y: 160, rotate: -6, scale: 0.9 },
         {
-          autoAlpha: 1,
+          opacity: 1,
           y: 0,
           rotate: 0,
           scale: 1,
