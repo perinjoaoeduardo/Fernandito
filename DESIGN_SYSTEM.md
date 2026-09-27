@@ -591,9 +591,17 @@ sm:py-4`, texto `clamp(1.25rem,2.4vw,1.875rem)`, `translate-y-[0.15em]` pra
    centralizar as maiúsculas — a Special Elite reserva ~30% da linha pras
    descendentes), agora em faixa
    **verde-claro** com texto off-white — antes era verde-escuro e se
-   fundia com o rodapé logo abaixo.
+   fundia com o rodapé logo abaixo. **Reage à rolagem**: o loop é movido à
+   mão num `gsap.ticker` (não uma tween infinita), 90px/s pra esquerda em
+   repouso; rolar dá um empurrão proporcional à velocidade (até 5×) que
+   decai sozinho em ~1s, e rolar pra cima inverte o sentido até a pessoa
+   voltar a descer. Só anda enquanto está na tela. Frases em
+   `src/content/site.ts` (`MARQUEE.phrases`).
 8. `FooterSection` — fundo verde-escuro, compacto, **largura total** (só o
-   padding da página). Coluna de texto até 34rem (frase em
+   padding da página). Testado e descartado: rodapé "revelado" (preso no
+   fundo, por baixo do conteúdo) — ele aparece de baixo pra cima, então a
+   frase de fechamento surgia por último e já digitada, e no celular ele é
+   mais alto que a tela (o topo nunca apareceria). Coluna de texto até 34rem (frase em
    `clamp(1.75rem,3vw,2.75rem)`), escrita à máquina (`TypewriterText`, faixas
    que terminam com o rodapé entrando), pra não espremer as colunas de
    links. Frase de fechamento em

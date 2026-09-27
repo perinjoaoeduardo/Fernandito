@@ -11,9 +11,14 @@ import { MARQUEE } from "@/content/site";
 const MARQUEE_PHRASE = MARQUEE.phrases.map((phrase) => `${phrase} · `).join("");
 
 // Repetido várias vezes pra garantir que uma "metade" da trilha já seja mais
-// larga que qualquer viewport razoável — condição pro loop xPercent:-50 ficar
-// perfeitamente contínuo (sem "buraco" em telas muito largas).
+// larga que qualquer viewport razoável — condição pro loop (que volta ao
+// início a cada metade da trilha) ficar perfeitamente contínuo, sem
+// "buraco" em telas muito largas.
 const MARQUEE_TRACK_TEXT = MARQUEE_PHRASE.repeat(12);
+
+const BASE_SPEED = 90; // px/s em repouso
+const MAX_BOOST = 4; // rolando rápido, até 5× a velocidade base
+const BOOST_DECAY = 0.94; // por quadro (60fps): o empurrão some em ~1s
 
 function Marquee() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -39,15 +44,44 @@ function Marquee() {
         gsap.to(container, { opacity: 1, duration: DURATION.enter, ease: EASE.outStandard }),
     });
 
-    // Velocidade constante (px/s) independente da largura da trilha, pra não
-    // acelerar/desacelerar quando o texto repetido mudar de tamanho.
-    const pixelsPerSecond = 90;
-    const trackHalfWidth = track.scrollWidth / 2;
-    const loop = gsap.to(track, {
-      xPercent: -50,
-      duration: trackHalfWidth / pixelsPerSecond,
-      ease: "none",
-      repeat: -1,
+    // Loop movido à mão num ticker (não uma tween infinita): assim dá pra
+    // mudar direção e velocidade a qualquer momento. Anda BASE_SPEED px/s
+    // pra esquerda; rolar dá um empurrão proporcional à velocidade da
+    // rolagem (até MAX_BOOST × mais rápido) que decai sozinho, e rolar pra
+    // cima inverte o sentido até a pessoa voltar a descer.
+    let half = track.scrollWidth / 2;
+    let wrapX = gsap.utils.wrap(-half, 0);
+    const setX = gsap.quickSetter(track, "x", "px");
+    let x = 0;
+    let direction = 1;
+    let boost = 0;
+    let visible = false;
+
+    const tick = (_time: number, deltaTime: number) => {
+      if (!visible) return;
+      boost *= Math.pow(BOOST_DECAY, deltaTime / 16.67);
+      x = wrapX(x - direction * BASE_SPEED * (1 + boost) * (deltaTime / 1000));
+      setX(x);
+    };
+    gsap.ticker.add(tick);
+
+    const velocityTrigger = ScrollTrigger.create({
+      trigger: container,
+      start: "top bottom",
+      end: "bottom top",
+      onToggle: (self) => {
+        visible = self.isActive;
+      },
+      onUpdate: (self) => {
+        direction = self.direction;
+        boost = Math.max(boost, Math.min(MAX_BOOST, Math.abs(self.getVelocity()) / 400));
+      },
+      // A largura da trilha muda com o tamanho da fonte (clamp com vw).
+      onRefresh: (self) => {
+        visible = self.isActive;
+        half = track.scrollWidth / 2;
+        wrapX = gsap.utils.wrap(-half, 0);
+      },
     });
 
     // Parallax horizontal: além do loop, a faixa inteira desliza pro lado
@@ -71,7 +105,8 @@ function Marquee() {
 
     return () => {
       fadeTrigger.kill();
-      loop.kill();
+      gsap.ticker.remove(tick);
+      velocityTrigger.kill();
       drift?.scrollTrigger?.kill();
       drift?.kill();
     };
