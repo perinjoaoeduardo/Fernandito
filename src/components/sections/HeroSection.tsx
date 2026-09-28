@@ -114,14 +114,23 @@ export function HeroSection() {
     // cartão na saída — parecia descer junto; subir no ritmo da rolagem —
     // disparava pra cima no primeiro gesto.) Sem scrub: o cartão responde
     // direto à rolagem.
+    //
+    // No computador o fechamento é contínuo (sem ponto parado): o cartão
+    // encolhe ao longo de TODO o trecho preso (no celular termina aos 70% e
+    // segura) e, quando solta, continua encolhendo um pouco enquanto sobe,
+    // desacelerando — começando na mesma velocidade de antes. Antes, com o
+    // mouse, sobravam ~160px de rolagem sem nada mexer e depois o cartão
+    // arrancava: parecia travar no meio.
     let shrinkTrigger: ScrollTrigger | null = null;
+    let exitTween: gsap.core.Timeline | null = null;
     if (!reduceMotion) {
+      const shrinkEnd = IS_TOUCH ? 0.7 : 1;
       shrinkTrigger = ScrollTrigger.create({
         trigger: section,
         start: "top top",
         end: "bottom bottom",
         onUpdate: (self) => {
-          const boxProgress = Math.min(1, self.progress / 0.7);
+          const boxProgress = Math.min(1, self.progress / shrinkEnd);
           const scale = 1 - boxProgress * (1 - SHRINK_SCALE);
           gsap.set(box, { scale, borderRadius: boxProgress * SHRINK_RADIUS });
           gsap.set(content, { y: -self.progress * CONTENT_DRIFT });
@@ -129,10 +138,50 @@ export function HeroSection() {
           gsap.set(indicatorFade, { autoAlpha: 1 - Math.min(1, self.progress / 0.15) });
         },
       });
+
+      if (!IS_TOUCH) {
+        // Saída (só computador): durante a tela seguinte de rolagem o
+        // cartão segue encolhendo e o logo segue subindo. power2.out começa
+        // com derivada 2, então a distância = (velocidade do trecho preso ×
+        // uma tela) ÷ 2 casa a velocidade no ponto em que o cartão solta.
+        const held = () => Math.max(1, section.offsetHeight - window.innerHeight);
+        const H = () => window.innerHeight;
+        exitTween = gsap
+          .timeline({
+            defaults: { ease: "power2.out" },
+            scrollTrigger: {
+              trigger: section,
+              start: "bottom bottom",
+              end: "bottom top",
+              scrub: true,
+              invalidateOnRefresh: true,
+            },
+          })
+          .fromTo(
+            box,
+            { scale: SHRINK_SCALE },
+            {
+              scale: () => SHRINK_SCALE - ((1 - SHRINK_SCALE) / held()) * H() * 0.5,
+              immediateRender: false,
+            },
+            0,
+          )
+          .fromTo(
+            content,
+            { y: -CONTENT_DRIFT },
+            {
+              y: () => -CONTENT_DRIFT - (CONTENT_DRIFT / held()) * H() * 0.5,
+              immediateRender: false,
+            },
+            0,
+          );
+      }
     }
 
     return () => {
       shrinkTrigger?.kill();
+      exitTween?.scrollTrigger?.kill();
+      exitTween?.kill();
       unsubscribeIntro?.();
       entranceTimeline?.kill();
       removeMouseMove?.();

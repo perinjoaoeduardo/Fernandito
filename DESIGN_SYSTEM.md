@@ -439,7 +439,15 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    fazem parte do cartão**: encolhem com ele e saem com ele (sem scrub, o
    cartão responde direto à rolagem), com um único movimento próprio, um
    parallax **bem sutil**: sobem `CONTENT_DRIFT` (36px; 22 no toque) ao
-   longo do fechamento — descontado o encolhimento, ~15px na tela. Tentativas
+   longo do fechamento — descontado o encolhimento, ~15px na tela.
+   **No computador o fechamento é contínuo**: o cartão encolhe ao longo de
+   todo o trecho preso (no celular termina aos 70% e segura) e, quando
+   solta, continua encolhendo e o logo continua subindo enquanto o cartão
+   sai, desacelerando (`power2.out`, distância = velocidade do trecho preso
+   × uma tela ÷ 2, então a velocidade casa no ponto em que solta). Medido:
+   0,018–0,019 de escala por 100px preso, 0,021 ao soltar, caindo até 0,001
+   — antes sobravam ~160px sem nada mexer e o cartão arrancava ("travava
+   no meio"). Tentativas
    descartadas: sumir cedo (sobrava cartão vazio), andar mais devagar que o
    cartão na saída (parecia descer junto), subir no ritmo da rolagem
    (disparava pra cima no primeiro gesto). O indicador "scroll" desvanece nos primeiros 15%
