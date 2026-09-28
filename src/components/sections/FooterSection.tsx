@@ -30,7 +30,7 @@ function TopoIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className="h-4 w-4"
+      className="h-4 w-4 translate-y-[0.5px]"
     >
       <path d="M18 15l-6-6-6 6" />
     </svg>
@@ -156,7 +156,9 @@ export function FooterSection() {
           onClick={teleportToTop}
           className="group border-fernandito-off-white/40 text-fernandito-off-white duration-base ease-out-standard hover:bg-fernandito-off-white hover:text-fernandito-verde-escuro focus-visible:outline-fernandito-off-white focus-visible:bg-fernandito-off-white focus-visible:text-fernandito-verde-escuro inline-flex h-11 shrink-0 items-center gap-2 rounded-full border pr-4 pl-5 font-sans text-[13px] tracking-[0.12em] uppercase transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
         >
-          {FOOTER.backToTop}
+          {/* A fonte reserva espaço de descendente embaixo: as maiúsculas
+              ficavam ~1,4px acima do centro da pílula. */}
+          <span className="translate-y-[0.11em]">{FOOTER.backToTop}</span>
           <span className="duration-base ease-out-standard transition-transform group-hover:-translate-y-0.5">
             <TopoIcon />
           </span>
