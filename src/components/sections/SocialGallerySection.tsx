@@ -23,7 +23,10 @@ const CENTER_INDEX = 3;
 // Índice 0-6 -> rotação final no leque.
 const ROTATIONS = [-12, -8, -4, 0, 4, 8, 12];
 const DROOP_STEP = 16; // px de translateY por "camada" de distância do centro
-const HOVER_PUSH = 15; // px que os vizinhos se afastam ao abrir espaço
+// Hover (computador): px que os vizinhos se afastam, por distância da foto
+// sob o mouse (1, 2, 3+), e inclinação 3D máxima seguindo o mouse.
+const HOVER_PUSH = [0, 44, 20, 8];
+const HOVER_TILT = 7; // graus
 const BASE_Z = 10;
 
 // Variação sutil de tom entre os 7 placeholders, pra não ficarem idênticos.
@@ -74,15 +77,19 @@ function PhotoCard({
       ref={cardRef}
       data-cursor-hover
       className={clsx(
-        "relative aspect-[4/5] shrink-0 overflow-hidden rounded-2xl shadow-[0_18px_40px_rgba(36,48,34,0.22)] [will-change:transform]",
+        "group relative aspect-[4/5] shrink-0 overflow-hidden rounded-2xl shadow-[0_18px_40px_rgba(36,48,34,0.22)] [will-change:transform]",
         stacked ? "w-[68vw] max-w-72" : "w-56 sm:w-60 lg:w-44 xl:w-48",
       )}
     >
-      <PhotoSlot
-        image={SOCIAL.photos[index]}
-        sizes={stacked ? "68vw" : "(max-width: 1023px) 240px, 192px"}
-        placeholderClassName={CARD_TONES[index]}
-      />
+      {/* Zoom da foto por dentro no hover (só com mouse: o group-hover do
+          Tailwind v4 já vem dentro de @media (hover: hover)). */}
+      <div className="duration-slow ease-out-standard absolute inset-0 transition-transform group-hover:scale-[1.08]">
+        <PhotoSlot
+          image={SOCIAL.photos[index]}
+          sizes={stacked ? "68vw" : "(max-width: 1023px) 240px, 192px"}
+          placeholderClassName={CARD_TONES[index]}
+        />
+      </div>
       {/* Textura de grão — mesma técnica do FooterSection, reaproveitada. */}
       <div className="grain-overlay pointer-events-none absolute inset-0 opacity-[0.06] mix-blend-overlay" />
       {stamp && (
@@ -119,8 +126,12 @@ export function SocialGallerySection() {
       rotate: ROTATIONS[i],
     });
 
+    // O z-index mora no wrapper de cada foto (o hover transforma o wrapper,
+    // o que criaria um contexto de empilhamento e prenderia o z do card).
     cards.forEach((card, i) => {
-      if (card) gsap.set(card, { zIndex: BASE_Z - distanceFromCenter(i) });
+      const wrapper = card?.parentElement;
+      if (wrapper)
+        gsap.set(wrapper, { position: "relative", zIndex: BASE_Z - distanceFromCenter(i) });
     });
 
     if (prefersReducedMotion()) {
@@ -160,46 +171,67 @@ export function SocialGallerySection() {
     };
   }, []);
 
-  // Hover: card sob o cursor se endireita e cresce; vizinhos abrem espaço.
+  // Hover (computador): a foto sob o mouse sobe, endireita e cresce, com
+  // sombra mais funda e inclinação 3D seguindo o mouse; as vizinhas abrem
+  // espaço, cada vez menos quanto mais longe, e abrem um pouco o ângulo.
+  // Tudo no WRAPPER de cada foto: o card em si é animado pela abertura do
+  // leque na rolagem, e os dois brigavam pela mesma propriedade.
   useEffect(() => {
     if (prefersReducedMotion() || !supportsHover()) return;
     const cards = fanCardRefs.current;
+    const wrappers = cards.map((card) => card?.parentElement ?? null);
     const cleanups: (() => void)[] = [];
+    const ease = EASE.outStandard;
+    const duration = DURATION.slow;
 
     cards.forEach((card, i) => {
-      if (!card) return;
-      const left = i > 0 ? cards[i - 1] : null;
-      const right = i < CARD_COUNT - 1 ? cards[i + 1] : null;
+      const wrapper = wrappers[i];
+      if (!card || !wrapper) return;
+      gsap.set(wrapper, { transformPerspective: 900 });
+      const tiltX = gsap.quickTo(wrapper, "rotationX", { duration: 0.4, ease: "power2.out" });
+      const tiltY = gsap.quickTo(wrapper, "rotationY", { duration: 0.4, ease: "power2.out" });
 
       const handleEnter = () => {
-        gsap.set(card, { zIndex: 50 });
-        gsap.to(card, {
-          rotate: 0,
-          scale: baseScale(i) + 0.08,
-          duration: DURATION.base,
-          ease: EASE.outStandard,
+        gsap.set(wrapper, { zIndex: 50 });
+        gsap.to(wrapper, { y: -28, scale: 1.08, rotate: -ROTATIONS[i], duration, ease });
+        gsap.to(card, { boxShadow: "0 40px 70px rgba(36,48,34,0.38)", duration, ease });
+        wrappers.forEach((other, j) => {
+          if (!other || j === i) return;
+          const d = j - i;
+          const push = HOVER_PUSH[Math.min(Math.abs(d), 3)] * Math.sign(d);
+          gsap.to(other, { x: push, rotate: Math.sign(d) * 2, duration, ease });
         });
-        if (left)
-          gsap.to(left, { x: -HOVER_PUSH, duration: DURATION.base, ease: EASE.outStandard });
-        if (right)
-          gsap.to(right, { x: HOVER_PUSH, duration: DURATION.base, ease: EASE.outStandard });
+      };
+      const handleMove = (event: MouseEvent) => {
+        const r = card.getBoundingClientRect();
+        const px = (event.clientX - r.left) / r.width - 0.5;
+        const py = (event.clientY - r.top) / r.height - 0.5;
+        tiltY(px * HOVER_TILT * 2);
+        tiltX(-py * HOVER_TILT * 2);
       };
       const handleLeave = () => {
-        gsap.to(card, {
-          rotate: ROTATIONS[i],
-          scale: baseScale(i),
-          duration: DURATION.base,
-          ease: EASE.outStandard,
-          onComplete: () => gsap.set(card, { zIndex: BASE_Z - distanceFromCenter(i) }),
+        tiltX(0);
+        tiltY(0);
+        gsap.to(wrapper, {
+          y: 0,
+          scale: 1,
+          rotate: 0,
+          duration,
+          ease,
+          onComplete: () => gsap.set(wrapper, { zIndex: BASE_Z - distanceFromCenter(i) }),
         });
-        if (left) gsap.to(left, { x: 0, duration: DURATION.base, ease: EASE.outStandard });
-        if (right) gsap.to(right, { x: 0, duration: DURATION.base, ease: EASE.outStandard });
+        gsap.to(card, { boxShadow: "0 18px 40px rgba(36,48,34,0.22)", duration, ease });
+        wrappers.forEach((other, j) => {
+          if (other && j !== i) gsap.to(other, { x: 0, rotate: 0, duration, ease });
+        });
       };
 
       card.addEventListener("mouseenter", handleEnter);
+      card.addEventListener("mousemove", handleMove);
       card.addEventListener("mouseleave", handleLeave);
       cleanups.push(() => {
         card.removeEventListener("mouseenter", handleEnter);
+        card.removeEventListener("mousemove", handleMove);
         card.removeEventListener("mouseleave", handleLeave);
       });
     });
@@ -235,7 +267,7 @@ export function SocialGallerySection() {
       ref={sectionRef}
       id="social"
       aria-label="Redes sociais"
-      className="bg-fernandito-off-white text-fernandito-verde-escuro w-full overflow-hidden py-20 sm:py-24"
+      className="bg-fernandito-off-white text-fernandito-verde-escuro w-full overflow-hidden py-20 sm:py-24 lg:py-32"
     >
       <div className="mx-auto flex max-w-5xl flex-col items-center px-6 text-center">
         {/* Parallax no título, no leque e no link só no computador (no
@@ -247,15 +279,15 @@ export function SocialGallerySection() {
             // abaixo de sm a fonte acompanha a largura (6,8vw ≈ 24px em 360px,
             // com 312px livres) até o teto de 1.75rem. De sm pra cima, o
             // tamanho de sempre.
-            className="font-rampart text-[min(6.8vw,1.75rem)] leading-[1.05] tracking-[0.02em] whitespace-nowrap sm:text-[clamp(1.75rem,4vw,3rem)]"
+            className="font-rampart text-[min(6.8vw,1.75rem)] leading-[1.05] tracking-[0.02em] whitespace-nowrap sm:text-[clamp(1.75rem,4vw,3rem)] lg:text-[clamp(2.75rem,3.6vw,3.75rem)]"
           />
         </Parallax>
       </div>
 
       {/* Desktop (lg+) — leque sobreposto. Abaixo de 1024px o leque não
           cabe sem cortar as pontas, então vira a fileira com snap. */}
-      <Parallax speed={-30} touch={false} className="hidden lg:block">
-        <div className="relative mt-12 hidden items-end justify-center px-6 lg:flex">
+      <Parallax speed={-20} touch={false} className="hidden lg:block">
+        <div className="relative mt-12 hidden items-end justify-center px-6 lg:mt-24 lg:flex">
           {Array.from({ length: CARD_COUNT }).map((_, i) => (
             <div key={i} className={i === 0 ? undefined : "lg:-ml-14 xl:-ml-16"}>
               <PhotoCard
@@ -299,9 +331,9 @@ export function SocialGallerySection() {
       </div>
 
       <Parallax
-        speed={20}
+        speed={10}
         touch={false}
-        className="mx-auto mt-8 flex max-w-5xl flex-col items-center px-6 text-center lg:mt-16"
+        className="mx-auto mt-8 flex max-w-5xl flex-col items-center px-6 text-center lg:mt-28"
       >
         <p className="text-body font-accent mb-2 tracking-[0.04em]">{SOCIAL.follow}</p>
         <Button

@@ -421,7 +421,7 @@ computador são tratados separado** (`IS_TOUCH`, `pointer: coarse`):
   próprio.
 - Textos, **só no computador** (prop `touch={false}`): O que é (coluna
   +30), Manifesto (título +40), Contato (coluna +40), Social (título +40,
-  leque −30, link +20), rodapé (texto +24, links −16). No celular esses
+  leque −20, link +10), rodapé (texto +24, links −16). No celular esses
   ficam parados: texto andando fora do ritmo do dedo parecia "seguir o
   scroll", e o fim da página tinha movimento demais ao mesmo tempo.
 
@@ -433,21 +433,20 @@ o loop constante. Sempre num nó próprio — nunca no mesmo elemento que já an
 Ordem fixa da landing page (ver `src/app/page.tsx`):
 
 1. `HeroSection` — cartão **verde-escuro** (logo + tagline) que **fecha na
-   moldura** ao rolar: a section é `motion-safe:h-[160vh]` (`140vh` abaixo
-   de md), o cartão é `sticky top-0 h-screen` e encolhe (scale 0.9, raio
-   40px) revelando o fundo bege da section em volta. **O logo e a frase
+   moldura** ao rolar, revelando o fundo bege da section em volta.
+   **Celular (toque)**: a section é `h-[160vh]` (`140vh` abaixo de md), o
+   cartão é `sticky top-0 h-screen` e encolhe (scale 0.9, raio 40px) até
+   70% do trecho preso e segura — aprovado assim. **Computador (mouse)**:
+   **sem trecho preso** — a section tem uma tela e o cartão fecha
+   (scale 0.84, raio 40px) ENQUANTO sobe e sai, num movimento só (scrub
+   direto, "top top" → "bottom top"). Com o mouse, segurar a página ~3
+   roladas pro cartão fechar parecia travar no meio, mesmo com a saída
+   emendada. **O logo e a frase
    fazem parte do cartão**: encolhem com ele e saem com ele (sem scrub, o
    cartão responde direto à rolagem), com um único movimento próprio, um
    parallax **bem sutil**: sobem `CONTENT_DRIFT` (36px; 22 no toque) ao
    longo do fechamento — descontado o encolhimento, ~15px na tela.
-   **No computador o fechamento é contínuo**: o cartão encolhe ao longo de
-   todo o trecho preso (no celular termina aos 70% e segura) e, quando
-   solta, continua encolhendo e o logo continua subindo enquanto o cartão
-   sai, desacelerando (`power2.out`, distância = velocidade do trecho preso
-   × uma tela ÷ 2, então a velocidade casa no ponto em que solta). Medido:
-   0,018–0,019 de escala por 100px preso, 0,021 ao soltar, caindo até 0,001
-   — antes sobravam ~160px sem nada mexer e o cartão arrancava ("travava
-   no meio"). Tentativas
+Tentativas
    descartadas: sumir cedo (sobrava cartão vazio), andar mais devagar que o
    cartão na saída (parecia descer junto), subir no ritmo da rolagem
    (disparava pra cima no primeiro gesto). O indicador "scroll" desvanece nos primeiros 15%
@@ -540,7 +539,13 @@ sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    `svh` — sobrava uma faixa embaixo; a `<section>` também anima a cor de
    fundo junto com o palco, então qualquer faixa que apareça é da mesma
    cor. Sem título, contador ou barra (pedido explícito: só a
-   foto). Timeline reconstruído só quando a LARGURA muda. Fotos em
+   foto). Timeline reconstruído só quando a LARGURA útil muda
+   (`clientWidth` via ResizeObserver no `<html>` — pega a barra de rolagem
+   aparecendo depois do intro; medir com `innerWidth` deixava a trilha
+   larga demais e criava rolagem horizontal no PC). Depois de reconstruir,
+   **`ScrollTrigger.sort()` antes do `refresh()`**: o pin recriado ia pro
+   fim da lista e os gatilhos de baixo (digitação do Contato, rodapé)
+   calculavam a posição sem o espaço do pin e disparavam cedo. Fotos em
    `src/content/site.ts` (`GALERIA.photos`), via `PhotoSlot`. **Hover
    "respira"** (só com mouse): a foto dá zoom de 6% por dentro
    (`group-hover:scale-[1.06]`, `duration-slow`) e a moldura fica parada;
@@ -687,12 +692,19 @@ saíram (pesavam demais e deixavam os cards pequenos).
   empilhados na posição do card central (x medido por `offsetLeft`),
   levemente girados, e se abrem até os valores finais do leque — fecha de
   volta se rolar pra cima.
-  Hover: card sob o mouse zera a rotação e cresce (+0.08 sobre a própria
-  escala-base, não um valor absoluto — o card central já começa maior, um
-  alvo fixo de 1.08 encolheria ele), z-index vai pro topo; os DOIS vizinhos
-  imediatos se afastam (`translateX` ±15px) pra abrir espaço. Tudo reverte
-  no `mouseleave` (z-index só volta ao normal depois que a rotação/escala
-  termina de voltar, pra não "furar" atrás do vizinho no meio do caminho).
+  Hover (só com mouse): a foto sob o cursor **sobe 28px, endireita e
+  cresce 8%**, com sombra mais funda (`0 40px 70px`), inclinação 3D leve
+  seguindo o mouse (±7°, `quickTo` em `rotationX/Y`, perspectiva 900px) e
+  zoom da foto por dentro (`group-hover:scale-[1.08]`, a moldura fica
+  parada); as vizinhas abrem espaço com queda por distância (44/20/8px) e
+  abrem 2° o ângulo. Tudo isso anima o **wrapper** de cada foto, não o
+  card — o card é animado pela abertura do leque na rolagem e os dois
+  brigavam pelas mesmas propriedades; por isso o z-index também mora no
+  wrapper. Tudo reverte no `mouseleave` (z-index só volta depois que o
+  wrapper termina de voltar, pra não "furar" atrás do vizinho).
+  Espaço no desktop (lg+): título maior (`clamp(2.75rem,3.6vw,3.75rem)`),
+  `lg:py-32`, título → leque `lg:mt-24`, leque → "Segue a gente"
+  `lg:mt-28` — antes o link encostava nas pontas caídas do leque.
 - **Mobile e tablet (< `lg`)**: os dois DOMs (leque e fileira) coexistem,
   alternados via `hidden lg:flex`/`lg:hidden` — o leque só a partir de
   1024px, porque em 640–1023px ele cortava as pontas. Escolhida a **Opção B** (carrossel com

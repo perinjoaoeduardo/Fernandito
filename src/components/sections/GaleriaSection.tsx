@@ -314,6 +314,12 @@ export function GaleriaSection() {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         build();
+        // O pin recriado vai pro FIM da lista de gatilhos, depois dos que
+        // ficam abaixo da galeria (digitação do Contato, rodapé...). Sem
+        // reordenar, o refresh calcula esses gatilhos sem o espaço do pin e
+        // eles disparam cedo demais (o texto aparecia já pronto). `sort()`
+        // volta a ordem pela posição na página antes do refresh.
+        ScrollTrigger.sort();
         ScrollTrigger.refresh();
       }, 200);
     };

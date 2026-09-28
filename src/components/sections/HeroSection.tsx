@@ -20,6 +20,9 @@ import { HERO } from "@/content/site";
 // bastante pra não parecer um zoom brusco.
 const SHRINK_SCALE = 0.9;
 const SHRINK_RADIUS = 40; // px
+// No computador o cartão fecha enquanto sai da tela (sem ficar preso), então
+// fecha um pouco mais: a moldura aparece em volta enquanto ele sobe.
+const DESKTOP_SHRINK_SCALE = 0.84;
 // Parallax BEM sutil do logo e da frase dentro do cartão: sobem só isso (px)
 // enquanto o cartão fecha na moldura. Menos no toque.
 const CONTENT_DRIFT = IS_TOUCH ? 22 : 36;
@@ -104,33 +107,28 @@ export function HeroSection() {
       }
     }, section);
 
-    // Moldura: a section é mais alta que a tela e o cartão fica `sticky` —
-    // enquanto a altura extra rola, o cartão encolhe e arredonda, revelando
-    // o fundo bege da section em volta. O logo e a frase são parte do
-    // cartão, encolhem com ele e saem com ele; o único movimento próprio é
-    // um parallax bem sutil (CONTENT_DRIFT px pra cima ao longo do
-    // fechamento). (Já
-    // tentamos: sumir cedo — sobrava cartão vazio; andar mais devagar que o
-    // cartão na saída — parecia descer junto; subir no ritmo da rolagem —
-    // disparava pra cima no primeiro gesto.) Sem scrub: o cartão responde
-    // direto à rolagem.
+    // Moldura: o cartão encolhe e arredonda com a rolagem, revelando o fundo
+    // bege da section em volta. O logo e a frase são parte do cartão;
+    // o único movimento próprio é um parallax bem sutil (CONTENT_DRIFT).
+    // (Já tentamos: sumir cedo — sobrava cartão vazio; andar mais devagar
+    // que o cartão na saída — parecia descer junto; subir no ritmo da
+    // rolagem — disparava pra cima no primeiro gesto.)
     //
-    // No computador o fechamento é contínuo (sem ponto parado): o cartão
-    // encolhe ao longo de TODO o trecho preso (no celular termina aos 70% e
-    // segura) e, quando solta, continua encolhendo um pouco enquanto sobe,
-    // desacelerando — começando na mesma velocidade de antes. Antes, com o
-    // mouse, sobravam ~160px de rolagem sem nada mexer e depois o cartão
-    // arrancava: parecia travar no meio.
+    // Celular (toque): a section é mais alta que a tela e o cartão fica
+    // `sticky`, preso enquanto fecha (140vh/160vh; termina aos 70% e segura)
+    // — aprovado assim. Computador (mouse): SEM trecho preso. A section tem
+    // uma tela e o cartão fecha ENQUANTO sobe e sai, num movimento só: com
+    // o mouse, segurar a página ~3 roladas pro cartão fechar parecia travar
+    // no meio.
     let shrinkTrigger: ScrollTrigger | null = null;
-    let exitTween: gsap.core.Timeline | null = null;
-    if (!reduceMotion) {
-      const shrinkEnd = IS_TOUCH ? 0.7 : 1;
+    let desktopTl: gsap.core.Timeline | null = null;
+    if (!reduceMotion && IS_TOUCH) {
       shrinkTrigger = ScrollTrigger.create({
         trigger: section,
         start: "top top",
         end: "bottom bottom",
         onUpdate: (self) => {
-          const boxProgress = Math.min(1, self.progress / shrinkEnd);
+          const boxProgress = Math.min(1, self.progress / 0.7);
           const scale = 1 - boxProgress * (1 - SHRINK_SCALE);
           gsap.set(box, { scale, borderRadius: boxProgress * SHRINK_RADIUS });
           gsap.set(content, { y: -self.progress * CONTENT_DRIFT });
@@ -138,50 +136,26 @@ export function HeroSection() {
           gsap.set(indicatorFade, { autoAlpha: 1 - Math.min(1, self.progress / 0.15) });
         },
       });
-
-      if (!IS_TOUCH) {
-        // Saída (só computador): durante a tela seguinte de rolagem o
-        // cartão segue encolhendo e o logo segue subindo. power2.out começa
-        // com derivada 2, então a distância = (velocidade do trecho preso ×
-        // uma tela) ÷ 2 casa a velocidade no ponto em que o cartão solta.
-        const held = () => Math.max(1, section.offsetHeight - window.innerHeight);
-        const H = () => window.innerHeight;
-        exitTween = gsap
-          .timeline({
-            defaults: { ease: "power2.out" },
-            scrollTrigger: {
-              trigger: section,
-              start: "bottom bottom",
-              end: "bottom top",
-              scrub: true,
-              invalidateOnRefresh: true,
-            },
-          })
-          .fromTo(
-            box,
-            { scale: SHRINK_SCALE },
-            {
-              scale: () => SHRINK_SCALE - ((1 - SHRINK_SCALE) / held()) * H() * 0.5,
-              immediateRender: false,
-            },
-            0,
-          )
-          .fromTo(
-            content,
-            { y: -CONTENT_DRIFT },
-            {
-              y: () => -CONTENT_DRIFT - (CONTENT_DRIFT / held()) * H() * 0.5,
-              immediateRender: false,
-            },
-            0,
-          );
-      }
+    } else if (!reduceMotion) {
+      desktopTl = gsap
+        .timeline({
+          defaults: { ease: "none" },
+          scrollTrigger: { trigger: section, start: "top top", end: "bottom top", scrub: true },
+        })
+        .fromTo(
+          box,
+          { scale: 1, borderRadius: 0 },
+          { scale: DESKTOP_SHRINK_SCALE, borderRadius: SHRINK_RADIUS, duration: 1 },
+          0,
+        )
+        .fromTo(content, { y: 0 }, { y: -CONTENT_DRIFT, duration: 1 }, 0)
+        .fromTo(indicatorFade, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.15 }, 0);
     }
 
     return () => {
       shrinkTrigger?.kill();
-      exitTween?.scrollTrigger?.kill();
-      exitTween?.kill();
+      desktopTl?.scrollTrigger?.kill();
+      desktopTl?.kill();
       unsubscribeIntro?.();
       entranceTimeline?.kill();
       removeMouseMove?.();
@@ -194,13 +168,15 @@ export function HeroSection() {
       ref={sectionRef}
       id="hero"
       // O fundo aqui é a "moldura" revelada quando o cartão encolhe — tem
-      // que ser a cor da PRÓXIMA seção (OQueESection, off-white). 140vh no
-      // celular (cartão preso 0,4 tela), 160vh do md pra cima.
-      className="bg-fernandito-off-white relative h-screen motion-safe:h-[140vh] md:motion-safe:h-[160vh]"
+      // que ser a cor da PRÓXIMA seção (OQueESection, off-white). Só no toque
+      // (pointer-coarse, o mesmo critério do IS_TOUCH) a section é mais alta
+      // que a tela e o cartão fica preso: 140vh no celular, 160vh do md pra
+      // cima. No computador, uma tela e sem sticky.
+      className="bg-fernandito-off-white relative h-screen motion-safe:pointer-coarse:h-[140vh] md:motion-safe:pointer-coarse:h-[160vh]"
     >
       <div
         ref={boxRef}
-        className="bg-fernandito-verde-escuro sticky top-0 flex h-screen w-full flex-col items-center justify-center overflow-hidden [will-change:transform,border-radius]"
+        className="bg-fernandito-verde-escuro relative flex h-screen w-full flex-col items-center justify-center overflow-hidden [will-change:transform,border-radius] pointer-coarse:sticky pointer-coarse:top-0"
       >
         <div
           ref={contentRef}
