@@ -297,23 +297,31 @@ export function GaleriaSection() {
 
     build();
 
-    // Rebuild só quando a LARGURA muda — no celular a barra de endereço
-    // muda a altura a cada rolagem e reconstruir nisso travaria o scroll.
-    let lastW = window.innerWidth;
+    // Rebuild só quando a LARGURA ÚTIL muda — no celular a barra de
+    // endereço muda a altura a cada rolagem e reconstruir nisso travaria o
+    // scroll. Largura útil = clientWidth, sem a barra de rolagem: durante a
+    // abertura a rolagem fica travada e a barra some; quando ela volta
+    // (~15px no Windows/Mac com barra fixa) a janela não muda de tamanho,
+    // então o evento `resize` não dispara — e a galeria ficava 15px mais
+    // larga que a página, criando rolagem horizontal. O ResizeObserver no
+    // <html> pega essa mudança.
+    const root = document.documentElement;
+    let lastW = root.clientWidth;
     let timer: number | undefined;
     const onResize = () => {
-      if (window.innerWidth === lastW) return;
-      lastW = window.innerWidth;
+      if (root.clientWidth === lastW) return;
+      lastW = root.clientWidth;
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         build();
         ScrollTrigger.refresh();
       }, 200);
     };
-    window.addEventListener("resize", onResize);
+    const observer = new ResizeObserver(onResize);
+    observer.observe(root);
 
     return () => {
-      window.removeEventListener("resize", onResize);
+      observer.disconnect();
       window.clearTimeout(timer);
       ctx?.revert();
     };
