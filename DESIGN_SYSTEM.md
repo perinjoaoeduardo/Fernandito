@@ -437,11 +437,13 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    **Celular (toque)**: a section é `h-[160vh]` (`140vh` abaixo de md), o
    cartão é `sticky top-0 h-screen` e encolhe (scale 0.9, raio 40px) até
    70% do trecho preso e segura — aprovado assim. **Computador (mouse)**:
-   **sem trecho preso** — a section tem uma tela e o cartão fecha
-   (scale 0.84, raio 40px) ENQUANTO sobe e sai, num movimento só (scrub
-   direto, "top top" → "bottom top"). Com o mouse, segurar a página ~3
-   roladas pro cartão fechar parecia travar no meio, mesmo com a saída
-   emendada. **O logo e a frase
+   **primeiro fecha, depois desce** — a section é `pointer-fine:h-[150vh]`
+   (meia tela presa) e o cartão, `sticky`, fecha (scale 0.86, raio 40px)
+   ao longo de todo o trecho preso, terminando exatamente quando solta; aí
+   sobe com a página. Um de cada vez, sem pausa entre os dois. Descartados
+   no computador: preso 60vh com o fechamento continuando depois de soltar
+   ("travava no meio") e sem trecho preso, fechando enquanto subia (os
+   dois ao mesmo tempo). **O logo e a frase
    fazem parte do cartão**: encolhem com ele e saem com ele (sem scrub, o
    cartão responde direto à rolagem), com um único movimento próprio, um
    parallax **bem sutil**: sobem `CONTENT_DRIFT` (36px; 22 no toque) ao

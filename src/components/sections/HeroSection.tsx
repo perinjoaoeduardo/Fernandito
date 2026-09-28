@@ -20,9 +20,9 @@ import { HERO } from "@/content/site";
 // bastante pra não parecer um zoom brusco.
 const SHRINK_SCALE = 0.9;
 const SHRINK_RADIUS = 40; // px
-// No computador o cartão fecha enquanto sai da tela (sem ficar preso), então
-// fecha um pouco mais: a moldura aparece em volta enquanto ele sobe.
-const DESKTOP_SHRINK_SCALE = 0.84;
+// No computador o cartão fecha inteiro PARADO (trecho preso curto, meia
+// tela) e só depois sobe; fecha um pouco mais que no celular.
+const DESKTOP_SHRINK_SCALE = 0.86;
 // Parallax BEM sutil do logo e da frase dentro do cartão: sobem só isso (px)
 // enquanto o cartão fecha na moldura. Menos no toque.
 const CONTENT_DRIFT = IS_TOUCH ? 22 : 36;
@@ -114,12 +114,14 @@ export function HeroSection() {
     // que o cartão na saída — parecia descer junto; subir no ritmo da
     // rolagem — disparava pra cima no primeiro gesto.)
     //
-    // Celular (toque): a section é mais alta que a tela e o cartão fica
-    // `sticky`, preso enquanto fecha (140vh/160vh; termina aos 70% e segura)
-    // — aprovado assim. Computador (mouse): SEM trecho preso. A section tem
-    // uma tela e o cartão fecha ENQUANTO sobe e sai, num movimento só: com
-    // o mouse, segurar a página ~3 roladas pro cartão fechar parecia travar
-    // no meio.
+    // O cartão é `sticky`: fica preso enquanto fecha e só depois sobe.
+    // Celular (toque): 140vh/160vh, termina aos 70% e segura — aprovado
+    // assim. Computador (mouse): trecho preso curto (150vh = meia tela de
+    // rolagem) e o fechamento ocupa ele inteiro, terminando exatamente
+    // quando o cartão solta — primeiro fecha, depois desce, um de cada
+    // vez e sem pausa entre os dois. (Já foi: preso 60vh com o fechamento
+    // seguindo depois de soltar — travava no meio; e sem trecho preso,
+    // fechando enquanto subia — os dois ao mesmo tempo.)
     let shrinkTrigger: ScrollTrigger | null = null;
     let desktopTl: gsap.core.Timeline | null = null;
     if (!reduceMotion && IS_TOUCH) {
@@ -140,7 +142,7 @@ export function HeroSection() {
       desktopTl = gsap
         .timeline({
           defaults: { ease: "none" },
-          scrollTrigger: { trigger: section, start: "top top", end: "bottom top", scrub: true },
+          scrollTrigger: { trigger: section, start: "top top", end: "bottom bottom", scrub: true },
         })
         .fromTo(
           box,
@@ -149,7 +151,7 @@ export function HeroSection() {
           0,
         )
         .fromTo(content, { y: 0 }, { y: -CONTENT_DRIFT, duration: 1 }, 0)
-        .fromTo(indicatorFade, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.15 }, 0);
+        .fromTo(indicatorFade, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.2 }, 0);
     }
 
     return () => {
@@ -168,15 +170,15 @@ export function HeroSection() {
       ref={sectionRef}
       id="hero"
       // O fundo aqui é a "moldura" revelada quando o cartão encolhe — tem
-      // que ser a cor da PRÓXIMA seção (OQueESection, off-white). Só no toque
-      // (pointer-coarse, o mesmo critério do IS_TOUCH) a section é mais alta
-      // que a tela e o cartão fica preso: 140vh no celular, 160vh do md pra
-      // cima. No computador, uma tela e sem sticky.
-      className="bg-fernandito-off-white relative h-screen motion-safe:pointer-coarse:h-[140vh] md:motion-safe:pointer-coarse:h-[160vh]"
+      // que ser a cor da PRÓXIMA seção (OQueESection, off-white). A section
+      // é mais alta que a tela pro cartão ficar preso enquanto fecha. Toque
+      // (pointer-coarse, o mesmo critério do IS_TOUCH): 140vh no celular,
+      // 160vh do md pra cima. Mouse (pointer-fine): 150vh.
+      className="bg-fernandito-off-white relative h-screen motion-safe:pointer-coarse:h-[140vh] md:motion-safe:pointer-coarse:h-[160vh] motion-safe:pointer-fine:h-[150vh]"
     >
       <div
         ref={boxRef}
-        className="bg-fernandito-verde-escuro relative flex h-screen w-full flex-col items-center justify-center overflow-hidden [will-change:transform,border-radius] pointer-coarse:sticky pointer-coarse:top-0"
+        className="bg-fernandito-verde-escuro sticky top-0 flex h-screen w-full flex-col items-center justify-center overflow-hidden [will-change:transform,border-radius]"
       >
         <div
           ref={contentRef}
