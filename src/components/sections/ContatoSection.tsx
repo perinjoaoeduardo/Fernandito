@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { gsap, EASE, SCRUB, prefersReducedMotion } from "@/lib/gsap";
+import { Parallax } from "@/components/ui/Parallax";
 import { TypewriterText } from "@/components/ui/TypewriterText";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
@@ -77,25 +78,28 @@ export function ContatoSection() {
       className="bg-fernandito-verde-medio text-fernandito-off-white grid w-full md:min-h-screen md:grid-cols-2"
     >
       <div className="flex flex-col items-start justify-center px-6 py-24 sm:px-10 md:py-32 lg:px-16">
-        <TypewriterText
-          text={CONTATO.title}
-          triggerSelector="#contato"
-          start="top 90%"
-          end="top 30%"
-          className="font-rampart max-w-[13ch] text-[clamp(2.5rem,5vw,5rem)] leading-[1] tracking-[0.01em]"
-        />
-        <TypewriterText
-          as="p"
-          text={CONTATO.text}
-          caret={false}
-          triggerSelector="#contato"
-          start="top 30%"
-          end="top 5%"
-          className="text-body-lg mt-8 max-w-md font-sans"
-        />
-        <div ref={ctaRef} className="mt-10">
-          <WhatsAppButton background="verde-escuro">{CONTATO.cta}</WhatsAppButton>
-        </div>
+        {/* Parallax na coluna de texto só no computador. */}
+        <Parallax speed={40} touch={false}>
+          <TypewriterText
+            text={CONTATO.title}
+            triggerSelector="#contato"
+            start="top 90%"
+            end="top 30%"
+            className="font-rampart max-w-[13ch] text-[clamp(2.5rem,5vw,5rem)] leading-[1] tracking-[0.01em]"
+          />
+          <TypewriterText
+            as="p"
+            text={CONTATO.text}
+            caret={false}
+            triggerSelector="#contato"
+            start="top 30%"
+            end="top 5%"
+            className="text-body-lg mt-8 max-w-md font-sans"
+          />
+          <div ref={ctaRef} className="mt-10">
+            <WhatsAppButton background="verde-escuro">{CONTATO.cta}</WhatsAppButton>
+          </div>
+        </Parallax>
       </div>
 
       {/* Metade da imagem (foto em `src/content/site.ts`), 120% da altura

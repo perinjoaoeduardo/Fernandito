@@ -1,6 +1,7 @@
 "use client";
 
 import { teleportToTop } from "@/lib/lenis";
+import { Parallax } from "@/components/ui/Parallax";
 import { TypewriterText } from "@/components/ui/TypewriterText";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
@@ -51,10 +52,10 @@ export function FooterSection() {
             site. Rampart é só caixa-alta: o contraste entre as linhas vem
             da cor (off-white → verde-claro), não de itálico/peso. */}
         {/* Só a frase principal se escreve, sozinha, quando o rodapé entra
-            (não presa à rolagem); o resto já está lá. Sem
-            parallax: no fim da página, com a Social e a faixa na tela ao
-            mesmo tempo, era movimento demais. */}
-        <div>
+            (não presa à rolagem); o resto já está lá. Parallax só no
+            computador: no celular, com a Social e a faixa na tela ao mesmo
+            tempo, era movimento demais. */}
+        <Parallax speed={24} touch={false}>
           <TypewriterText
             text={FOOTER.line1}
             caret={false}
@@ -81,10 +82,10 @@ export function FooterSection() {
           <div className="mt-8">
             <WhatsAppButton>{NAV.whatsappLabel}</WhatsAppButton>
           </div>
-        </div>
+        </Parallax>
 
         {/* Navegação em colunas — estilo compacto (Company/Socials da Lassie) */}
-        <div className="grid grid-cols-2 gap-10 sm:gap-16">
+        <Parallax speed={-16} touch={false} className="grid grid-cols-2 gap-10 sm:gap-16">
           <div>
             <h3 className="text-label mb-4 font-sans tracking-[0.08em] uppercase opacity-80">
               {FOOTER.navTitle}
@@ -121,7 +122,7 @@ export function FooterSection() {
               </li>
             </ul>
           </div>
-        </div>
+        </Parallax>
       </div>
 
       {/* Base do footer — moeda no lugar de um mascote/flor genérico + botão

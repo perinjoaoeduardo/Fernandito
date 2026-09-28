@@ -9,6 +9,9 @@ type ParallaxProps = {
   /** px de deslocamento em cada ponta. Positivo = sobe mais rápido que a
    * rolagem (camada "da frente"); negativo = mais devagar ("de trás"). */
   speed?: number;
+  /** `false`: só no computador (mouse). No celular a camada fica parada —
+   * lá texto parado ficou melhor; no computador o parallax dá profundidade. */
+  touch?: boolean;
   className?: string;
   children: ReactNode;
 };
@@ -18,12 +21,12 @@ type ParallaxProps = {
  * o elemento atravessa a tela (scrub). Fica num wrapper próprio — não usar
  * em volta de algo que já anima `transform` no mesmo nó.
  */
-export function Parallax({ speed = 40, className, children }: ParallaxProps) {
+export function Parallax({ speed = 40, touch = true, className, children }: ParallaxProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || prefersReducedMotion()) return;
+    if (!el || prefersReducedMotion() || (IS_TOUCH && !touch)) return;
     // No toque, bem mais leve: texto e blocos andando em velocidades
     // diferentes do dedo davam a sensação de página "solta". Em tela
     // estreita os blocos também ficam mais perto uns dos outros.
@@ -41,7 +44,7 @@ export function Parallax({ speed = 40, className, children }: ParallaxProps) {
       tween.scrollTrigger?.kill();
       tween.kill();
     };
-  }, [speed]);
+  }, [speed, touch]);
 
   return (
     <div ref={ref} className={clsx("[will-change:transform]", className)}>

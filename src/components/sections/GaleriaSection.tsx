@@ -2,7 +2,7 @@
 
 import { clsx } from "clsx";
 import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger, SCRUB, prefersReducedMotion } from "@/lib/gsap";
+import { gsap, ScrollTrigger, IS_TOUCH, SCRUB, prefersReducedMotion } from "@/lib/gsap";
 import { GALERIA } from "@/content/site";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 
@@ -93,7 +93,8 @@ const BG_STOPS = {
   easeEach: "none", // a curva é a da tween inteira (power1.inOut)
 };
 // px de deslocamento horizontal da trilha base por px rolado.
-const SPEED = 0.9;
+const SPEED = 0.9; // toque
+const SPEED_DESKTOP = 1.1; // mouse
 const PARALLAX = 7; // xPercent da imagem dentro do card (±)
 
 function layout(W: number, H: number) {
@@ -185,16 +186,20 @@ export function GaleriaSection() {
           1,
           1 - (W - margin - sizes[last].w - posX(last, 1)) / (PHOTOS[last].speed * D),
         );
-        // px que a trilha base anda por px rolado: um pouco mais devagar que
-        // o dedo, pra dar tempo de ver cada foto (a 1,1 — e 1,5 no celular —
-        // ficava tudo rápido demais; a 0,75 a seção ficava presa ~5 telas).
-        const v = W < 768 ? SPEED * 1.25 : SPEED;
+        // px que a trilha base anda por px rolado. Celular/toque: um pouco
+        // mais devagar que o dedo, pra dar tempo de ver cada foto (a 1,5
+        // ficava tudo rápido demais). Computador: a roda do mouse já é
+        // suavizada pelo Lenis, e a 0,9 a galeria ficava presa ~4 telas —
+        // lá volta a 1,1 de antes.
+        const v = IS_TOUCH ? (W < 768 ? SPEED * 1.25 : SPEED) : SPEED_DESKTOP;
         const p2 = (D * tEnd) / v;
         // Ritmo da seção presa: pausa com a foto inteira → a foto reduz →
-        // as fotos passam → pausa com a última foto inteira → solta.
-        const holdIn = H * 0.2;
-        const p1 = H * 0.7;
-        const holdOut = H * 0.2;
+        // as fotos passam → pausa com a última foto inteira → solta. No
+        // computador as pausas são mais curtas (com o mouse, parada longa
+        // parece trava).
+        const holdIn = H * (IS_TOUCH ? 0.2 : 0.12);
+        const p1 = H * (IS_TOUCH ? 0.7 : 0.8);
+        const holdOut = H * (IS_TOUCH ? 0.2 : 0.12);
         const a2 = holdIn + p1;
 
         gsap.set([stage, section], { backgroundColor: BG_FROM });

@@ -413,18 +413,21 @@ saindo por cima.
 
 **Parallax geral (`components/ui/Parallax.tsx`).** Wrapper que translada
 em `y` de +speed a −speed enquanto atravessa a tela (scrub). Positivo =
-camada da frente (sobe mais rápido), negativo = de trás. **Só em imagens,
-nunca em texto** (texto andando fora do ritmo da rolagem parecia "seguir
-o scroll"): O que é (lata −50), Manifesto (cartão −25), Social (só a
-pilha de 3 fotos do celular); a imagem do Contato tem parallax próprio. Social (título, leque, link) e rodapé já tiveram
-parallax; saiu porque o fim da página tinha movimento demais ao mesmo
-tempo. **Abaixo de 768px a
-amplitude cai pela metade** (blocos empilhados e mais próximos — a
-amplitude cheia fazia a lata encostar no texto do O que é) **e no toque
-cai pra 30%**: texto andando em velocidade diferente do dedo deixava a
-página com cara de "solta". A galeria tem saída própria
-(abaixo) e o marquee desliza na horizontal com a rolagem (x +80 → −80, por
-cima do loop). Sempre num nó próprio — nunca no mesmo elemento que já anima
+camada da frente (sobe mais rápido), negativo = de trás. **Celular e
+computador são tratados separado** (`IS_TOUCH`, `pointer: coarse`):
+
+- Imagens, nos dois: O que é (lata −50), Manifesto (cartão −25), Social
+  (pilha de 3 fotos, só no celular); a imagem do Contato tem parallax
+  próprio.
+- Textos, **só no computador** (prop `touch={false}`): O que é (coluna
+  +30), Manifesto (título +40), Contato (coluna +40), Social (título +40,
+  leque −30, link +20), rodapé (texto +24, links −16). No celular esses
+  ficam parados: texto andando fora do ritmo do dedo parecia "seguir o
+  scroll", e o fim da página tinha movimento demais ao mesmo tempo.
+
+No toque, o que sobra cai pra 30% da amplitude; abaixo de 768px (sem
+toque), pela metade. A galeria tem saída própria (abaixo); a faixa só tem
+o loop constante. Sempre num nó próprio — nunca no mesmo elemento que já anima
 `transform`.
 
 Ordem fixa da landing page (ver `src/app/page.tsx`):
@@ -490,12 +493,13 @@ sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
 3. `GaleriaSection` (`#galeria`) — **a foto inteira que vira galeria**.
    Palco `h-lvh` pinado (ScrollTrigger `pin`, `SCRUB.soft`), cards
    posicionados em absoluto (x/y via GSAP). **Ritmo da parte presa**:
-   pausa com a foto inteira (0,2 tela, nada mexe) → a foto reduz até card
-   e as outras entram pela direita (0,7 tela) → as fotos passam → pausa com
-   a última foto inteira (0,2 tela) → solta. A trilha anda **0,9 px por px
-   rolado** (1,125 no celular): a 1,1 (1,5 no celular) ficava tudo rápido
-   demais, a 0,75 a seção ficava presa ~5 telas. Presa por ~4,1 telas no
-   desktop e ~2,9 no celular. (Testado e descartado: reduzir a foto
+   pausa com a foto inteira → a foto reduz até card e as outras entram
+   pela direita → as fotos passam → pausa com a última foto inteira →
+   solta. **Valores separados por aparelho**: no toque, pausas de 0,2 tela,
+   redução em 0,7 e trilha a 0,9 px por px rolado (1,125 abaixo de 768px) —
+   a 1,5 ficava tudo rápido demais no celular; no computador, pausas de
+   0,12, redução em 0,8 e trilha a 1,1 (`SPEED_DESKTOP`) — a 0,9 a galeria
+   ficava presa ~4 telas com a roda do mouse. (Testado e descartado: reduzir a foto
    enquanto a galeria ainda entrava na tela — a pessoa não chegava a ver a
    foto inteira.)
    **Fase 2**: parallax de profundidade — cada foto tem `speed` própria

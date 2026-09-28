@@ -127,10 +127,13 @@ export function CartaSection() {
       className="bg-fernandito-off-white text-fernandito-verde-escuro relative w-full overflow-x-clip pt-16 pb-24 sm:py-24"
     >
       <div className="mx-auto flex max-w-4xl justify-center px-6 text-center">
-        <TypewriterText
-          text={MANIFESTO.title}
-          className="font-rampart text-[clamp(1.625rem,3vw,2.25rem)] leading-[1.1] tracking-[0.06em]"
-        />
+        {/* Parallax no título só no computador. */}
+        <Parallax speed={40} touch={false}>
+          <TypewriterText
+            text={MANIFESTO.title}
+            className="font-rampart text-[clamp(1.625rem,3vw,2.25rem)] leading-[1.1] tracking-[0.06em]"
+          />
+        </Parallax>
       </div>
 
       {/* Cartão de até 782px (≈ 680 + 15%): o protagonista da seção. A

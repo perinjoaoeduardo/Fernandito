@@ -238,32 +238,36 @@ export function SocialGallerySection() {
       className="bg-fernandito-off-white text-fernandito-verde-escuro w-full overflow-hidden py-20 sm:py-24"
     >
       <div className="mx-auto flex max-w-5xl flex-col items-center px-6 text-center">
-        <TypewriterText
-          text={SOCIAL.title}
-          // Uma linha só em qualquer celular: o título mede ~12,3em, então
-          // abaixo de sm a fonte acompanha a largura (6,8vw ≈ 24px em 360px,
-          // com 312px livres) até o teto de 1.75rem. De sm pra cima, o
-          // tamanho de sempre.
-          className="font-rampart text-[min(6.8vw,1.75rem)] leading-[1.05] tracking-[0.02em] whitespace-nowrap sm:text-[clamp(1.75rem,4vw,3rem)]"
-        />
+        {/* Parallax no título, no leque e no link só no computador (no
+            celular o fim da página tinha animação demais ao mesmo tempo). */}
+        <Parallax speed={40} touch={false}>
+          <TypewriterText
+            text={SOCIAL.title}
+            // Uma linha só em qualquer celular: o título mede ~12,3em, então
+            // abaixo de sm a fonte acompanha a largura (6,8vw ≈ 24px em 360px,
+            // com 312px livres) até o teto de 1.75rem. De sm pra cima, o
+            // tamanho de sempre.
+            className="font-rampart text-[min(6.8vw,1.75rem)] leading-[1.05] tracking-[0.02em] whitespace-nowrap sm:text-[clamp(1.75rem,4vw,3rem)]"
+          />
+        </Parallax>
       </div>
 
       {/* Desktop (lg+) — leque sobreposto. Abaixo de 1024px o leque não
-          cabe sem cortar as pontas, então vira a fileira com snap. O leque
-          abrindo é O movimento da seção: título e link não têm parallax
-          (o fim da página tinha animação demais ao mesmo tempo). */}
-      <div className="relative mt-12 hidden items-end justify-center px-6 lg:flex">
-        {Array.from({ length: CARD_COUNT }).map((_, i) => (
-          <div key={i} className={i === 0 ? undefined : "lg:-ml-14 xl:-ml-16"}>
-            <PhotoCard
-              index={i}
-              cardRef={(el) => {
-                fanCardRefs.current[i] = el;
-              }}
-            />
-          </div>
-        ))}
-      </div>
+          cabe sem cortar as pontas, então vira a fileira com snap. */}
+      <Parallax speed={-30} touch={false} className="hidden lg:block">
+        <div className="relative mt-12 hidden items-end justify-center px-6 lg:flex">
+          {Array.from({ length: CARD_COUNT }).map((_, i) => (
+            <div key={i} className={i === 0 ? undefined : "lg:-ml-14 xl:-ml-16"}>
+              <PhotoCard
+                index={i}
+                cardRef={(el) => {
+                  fanCardRefs.current[i] = el;
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      </Parallax>
 
       {/* Celular — só 3 fotos empilhadas, alternando de lado e inclinação,
           cada uma numa camada de parallax com velocidade própria. Arrastar
@@ -294,7 +298,11 @@ export function SocialGallerySection() {
         ))}
       </div>
 
-      <div className="mx-auto mt-8 flex max-w-5xl flex-col items-center px-6 text-center lg:mt-16">
+      <Parallax
+        speed={20}
+        touch={false}
+        className="mx-auto mt-8 flex max-w-5xl flex-col items-center px-6 text-center lg:mt-16"
+      >
         <p className="text-body font-accent mb-2 tracking-[0.04em]">{SOCIAL.follow}</p>
         <Button
           as="a"
@@ -310,7 +318,7 @@ export function SocialGallerySection() {
         >
           {LINKS.instagramHandle}
         </Button>
-      </div>
+      </Parallax>
     </section>
   );
 }
