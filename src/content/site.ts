@@ -142,6 +142,7 @@ export const FOOTER = {
   tagline: "Isso toma fernandito.",
   navTitle: "Navegar",
   socialTitle: "Social",
+  backToTop: "Voltar ao topo",
   copyright: "© 2026 Fernandito. Todos os direitos reservados.",
   madeIn: "Feito com brio. Porto Alegre, RS.",
 };

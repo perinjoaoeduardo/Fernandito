@@ -75,7 +75,7 @@ export function ContatoSection() {
       ref={sectionRef}
       id="contato"
       aria-label="Contato"
-      className="bg-fernandito-verde-medio text-fernandito-off-white grid w-full md:min-h-screen md:grid-cols-2"
+      className="bg-fernandito-verde-medio text-fernandito-off-white grid w-full md:min-h-[110vh] md:grid-cols-2"
     >
       <div className="flex flex-col items-start justify-center px-6 py-24 sm:px-10 md:py-32 lg:px-16">
         {/* Parallax na coluna de texto só no computador. */}

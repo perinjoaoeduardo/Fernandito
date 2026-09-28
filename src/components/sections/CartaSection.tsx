@@ -131,7 +131,7 @@ export function CartaSection() {
         <Parallax speed={40} touch={false}>
           <TypewriterText
             text={MANIFESTO.title}
-            className="font-rampart text-[clamp(1.625rem,3vw,2.25rem)] leading-[1.1] tracking-[0.06em]"
+            className="font-rampart text-[clamp(1.625rem,3.4vw,2.625rem)] leading-[1.1] tracking-[0.06em]"
           />
         </Parallax>
       </div>
@@ -143,7 +143,7 @@ export function CartaSection() {
       <Parallax speed={-25}>
         <div
           ref={cardWrapRef}
-          className="mx-auto mt-6 max-w-[878px] px-6 [will-change:transform] sm:mt-8 sm:px-12"
+          className="mx-auto mt-6 max-w-[878px] px-6 [will-change:transform] sm:mt-12 sm:px-12"
         >
           <FlipCard
             front={front}

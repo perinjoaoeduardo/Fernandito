@@ -30,7 +30,7 @@ function TopoIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className="h-5 w-5"
+      className="h-4 w-4"
     >
       <path d="M18 15l-6-6-6 6" />
     </svg>
@@ -148,18 +148,18 @@ export function FooterSection() {
           </div>
         </div>
 
-        {/* Botão circular — mesmo peso visual dos outros ícones redondos do
-            site (cavalo do FloatingNav, moeda acima): antes era só um link
-            de texto discreto, fácil de perder ao lado do bloco de
-            copyright. */}
+        {/* Voltar ao topo: pílula com rótulo escrito + seta (só a seta num
+            círculo fino passava despercebida — não parecia clicável). No
+            hover o fundo acende e a seta dá um passinho pra cima. */}
         <button
           type="button"
           onClick={teleportToTop}
-          aria-label="Voltar ao topo"
-          title="Voltar ao topo"
-          className="border-fernandito-off-white/25 text-fernandito-off-white/80 duration-base ease-out-standard hover:border-fernandito-off-white/50 hover:text-fernandito-off-white hover:bg-fernandito-off-white/5 focus-visible:outline-fernandito-off-white flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-all hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="group border-fernandito-off-white/40 text-fernandito-off-white duration-base ease-out-standard hover:bg-fernandito-off-white hover:text-fernandito-verde-escuro focus-visible:outline-fernandito-off-white focus-visible:bg-fernandito-off-white focus-visible:text-fernandito-verde-escuro inline-flex h-11 shrink-0 items-center gap-2 rounded-full border pr-4 pl-5 font-sans text-[13px] tracking-[0.12em] uppercase transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
         >
-          <TopoIcon />
+          {FOOTER.backToTop}
+          <span className="duration-base ease-out-standard transition-transform group-hover:-translate-y-0.5">
+            <TopoIcon />
+          </span>
         </button>
       </div>
     </footer>

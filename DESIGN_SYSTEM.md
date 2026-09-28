@@ -544,7 +544,8 @@ sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    foto). Timeline reconstruído só quando a LARGURA útil muda
    (`clientWidth` via ResizeObserver no `<html>` — pega a barra de rolagem
    aparecendo depois do intro; medir com `innerWidth` deixava a trilha
-   larga demais e criava rolagem horizontal no PC). Depois de reconstruir,
+   larga demais e criava rolagem horizontal no PC; e, como rede de segurança, `html, body` têm `overflow-x: clip` em
+   `globals.css` — `clip`, não `hidden`, pra não quebrar os `sticky`). Depois de reconstruir,
    **`ScrollTrigger.sort()` antes do `refresh()`**: o pin recriado ia pro
    fim da lista e os gatilhos de baixo (digitação do Contato, rodapé)
    calculavam a posição sem o espaço do pin e disparavam cedo. Fotos em
@@ -560,8 +561,8 @@ sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    sem sobreposição nem gradiente (as duas versões anteriores deixavam uma
    linha fina na junção): fundo off-white sólido, mesma cor do fim do
    palco, com espaçamento normal (`pt-16` no celular, `sm:py-24`). Título "Nosso
-   manifesto" pequeno (`TypewriterText`, `clamp(1.625rem,3vw,2.25rem)` —
-   o protagonista é o cartão, não o título) + cartão-postal (até 782px de
+   manifesto" pequeno (`TypewriterText`, `clamp(1.625rem,3.4vw,2.625rem)` —
+   o protagonista é o cartão, não o título; título → cartão `sm:mt-12`) + cartão-postal (até 782px de
    largura; wrapper `max-w-[878px]` com `px-6 sm:px-12`: o selo fica
    pendurado ~20px pra fora do cartão e, com só 24px de margem, era cortado
    pela borda da tela entre 640 e 830px. Folga medida do selo até a borda:
@@ -585,7 +586,7 @@ sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    `pointer-events-none` quando de costas; um "sizer" invisível em fluxo
    normal define a altura. `prefers-reduced-motion`: crossfade de opacity.
 5. `ContatoSection` (`#contato`) — CTA de contato em **tela dividida**
-   (`md:grid-cols-2`, `md:min-h-screen`): à esquerda, fundo verde-medio,
+   (`md:grid-cols-2`, `md:min-h-[110vh]` — um pouco mais que uma tela): à esquerda, fundo verde-medio,
    título "Quer Fernandito no teu rolê?" + texto de apoio (os dois se
    escrevendo à máquina) + `WhatsAppButton background="verde-escuro"`,
    tudo alinhado à esquerda; à direita, imagem de ponta a ponta (hoje
@@ -640,7 +641,9 @@ mode="play"`: quando o rodapé chega a 75% da tela, 13 letras por
    itálico), legenda "Isso toma fernandito." em `font-accent`, CTA
    `WhatsAppButton`; colunas "Navegar" (O que é, Galeria, Manifesto,
    Contato) e "Social" (Instagram). Base: moeda + copyright e botão
-   circular "topo" (44×44). **Voltar ao topo** (esse botão e o cavalo do
+   "Voltar ao topo" — pílula com rótulo escrito + seta (só a seta num
+   círculo fino não parecia clicável); no hover acende em off-white e a
+   seta dá um passinho pra cima. **Voltar ao topo** (esse botão e o cavalo do
    menu) e **todo link de âncora** (menu, menu do celular, "Navegar" do
    rodapé — o `Link` faz isso sozinho pra `href="#..."`) são um
    teletransporte (`teleportTo`/`teleportToTop`, `src/lib/lenis.ts`): a

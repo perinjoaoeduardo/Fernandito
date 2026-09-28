@@ -5,6 +5,16 @@ html {
   scroll-behavior: auto;
 }
 
+/* Rede de segurança contra rolagem horizontal: nada do site deve passar
+   da largura da tela (trilhas, leque e parallax já ficam dentro das
+   seções), mas se algo escapar, corta em vez de criar barra lateral.
+   `clip` (não `hidden`) não vira contêiner de rolagem, então os `sticky`
+   da Hero e dos pins continuam funcionando. */
+html,
+body {
+  overflow-x: clip;
+}
+
 html.lenis,
 html.lenis body {
   height: auto;
