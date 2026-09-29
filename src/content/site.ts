@@ -37,7 +37,7 @@ export const LINKS = {
   /** Mensagem que já vem escrita quando a pessoa abre o WhatsApp. Sem
    * emoji: o 🐎 chegava como "�" na página do wa.me (redirecionamento do
    * WhatsApp quebra alguns emojis). */
-  whatsappMessage: "Oi! Quero comprar Fernandito.",
+  whatsappMessage: "Oi! Quero conhecer mais sobre o Fernandito.",
 };
 
 export const NAV = {
