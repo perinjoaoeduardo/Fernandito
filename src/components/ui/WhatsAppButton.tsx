@@ -5,9 +5,9 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { LINKS } from "@/content/site";
 
-// Número comercial ainda não definido — ver README ("Ativar o botão do
-// WhatsApp") para como preencher em produção (Vercel > Environment Variables).
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.trim();
+// Número em `src/content/site.ts`; a variável de ambiente, se preenchida
+// (Vercel > Environment Variables), tem prioridade — ver README.
+const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.trim() || LINKS.whatsappNumber;
 const WHATSAPP_MESSAGE = LINKS.whatsappMessage;
 
 function WhatsAppIcon() {

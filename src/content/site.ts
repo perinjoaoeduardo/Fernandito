@@ -30,8 +30,11 @@ function photo(placeholder: string, alt: string, src: string | null = null): Con
 export const LINKS = {
   instagramUrl: "https://www.instagram.com/toma.fernandito/",
   instagramHandle: "@toma.fernandito",
-  /** Mensagem que já vem escrita quando a pessoa abre o WhatsApp. O número
-   * mora na variável de ambiente NEXT_PUBLIC_WHATSAPP_NUMBER (ver README). */
+  /** WhatsApp comercial (+55 51 9338-3764), só dígitos: país + DDD +
+   * número. A variável NEXT_PUBLIC_WHATSAPP_NUMBER, se existir, tem
+   * prioridade (ver README). */
+  whatsappNumber: "555193383764",
+  /** Mensagem que já vem escrita quando a pessoa abre o WhatsApp. */
   whatsappMessage: "Oi! Quero comprar Fernandito 🐎",
 };
 

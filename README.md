@@ -18,11 +18,12 @@ Abra [http://localhost:3000](http://localhost:3000) no navegador.
 Copie `.env.example` para `.env.local` e preencha o que for necessário. Veja
 `.env.example` para a lista completa; a mais importante hoje:
 
-- **`NEXT_PUBLIC_WHATSAPP_NUMBER`** — ativa o botão "Fale no WhatsApp". Sem
-  ela definida, o botão fica visível mas desabilitado. Para ativar em
-  produção: Vercel → projeto → **Settings → Environment Variables**, com o
-  número no formato internacional (código do país + DDD + número, só
-  dígitos, ex: `5551999999999`) — sem espaços ou símbolos.
+- **`NEXT_PUBLIC_WHATSAPP_NUMBER`** — opcional. O número do botão "Fale no
+  WhatsApp" já está em `src/content/site.ts` (`LINKS.whatsappNumber`); esta
+  variável, se preenchida, tem prioridade sobre ele (útil pra testar outro
+  número sem mexer no código). Formato: código do país + DDD + número, só
+  dígitos (ex: `555193383764`). Na Vercel: projeto → **Settings →
+  Environment Variables**, e um redeploy depois.
 
 ## Deploy
 
