@@ -34,8 +34,10 @@ export const LINKS = {
    * número. A variável NEXT_PUBLIC_WHATSAPP_NUMBER, se existir, tem
    * prioridade (ver README). */
   whatsappNumber: "555193383764",
-  /** Mensagem que já vem escrita quando a pessoa abre o WhatsApp. */
-  whatsappMessage: "Oi! Quero comprar Fernandito 🐎",
+  /** Mensagem que já vem escrita quando a pessoa abre o WhatsApp. Sem
+   * emoji: o 🐎 chegava como "�" na página do wa.me (redirecionamento do
+   * WhatsApp quebra alguns emojis). */
+  whatsappMessage: "Oi! Quero comprar Fernandito.",
 };
 
 export const NAV = {
