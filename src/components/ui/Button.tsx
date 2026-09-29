@@ -1,9 +1,7 @@
 "use client";
 
 import { clsx } from "clsx";
-import { useEffect, useRef } from "react";
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
-import { gsap, EASE, prefersReducedMotion, supportsHover } from "@/lib/gsap";
 
 type Variant = "primary" | "secondary" | "ghost" | "cta-destaque";
 
@@ -27,10 +25,6 @@ const variantClasses: Record<Variant, string> = {
   "cta-destaque":
     "bg-fernandito-verde-escuro text-fernandito-off-white hover:bg-fernandito-verde-medio hover:shadow-[0_0_20px_rgba(64,81,57,0.3)] active:scale-[0.96] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-fernandito-verde-medio",
 };
-
-// Magnetic hover só existe no cta-destaque (o CTA de maior hierarquia).
-const MAGNET_RADIUS = 80;
-const MAGNET_MAX_PULL = 8;
 
 function IconSlide({ icon }: { icon: ReactNode }) {
   return (
@@ -83,48 +77,6 @@ export function Button({
   animatedIcon = false,
   ...props
 }: ButtonProps) {
-  const magneticRef = useRef<HTMLElement | null>(null);
-
-  // Magnetic hover (cta-destaque only): quando o mouse chega a até 80px do
-  // botão, ele "puxa" até 8px na direção do cursor. Desktop + motion only.
-  useEffect(() => {
-    if (variant !== "cta-destaque") return;
-    if (props["aria-disabled"] === "true" || props["aria-disabled"] === true) return;
-    if (prefersReducedMotion() || !supportsHover()) return;
-
-    const el = magneticRef.current;
-    if (!el) return;
-
-    const moveX = gsap.quickTo(el, "x", { duration: 0.3, ease: EASE.outStandard });
-    const moveY = gsap.quickTo(el, "y", { duration: 0.3, ease: EASE.outStandard });
-
-    const handleMove = (event: MouseEvent) => {
-      const rect = el.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      const dx = event.clientX - cx;
-      const dy = event.clientY - cy;
-      const dist = Math.hypot(dx, dy);
-
-      if (dist < MAGNET_RADIUS) {
-        const pull = (1 - dist / MAGNET_RADIUS) * MAGNET_MAX_PULL;
-        const angle = Math.atan2(dy, dx);
-        moveX(Math.cos(angle) * pull);
-        moveY(Math.sin(angle) * pull);
-      } else {
-        moveX(0);
-        moveY(0);
-      }
-    };
-
-    window.addEventListener("mousemove", handleMove);
-    return () => {
-      window.removeEventListener("mousemove", handleMove);
-      gsap.set(el, { x: 0, y: 0 });
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- aria-disabled read once at effect setup on purpose, not a reactive dep
-  }, [variant]);
-
   const classes = clsx(baseClasses, variantClasses[variant], className);
 
   const iconNode = icon ? (
@@ -163,15 +115,11 @@ export function Button({
       innerContent
     );
 
-  const setRef = (el: HTMLButtonElement | HTMLAnchorElement | null) => {
-    magneticRef.current = el;
-  };
-
   if (props.as === "a") {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip custom `as` before spreading onto the DOM node
     const { as: _as, ...anchorProps } = props;
     return (
-      <a ref={setRef} className={classes} {...anchorProps}>
+      <a className={classes} {...anchorProps}>
         {content}
       </a>
     );
@@ -180,7 +128,7 @@ export function Button({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip custom `as` before spreading onto the DOM node
   const { as: _as, ...buttonProps } = props;
   return (
-    <button ref={setRef} className={classes} {...buttonProps}>
+    <button className={classes} {...buttonProps}>
       {content}
     </button>
   );

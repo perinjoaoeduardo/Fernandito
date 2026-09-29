@@ -213,10 +213,9 @@ no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
     sublinhado (mesma mecânica do `Link` `underline-grow`). Active:
     `opacity-70` (não scale, ao contrário dos outros três).
   - `cta-destaque` — fundo `verde-escuro` sólido → hover `verde-medio` +
-    glow (`box-shadow` verde-medio/0.3, blur 20px). **Magnetic hover**
-    (desktop + motion only): dentro de 80px do botão, ele "puxa" até 8px
-    na direção do cursor via `gsap.quickTo`; desliga sozinho se
-    `aria-disabled="true"`. É o botão do WhatsApp e afins.
+    glow (`box-shadow` verde-medio/0.3, blur 20px). É o botão do WhatsApp
+    e afins. **Sem magnetic hover**: o botão "puxando" até 8px na direção
+    do cursor ficava se mexendo sozinho — era demais (removido).
   - Todas: `active:scale-*` (0.97 padrão, 0.96 no cta-destaque),
     `focus-visible:outline` (2px, 3px no cta-destaque) — cor padrão
     `verde-medio`, sobrescrever via `className` (`!outline-...`) em fundos
@@ -598,7 +597,7 @@ sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    agressiva demais. No
    celular a imagem vai pra baixo do texto (`aspect-[4/5]`, pouco mais de
    meia tela). Foto em `src/content/site.ts` (`CONTATO.photo`). O botão é o
-   mesmo `cta-destaque` magnético do menu e do rodapé.
+   mesmo `cta-destaque` do menu e do rodapé.
 6. `SocialGallerySection` (`#social`, "O que anda rolando") — título
    pequeno numa linha, escrito à máquina (`whitespace-nowrap`; abaixo de sm
    a fonte é `min(6.8vw, 1.75rem)`, porque o título mede ~12,3em e em 390px
