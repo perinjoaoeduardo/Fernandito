@@ -303,6 +303,27 @@ no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
   monta — é adorno de motion, não conteúdo. Global, montado 1x no
   `layout.tsx`.
 
+### Faixa de pré-lançamento (`AnnouncementBar.tsx`)
+
+Faixa fina (32px) fixa no topo, em celular e computador: "Estamos
+chegando", fundo off-white, texto verde-escuro em Special Elite maiúscula
+espaçada, bolinha verde-medio pulsando devagar (`motion-safe`) e sombra
+leve embaixo (`0 4px 14px`) — a sombra é o que separa a faixa nas seções
+claras. `z-[55]`: acima da nav (50), abaixo da barra de progresso (60), da
+cortina do teletransporte (90) e da intro (100). Fica POR CIMA do conteúdo
+(não empurra a página): cobre os 32px de cima da Hero e do palco preso da
+galeria — aceito por ser temporária. A cor do topo do Safari
+(`ThemeColorSync`) passa a pegar a cor da faixa sozinha.
+
+**Liga/desliga**: `ANNOUNCEMENT.enabled` em `src/content/site.ts`. Ligada,
+o `layout.tsx` põe `has-announcement` no `<html>`, que define
+`--announcement-h: 32px` (senão 0); a `FloatingNav` desce essa altura
+(`top-[calc(1rem+var(--announcement-h))]`) e o ponto que ela amostra pra
+escolher o tom também. Recolhida, a nav some por trás da faixa. Pra
+remover de vez: apagar o componente, a flag, a classe no `layout.tsx` e o
+bloco `--announcement-h` do `globals.css` (a nav continua funcionando com
+a variável em 0).
+
 ### Assets de logo (`/public/logo/`)
 
 Todos os arquivos recebidos chegaram com cores aproximadas, fora do hex

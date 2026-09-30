@@ -15,6 +15,16 @@ body {
   overflow-x: clip;
 }
 
+:root {
+  --announcement-h: 0px;
+}
+
+/* Faixa "Estamos chegando" ligada (ver AnnouncementBar.tsx). Em px (não
+   rem): a FloatingNav lê o valor em JS pra amostrar a cor do fundo. */
+html.has-announcement {
+  --announcement-h: 32px;
+}
+
 html.lenis,
 html.lenis body {
   height: auto;

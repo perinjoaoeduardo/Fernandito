@@ -19,8 +19,13 @@ const LINKS = NAV.links;
 // Ponto de amostragem fixo (canto esquerdo, fora da pill que fica centrada)
 // — assim a amostra sempre pega o fundo da SEÇÃO por trás do nav, nunca o
 // próprio nav (ver `backgroundAt`).
+// Com a faixa "Estamos chegando" no topo, a amostra desce junto com a nav.
 const PROBE_X = 12;
 const PROBE_Y = 40;
+const probeY = () =>
+  PROBE_Y +
+  (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--announcement-h")) ||
+    0);
 
 // Abaixo disso (px) a nav nunca se recolhe — na Hero ela é parte da capa.
 const TUCK_AFTER = 160;
@@ -77,7 +82,7 @@ export function FloatingNav() {
           lastScrollY.current = currentY;
         }
 
-        const sampled = backgroundAt(PROBE_X, PROBE_Y);
+        const sampled = backgroundAt(PROBE_X, probeY());
         if (sampled) setOverLight(sampled.light);
 
         ticking = false;
@@ -126,7 +131,8 @@ export function FloatingNav() {
         // Foco de teclado entrando na nav traz ela de volta.
         onFocus={() => setTucked(false)}
         className={clsx(
-          "fixed top-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 sm:top-6",
+          // `--announcement-h`: altura da faixa "Estamos chegando" (0 sem ela).
+          "fixed top-[calc(1rem+var(--announcement-h))] left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 sm:top-[calc(1.5rem+var(--announcement-h))]",
           hidden && "pointer-events-none",
         )}
         aria-label="Navegação principal"

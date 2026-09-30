@@ -7,6 +7,8 @@ import { ThemeColorSync } from "@/components/providers/ThemeColorSync";
 import { FloatingNav } from "@/components/ui/FloatingNav";
 import { CustomCursor } from "@/components/ui/CustomCursor";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
+import { AnnouncementBar } from "@/components/ui/AnnouncementBar";
+import { ANNOUNCEMENT } from "@/content/site";
 import { SITE_URL, SITE_TITLE, SITE_DESCRIPTION } from "@/lib/site";
 import "./globals.css";
 
@@ -209,7 +211,12 @@ const JSON_LD = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" className={`${fontVariables} antialiased`}>
+    <html
+      lang="pt-BR"
+      className={[fontVariables, "antialiased", ANNOUNCEMENT.enabled && "has-announcement"]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <body>
         <script
           type="application/ld+json"
@@ -234,6 +241,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <IntroLoader />
           <ScrollProgress />
           <CustomCursor />
+          <AnnouncementBar />
           <FloatingNav />
           <ThemeColorSync />
           {children}

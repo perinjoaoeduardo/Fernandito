@@ -40,6 +40,13 @@ export const LINKS = {
   whatsappMessage: "Oi! Quero conhecer mais sobre o Fernandito.",
 };
 
+/** Faixa fixa no topo do pré-lançamento ("Estamos chegando"). Pra tirar do
+ * site: `enabled: false` — some a faixa e o menu volta pro lugar sozinho. */
+export const ANNOUNCEMENT = {
+  enabled: true,
+  text: "Estamos chegando",
+};
+
 export const NAV = {
   /** Links da pílula do topo (desktop) e do menu do celular. */
   links: [
