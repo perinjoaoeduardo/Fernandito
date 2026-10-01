@@ -296,6 +296,12 @@ export function GaleriaSection() {
               start: () => pinTrigger.end,
               end: () => pinTrigger.end + H,
               scrub: SCRUB.soft,
+              // Sempre recalculado DEPOIS do pin: sem elemento de gatilho, o
+              // `sort()` podia pôr esta saída antes dele, ela lia o fim do pin
+              // ainda velho, achava que já tinha passado e empurrava as fotos
+              // pra esquerda desde o começo — a foto de abertura ficava
+              // ~40px deslocada e sobrava uma faixa verde na direita.
+              refreshPriority: -1,
             },
           });
         });

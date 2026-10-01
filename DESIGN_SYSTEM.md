@@ -594,7 +594,13 @@ sm:max-w-[520px] lg:max-w-[700px]`) e, logo abaixo (`mt-3`, bem colado
    `globals.css` — `clip`, não `hidden`, pra não quebrar os `sticky`). Depois de reconstruir,
    **`ScrollTrigger.sort()` antes do `refresh()`**: o pin recriado ia pro
    fim da lista e os gatilhos de baixo (digitação do Contato, rodapé)
-   calculavam a posição sem o espaço do pin e disparavam cedo. Fotos em
+   calculavam a posição sem o espaço do pin e disparavam cedo. A saída da galeria
+   (gatilhos sem elemento, que começam no fim do pin) tem
+   `refreshPriority: -1`: com o `sort()` ela podia ser recalculada antes do
+   pin, lia o fim dele ainda velho e já começava "passada" — as fotos
+   ficavam ~40px pra esquerda e sobrava uma faixa verde na direita da foto
+   de abertura. Rede extra: depois de cada `refresh`, se a largura do palco
+   não bate com a da montagem, remonta. Fotos em
    `src/content/site.ts` (`GALERIA.photos`), via `PhotoSlot`. **Hover
    "respira"** (só com mouse): a foto dá zoom de 6% por dentro
    (`group-hover:scale-[1.06]`, `duration-slow`) e a moldura fica parada;
