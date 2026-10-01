@@ -116,8 +116,8 @@ export const GALERIA = {
   photos: [
     photo(
       "Foto 01",
-      "Cavalo malhado no meio do capim alto, sob céu nublado",
-      "/images/placeholder/cavalo-capim.webp",
+      "Gado pastando no campo, com nuvens baixas sobre as coxilhas",
+      "/images/placeholder/gado.webp",
     ),
     photo(
       "Foto 02",
@@ -126,8 +126,8 @@ export const GALERIA = {
     ),
     photo(
       "Foto 03",
-      "Gado pastando no campo, com nuvens baixas sobre as coxilhas",
-      "/images/placeholder/gado.webp",
+      "Cavalo malhado no meio do capim alto, sob céu nublado",
+      "/images/placeholder/cavalo-capim.webp",
     ),
     photo(
       "Foto 04",
