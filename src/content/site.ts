@@ -94,19 +94,8 @@ export const HERO = {
   photos: [
     photo(
       "Hero 01",
-      "Coxilhas douradas a perder de vista sob céu azul",
-      "/images/placeholder/coxilhas-nuvens.jpg",
-    ),
-    photo(
-      "Hero 02",
-      "Araucárias no alto de uma coxilha, no fim de tarde",
-      "/images/placeholder/araucarias.jpg",
-    ),
-    photo("Hero 03", "Campo de coxilhas com a serra ao fundo", "/images/placeholder/coxilhas.jpg"),
-    photo(
-      "Hero 04",
-      "Rio raso entre pedras e araucárias, contra o sol",
-      "/images/placeholder/rio.jpg",
+      "Rascunhos e o rótulo do Fernandito espalhados sobre uma mesa de madeira",
+      "/images/hero-rotulo.jpg",
     ),
   ],
 };
@@ -191,8 +180,8 @@ export const CONTATO = {
   cta: "Chamar no WhatsApp",
   photo: photo(
     "Foto contato",
-    "Caminhonetes cheias de barro em fila, embaixo de um morro de pedra",
-    "/images/placeholder/caminhonetes.jpg",
+    "Rascunho do cavalo do Fernandito em papel, com canetas e rótulos na mesa",
+    "/images/contato-rascunhos.jpg",
   ),
 };
 
