@@ -2,6 +2,9 @@ import { clsx } from "clsx";
 import Image from "next/image";
 import type { ContentImage } from "@/content/site";
 
+/** Qualidade das fotos (precisa estar em `images.qualities`, next.config). */
+export const PHOTO_QUALITY = 90;
+
 type PhotoSlotProps = {
   image: ContentImage;
   /** Tamanho que a foto ocupa na tela, pro navegador baixar a versão certa
@@ -25,6 +28,7 @@ export function PhotoSlot({ image, sizes, placeholderClassName, className }: Pho
         alt={image.alt}
         fill
         sizes={sizes}
+        quality={PHOTO_QUALITY}
         className={clsx("object-cover", className)}
       />
     );

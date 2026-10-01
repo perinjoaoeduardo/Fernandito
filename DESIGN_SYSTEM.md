@@ -306,13 +306,21 @@ no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
 ### Fotos de pré-lançamento (placeholder)
 
 Enquanto não tem foto do produto, o site usa fotos de campo/produção como
-placeholder, em `public/images/placeholder/` (webp, até 2400px no lado
+placeholder, em `public/images/placeholder/` (os JPGs como chegaram, ~2300px no lado
 maior), ligadas pelo `src` de cada `photo(...)` em `src/content/site.ts`:
 Hero (4 paisagens), Galeria (7), "O que anda rolando" (7, repetindo
 algumas), Contato (1). O verso do Manifesto já tem a foto real dos quatro
-fundadores (`public/images/fundadores.webp`; legenda na ordem da foto, da
+fundadores (`public/images/fundadores.jpg`; legenda na ordem da foto, da
 esquerda pra direita). Trocar uma foto = trocar o arquivo/caminho no
 `site.ts`; tirar = `src` volta a `null` e aparece o placeholder com nome.
+
+**Qualidade**: os arquivos ficam como vieram (sem recomprimir antes — cada
+compressão a mais tirava nitidez); o `next/image` entrega em qualidade 90
+(`PHOTO_QUALITY` em `PhotoSlot.tsx`, liberada em `images.qualities` no
+`next.config.ts` — o padrão do Next 16 é só 75). A 1ª foto da galeria abre
+em tela cheia, então pede `sizes="120vw"` (a moldura dela tem 120% pro
+parallax); com o `sizes` de card o navegador baixava uma versão pequena e
+esticava.
 
 **Hero com fotos trocando** (`HeroSlideshow.tsx`): fundo do cartão com as
 fotos de `HERO.photos` em fade cruzado (1,4s) a cada 5,5s, cada uma com
@@ -674,9 +682,9 @@ mode="play"`: quando o rodapé chega a 75% da tela, 13 letras por
    estão lá, e nada tem parallax — o fim da página
    estava com animação demais ao mesmo tempo. Coluna estreita pra não
    espremer as colunas de links. Frase de fechamento em
-   `font-rampart` ("Pra quem não deixa passar, / vira história." — o
+   `font-rampart` ("Liberdade não se pede, / se toma." — o
    contraste da segunda linha é a cor verde-claro, já que a Rampart não tem
-   itálico), legenda "Isso toma fernandito." em `font-accent`, CTA
+   itálico), legenda "Toma Fernandito." em `font-accent`, CTA
    `WhatsAppButton`; colunas "Navegar" (O que é, Galeria, Manifesto,
    Contato) e "Social" (Instagram). Base: moeda + copyright e botão
    "Voltar ao topo" — pílula com rótulo escrito + seta (só a seta num

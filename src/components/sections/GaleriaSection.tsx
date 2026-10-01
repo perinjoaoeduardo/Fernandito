@@ -134,7 +134,10 @@ function PhotoFill({
       <div className="duration-slow ease-out-standard absolute inset-0 transition-transform group-hover:scale-[1.06]">
         <PhotoSlot
           image={GALERIA.photos[index]}
-          sizes="(max-width: 767px) 90vw, 60vw"
+          // A 1ª foto abre em tela cheia (e a moldura dela tem 120% de
+          // largura pro parallax): pedir a versão de tela inteira, senão o
+          // navegador baixava uma de card e esticava.
+          sizes={index === 0 ? "120vw" : "(max-width: 767px) 90vw, 60vw"}
           placeholderClassName={PHOTOS[index].tone}
         />
       </div>
@@ -163,11 +166,15 @@ export function GaleriaSection() {
       return;
 
     let ctx: gsap.Context | null = null;
+    // Largura com que a galeria foi montada (a foto de abertura ocupa
+    // exatamente isso) — ver a conferência no `refresh` lá embaixo.
+    let builtW = 0;
 
     const build = () => {
       ctx?.revert();
       ctx = gsap.context(() => {
         const W = stage.clientWidth;
+        builtW = W;
         const H = stage.clientHeight;
         const { sizes, D } = layout(W, H);
         const n = PHOTOS.length;
@@ -326,7 +333,25 @@ export function GaleriaSection() {
     const observer = new ResizeObserver(onResize);
     observer.observe(root);
 
+    // Rede de segurança: depois de qualquer recálculo da página, se a
+    // largura do palco não bate mais com a da montagem, remonta. Sem isso,
+    // num caso em que a largura muda sem o observer perceber, a foto de
+    // abertura ficava mais estreita que a tela e sobrava uma faixa verde
+    // na direita.
+    const onRefresh = () => {
+      if (Math.abs(stage.clientWidth - builtW) <= 1) return;
+      lastW = root.clientWidth;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        build();
+        ScrollTrigger.sort();
+        ScrollTrigger.refresh();
+      }, 200);
+    };
+    ScrollTrigger.addEventListener("refresh", onRefresh);
+
     return () => {
+      ScrollTrigger.removeEventListener("refresh", onRefresh);
       observer.disconnect();
       window.clearTimeout(timer);
       ctx?.revert();

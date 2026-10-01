@@ -84,18 +84,18 @@ export const HERO = {
     photo(
       "Hero 01",
       "Coxilhas douradas a perder de vista sob céu azul",
-      "/images/placeholder/coxilhas-nuvens.webp",
+      "/images/placeholder/coxilhas-nuvens.jpg",
     ),
     photo(
       "Hero 02",
       "Araucárias no alto de uma coxilha, no fim de tarde",
-      "/images/placeholder/araucarias.webp",
+      "/images/placeholder/araucarias.jpg",
     ),
-    photo("Hero 03", "Campo de coxilhas com a serra ao fundo", "/images/placeholder/coxilhas.webp"),
+    photo("Hero 03", "Campo de coxilhas com a serra ao fundo", "/images/placeholder/coxilhas.jpg"),
     photo(
       "Hero 04",
       "Rio raso entre pedras e araucárias, contra o sol",
-      "/images/placeholder/rio.webp",
+      "/images/placeholder/rio.jpg",
     ),
   ],
 };
@@ -117,37 +117,37 @@ export const GALERIA = {
     photo(
       "Foto 01",
       "Gado pastando no campo, com nuvens baixas sobre as coxilhas",
-      "/images/placeholder/gado.webp",
+      "/images/placeholder/gado.jpg",
     ),
     photo(
       "Foto 02",
       "Touro vermelho de pelo crespo olhando pra câmera, no campo com neblina",
-      "/images/placeholder/touro.webp",
+      "/images/placeholder/touro.jpg",
     ),
     photo(
       "Foto 03",
       "Cavalo malhado no meio do capim alto, sob céu nublado",
-      "/images/placeholder/cavalo-capim.webp",
+      "/images/placeholder/cavalo-capim.jpg",
     ),
     photo(
       "Foto 04",
       "Cavalo deitado num banhado, com mata de araucárias ao fundo",
-      "/images/placeholder/cavalo-banhado.webp",
+      "/images/placeholder/cavalo-banhado.jpg",
     ),
     photo(
       "Foto 05",
       "Morros pontudos cobertos de mata, sob céu fechado",
-      "/images/placeholder/morros.webp",
+      "/images/placeholder/morros.jpg",
     ),
     photo(
       "Foto 06",
       "Rio raso entre pedras e araucárias, contra o sol",
-      "/images/placeholder/rio.webp",
+      "/images/placeholder/rio.jpg",
     ),
     photo(
       "Foto 07",
       "Vaca de cara branca vindo pelo campo dourado",
-      "/images/placeholder/vaca-campo.webp",
+      "/images/placeholder/vaca-campo.jpg",
     ),
   ],
 };
@@ -165,7 +165,7 @@ export const MANIFESTO = {
     photo: photo(
       "Foto fundadores",
       "Os quatro fundadores do Fernandito rindo na frente de uma cerca viva — da esquerda pra direita: Lorenzo, Matheus, Nando e João",
-      "/images/fundadores.webp",
+      "/images/fundadores.jpg",
     ),
     /** Na ordem da foto, da esquerda pra direita. */
     caption: "Lorenzo · Matheus · Nando · João — Porto Alegre, 2026",
@@ -181,7 +181,7 @@ export const CONTATO = {
   photo: photo(
     "Foto contato",
     "Caminhonetes cheias de barro em fila, embaixo de um morro de pedra",
-    "/images/placeholder/caminhonetes.webp",
+    "/images/placeholder/caminhonetes.jpg",
   ),
 };
 
@@ -193,33 +193,33 @@ export const SOCIAL = {
     photo(
       "Foto 01",
       "Jipe amarelo com barraca no teto, no campo ao pôr do sol",
-      "/images/placeholder/troller.webp",
+      "/images/placeholder/troller.jpg",
     ),
-    photo("Foto 02", "Campo de coxilhas com a serra ao fundo", "/images/placeholder/coxilhas.webp"),
+    photo("Foto 02", "Campo de coxilhas com a serra ao fundo", "/images/placeholder/coxilhas.jpg"),
     photo(
       "Foto 03",
       "Morros pontudos cobertos de mata, sob céu fechado",
-      "/images/placeholder/morros.webp",
+      "/images/placeholder/morros.jpg",
     ),
     photo(
       "Foto 04",
       "Vaca de cara branca vindo pelo campo dourado",
-      "/images/placeholder/vaca-campo.webp",
+      "/images/placeholder/vaca-campo.jpg",
     ),
     photo(
       "Foto 05",
       "Araucárias no alto de uma coxilha, no fim de tarde",
-      "/images/placeholder/araucarias.webp",
+      "/images/placeholder/araucarias.jpg",
     ),
     photo(
       "Foto 06",
       "Cavalo deitado num banhado, com mata de araucárias ao fundo",
-      "/images/placeholder/cavalo-banhado.webp",
+      "/images/placeholder/cavalo-banhado.jpg",
     ),
     photo(
       "Foto 07",
       "Touro vermelho de pelo crespo olhando pra câmera, no campo com neblina",
-      "/images/placeholder/touro.webp",
+      "/images/placeholder/touro.jpg",
     ),
   ],
 };
@@ -230,9 +230,9 @@ export const MARQUEE = {
 };
 
 export const FOOTER = {
-  line1: "Pra quem não deixa passar,",
-  line2: "vira história.",
-  tagline: "Isso toma fernandito.",
+  line1: "Liberdade não se pede,",
+  line2: "se toma.",
+  tagline: "Toma Fernandito.",
   navTitle: "Navegar",
   socialTitle: "Social",
   backToTop: "Voltar ao topo",

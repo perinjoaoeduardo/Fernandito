@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { prefersReducedMotion } from "@/lib/gsap";
 import { onIntroComplete } from "@/lib/introSignal";
 import { HERO } from "@/content/site";
+import { PHOTO_QUALITY } from "@/components/ui/PhotoSlot";
 
 // Tempo de cada foto na tela, a troca (fade) e o zoom lento ("Ken Burns")
 // que a foto ativa faz enquanto está na tela — de 1.06 até 1.
@@ -62,6 +63,7 @@ export function HeroSlideshow() {
               alt=""
               fill
               sizes="100vw"
+              quality={PHOTO_QUALITY}
               priority={i === 0}
               className="object-cover"
             />
