@@ -14,6 +14,7 @@ import { onIntroComplete } from "@/lib/introSignal";
 import { scrollToTarget } from "@/lib/lenis";
 import { Logo } from "@/components/ui/Logo";
 import { RotatingWord } from "@/components/ui/RotatingWord";
+import { HeroSlideshow } from "@/components/ui/HeroSlideshow";
 import { HERO } from "@/content/site";
 
 // Quanto o cartão encolhe/arredonda ao rolar (a "moldura") — sutil o
@@ -180,9 +181,11 @@ export function HeroSection() {
         ref={boxRef}
         className="bg-fernandito-verde-escuro sticky top-0 flex h-screen w-full flex-col items-center justify-center overflow-hidden [will-change:transform,border-radius]"
       >
+        {/* Fotos trocando no fundo do cartão (placeholder do pré-lançamento). */}
+        <HeroSlideshow />
         <div
           ref={contentRef}
-          className="flex flex-col items-center px-6 text-center [will-change:transform]"
+          className="relative flex flex-col items-center px-6 text-center [will-change:transform]"
         >
           {/* O texto do h1 vive num `sr-only` de verdade (não só no `alt` da
               imagem): garante um h1 com texto rastreável no HTML do servidor,

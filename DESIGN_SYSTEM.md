@@ -303,6 +303,24 @@ no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
   monta — é adorno de motion, não conteúdo. Global, montado 1x no
   `layout.tsx`.
 
+### Fotos de pré-lançamento (placeholder)
+
+Enquanto não tem foto do produto, o site usa fotos de campo/produção como
+placeholder, em `public/images/placeholder/` (webp, até 2400px no lado
+maior), ligadas pelo `src` de cada `photo(...)` em `src/content/site.ts`:
+Hero (4 paisagens), Galeria (7), "O que anda rolando" (7, repetindo
+algumas), Contato (1). O verso do Manifesto já tem a foto real dos quatro
+fundadores (`public/images/fundadores.webp`; legenda na ordem da foto, da
+esquerda pra direita). Trocar uma foto = trocar o arquivo/caminho no
+`site.ts`; tirar = `src` volta a `null` e aparece o placeholder com nome.
+
+**Hero com fotos trocando** (`HeroSlideshow.tsx`): fundo do cartão com as
+fotos de `HERO.photos` em fade cruzado (1,4s) a cada 5,5s, cada uma com
+zoom lento de 1.06 → 1 (7s) enquanto está na tela, por baixo de um véu
+`verde-escuro/55` que mantém o cartão verde e o logo legível. Só começa a
+trocar depois da intro (`onIntroComplete`); com reduced motion fica a 1ª.
+A 1ª foto é `priority` (vira o LCP da página).
+
 ### Faixa de pré-lançamento (`AnnouncementBar.tsx`)
 
 Faixa fina (32px) fixa no topo, em celular e computador: "Estamos

@@ -78,6 +78,26 @@ export const HERO = {
     "Teimosia",
   ],
   scrollHint: "scroll",
+  /** Fotos de fundo do cartão, trocando sozinhas (a 1ª aparece ao carregar).
+   * PLACEHOLDER do pré-lançamento — trocar pelas fotos definitivas. */
+  photos: [
+    photo(
+      "Hero 01",
+      "Coxilhas douradas a perder de vista sob céu azul",
+      "/images/placeholder/coxilhas-nuvens.webp",
+    ),
+    photo(
+      "Hero 02",
+      "Araucárias no alto de uma coxilha, no fim de tarde",
+      "/images/placeholder/araucarias.webp",
+    ),
+    photo("Hero 03", "Campo de coxilhas com a serra ao fundo", "/images/placeholder/coxilhas.webp"),
+    photo(
+      "Hero 04",
+      "Rio raso entre pedras e araucárias, contra o sol",
+      "/images/placeholder/rio.webp",
+    ),
+  ],
 };
 
 export const O_QUE_E = {
@@ -94,13 +114,41 @@ export const GALERIA = {
    * (vertical, horizontal) é definido pelo layout da galeria; a foto é
    * recortada pra caber. */
   photos: [
-    photo("Foto 01", "Galeria Fernandito, foto 1"),
-    photo("Foto 02", "Galeria Fernandito, foto 2"),
-    photo("Foto 03", "Galeria Fernandito, foto 3"),
-    photo("Foto 04", "Galeria Fernandito, foto 4"),
-    photo("Foto 05", "Galeria Fernandito, foto 5"),
-    photo("Foto 06", "Galeria Fernandito, foto 6"),
-    photo("Foto 07", "Galeria Fernandito, foto 7"),
+    photo(
+      "Foto 01",
+      "Cavalo malhado no meio do capim alto, sob céu nublado",
+      "/images/placeholder/cavalo-capim.webp",
+    ),
+    photo(
+      "Foto 02",
+      "Touro vermelho de pelo crespo olhando pra câmera, no campo com neblina",
+      "/images/placeholder/touro.webp",
+    ),
+    photo(
+      "Foto 03",
+      "Gado pastando no campo, com nuvens baixas sobre as coxilhas",
+      "/images/placeholder/gado.webp",
+    ),
+    photo(
+      "Foto 04",
+      "Cavalo deitado num banhado, com mata de araucárias ao fundo",
+      "/images/placeholder/cavalo-banhado.webp",
+    ),
+    photo(
+      "Foto 05",
+      "Morros pontudos cobertos de mata, sob céu fechado",
+      "/images/placeholder/morros.webp",
+    ),
+    photo(
+      "Foto 06",
+      "Rio raso entre pedras e araucárias, contra o sol",
+      "/images/placeholder/rio.webp",
+    ),
+    photo(
+      "Foto 07",
+      "Vaca de cara branca vindo pelo campo dourado",
+      "/images/placeholder/vaca-campo.webp",
+    ),
   ],
 };
 
@@ -114,8 +162,13 @@ export const MANIFESTO = {
   signatures: ["João", "Lorenzo", "Nando", "Matheus"],
   /** Verso do cartão (aparece ao girar). */
   back: {
-    photo: photo("Foto fundadores", "Foto dos fundadores do Fernandito"),
-    caption: "João · Lorenzo · Nando · Matheus — Porto Alegre, 2026",
+    photo: photo(
+      "Foto fundadores",
+      "Os quatro fundadores do Fernandito rindo na frente de uma cerca viva — da esquerda pra direita: Lorenzo, Matheus, Nando e João",
+      "/images/fundadores.webp",
+    ),
+    /** Na ordem da foto, da esquerda pra direita. */
+    caption: "Lorenzo · Matheus · Nando · João — Porto Alegre, 2026",
   },
   flipLabel: "Girar",
   flipBackLabel: "Girar de volta",
@@ -125,7 +178,11 @@ export const CONTATO = {
   title: "Quer Fernandito no teu rolê?",
   text: "Bar, festa, evento ou só curiosidade? Chama a gente no WhatsApp que a gente responde.",
   cta: "Chamar no WhatsApp",
-  photo: photo("Foto contato", "Fernandito no rolê"),
+  photo: photo(
+    "Foto contato",
+    "Caminhonetes cheias de barro em fila, embaixo de um morro de pedra",
+    "/images/placeholder/caminhonetes.webp",
+  ),
 };
 
 export const SOCIAL = {
@@ -133,13 +190,37 @@ export const SOCIAL = {
   follow: "Segue a gente no Instagram",
   /** Sempre 7 fotos. No celular aparecem só a 1ª, a 2ª e a 4ª. */
   photos: [
-    photo("Foto 01", "Fernandito no Instagram, foto 1"),
-    photo("Foto 02", "Fernandito no Instagram, foto 2"),
-    photo("Foto 03", "Fernandito no Instagram, foto 3"),
-    photo("Foto 04", "Fernandito no Instagram, foto 4"),
-    photo("Foto 05", "Fernandito no Instagram, foto 5"),
-    photo("Foto 06", "Fernandito no Instagram, foto 6"),
-    photo("Foto 07", "Fernandito no Instagram, foto 7"),
+    photo(
+      "Foto 01",
+      "Jipe amarelo com barraca no teto, no campo ao pôr do sol",
+      "/images/placeholder/troller.webp",
+    ),
+    photo("Foto 02", "Campo de coxilhas com a serra ao fundo", "/images/placeholder/coxilhas.webp"),
+    photo(
+      "Foto 03",
+      "Morros pontudos cobertos de mata, sob céu fechado",
+      "/images/placeholder/morros.webp",
+    ),
+    photo(
+      "Foto 04",
+      "Vaca de cara branca vindo pelo campo dourado",
+      "/images/placeholder/vaca-campo.webp",
+    ),
+    photo(
+      "Foto 05",
+      "Araucárias no alto de uma coxilha, no fim de tarde",
+      "/images/placeholder/araucarias.webp",
+    ),
+    photo(
+      "Foto 06",
+      "Cavalo deitado num banhado, com mata de araucárias ao fundo",
+      "/images/placeholder/cavalo-banhado.webp",
+    ),
+    photo(
+      "Foto 07",
+      "Touro vermelho de pelo crespo olhando pra câmera, no campo com neblina",
+      "/images/placeholder/touro.webp",
+    ),
   ],
 };
 
