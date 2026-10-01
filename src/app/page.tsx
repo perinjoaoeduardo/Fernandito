@@ -23,6 +23,10 @@ export default function Home() {
           text={PRELAUNCH.text}
           cta={PRELAUNCH.cta}
           instagram={PRELAUNCH.instagram}
+          // Duas linhas exatas: "O Fernandito" / "está chegando." — a largura
+          // em em (cabe a 2ª linha, não cabe "O Fernandito está") vale em
+          // qualquer tela, e a fonte acompanha a coluna pra 2ª linha caber.
+          titleClassName="max-w-[9.6em] text-[min(9vw,5rem)] md:text-[4vw] lg:text-[min(3.8vw,4.5rem)]"
         />
         <FooterSection />
       </main>

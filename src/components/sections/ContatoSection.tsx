@@ -19,6 +19,8 @@ type ContatoSectionProps = {
   title?: string;
   text?: string;
   cta?: string;
+  /** Classes do título no lugar das padrão (tamanho/largura). */
+  titleClassName?: string;
   /** Texto de um link pro Instagram ao lado do WhatsApp (pré-lançamento). */
   instagram?: string;
 };
@@ -28,6 +30,7 @@ export function ContatoSection({
   text = CONTATO.text,
   cta = CONTATO.cta,
   instagram,
+  titleClassName = "max-w-[13ch] text-[clamp(2.5rem,5vw,5rem)]",
 }: ContatoSectionProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
@@ -100,7 +103,7 @@ export function ContatoSection({
             triggerSelector="#contato"
             start="top 90%"
             end="top 30%"
-            className="font-rampart max-w-[13ch] text-[clamp(2.5rem,5vw,5rem)] leading-[1] tracking-[0.01em]"
+            className={`font-rampart leading-[1] tracking-[0.01em] ${titleClassName}`}
           />
           <TypewriterText
             as="p"

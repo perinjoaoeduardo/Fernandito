@@ -46,7 +46,7 @@ export const LINKS = {
 export const PRELAUNCH = {
   enabled: true,
   title: "O Fernandito está chegando.",
-  text: "Ainda estamos preparando tudo por aqui — mas você já pode falar com a gente.",
+  text: "Nós estamos arrumando tudo por aqui, mas tu já pode falar com a gente.",
   cta: "Chamar no WhatsApp",
   instagram: "Ver Instagram",
 };
