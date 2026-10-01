@@ -89,8 +89,9 @@ export function HeroSlideshow() {
           </div>
         ) : null,
       )}
-      {/* Véu: mantém o cartão "verde-escuro" e o logo legível. */}
-      <div className="bg-fernandito-verde-escuro/55 absolute inset-0" />
+      {/* Véu: mantém o cartão "verde-escuro" e o logo legível (80%: a 55% o
+          rótulo claro da foto brigava com o logo). */}
+      <div className="bg-fernandito-verde-escuro/80 absolute inset-0" />
     </div>
   );
 }
