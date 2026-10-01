@@ -6,7 +6,7 @@ import { TypewriterText } from "@/components/ui/TypewriterText";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 import { InstagramIcon } from "@/components/ui/icons";
-import { FOOTER, LINKS, NAV } from "@/content/site";
+import { FOOTER, LINKS, NAV, PRELAUNCH } from "@/content/site";
 
 // Ritmo da frase de fechamento, que se escreve sozinha quando o rodapé
 // aparece (não acompanha a rolagem): devagar, como máquina de escrever.
@@ -85,21 +85,28 @@ export function FooterSection() {
         </Parallax>
 
         {/* Navegação em colunas — estilo compacto (Company/Socials da Lassie) */}
-        <Parallax speed={-16} touch={false} className="grid grid-cols-2 gap-10 sm:gap-16">
-          <div>
-            <h3 className="text-label mb-4 font-sans tracking-[0.08em] uppercase opacity-80">
-              {FOOTER.navTitle}
-            </h3>
-            <ul className="flex flex-col gap-3">
-              {NAV_LINKS.map((link) => (
-                <li key={link.label}>
-                  <Link href={link.href} variant="underline-grow" className={FOOTER_LINK_CLASSES}>
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+        <Parallax
+          speed={-16}
+          touch={false}
+          className={`grid gap-10 sm:gap-16 ${PRELAUNCH.enabled ? "grid-cols-1" : "grid-cols-2"}`}
+        >
+          {/* No pré-lançamento as seções não existem: some o "Navegar". */}
+          {!PRELAUNCH.enabled && (
+            <div>
+              <h3 className="text-label mb-4 font-sans tracking-[0.08em] uppercase opacity-80">
+                {FOOTER.navTitle}
+              </h3>
+              <ul className="flex flex-col gap-3">
+                {NAV_LINKS.map((link) => (
+                  <li key={link.label}>
+                    <Link href={link.href} variant="underline-grow" className={FOOTER_LINK_CLASSES}>
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div>
             <h3 className="text-label mb-4 font-sans tracking-[0.08em] uppercase opacity-80">

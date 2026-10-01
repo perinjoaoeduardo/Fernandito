@@ -13,7 +13,18 @@ import { CONTATO } from "@/content/site";
  * + botão), imagem à direita com parallax no scroll. No celular a imagem
  * vai pra baixo do texto, com o mesmo parallax.
  */
-export function ContatoSection() {
+type ContatoSectionProps = {
+  /** Textos no lugar dos de `CONTATO` (usado no pré-lançamento). */
+  title?: string;
+  text?: string;
+  cta?: string;
+};
+
+export function ContatoSection({
+  title = CONTATO.title,
+  text = CONTATO.text,
+  cta = CONTATO.cta,
+}: ContatoSectionProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
@@ -81,7 +92,7 @@ export function ContatoSection() {
         {/* Parallax na coluna de texto só no computador. */}
         <Parallax speed={40} touch={false}>
           <TypewriterText
-            text={CONTATO.title}
+            text={title}
             triggerSelector="#contato"
             start="top 90%"
             end="top 30%"
@@ -89,7 +100,7 @@ export function ContatoSection() {
           />
           <TypewriterText
             as="p"
-            text={CONTATO.text}
+            text={text}
             caret={false}
             triggerSelector="#contato"
             start="top 30%"
@@ -97,7 +108,7 @@ export function ContatoSection() {
             className="text-body-lg mt-8 max-w-md font-sans"
           />
           <div ref={ctaRef} className="mt-10">
-            <WhatsAppButton background="verde-escuro">{CONTATO.cta}</WhatsAppButton>
+            <WhatsAppButton background="verde-escuro">{cta}</WhatsAppButton>
           </div>
         </Parallax>
       </div>

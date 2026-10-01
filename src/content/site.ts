@@ -40,6 +40,16 @@ export const LINKS = {
   whatsappMessage: "Oi! Quero conhecer mais sobre o Fernandito.",
 };
 
+/** Modo pré-lançamento: o site mostra só a Hero, um bloco "estamos chegando"
+ * com o WhatsApp e o rodapé — sem as seções que ainda não têm conteúdo.
+ * Pra lançar o site completo: `enabled: false` (nada mais muda). */
+export const PRELAUNCH = {
+  enabled: true,
+  title: "O Fernandito está chegando.",
+  text: "Ainda estamos preparando tudo por aqui — mas você já pode falar com a gente.",
+  cta: "Chamar no WhatsApp",
+};
+
 /** Faixa fixa no topo do pré-lançamento ("Estamos chegando"). Pra tirar do
  * site: `enabled: false` — some a faixa e o menu volta pro lugar sozinho. */
 export const ANNOUNCEMENT = {

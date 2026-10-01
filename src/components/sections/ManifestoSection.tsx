@@ -59,8 +59,7 @@ export function ManifestoSection() {
         trigger: finale,
         start: "top 65%",
         once: true,
-        onEnter: () =>
-          gsap.to(finale, { opacity: 1, scale: 1, duration: 0.9, ease: "power3.out" }),
+        onEnter: () => gsap.to(finale, { opacity: 1, scale: 1, duration: 0.9, ease: "power3.out" }),
       }),
     );
 
@@ -97,7 +96,7 @@ export function ManifestoSection() {
               ref={(el) => {
                 lineRefs.current[i] = el;
               }}
-              className="text-display-md text-center font-rampart leading-[1.1] [will-change:transform,opacity]"
+              className="text-display-md font-rampart text-center leading-[1.1] [will-change:transform,opacity]"
             >
               {line.text}
             </p>

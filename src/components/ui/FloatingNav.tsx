@@ -10,12 +10,15 @@ import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 import { Gallop } from "@/components/ui/Gallop";
 import { InstagramIcon } from "@/components/ui/icons";
-import { LINKS as SITE_LINKS, NAV } from "@/content/site";
+import { LINKS as SITE_LINKS, NAV, PRELAUNCH } from "@/content/site";
 
 // Site de página única: a nav é navegação por âncora pros "andares" da
 // página. O contato não entra como link na pill — o botão de WhatsApp ao
 // lado já é esse atalho (no menu mobile ele aparece).
-const LINKS = NAV.links;
+// No pré-lançamento as seções não existem: o menu fica só com o WhatsApp
+// e o Instagram.
+const LINKS = PRELAUNCH.enabled ? [] : NAV.links;
+const MENU_LINKS = PRELAUNCH.enabled ? [] : [...NAV.links, NAV.contactLink];
 
 // Ponto de amostragem fixo (canto esquerdo, fora da pill que fica centrada)
 // — assim a amostra sempre pega o fundo da SEÇÃO por trás do nav, nunca o
@@ -190,7 +193,11 @@ export function FloatingNav() {
         <motion.div
           animate={pillAnimation}
           transition={pillTransition}
-          className="hidden items-center gap-1 rounded-full py-1.5 pr-1.5 pl-3 md:flex lg:py-2 lg:pr-2 lg:pl-4 pointer-fine:backdrop-blur-md"
+          className={clsx(
+            "hidden items-center gap-1 rounded-full py-1.5 pr-1.5 md:flex lg:py-2 lg:pr-2 pointer-fine:backdrop-blur-md",
+            // Sem links (pré-lançamento) a pill abraça só o WhatsApp.
+            LINKS.length ? "pl-3 lg:pl-4" : "pl-1.5 lg:pl-2",
+          )}
         >
           {LINKS.map((link) => (
             <Link
@@ -249,18 +256,20 @@ export function FloatingNav() {
             {/* Fechar é o próprio pill "Menu" (vira "Fechar", fica por cima
                 do overlay) + Esc — sem um × separado competindo com ele. */}
             {/* Títulos grandes na Rampart (fonte de título do site). */}
-            <nav aria-label="Menu" className="flex flex-col items-center gap-7">
-              {[...LINKS, NAV.contactLink].map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  onClick={() => setMenuOpen(false)}
-                  className="text-fernandito-off-white text-display-md !outline-fernandito-off-white font-rampart tracking-[0.02em] whitespace-nowrap"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
+            {MENU_LINKS.length > 0 && (
+              <nav aria-label="Menu" className="flex flex-col items-center gap-7">
+                {MENU_LINKS.map((link) => (
+                  <Link
+                    key={link.label}
+                    href={link.href}
+                    onClick={() => setMenuOpen(false)}
+                    className="text-fernandito-off-white text-display-md !outline-fernandito-off-white font-rampart tracking-[0.02em] whitespace-nowrap"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </nav>
+            )}
 
             {/* Fundo padrão (verde-medio) aqui — o overlay já é verde-escuro,
                 então o CTA "verde-escuro" do pill ficaria invisível contra ele. */}

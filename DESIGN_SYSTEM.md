@@ -303,6 +303,23 @@ no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
   monta — é adorno de motion, não conteúdo. Global, montado 1x no
   `layout.tsx`.
 
+### Modo pré-lançamento (`PRELAUNCH` em `src/content/site.ts`)
+
+Liga/desliga do site "ainda não lançado". Com `enabled: true` a página
+(`src/app/page.tsx`) monta só: Hero → bloco "estamos chegando" (é a
+`ContatoSection` com `title`/`text`/`cta` do `PRELAUNCH`, mesma foto e
+botão de WhatsApp) → rodapé. Junto:
+
+- Hero: a moldura fica verde-medio (cor da seção seguinte) e o "scroll"
+  leva pro `#contato`.
+- Menu: sem os links das seções (só cavalo, WhatsApp e Instagram; no
+  celular o menu aberto mostra só WhatsApp e Instagram).
+- Rodapé: some a coluna "Navegar".
+
+Pra lançar o site completo: `PRELAUNCH.enabled = false` — volta tudo como
+era, nada mais precisa mudar. A faixa "Estamos chegando" é outra chave
+(`ANNOUNCEMENT`).
+
 ### Desempenho no celular (toque)
 
 - `.grain-overlay` some no toque (`@media (pointer: coarse)` no
