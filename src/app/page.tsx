@@ -18,7 +18,12 @@ export default function Home() {
     return (
       <main>
         <HeroSection />
-        <ContatoSection title={PRELAUNCH.title} text={PRELAUNCH.text} cta={PRELAUNCH.cta} />
+        <ContatoSection
+          title={PRELAUNCH.title}
+          text={PRELAUNCH.text}
+          cta={PRELAUNCH.cta}
+          instagram={PRELAUNCH.instagram}
+        />
         <FooterSection />
       </main>
     );

@@ -48,6 +48,7 @@ export const PRELAUNCH = {
   title: "O Fernandito está chegando.",
   text: "Ainda estamos preparando tudo por aqui — mas você já pode falar com a gente.",
   cta: "Chamar no WhatsApp",
+  instagram: "Siga a gente no Instagram",
 };
 
 /** Faixa fixa no topo do pré-lançamento ("Estamos chegando"). Pra tirar do

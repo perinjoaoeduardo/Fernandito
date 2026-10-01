@@ -6,7 +6,8 @@ import { Parallax } from "@/components/ui/Parallax";
 import { TypewriterText } from "@/components/ui/TypewriterText";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
-import { CONTATO } from "@/content/site";
+import { InstagramIcon } from "@/components/ui/icons";
+import { CONTATO, LINKS } from "@/content/site";
 
 /**
  * CTA de contato, tela dividida: texto à esquerda (título escrito à máquina
@@ -18,12 +19,15 @@ type ContatoSectionProps = {
   title?: string;
   text?: string;
   cta?: string;
+  /** Texto de um link pro Instagram ao lado do WhatsApp (pré-lançamento). */
+  instagram?: string;
 };
 
 export function ContatoSection({
   title = CONTATO.title,
   text = CONTATO.text,
   cta = CONTATO.cta,
+  instagram,
 }: ContatoSectionProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
@@ -107,8 +111,30 @@ export function ContatoSection({
             end="top 5%"
             className="text-body-lg mt-8 max-w-md font-sans"
           />
-          <div ref={ctaRef} className="mt-10">
+          <div
+            ref={ctaRef}
+            className="mt-10 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-7"
+          >
             <WhatsAppButton background="verde-escuro">{cta}</WhatsAppButton>
+            {/* Instagram: secundário, só texto com ícone e sublinhado no
+                hover — o WhatsApp continua sendo o botão sólido. */}
+            {instagram && (
+              <a
+                href={LINKS.instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`${instagram} ${LINKS.instagramHandle} — abre em nova aba`}
+                className="group text-fernandito-off-white text-body focus-visible:outline-fernandito-off-white inline-flex items-center gap-2 rounded-sm font-sans focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
+              >
+                <InstagramIcon />
+                <span className="flex flex-col leading-tight">
+                  <span className="duration-base ease-out-standard underline decoration-transparent underline-offset-4 transition-colors group-hover:decoration-current">
+                    {instagram}
+                  </span>
+                  <span className="text-label opacity-70">{LINKS.instagramHandle}</span>
+                </span>
+              </a>
+            )}
           </div>
         </Parallax>
       </div>
