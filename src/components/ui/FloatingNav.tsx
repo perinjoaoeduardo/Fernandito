@@ -4,12 +4,13 @@ import { clsx } from "clsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { backgroundAt } from "@/lib/background";
-import { DURATION, EASE_BEZIER, prefersReducedMotion } from "@/lib/gsap";
+import { DURATION, EASE_BEZIER, IS_TOUCH, prefersReducedMotion } from "@/lib/gsap";
 import { teleportToTop } from "@/lib/lenis";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 import { Gallop } from "@/components/ui/Gallop";
-import { NAV } from "@/content/site";
+import { InstagramIcon } from "@/components/ui/icons";
+import { LINKS as SITE_LINKS, NAV } from "@/content/site";
 
 // Site de página única: a nav é navegação por âncora pros "andares" da
 // página. O contato não entra como link na pill — o botão de WhatsApp ao
@@ -108,14 +109,18 @@ export function FloatingNav() {
   // padrão) sobre fundo escuro/verde, escura (verde-escuro) sobre fundo
   // claro/off-white. Fora do topo ela fica mais opaca, pra ler por cima
   // de qualquer conteúdo.
+  // No toque a pill não tem desfoque (backdrop-blur por cima das fotos da
+  // Hero se mexendo pesava no celular), então no topo ela fica mais opaca
+  // pra continuar legível.
+  const restAlpha = IS_TOUCH ? 0.88 : 0.7;
   const pillAnimation = {
     backgroundColor: overLight
       ? scrolled
         ? "rgba(36, 48, 34, 0.95)"
-        : "rgba(36, 48, 34, 0.7)"
+        : `rgba(36, 48, 34, ${restAlpha})`
       : scrolled
         ? "rgba(230, 230, 203, 0.95)"
-        : "rgba(230, 230, 203, 0.7)",
+        : `rgba(230, 230, 203, ${restAlpha})`,
   };
   const pillTransition = { duration: DURATION.base, ease: EASE_BEZIER.outStandard };
 
@@ -144,7 +149,7 @@ export function FloatingNav() {
           transition={pillTransition}
           onClick={handleHorseClick}
           aria-label="Voltar ao topo"
-          className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 w-11 shrink-0 items-center justify-center rounded-full backdrop-blur-md transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 pointer-fine:backdrop-blur-md"
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- raster estático de tamanho fixo, next/image não traz benefício */}
           <img
@@ -167,7 +172,7 @@ export function FloatingNav() {
           aria-expanded={menuOpen}
           aria-controls="menu-mobile"
           className={clsx(
-            "text-label duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 items-center gap-2 rounded-full px-5 font-sans tracking-[0.12em] whitespace-nowrap uppercase backdrop-blur-md transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 md:hidden",
+            "text-label duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 items-center gap-2 rounded-full px-5 font-sans tracking-[0.12em] whitespace-nowrap uppercase transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 md:hidden pointer-fine:backdrop-blur-md",
             overLight ? "text-fernandito-off-white" : "text-fernandito-verde-escuro",
           )}
         >
@@ -185,7 +190,7 @@ export function FloatingNav() {
         <motion.div
           animate={pillAnimation}
           transition={pillTransition}
-          className="hidden items-center gap-1 rounded-full py-1.5 pr-1.5 pl-3 backdrop-blur-md md:flex lg:py-2 lg:pr-2 lg:pl-4"
+          className="hidden items-center gap-1 rounded-full py-1.5 pr-1.5 pl-3 md:flex lg:py-2 lg:pr-2 lg:pl-4 pointer-fine:backdrop-blur-md"
         >
           {LINKS.map((link) => (
             <Link
@@ -209,6 +214,25 @@ export function FloatingNav() {
             {NAV.whatsappLabel}
           </WhatsAppButton>
         </motion.div>
+
+        {/* Pill 3 (md+) — atalho pro Instagram: só o ícone, num círculo do
+            mesmo tamanho do cavalo. Fica à mão o tempo todo, mas mais
+            discreto que o WhatsApp (sem fundo próprio nem texto). */}
+        <motion.a
+          href={SITE_LINKS.instagramUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          animate={pillAnimation}
+          transition={pillTransition}
+          aria-label={`Instagram ${SITE_LINKS.instagramHandle} — abre em nova aba`}
+          title={SITE_LINKS.instagramHandle}
+          className={clsx(
+            "duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio hidden h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 md:flex pointer-fine:backdrop-blur-md",
+            overLight ? "text-fernandito-off-white" : "text-fernandito-verde-escuro",
+          )}
+        >
+          <InstagramIcon className="h-[18px] w-[18px]" />
+        </motion.a>
       </motion.div>
 
       {/* Overlay fullscreen (mobile) */}
@@ -240,7 +264,22 @@ export function FloatingNav() {
 
             {/* Fundo padrão (verde-medio) aqui — o overlay já é verde-escuro,
                 então o CTA "verde-escuro" do pill ficaria invisível contra ele. */}
-            <WhatsAppButton>{NAV.whatsappLabel}</WhatsAppButton>
+            <div className="flex flex-col items-center gap-4">
+              <WhatsAppButton>{NAV.whatsappLabel}</WhatsAppButton>
+              {/* Instagram: o lugar onde mais coisa acontece — no menu do
+                  celular ganha um botão próprio, contornado (o WhatsApp
+                  segue sendo o sólido). */}
+              <a
+                href={SITE_LINKS.instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`${SITE_LINKS.instagramHandle} — seguir no Instagram, abre em nova aba`}
+                className="border-fernandito-off-white/40 text-fernandito-off-white text-body active:bg-fernandito-off-white/10 focus-visible:outline-fernandito-off-white inline-flex items-center gap-2 rounded-full border px-6 py-3 font-sans transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                <InstagramIcon />
+                {SITE_LINKS.instagramHandle}
+              </a>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

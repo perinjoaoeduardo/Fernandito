@@ -2,7 +2,7 @@
 
 import { clsx } from "clsx";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { prefersReducedMotion } from "@/lib/gsap";
 import { onIntroComplete } from "@/lib/introSignal";
 import { HERO } from "@/content/site";
@@ -23,20 +23,36 @@ const ZOOM_MS = 7000;
 export function HeroSlideshow() {
   const photos = HERO.photos;
   const [active, setActive] = useState(0);
+  // A que está saindo (ainda no fade). As outras ficam `invisible`: fora da
+  // composição, sem custo de GPU — no celular as 4 fotos de tela cheia
+  // empilhadas e prontas pra animar pesavam.
+  const [previous, setPrevious] = useState<number | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   // Só começa a contar quando a intro sai da frente — senão a 1ª foto
   // passava escondida atrás da cortina.
   useEffect(() => {
     if (photos.length < 2 || prefersReducedMotion()) return;
     let id: number | undefined;
+    // Só troca com a Hero na tela: rolando o resto da página, a troca (e o
+    // zoom de 7s) parava de gastar quadro à toa.
+    let inView = true;
+    const observer = new IntersectionObserver(([entry]) => {
+      inView = entry.isIntersecting;
+    });
+    if (rootRef.current) observer.observe(rootRef.current);
     const unsubscribe = onIntroComplete(() => {
-      id = window.setInterval(
-        () => setActive((current) => (current + 1) % photos.length),
-        INTERVAL_MS,
-      );
+      id = window.setInterval(() => {
+        if (!inView || document.hidden) return;
+        setActive((current) => {
+          setPrevious(current);
+          return (current + 1) % photos.length;
+        });
+      }, INTERVAL_MS);
     });
     return () => {
       unsubscribe();
+      observer.disconnect();
       window.clearInterval(id);
     };
   }, [photos.length]);
@@ -44,14 +60,17 @@ export function HeroSlideshow() {
   if (photos.length === 0) return null;
 
   return (
-    <div aria-hidden="true" className="absolute inset-0">
+    <div ref={rootRef} aria-hidden="true" className="absolute inset-0">
       {photos.map((photo, i) =>
         photo.src ? (
           <div
             key={photo.src}
             className={clsx(
-              "absolute inset-0 ease-out [will-change:opacity,transform]",
-              i === active ? "scale-100 opacity-100" : "scale-[1.06] opacity-0",
+              "absolute inset-0 ease-out",
+              i === active
+                ? "scale-100 opacity-100 [will-change:opacity,transform]"
+                : "scale-[1.06] opacity-0",
+              i !== active && i !== previous && "invisible",
             )}
             style={{
               transitionProperty: "opacity, transform",

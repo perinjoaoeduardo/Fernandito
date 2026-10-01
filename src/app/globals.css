@@ -55,6 +55,15 @@ body {
   animation: grain-shift 6s steps(6) infinite;
 }
 
+/* No toque (celular/tablet) a textura sai: ela anima sem parar (6 passos
+   em loop) e usa mix-blend-overlay — cada quadro recompunha as fotos por
+   baixo, e o celular perdia FPS rolando. A 6% de opacidade, quase não se vê. */
+@media (pointer: coarse) {
+  .grain-overlay {
+    display: none;
+  }
+}
+
 @keyframes grain-shift {
   0% {
     background-position: 0 0;

@@ -303,6 +303,30 @@ no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
   monta — é adorno de motion, não conteúdo. Global, montado 1x no
   `layout.tsx`.
 
+### Desempenho no celular (toque)
+
+- `.grain-overlay` some no toque (`@media (pointer: coarse)` no
+  `globals.css`): animava sem parar com `mix-blend-overlay` e recompunha as
+  fotos por baixo a cada quadro.
+- Pills da `FloatingNav`: `backdrop-blur` só com mouse
+  (`pointer-fine:backdrop-blur-md`); no toque a pill fica mais opaca no
+  topo (0.88 em vez de 0.7) pra continuar legível sem o desfoque.
+- `HeroSlideshow`: só a foto ativa (e a que está saindo) fica na
+  composição — as outras ficam `invisible`, sem `will-change`; a troca
+  pausa com a Hero fora da tela ou a aba escondida.
+- Medido (build de produção, celular emulado, CPU 4× mais lenta): parado
+  na Hero, pior quadro 33 → 17ms; rolando a página, ~51 → ~54 fps e 18 →
+  6–11 quadros lentos. O ganho de GPU (blur/blend) não aparece nesse
+  emulador e deve ser maior no aparelho.
+
+### Instagram no menu
+
+- Computador/tablet (md+): círculo só com o ícone, à direita da pill de
+  links, mesmo tamanho e cor do cavalo — sempre à mão, menos chamativo que
+  o WhatsApp (sem fundo próprio nem texto).
+- Menu do celular: botão contornado "@toma.fernandito" logo abaixo do
+  WhatsApp (que segue sendo o sólido).
+
 ### Fotos de pré-lançamento (placeholder)
 
 Enquanto não tem foto do produto, o site usa fotos de campo/produção como
