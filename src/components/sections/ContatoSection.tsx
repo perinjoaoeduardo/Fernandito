@@ -111,28 +111,21 @@ export function ContatoSection({
             end="top 5%"
             className="text-body-lg mt-8 max-w-md font-sans"
           />
-          <div
-            ref={ctaRef}
-            className="mt-10 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-7"
-          >
+          {/* Empilhados e com a mesma largura: WhatsApp (verde-escuro) e,
+              embaixo, o Instagram num botão claro — cor diferente pra não
+              confundir os dois. */}
+          <div ref={ctaRef} className="mt-10 inline-flex flex-col items-stretch gap-3">
             <WhatsAppButton background="verde-escuro">{cta}</WhatsAppButton>
-            {/* Instagram: secundário, só texto com ícone e sublinhado no
-                hover — o WhatsApp continua sendo o botão sólido. */}
             {instagram && (
               <a
                 href={LINKS.instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`${instagram} ${LINKS.instagramHandle} — abre em nova aba`}
-                className="group text-fernandito-off-white text-body focus-visible:outline-fernandito-off-white inline-flex items-center gap-2 rounded-sm font-sans focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
+                className="bg-fernandito-off-white text-fernandito-verde-escuro text-body duration-base ease-out-standard hover:bg-fernandito-verde-claro hover:text-fernandito-off-white focus-visible:outline-fernandito-off-white inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-sans font-medium tracking-[0.01em] transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 active:scale-[0.96]"
               >
                 <InstagramIcon />
-                <span className="flex flex-col leading-tight">
-                  <span className="duration-base ease-out-standard underline decoration-transparent underline-offset-4 transition-colors group-hover:decoration-current">
-                    {instagram}
-                  </span>
-                  <span className="text-label opacity-70">{LINKS.instagramHandle}</span>
-                </span>
+                {instagram}
               </a>
             )}
           </div>

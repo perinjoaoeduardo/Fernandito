@@ -308,8 +308,8 @@ no mínimo `duration-fast`. Estados sem transition são bug, não escolha.
 Liga/desliga do site "ainda não lançado". Com `enabled: true` a página
 (`src/app/page.tsx`) monta só: Hero → bloco "estamos chegando" (é a
 `ContatoSection` com `title`/`text`/`cta` do `PRELAUNCH`, mesma foto e
-botão de WhatsApp, mais o link secundário "Siga a gente no Instagram"
-— prop `instagram` — ao lado do botão, embaixo dele no celular) → rodapé. Junto:
+botão de WhatsApp, mais, embaixo dele e com a mesma largura, o botão "Ver Instagram" em
+off-white com o ícone — prop `instagram`) → rodapé. Junto:
 
 - Hero: a moldura fica verde-medio (cor da seção seguinte) e o "scroll"
   leva pro `#contato`.
