@@ -90,8 +90,13 @@ export function HeroSlideshow() {
         ) : null,
       )}
       {/* Véu: mantém o cartão "verde-escuro" e o logo legível (80%: a 55% o
-          rótulo claro da foto brigava com o logo). */}
-      <div className="bg-fernandito-verde-escuro/80 absolute inset-0" />
+          rótulo claro da foto brigava com o logo). Com a rolagem ele clareia
+          até 50% enquanto o cartão fecha na moldura — a HeroSection anima a
+          opacidade dele pelo `data-hero-veil`. */}
+      <div
+        data-hero-veil
+        className="bg-fernandito-verde-escuro absolute inset-0 opacity-80 [will-change:opacity]"
+      />
     </div>
   );
 }

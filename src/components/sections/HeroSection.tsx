@@ -27,6 +27,10 @@ const DESKTOP_SHRINK_SCALE = 0.86;
 // Parallax BEM sutil do logo e da frase dentro do cartão: sobem só isso (px)
 // enquanto o cartão fecha na moldura. Menos no toque.
 const CONTENT_DRIFT = IS_TOUCH ? 22 : 36;
+// Véu escuro por cima das fotos: começa forte (logo legível) e clareia
+// enquanto o cartão fecha, revelando a foto.
+const VEIL_FROM = 0.8;
+const VEIL_TO = 0.5;
 
 export function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -123,6 +127,7 @@ export function HeroSection() {
     // vez e sem pausa entre os dois. (Já foi: preso 60vh com o fechamento
     // seguindo depois de soltar — travava no meio; e sem trecho preso,
     // fechando enquanto subia — os dois ao mesmo tempo.)
+    const veil = box.querySelector<HTMLElement>("[data-hero-veil]");
     let shrinkTrigger: ScrollTrigger | null = null;
     let desktopTl: gsap.core.Timeline | null = null;
     if (!reduceMotion && IS_TOUCH) {
@@ -135,6 +140,7 @@ export function HeroSection() {
           const scale = 1 - boxProgress * (1 - SHRINK_SCALE);
           gsap.set(box, { scale, borderRadius: boxProgress * SHRINK_RADIUS });
           gsap.set(content, { y: -self.progress * CONTENT_DRIFT });
+          if (veil) gsap.set(veil, { opacity: VEIL_FROM - boxProgress * (VEIL_FROM - VEIL_TO) });
           // No wrapper, não no botão: a entrada anima a opacidade do botão.
           gsap.set(indicatorFade, { autoAlpha: 1 - Math.min(1, self.progress / 0.15) });
         },
@@ -153,6 +159,9 @@ export function HeroSection() {
         )
         .fromTo(content, { y: 0 }, { y: -CONTENT_DRIFT, duration: 1 }, 0)
         .fromTo(indicatorFade, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.2 }, 0);
+      if (veil) {
+        desktopTl.fromTo(veil, { opacity: VEIL_FROM }, { opacity: VEIL_TO, duration: 1 }, 0);
+      }
     }
 
     return () => {

@@ -367,7 +367,7 @@ esticava.
 **Hero com fotos trocando** (`HeroSlideshow.tsx`): fundo do cartão com as
 fotos de `HERO.photos` em fade cruzado (1,4s) a cada 5,5s, cada uma com
 zoom lento de 1.06 → 1 (7s) enquanto está na tela, por baixo de um véu
-`verde-escuro/80` que mantém o cartão verde e o logo legível. Só começa a
+`verde-escuro` a 80% que clareia até 50% com a rolagem, enquanto o cartão fecha (`data-hero-veil`, animado pela HeroSection) que mantém o cartão verde e o logo legível. Só começa a
 trocar depois da intro (`onIntroComplete`); com reduced motion fica a 1ª.
 A 1ª foto é `priority` (vira o LCP da página).
 
