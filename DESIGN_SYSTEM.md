@@ -316,7 +316,7 @@ off-white com o ícone — prop `instagram`) → rodapé. Junto:
 - Menu: sem os links das seções (só cavalo, WhatsApp e Instagram; no
   celular o menu aberto mostra só WhatsApp e Instagram).
 - Rodapé: some a coluna "Navegar", e a "Social" fica logo ao lado da frase
-  (não no canto direito).
+  (nem colada nem no canto: espaço de 12vw, 20vw do lg pra cima).
 - Foto do bloco (`joinHero`): sobe até encostar no cartão fechado da Hero
   (`md:-mt-[5vh]`, `-mt-[7vh]` com mouse — a sobra da moldura) e aparece
   sem fade, pra não ficar um vão verde entre as duas fotos.

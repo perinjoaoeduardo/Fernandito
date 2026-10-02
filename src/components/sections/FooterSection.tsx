@@ -52,7 +52,7 @@ export function FooterSection() {
       <div
         className={`grid w-full gap-12 md:items-start ${
           PRELAUNCH.enabled
-            ? "md:grid-cols-[auto_auto] md:justify-start md:gap-20 lg:gap-28"
+            ? "md:grid-cols-[auto_auto] md:justify-start md:gap-[12vw] lg:gap-[20vw]"
             : "md:grid-cols-[minmax(0,34rem)_auto] md:justify-between md:gap-16 lg:grid-cols-[minmax(0,1fr)_auto]"
         }`}
       >
