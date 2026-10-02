@@ -47,7 +47,15 @@ export function FooterSection() {
           não deixa passar," cabe numa linha: a frase mede ~17em na Rampart,
           então o tamanho é (100vw − 36rem de padding+links) / 17, com teto
           de 2.75rem. */}
-      <div className="grid w-full gap-12 md:grid-cols-[minmax(0,34rem)_auto] md:items-start md:justify-between md:gap-16 lg:grid-cols-[minmax(0,1fr)_auto]">
+      {/* No pré-lançamento só sobra a coluna "Social": ela fica logo ao lado
+          da frase, em vez de lá no canto direito da tela. */}
+      <div
+        className={`grid w-full gap-12 md:items-start ${
+          PRELAUNCH.enabled
+            ? "md:grid-cols-[auto_auto] md:justify-start md:gap-20 lg:gap-28"
+            : "md:grid-cols-[minmax(0,34rem)_auto] md:justify-between md:gap-16 lg:grid-cols-[minmax(0,1fr)_auto]"
+        }`}
+      >
         {/* Frase de fechamento + CTA — escrita à máquina como o resto do
             site. Rampart é só caixa-alta: o contraste entre as linhas vem
             da cor (off-white → verde-claro), não de itálico/peso. */}

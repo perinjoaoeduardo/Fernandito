@@ -23,6 +23,7 @@ export default function Home() {
           text={PRELAUNCH.text}
           cta={PRELAUNCH.cta}
           instagram={PRELAUNCH.instagram}
+          joinHero
           // Duas linhas exatas: "O Fernandito" / "está chegando." — a largura
           // em em (cabe a 2ª linha, não cabe "O Fernandito está") vale em
           // qualquer tela, e a fonte acompanha a coluna pra 2ª linha caber.

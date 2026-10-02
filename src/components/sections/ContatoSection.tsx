@@ -1,5 +1,6 @@
 "use client";
 
+import { clsx } from "clsx";
 import { useEffect, useRef } from "react";
 import { gsap, EASE, SCRUB, prefersReducedMotion } from "@/lib/gsap";
 import { Parallax } from "@/components/ui/Parallax";
@@ -21,6 +22,10 @@ type ContatoSectionProps = {
   cta?: string;
   /** Classes do título no lugar das padrão (tamanho/largura). */
   titleClassName?: string;
+  /** Pré-lançamento (logo abaixo da Hero): a foto sobe até encostar no
+   * cartão da Hero e já aparece inteira, sem o fade — senão sobrava um vão
+   * verde entre as duas fotos. */
+  joinHero?: boolean;
   /** Texto de um link pro Instagram ao lado do WhatsApp (pré-lançamento). */
   instagram?: string;
 };
@@ -30,6 +35,7 @@ export function ContatoSection({
   text = CONTATO.text,
   cta = CONTATO.cta,
   instagram,
+  joinHero = false,
   titleClassName = "max-w-[13ch] text-[clamp(2.5rem,5vw,5rem)]",
 }: ContatoSectionProps) {
   const sectionRef = useRef<HTMLElement>(null);
@@ -62,15 +68,17 @@ export function ContatoSection({
       // Entrada suave da imagem: só um fade longo, somado ao parallax e ao
       // zoom leve que já existem por dentro. (Já foi uma cortina de
       // clip-path abrindo de baixo pra cima — agressiva demais.)
-      gsap.fromTo(
-        frame,
-        { opacity: 0 },
-        {
-          opacity: 1,
-          ease: "none",
-          scrollTrigger: { trigger: frame, start: "top 95%", end: "top 45%", scrub: SCRUB.base },
-        },
-      );
+      if (!joinHero) {
+        gsap.fromTo(
+          frame,
+          { opacity: 0 },
+          {
+            opacity: 1,
+            ease: "none",
+            scrollTrigger: { trigger: frame, start: "top 95%", end: "top 45%", scrub: SCRUB.base },
+          },
+        );
+      }
       // Imagem 120% da altura da moldura: desliza de cima pra baixo e
       // desfaz um leve zoom enquanto a seção atravessa a tela.
       gsap.fromTo(
@@ -86,7 +94,7 @@ export function ContatoSection({
     }, section);
 
     return () => ctx.revert();
-  }, []);
+  }, [joinHero]);
 
   return (
     <section
@@ -137,7 +145,15 @@ export function ContatoSection({
 
       {/* Metade da imagem (foto em `src/content/site.ts`), 120% da altura
           da moldura pra sobrar margem pro parallax. */}
-      <div ref={frameRef} className="relative aspect-[4/5] overflow-hidden md:aspect-auto">
+      <div
+        ref={frameRef}
+        className={clsx(
+          "relative aspect-[4/5] overflow-hidden md:aspect-auto",
+          // Sobe o tamanho da moldura da Hero que sobra embaixo do cartão
+          // fechado (escala 0.9 no toque, 0.86 com mouse → 5vh / 7vh).
+          joinHero && "md:-mt-[5vh] md:pointer-fine:-mt-[7vh]",
+        )}
+      >
         <div
           ref={imageRef}
           className="absolute inset-x-0 -top-[10%] h-[120%] [will-change:transform]"

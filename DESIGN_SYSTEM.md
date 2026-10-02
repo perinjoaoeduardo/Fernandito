@@ -315,7 +315,11 @@ off-white com o ícone — prop `instagram`) → rodapé. Junto:
   leva pro `#contato`.
 - Menu: sem os links das seções (só cavalo, WhatsApp e Instagram; no
   celular o menu aberto mostra só WhatsApp e Instagram).
-- Rodapé: some a coluna "Navegar".
+- Rodapé: some a coluna "Navegar", e a "Social" fica logo ao lado da frase
+  (não no canto direito).
+- Foto do bloco (`joinHero`): sobe até encostar no cartão fechado da Hero
+  (`md:-mt-[5vh]`, `-mt-[7vh]` com mouse — a sobra da moldura) e aparece
+  sem fade, pra não ficar um vão verde entre as duas fotos.
 
 Pra lançar o site completo: `PRELAUNCH.enabled = false` — volta tudo como
 era, nada mais precisa mudar. A faixa "Estamos chegando" é outra chave
