@@ -36,7 +36,7 @@ export function ContatoSection({
   cta = CONTATO.cta,
   instagram,
   joinHero = false,
-  titleClassName = "max-w-[13ch] text-[clamp(2.5rem,5vw,5rem)]",
+  titleClassName = "max-w-[13ch] text-[clamp(2.5rem,5vw,5rem)] leading-[1]",
 }: ContatoSectionProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
@@ -103,7 +103,14 @@ export function ContatoSection({
       aria-label="Contato"
       className="bg-fernandito-verde-medio text-fernandito-off-white grid w-full md:min-h-[110vh] md:grid-cols-2"
     >
-      <div className="flex flex-col items-start justify-center px-6 py-24 sm:px-10 md:py-32 lg:px-16">
+      <div
+        className={clsx(
+          "flex flex-col items-start justify-center px-6 sm:px-10 md:py-32 lg:px-16",
+          // Logo abaixo da Hero (pré-lançamento), no celular o bloco já começa
+          // depois da sobra da moldura — com o py-24 inteiro ficava um vão.
+          joinHero ? "pt-10 pb-20" : "py-24",
+        )}
+      >
         {/* Parallax na coluna de texto só no computador. */}
         <Parallax speed={40} touch={false}>
           <TypewriterText
@@ -111,7 +118,7 @@ export function ContatoSection({
             triggerSelector="#contato"
             start="top 90%"
             end="top 30%"
-            className={`font-rampart leading-[1] tracking-[0.01em] ${titleClassName}`}
+            className={`font-rampart tracking-[0.01em] ${titleClassName}`}
           />
           <TypewriterText
             as="p"

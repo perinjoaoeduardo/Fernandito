@@ -50,7 +50,7 @@ export function FooterSection() {
       {/* No pré-lançamento só sobra a coluna "Social": ela fica logo ao lado
           da frase, em vez de lá no canto direito da tela. */}
       <div
-        className={`grid w-full gap-12 md:items-start ${
+        className={`grid w-full gap-10 md:items-start ${
           PRELAUNCH.enabled
             ? "md:grid-cols-[auto_auto] md:justify-start md:gap-[12vw] lg:gap-[20vw]"
             : "md:grid-cols-[minmax(0,34rem)_auto] md:justify-between md:gap-16 lg:grid-cols-[minmax(0,1fr)_auto]"
@@ -71,7 +71,7 @@ export function FooterSection() {
             mode="play"
             start="top 75%"
             charsPerSecond={FOOTER_CPS}
-            className="font-rampart text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em] lg:text-[min(2.75rem,calc((100vw-36rem)/17))] lg:whitespace-nowrap"
+            className="font-rampart text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em] text-balance lg:text-[min(2.75rem,calc((100vw-36rem)/17))] lg:whitespace-nowrap"
           />
           <TypewriterText
             as="p"
@@ -84,10 +84,10 @@ export function FooterSection() {
             delay={FOOTER.line1.length / FOOTER_CPS + 0.3}
             className="font-rampart text-fernandito-verde-claro mt-1 text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em] lg:text-[min(2.75rem,calc((100vw-36rem)/17))]"
           />
-          <p className="text-body-lg font-accent mt-5 tracking-[0.04em] opacity-80">
+          <p className="text-body-lg font-accent mt-4 tracking-[0.04em] opacity-80">
             {FOOTER.tagline}
           </p>
-          <div className="mt-8">
+          <div className="mt-6 sm:mt-8">
             <WhatsAppButton>{NAV.whatsappLabel}</WhatsAppButton>
           </div>
         </Parallax>
@@ -101,7 +101,7 @@ export function FooterSection() {
           {/* No pré-lançamento as seções não existem: some o "Navegar". */}
           {!PRELAUNCH.enabled && (
             <div>
-              <h3 className="text-label mb-4 font-sans tracking-[0.08em] uppercase opacity-80">
+              <h3 className="text-label mb-3 font-sans tracking-[0.08em] uppercase opacity-80">
                 {FOOTER.navTitle}
               </h3>
               <ul className="flex flex-col gap-3">
@@ -117,7 +117,7 @@ export function FooterSection() {
           )}
 
           <div>
-            <h3 className="text-label mb-4 font-sans tracking-[0.08em] uppercase opacity-80">
+            <h3 className="text-label mb-3 font-sans tracking-[0.08em] uppercase opacity-80">
               {FOOTER.socialTitle}
             </h3>
             <ul className="flex flex-col gap-3">
@@ -144,7 +144,9 @@ export function FooterSection() {
           de voltar ao topo, igual ao rodapé enxuto da Lassie (sem o grain e
           sem o texto gigante de fundo: aqui embaixo entra um placeholder de
           imagem futuramente, por isso o fundo fica sólido). */}
-      <div className="relative mt-12 flex w-full flex-col items-center gap-6 border-t border-white/10 pt-6 text-center sm:flex-row sm:justify-between sm:text-left">
+      {/* No celular tudo alinhado à esquerda, como o resto do rodapé
+          (centralizado, a moeda ficava solta de um lado e o texto do outro). */}
+      <div className="relative mt-10 flex w-full flex-col items-start gap-6 border-t border-white/10 pt-6 text-left sm:mt-12 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático */}
           <img

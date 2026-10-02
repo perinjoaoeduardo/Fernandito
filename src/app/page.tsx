@@ -27,7 +27,8 @@ export default function Home() {
           // Duas linhas exatas: "O Fernandito" / "está chegando." — a largura
           // em em (cabe a 2ª linha, não cabe "O Fernandito está") vale em
           // qualquer tela, e a fonte acompanha a coluna pra 2ª linha caber.
-          titleClassName="max-w-[9.6em] text-[min(9vw,5rem)] md:text-[4vw] lg:text-[min(3.8vw,4.5rem)]"
+          // Entrelinha 1.15: o acento do "ESTÁ" encostava no "R" de cima.
+          titleClassName="max-w-[9.6em] text-[min(9vw,5rem)] leading-[1.15] md:text-[4vw] lg:text-[min(3.8vw,4.5rem)]"
         />
         <FooterSection />
       </main>
