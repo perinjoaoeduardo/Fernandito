@@ -25,6 +25,15 @@ Copie `.env.example` para `.env.local` e preencha o que for necessário. Veja
   dígitos (ex: `555193383764`). Na Vercel: projeto → **Settings →
   Environment Variables**, e um redeploy depois.
 
+- **`NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`** — opcional, vazia por enquanto.
+  Código de verificação do Google Search Console (método "Tag HTML": o
+  valor do `content` da meta tag, só o código). Preenchida, o site passa a
+  emitir `<meta name="google-site-verification" ...>`. Na Vercel: projeto →
+  **Settings → Environment Variables** (Production) e um redeploy.
+
+O domínio usado em canonical, Open Graph, `robots.txt`, `sitemap.xml` e
+JSON-LD é fixo em `src/lib/site.ts` (`https://fernandito.com.br`).
+
 ## Deploy
 
 O deploy é feito via [Vercel](https://vercel.com), conectado a este repositório:

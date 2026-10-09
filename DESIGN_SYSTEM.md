@@ -540,7 +540,7 @@ Ordem fixa da landing page (ver `src/app/page.tsx`):
    cartão responde direto à rolagem), com um único movimento próprio, um
    parallax **bem sutil**: sobem `CONTENT_DRIFT` (36px; 22 no toque) ao
    longo do fechamento — descontado o encolhimento, ~15px na tela.
-Tentativas
+   Tentativas
    descartadas: sumir cedo (sobrava cartão vazio), andar mais devagar que o
    cartão na saída (parecia descer junto), subir no ritmo da rolagem
    (disparava pra cima no primeiro gesto). O indicador "scroll" desvanece nos primeiros 15%
@@ -870,8 +870,13 @@ Tudo via Metadata API nativa do Next — nenhuma tag `<head>` na mão.
   fora do `layout.tsx` de propósito: `robots.ts`/`sitemap.ts` importando do
   layout fariam o módulo dele ser avaliado fora do grafo de componentes,
   onde o transform do `next/font` não roda — e o build quebra em
-  `localFont(...).variable`. `NEXT_PUBLIC_SITE_URL` sobrescreve a URL em
-  preview, pra deploy de teste não emitir canonical do domínio final.
+  `localFont(...).variable`. A URL é fixa em `https://fernandito.com.br`
+  (sem override por variável): canonical, OG, robots, sitemap e JSON-LD
+  nunca apontam pro `*.vercel.app`. JSON-LD num único `@graph`:
+  Organization (razão social, CNPJ, endereço, Instagram), WebSite e
+  Product (350ml, 8% v/v — sem preço/estoque/avaliação).
+  `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` liga a meta de verificação do
+  Search Console.
 - **`layout.tsx`** — title/description, keywords, canonical, Open Graph
   (com `/og-image.jpg` 1200×630), Twitter `summary_large_image`, robots, e
   os metadados de geo (`geo.region` BR-RS, `geo.placename`, `geo.position`,

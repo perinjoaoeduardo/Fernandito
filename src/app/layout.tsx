@@ -9,7 +9,7 @@ import { CustomCursor } from "@/components/ui/CustomCursor";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { AnnouncementBar } from "@/components/ui/AnnouncementBar";
 import { ANNOUNCEMENT } from "@/content/site";
-import { SITE_URL, SITE_TITLE, SITE_DESCRIPTION } from "@/lib/site";
+import { SITE_URL, SITE_TITLE, SITE_DESCRIPTION, GOOGLE_SITE_VERIFICATION } from "@/lib/site";
 import "./globals.css";
 
 // `preload` é o que decide o custo do primeiro carregamento: o Next injeta
@@ -107,6 +107,9 @@ export const metadata: Metadata = {
   creator: "Fernandito",
   publisher: "Fernandito",
   alternates: { canonical: "/" },
+  // Google Search Console: só emite a meta tag se a variável estiver
+  // preenchida (NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION — ver README).
+  ...(GOOGLE_SITE_VERIFICATION ? { verification: { google: GOOGLE_SITE_VERIFICATION } } : {}),
   openGraph: {
     type: "website",
     locale: "pt_BR",
@@ -159,52 +162,53 @@ const fontVariables = [
   rampartSpursStamp.variable,
 ].join(" ");
 
-// Dados estruturados — só o que já é verdade no site hoje (ficha técnica e
-// /legal/avisos). Sem `offers`, `price` ou `aggregateRating`: não há
-// e-commerce nem avaliações, e marcar campo que não existe é o tipo de coisa
-// que derruba o rich result inteiro na validação do Google.
+// Dados estruturados (um único @graph). Só o que é verdade hoje — sem
+// `offers`, preço, estoque ou `aggregateRating`: não há e-commerce nem
+// avaliações, e marcar campo que não existe derruba o rich result.
+const ORG_ID = `${SITE_URL}/#organization`;
 const JSON_LD = {
   "@context": "https://schema.org",
   "@graph": [
     {
       "@type": "Organization",
-      "@id": `${SITE_URL}/#organization`,
+      "@id": ORG_ID,
       name: "Fernandito",
+      legalName: "Fernandito Bebidas Ltda",
+      taxID: "69.252.946/0001-41",
       url: SITE_URL,
-      logo: `${SITE_URL}/icon-512.png`,
+      logo: `${SITE_URL}/logo/fernandito-horse-illustration.png`,
       image: `${SITE_URL}/og-image.jpg`,
-      description:
-        "Fernet com cola pronto pra beber, em lata de 350ml, feito no Rio Grande do Sul.",
-      sameAs: ["https://www.instagram.com/toma.fernandito/"],
       address: {
         "@type": "PostalAddress",
+        streetAddress: "Rua Castro Alves, 433",
         addressLocality: "Porto Alegre",
         addressRegion: "RS",
+        postalCode: "90430-131",
         addressCountry: "BR",
       },
-    },
-    {
-      "@type": "Product",
-      "@id": `${SITE_URL}/#product`,
-      name: "Fernandito",
-      description: "Bebida alcoólica mista gaseificada, fernet com cola, 350ml, 8% v/v",
-      brand: { "@type": "Brand", name: "Fernandito" },
-      image: `${SITE_URL}/og-image.jpg`,
-      category: "Bebida alcoólica mista gaseificada",
-      countryOfOrigin: { "@type": "Country", name: "Brasil" },
-      additionalProperty: [
-        { "@type": "PropertyValue", name: "Volume", value: "350 ml" },
-        { "@type": "PropertyValue", name: "Teor alcoólico", value: "8% v/v" },
-        { "@type": "PropertyValue", name: "Registro MAPA", value: "RS 002594-1.000127" },
-      ],
+      sameAs: ["https://www.instagram.com/toma.fernandito/"],
     },
     {
       "@type": "WebSite",
       "@id": `${SITE_URL}/#website`,
-      url: SITE_URL,
       name: "Fernandito",
+      url: SITE_URL,
       inLanguage: "pt-BR",
-      publisher: { "@id": `${SITE_URL}/#organization` },
+      publisher: { "@id": ORG_ID },
+    },
+    {
+      "@type": "Product",
+      "@id": `${SITE_URL}/#product`,
+      name: "Fernandito — Fernet com cola em lata 350ml",
+      description:
+        "Fernandito em lata: fernet com cola pronto pra beber, bebida alcoólica mista gaseificada, 8% v/v, lata de 350ml, feita no Rio Grande do Sul.",
+      brand: { "@id": ORG_ID },
+      image: `${SITE_URL}/og-image.jpg`,
+      category: "Bebida alcoólica mista gaseificada",
+      additionalProperty: [
+        { "@type": "PropertyValue", name: "Volume", value: "350 ml" },
+        { "@type": "PropertyValue", name: "Teor alcoólico", value: "8% v/v" },
+      ],
     },
   ],
 };
