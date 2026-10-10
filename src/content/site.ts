@@ -40,6 +40,22 @@ export const LINKS = {
   whatsappMessage: "Oi! Quero conhecer mais sobre o Fernandito.",
 };
 
+/** Textos da loja (seção/página Comprar, carrinho e checkout). Produtos e
+ * preços moram em `src/lib/catalog.ts`; frete em `src/lib/shipping.ts`. */
+export const STORE = {
+  eyebrow: "Comprar",
+  badge: "Pré-lançamento · edição limitada",
+  contentsTitle: "O que vem no kit",
+  addToCart: "Adicionar ao carrinho",
+  ageNotice: "Venda proibida para menores de 18 anos",
+  /** CTA dos outros lugares do site (menu, Hero, bloco final). */
+  cta: "Comprar o kit",
+  navCta: "Comprar",
+  /** Contato secundário embaixo do botão de compra. */
+  helpPrefix: "Dúvidas?",
+  helpLink: "Fala com a gente no WhatsApp",
+};
+
 /** Modo pré-lançamento: o site mostra só a Hero, um bloco "estamos chegando"
  * com o WhatsApp e o rodapé — sem as seções que ainda não têm conteúdo.
  * Pra lançar o site completo: `enabled: false` (nada mais muda). */

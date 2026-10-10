@@ -15,7 +15,9 @@ import { scrollToTarget } from "@/lib/lenis";
 import { Logo } from "@/components/ui/Logo";
 import { RotatingWord } from "@/components/ui/RotatingWord";
 import { HeroSlideshow } from "@/components/ui/HeroSlideshow";
-import { HERO, PRELAUNCH } from "@/content/site";
+import { HERO, PRELAUNCH, STORE } from "@/content/site";
+import { Button } from "@/components/ui/Button";
+import { useGoToShop } from "@/components/cart/useGoToShop";
 
 // Quanto o cartão encolhe/arredonda ao rolar (a "moldura") — sutil o
 // bastante pra não parecer um zoom brusco.
@@ -33,6 +35,7 @@ const VEIL_FROM = 0.8;
 const VEIL_TO = 0.5;
 
 export function HeroSection() {
+  const goToShop = useGoToShop();
   const sectionRef = useRef<HTMLElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -180,12 +183,12 @@ export function HeroSection() {
       ref={sectionRef}
       id="hero"
       // O fundo aqui é a "moldura" revelada quando o cartão encolhe — tem
-      // que ser a cor da PRÓXIMA seção (OQueESection, off-white; no
-      // pré-lançamento é o Contato, verde-medio). A section
+      // que ser a cor da PRÓXIMA seção (off-white: a Comprar no
+      // pré-lançamento, a O que é no site completo). A section
       // é mais alta que a tela pro cartão ficar preso enquanto fecha. Toque
       // (pointer-coarse, o mesmo critério do IS_TOUCH): 140vh no celular,
       // 160vh do md pra cima. Mouse (pointer-fine): 150vh.
-      className={`${PRELAUNCH.enabled ? "bg-fernandito-verde-medio" : "bg-fernandito-off-white"} relative h-screen motion-safe:pointer-coarse:h-[140vh] md:motion-safe:pointer-coarse:h-[160vh] motion-safe:pointer-fine:h-[150vh]`}
+      className={`bg-fernandito-off-white relative h-screen motion-safe:pointer-coarse:h-[140vh] md:motion-safe:pointer-coarse:h-[160vh] motion-safe:pointer-fine:h-[150vh]`}
     >
       <div
         ref={boxRef}
@@ -213,6 +216,10 @@ export function HeroSection() {
             <div className="text-body text-fernandito-off-white/70">
               <RotatingWord />
             </div>
+            {/* CTA de compra: entra junto com a frase (mesma animação). */}
+            <Button variant="primary" onClick={goToShop} className="mt-7">
+              {STORE.cta}
+            </Button>
           </div>
         </div>
 
@@ -223,7 +230,7 @@ export function HeroSection() {
           <button
             ref={indicatorRef}
             type="button"
-            onClick={() => scrollToTarget(PRELAUNCH.enabled ? "#contato" : "#o-que-e")}
+            onClick={() => scrollToTarget(PRELAUNCH.enabled ? "#comprar" : "#o-que-e")}
             aria-label="Rolar até a próxima seção"
             className="text-fernandito-off-white/70 duration-base ease-out-standard focus-visible:outline-fernandito-off-white text-body hover:text-fernandito-off-white focus-visible:text-fernandito-off-white flex items-center gap-1 bg-transparent font-sans transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
           >

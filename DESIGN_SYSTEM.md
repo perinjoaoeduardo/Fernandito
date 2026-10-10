@@ -325,6 +325,53 @@ Pra lançar o site completo: `PRELAUNCH.enabled = false` — volta tudo como
 era, nada mais precisa mudar. A faixa "Estamos chegando" é outra chave
 (`ANNOUNCEMENT`).
 
+### Loja (venda direta) — fluxo visual
+
+Site próprio → Pix → pedido no Bling → NF/envio pelo Bling/Melhor Envio.
+Sem plataforma de e-commerce. **Prompt Loja #1 = só visual e fluxo**: o Pix
+e a criação do pedido no Bling ainda não existem.
+
+- **Catálogo** `src/lib/catalog.ts`: SKUs iguais aos do Bling
+  (`FERN-KIT-PRE` ativo, `FERN-350-6` inativo até os kits acabarem), preço
+  em centavos, peso/dimensões pra frete. Só `active: true` aparece.
+- **Comprar** (`ComprarSection`, âncora `#comprar`, e a página `/comprar`
+  com o nome como h1): foto com selo "Pré-lançamento · edição limitada",
+  o que vem, preço, quantidade 1–5 (`QtyStepper`), "Adicionar ao carrinho"
+  (`Button` primary), aviso de 18 anos e WhatsApp como contato
+  secundário. Na home fica logo depois da Hero (pré-lançamento) ou antes
+  do Contato (site completo); a moldura da Hero é off-white, a cor dela.
+- **CTAs de compra** (`useGoToShop`: na home teletransporta pro
+  `#comprar`, fora dela abre `/comprar`): "Comprar" no menu (no lugar do
+  WhatsApp), "Comprar o kit" na Hero e no bloco final (botão claro, com
+  WhatsApp e Instagram embaixo), e primeiro botão do menu do celular.
+- **Carrinho** (`components/cart/`): `CartProvider` (contexto +
+  localStorage `fernandito:cart:v1`, com try/catch), `CartDrawer` (gaveta
+  off-white que desliza da direita, véu verde-escuro, Esc/véu/× fecham,
+  Lenis parado enquanto aberta; abre ao adicionar), ícone de sacola com
+  contador no menu (todos os tamanhos).
+- **Checkout** `/checkout` (`CheckoutClient`, noindex, `color-scheme:
+light` pros controles nativos): etapas A contato (máscaras + CPF com
+  dígitos verificadores), B entrega (CEP → ViaCEP preenche rua, bairro,
+  cidade, UF), C frete, D maioridade (checkbox obrigatória, grava
+  `ageConfirmedAt`; sem ela o "Pagar com Pix" fica desabilitado) +
+  novidades por e-mail (opcional) + links `/termos` e `/privacidade`
+  (placeholder "Em breve"). Uma etapa aberta por vez; as anteriores ficam
+  resumidas com "Editar". Resumo fixo do lado no desktop, no fim no
+  celular. "Pagar com Pix" valida tudo com o `orderSchema` e mostra
+  "Pagamento em breve" (pedido completo no console só em dev).
+- **Frete** `src/lib/shipping.ts`: Porto Alegre → "Entrega própria em
+  Porto Alegre", valor fixo. Fora → `/api/frete` (servidor) →
+  `quoteMelhorEnvio` (`src/lib/melhor-envio.ts`, **mockado**: 3 opções
+  fictícias; o passo a passo da chamada real está no arquivo). Cliente
+  escolhe a opção e o total atualiza. Se a cotação falhar → tabela fixa
+  por região. Valores são placeholder. Mudou o carrinho depois de cotar →
+  cota de novo.
+- **Pedido** `src/lib/order.ts`: tipo `Order` + schemas zod (itens, cliente,
+  endereço, frete escolhido com serviço/transportadora/valor/prazo,
+  totais conferidos, `ageConfirmed`, `ageConfirmedAt`, `marketingOptIn`),
+  pra reaproveitar no servidor no próximo prompt.
+- A cortina de abertura (`IntroLoader`) só roda na home.
+
 ### Desempenho no celular (toque)
 
 - `.grain-overlay` some no toque (`@media (pointer: coarse)` no

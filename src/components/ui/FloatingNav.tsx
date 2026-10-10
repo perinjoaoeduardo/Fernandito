@@ -9,8 +9,11 @@ import { teleportToTop } from "@/lib/lenis";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 import { Gallop } from "@/components/ui/Gallop";
-import { InstagramIcon } from "@/components/ui/icons";
-import { LINKS as SITE_LINKS, NAV, PRELAUNCH } from "@/content/site";
+import { CartIcon, InstagramIcon } from "@/components/ui/icons";
+import { Button } from "@/components/ui/Button";
+import { useCart } from "@/components/cart/CartProvider";
+import { useGoToShop } from "@/components/cart/useGoToShop";
+import { LINKS as SITE_LINKS, NAV, PRELAUNCH, STORE } from "@/content/site";
 
 // Site de página única: a nav é navegação por âncora pros "andares" da
 // página. O contato não entra como link na pill — o botão de WhatsApp ao
@@ -50,6 +53,8 @@ export function FloatingNav() {
   const [galloping, setGalloping] = useState(false);
   const horseTaps = useRef<number[]>([]);
   const endGallop = useCallback(() => setGalloping(false), []);
+  const cart = useCart();
+  const goToShop = useGoToShop();
 
   const handleHorseClick = () => {
     teleportToTop();
@@ -211,15 +216,19 @@ export function FloatingNav() {
               {link.label}
             </Link>
           ))}
-          {/* Sempre verde-escuro aqui, mesmo quando a pill inverte (fica
-              clara sobre fundo claro) — a borda sutil do WhatsAppButton
-              garante que ele continue legível como forma própria. */}
-          <WhatsAppButton
-            background="verde-escuro"
-            className="!text-label ml-1 !px-4 !py-2 whitespace-nowrap"
+          {/* CTA principal agora é a compra (o WhatsApp virou contato
+              secundário: menu do celular, rodapé e página de compra). Sempre
+              verde-escuro, com a mesma borda sutil que o WhatsApp tinha. */}
+          <Button
+            variant="cta-destaque"
+            onClick={goToShop}
+            className={clsx(
+              "!text-label border-fernandito-off-white/15 border !px-5 !py-2 whitespace-nowrap",
+              LINKS.length && "ml-1",
+            )}
           >
-            {NAV.whatsappLabel}
-          </WhatsAppButton>
+            {STORE.navCta}
+          </Button>
         </motion.div>
 
         {/* Pill 3 (md+) — atalho pro Instagram: só o ícone, num círculo do
@@ -240,6 +249,34 @@ export function FloatingNav() {
         >
           <InstagramIcon className="h-[18px] w-[18px]" />
         </motion.a>
+
+        {/* Carrinho (todos os tamanhos): mesmo círculo do Instagram, com o
+            contador de itens num selo verde-medio. */}
+        <motion.button
+          type="button"
+          onClick={cart.open}
+          animate={pillAnimation}
+          transition={pillTransition}
+          aria-label={
+            cart.count
+              ? `Abrir carrinho (${cart.count} ${cart.count === 1 ? "item" : "itens"})`
+              : "Abrir carrinho"
+          }
+          className={clsx(
+            "duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 pointer-fine:backdrop-blur-md",
+            overLight ? "text-fernandito-off-white" : "text-fernandito-verde-escuro",
+          )}
+        >
+          <CartIcon className="h-[19px] w-[19px]" />
+          {cart.count > 0 && (
+            <span
+              aria-hidden="true"
+              className="bg-fernandito-verde-medio text-fernandito-off-white absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 font-sans text-[11px] leading-none font-bold"
+            >
+              {cart.count}
+            </span>
+          )}
+        </motion.button>
       </motion.div>
 
       {/* Overlay fullscreen (mobile) */}
@@ -274,6 +311,18 @@ export function FloatingNav() {
             {/* Fundo padrão (verde-medio) aqui — o overlay já é verde-escuro,
                 então o CTA "verde-escuro" do pill ficaria invisível contra ele. */}
             <div className="flex flex-col items-center gap-4">
+              {/* Compra primeiro (botão claro, o mais forte aqui); WhatsApp e
+                  Instagram como contato. */}
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setMenuOpen(false);
+                  goToShop();
+                }}
+                className="!bg-fernandito-off-white !text-fernandito-verde-escuro hover:!bg-fernandito-verde-claro hover:!text-fernandito-off-white"
+              >
+                {STORE.cta}
+              </Button>
               <WhatsAppButton>{NAV.whatsappLabel}</WhatsAppButton>
               {/* Instagram: o lugar onde mais coisa acontece — no menu do
                   celular ganha um botão próprio, contornado (o WhatsApp

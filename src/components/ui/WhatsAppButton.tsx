@@ -28,6 +28,11 @@ type WhatsAppButtonProps = {
   background?: "verde-medio" | "verde-escuro";
 };
 
+/** Link do WhatsApp com a mensagem pronta (pra quem precisa só do href). */
+export const WHATSAPP_HREF = WHATSAPP_NUMBER
+  ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`
+  : null;
+
 export function WhatsAppButton({
   children,
   className,
@@ -70,7 +75,7 @@ export function WhatsAppButton({
     );
   }
 
-  const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
+  const href = WHATSAPP_HREF ?? "#";
 
   return (
     <Button

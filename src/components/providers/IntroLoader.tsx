@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { gsap, EASE, prefersReducedMotion } from "@/lib/gsap";
 import { markIntroComplete } from "@/lib/introSignal";
@@ -21,10 +22,16 @@ const VISIBLE_DURATION = 2;
 const REVEAL_DURATION = 0.9 / 0.8;
 
 export function IntroLoader() {
-  const [visible, setVisible] = useState(true);
+  // Só na home: em /comprar, /checkout etc. a cortina de 2s só atrasaria.
+  const isHome = usePathname() === "/";
+  const [visible, setVisible] = useState(isHome);
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!isHome) {
+      markIntroComplete();
+      return;
+    }
     if (prefersReducedMotion()) {
       markIntroComplete();
       // One-time synchronous bail-out on mount (not a state sync loop) — the
@@ -60,9 +67,9 @@ export function IntroLoader() {
       document.documentElement.style.overflow = previousOverflow;
       tl.kill();
     };
-  }, []);
+  }, [isHome]);
 
-  if (!visible) return null;
+  if (!visible || !isHome) return null;
 
   return (
     <div

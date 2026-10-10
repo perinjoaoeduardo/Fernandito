@@ -8,6 +8,7 @@ import { TypewriterText } from "@/components/ui/TypewriterText";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { InstagramIcon } from "@/components/ui/icons";
+import { useGoToShop } from "@/components/cart/useGoToShop";
 import { CONTATO, LINKS } from "@/content/site";
 
 /**
@@ -20,6 +21,8 @@ type ContatoSectionProps = {
   title?: string;
   text?: string;
   cta?: string;
+  /** Botão de compra acima do WhatsApp (bloco final do pré-lançamento). */
+  shopCta?: string;
   /** Classes do título no lugar das padrão (tamanho/largura). */
   titleClassName?: string;
   /** Pré-lançamento (logo abaixo da Hero): a foto sobe até encostar no
@@ -36,8 +39,10 @@ export function ContatoSection({
   cta = CONTATO.cta,
   instagram,
   joinHero = false,
+  shopCta,
   titleClassName = "max-w-[13ch] text-[clamp(2.5rem,5vw,5rem)] leading-[1]",
 }: ContatoSectionProps) {
+  const goToShop = useGoToShop();
   const sectionRef = useRef<HTMLElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
@@ -133,6 +138,17 @@ export function ContatoSection({
               embaixo, o Instagram num botão claro — cor diferente pra não
               confundir os dois. */}
           <div ref={ctaRef} className="mt-10 inline-flex flex-col items-stretch gap-3">
+            {/* Com `shopCta`: a compra vem primeiro, no botão claro; o
+                WhatsApp vira o contato secundário logo embaixo. */}
+            {shopCta && (
+              <button
+                type="button"
+                onClick={goToShop}
+                className="bg-fernandito-off-white text-fernandito-verde-escuro text-body duration-base ease-out-standard hover:bg-fernandito-verde-claro hover:text-fernandito-off-white focus-visible:outline-fernandito-off-white inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-sans font-medium tracking-[0.01em] transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 active:scale-[0.96]"
+              >
+                {shopCta}
+              </button>
+            )}
             <WhatsAppButton background="verde-escuro">{cta}</WhatsAppButton>
             {instagram && (
               <a
@@ -140,7 +156,13 @@ export function ContatoSection({
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`${instagram} ${LINKS.instagramHandle} — abre em nova aba`}
-                className="bg-fernandito-off-white text-fernandito-verde-escuro text-body duration-base ease-out-standard hover:bg-fernandito-verde-claro hover:text-fernandito-off-white focus-visible:outline-fernandito-off-white inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-sans font-medium tracking-[0.01em] transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 active:scale-[0.96]"
+                className={clsx(
+                  "text-body duration-base ease-out-standard focus-visible:outline-fernandito-off-white inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-sans font-medium tracking-[0.01em] transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 active:scale-[0.96]",
+                  // Com a compra em cima, o Instagram desce pra contornado.
+                  shopCta
+                    ? "border-fernandito-off-white/40 text-fernandito-off-white hover:bg-fernandito-off-white/10 border"
+                    : "bg-fernandito-off-white text-fernandito-verde-escuro hover:bg-fernandito-verde-claro hover:text-fernandito-off-white",
+                )}
               >
                 <InstagramIcon />
                 {instagram}

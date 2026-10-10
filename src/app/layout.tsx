@@ -8,6 +8,8 @@ import { FloatingNav } from "@/components/ui/FloatingNav";
 import { CustomCursor } from "@/components/ui/CustomCursor";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { AnnouncementBar } from "@/components/ui/AnnouncementBar";
+import { CartProvider } from "@/components/cart/CartProvider";
+import { CartDrawer } from "@/components/cart/CartDrawer";
 import { ANNOUNCEMENT } from "@/content/site";
 import { SITE_URL, SITE_TITLE, SITE_DESCRIPTION, GOOGLE_SITE_VERIFICATION } from "@/lib/site";
 import "./globals.css";
@@ -242,13 +244,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           } catch (e) {}`}
         </Script>
         <SmoothScrollProvider>
-          <IntroLoader />
-          <ScrollProgress />
-          <CustomCursor />
-          <AnnouncementBar />
-          <FloatingNav />
-          <ThemeColorSync />
-          {children}
+          <CartProvider>
+            <IntroLoader />
+            <ScrollProgress />
+            <CustomCursor />
+            <AnnouncementBar />
+            <FloatingNav />
+            <ThemeColorSync />
+            {children}
+            <CartDrawer />
+          </CartProvider>
         </SmoothScrollProvider>
       </body>
     </html>
