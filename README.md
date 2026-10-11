@@ -45,6 +45,10 @@ Copie `.env.example` para `.env.local` e preencha o que for necessário. Veja
   `BLING_SYNC_PREVIEW`) e `CRON_SECRET`. Conectar uma vez em
   `https://fernandito.com.br/api/bling/connect?key=<BLING_ADMIN_KEY>`.
   Detalhes em `src/lib/bling/client.ts`.
+- **ANTES DE VENDER DE VERDADE:** o plano Free do Upstash (30 MB) é RAM-only,
+  sem persistência — os dados podem sumir se o servidor reiniciar (pedidos
+  pendentes, login do Bling). Trocar para o plano de 250 MB (US$ 10/mês,
+  com persistência) no painel do Upstash. Não precisa mudar código.
 - Sem essas variáveis, FORA de produção (local/preview) a loja roda em modo
   simulado (pedidos em memória, Pix fictício, botão "Simular pagamento");
   em produção, sem elas, o pagamento responde "indisponível".
