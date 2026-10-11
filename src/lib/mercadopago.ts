@@ -15,7 +15,8 @@ import { IS_PRODUCTION } from "@/lib/store/kv";
  * conseguir ver as telas. Em produção sem token → erro.
  */
 
-const API = "https://api.mercadopago.com";
+// `MERCADOPAGO_API_URL` só pra teste local (API falsa); em produção, vazio.
+const API = process.env.MERCADOPAGO_API_URL?.trim() || "https://api.mercadopago.com";
 const TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN?.trim() || "";
 const WEBHOOK_SECRET = process.env.MERCADOPAGO_WEBHOOK_SECRET?.trim() || "";
 

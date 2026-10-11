@@ -111,3 +111,39 @@ export async function rateLimit(bucket: string, id: string, limit: number, windo
   ]);
   return count <= limit;
 }
+
+// ── Conjuntos (fila de pedidos a reenviar pro Bling) ───────────────────────
+
+export async function kvSAdd(key: string, member: string) {
+  if (inMemory()) {
+    const set = new Set<string>(JSON.parse(memGet(key) ?? "[]"));
+    set.add(member);
+    mem.set(key, { value: JSON.stringify([...set]), expiresAt: null });
+    return;
+  }
+  await redis([["SADD", key, member]]);
+}
+
+export async function kvSRem(key: string, member: string) {
+  if (inMemory()) {
+    const set = new Set<string>(JSON.parse(memGet(key) ?? "[]"));
+    set.delete(member);
+    mem.set(key, { value: JSON.stringify([...set]), expiresAt: null });
+    return;
+  }
+  await redis([["SREM", key, member]]);
+}
+
+export async function kvSMembers(key: string): Promise<string[]> {
+  if (inMemory()) return JSON.parse(memGet(key) ?? "[]") as string[];
+  const [members] = await redis<string[]>([["SMEMBERS", key]]);
+  return members ?? [];
+}
+
+export async function kvDel(key: string) {
+  if (inMemory()) {
+    mem.delete(key);
+    return;
+  }
+  await redis([["DEL", key]]);
+}

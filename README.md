@@ -40,6 +40,11 @@ Copie `.env.example` para `.env.local` e preencha o que for necessário. Veja
 - **`KV_REST_API_URL`** / **`KV_REST_API_TOKEN`** — banco de pedidos
   (Upstash Redis). Criadas sozinhas ao conectar **Storage → Upstash for
   Redis** ao projeto na Vercel.
+- **Bling** — `BLING_CLIENT_ID`, `BLING_CLIENT_SECRET`, `BLING_ADMIN_KEY`
+  (+ opcionais `BLING_FORMA_PAGAMENTO_ID`, `BLING_LOJA_ID`,
+  `BLING_SYNC_PREVIEW`) e `CRON_SECRET`. Conectar uma vez em
+  `https://fernandito.com.br/api/bling/connect?key=<BLING_ADMIN_KEY>`.
+  Detalhes em `src/lib/bling/client.ts`.
 - Sem essas variáveis, FORA de produção (local/preview) a loja roda em modo
   simulado (pedidos em memória, Pix fictício, botão "Simular pagamento");
   em produção, sem elas, o pagamento responde "indisponível".

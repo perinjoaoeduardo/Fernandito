@@ -46,7 +46,8 @@ export const PRODUCTS: Product[] = [
       },
     ],
     maxQty: 5,
-    shipping: { weightKg: 1.2, widthCm: 20, heightCm: 15, lengthCm: 20 },
+    // Igual ao cadastro no Bling (peso bruto 1,3 kg; 20 × 16 × 12 cm).
+    shipping: { weightKg: 1.3, widthCm: 20, heightCm: 16, lengthCm: 12 },
     active: true,
   },
   {

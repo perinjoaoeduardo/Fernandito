@@ -16,6 +16,7 @@ import {
   type StoredOrderItem,
 } from "@/lib/store/orders";
 import { onOrderPaid } from "@/lib/store/on-order-paid";
+import { blingStock } from "@/lib/bling/orders";
 
 /** Erro "esperado" do checkout: vira resposta HTTP com mensagem pro cliente. */
 export class CheckoutError extends Error {
@@ -91,6 +92,20 @@ export async function createPixOrder(input: Order, idempotencyKey: string): Prom
       409,
       "price_changed",
     );
+
+  // Estoque no Bling (saldo virtual). Bling desconectado → não bloqueia.
+  const stock = await blingStock(priced.items.map((item) => item.sku));
+  for (const item of priced.items) {
+    const available = stock?.get(item.sku);
+    if (available !== undefined && item.qty > available)
+      throw new CheckoutError(
+        available > 0
+          ? `Só temos ${available} unidade${available === 1 ? "" : "s"} de ${item.name} agora.`
+          : `${item.name} esgotou.`,
+        409,
+        "stock",
+      );
+  }
 
   const id = newOrderId();
   const idemKey = `idem:${idempotencyKey}`;

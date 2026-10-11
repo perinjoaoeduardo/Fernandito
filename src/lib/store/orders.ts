@@ -44,6 +44,14 @@ export type StoredOrder = {
   paidAt: string | null;
   /** Última vez que o status foi conferido direto no Mercado Pago. */
   mpCheckedAt: string | null;
+  /** Pedido de venda criado no Bling depois de pago (Prompt Loja #3). */
+  bling?: {
+    orderId: number | null;
+    number: number | null;
+    syncedAt: string | null;
+    /** Último erro ao enviar (fica na fila e tenta de novo). */
+    error: string | null;
+  };
 };
 
 // Pedido fica guardado 1 ano (o pago vai pro Bling no Prompt #3).

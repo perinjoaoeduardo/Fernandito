@@ -1,12 +1,12 @@
 import "server-only";
 import type { StoredOrder } from "@/lib/store/orders";
+import { syncOrderToBling } from "@/lib/bling/orders";
 
 /**
- * Roda UMA vez quando o pedido é pago (webhook ou checagem de status).
- *
- * TODO (Prompt Loja #3): criar o pedido de venda no Bling a partir do
- * `order` (SKUs iguais aos do Bling, cliente com CPF, endereço, frete).
+ * Roda UMA vez quando o pedido é pago (webhook ou checagem de status):
+ * cria o pedido de venda no Bling (src/lib/bling/orders.ts). Se o Bling
+ * falhar, o pedido vai pra fila e o cron diário tenta de novo.
  */
 export async function onOrderPaid(order: StoredOrder): Promise<void> {
-  void order;
+  await syncOrderToBling(order.id);
 }

@@ -325,6 +325,22 @@ Pra lançar o site completo: `PRELAUNCH.enabled = false` — volta tudo como
 era, nada mais precisa mudar. A faixa "Estamos chegando" é outra chave
 (`ANNOUNCEMENT`).
 
+### Loja — Bling (Prompt Loja #3)
+
+- **Pago → Bling:** `onOrderPaid` cria o pedido de venda (contato pelo CPF,
+  criado se não existir; itens pelo SKU; frete; etiqueta de entrega; uma
+  parcela na forma de pagamento Pix; `numeroLoja` = id do pedido do site,
+  que impede duplicar). Situação padrão do Bling ("Em aberto"), que já
+  reserva o estoque. NF e envio seguem no Bling.
+- **Falhou?** Pedido entra na fila `bling:retry`; o cron diário
+  (`vercel.json`, 9h UTC) reenvia e renova o token do Bling.
+- **Estoque:** antes de gerar o Pix confere o saldo virtual no Bling;
+  faltou → 409 com "Só temos N…" / "esgotou". Bling fora do ar → não
+  bloqueia a venda.
+- **Teste:** preview/local não manda pro Bling (só com
+  `BLING_SYNC_PREVIEW=1`); Pix simulado nunca vai.
+- **Medidas do kit:** iguais ao cadastro no Bling (1,3 kg; 20 × 16 × 12 cm).
+
 ### Loja — pagamento Pix (Prompt Loja #2)
 
 - **Fluxo:** checkout → `POST /api/checkout/pix` (zod + recálculo de preço
