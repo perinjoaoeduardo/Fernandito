@@ -17,6 +17,7 @@ import {
 } from "@/lib/store/orders";
 import { onOrderPaid } from "@/lib/store/on-order-paid";
 import { blingStock } from "@/lib/bling/orders";
+import { getLegalVersions } from "@/lib/legal";
 
 /** Erro "esperado" do checkout: vira resposta HTTP com mensagem pro cliente. */
 export class CheckoutError extends Error {
@@ -133,6 +134,8 @@ export async function createPixOrder(input: Order, idempotencyKey: string): Prom
     ageConfirmed: true,
     ageConfirmedAt: input.ageConfirmedAt,
     marketingOptIn: input.marketingOptIn,
+    // Versões dos Termos/Privacidade vigentes quando a pessoa aceitou.
+    ...(await getLegalVersions()),
     mpPaymentId: null,
     pix: null,
     simulated: false,

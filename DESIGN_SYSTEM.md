@@ -325,6 +325,19 @@ Pra lançar o site completo: `PRELAUNCH.enabled = false` — volta tudo como
 era, nada mais precisa mudar. A faixa "Estamos chegando" é outra chave
 (`ANNOUNCEMENT`).
 
+### Páginas legais (/termos, /privacidade)
+
+- Texto em `content/legal/*.md` (Markdown + frontmatter `title`,
+  `description`, `version`, `updatedAt`), renderizado no build
+  (`src/lib/legal.ts`, `marked`). Tabelas com `<th scope="col">`.
+- Layout: coluna de ~70ch; índice fixo à esquerda no desktop, recolhível
+  (`<details>`) no celular; ids das seções com prefixo `secao-`.
+- `[colchetes]` (o que falta preencher) em amarelo só fora de produção.
+- "Imprimir / salvar PDF": CSS de impressão deixa só o artigo.
+- Rodapé: coluna "Legal" (`underline-swap`); checkout abre em nova aba.
+- Seguem `STORE.enabled` (somem com a loja, inclusive do sitemap).
+- O pedido grava `termsVersion`/`privacyVersion` (vai pro Bling).
+
 ### Loja — Bling (Prompt Loja #3)
 
 - **Pago → Bling:** `onOrderPaid` cria o pedido de venda (contato pelo CPF,
@@ -332,14 +345,24 @@ era, nada mais precisa mudar. A faixa "Estamos chegando" é outra chave
   parcela na forma de pagamento Pix; `numeroLoja` = id do pedido do site,
   que impede duplicar). Situação padrão do Bling ("Em aberto"), que já
   reserva o estoque. NF e envio seguem no Bling.
-- **Falhou?** Pedido entra na fila `bling:retry`; o cron diário
-  (`vercel.json`, 9h UTC) reenvia e renova o token do Bling.
+- **Falhou?** Pedido entra na fila `bling:retry` e é reenviado na próxima
+  requisição relevante (status do Pix, checkout, webhook — no máximo 1x a
+  cada 10 min) e pelo cron diário (`vercel.json`), que também renova o
+  token. Hobby só permite cron diário; no Pro dá pra trocar pra `0 * * * *`.
+- **Token:** o refresh token do Bling muda a cada uso → trava no Redis com
+  dono (`SET NX` + `EVAL`), quem espera relê o token salvo; nunca duas
+  renovações juntas.
+- **No pedido:** situação "Em andamento" (já pago; `BLING_SITUACAO_ID`),
+  loja `BLING_LOJA_ID` ("Site Fernandito"), logística "Entrega própria POA"
+  em POA (`volumes[].servico`), campos do contato "Aceita marketing" e
+  "Confirmou 18+" (lógicos, "1"/"0").
 - **Estoque:** antes de gerar o Pix confere o saldo virtual no Bling;
   faltou → 409 com "Só temos N…" / "esgotou". Bling fora do ar → não
   bloqueia a venda.
 - **Teste:** preview/local não manda pro Bling (só com
   `BLING_SYNC_PREVIEW=1`); Pix simulado nunca vai.
-- **Medidas do kit:** iguais ao cadastro no Bling (1,3 kg; 20 × 16 × 12 cm).
+- **Medidas:** iguais ao Bling — kit 19 × 19 × 6,5 cm, 1,2 kg; pack 24 × 14 × 16,5 cm, 2,5 kg.
+- **Frete:** POA R$ 5, 1–2 dias (entrega própria); fora, Melhor Envio real (cache de 1h).
 
 ### Loja — pagamento Pix (Prompt Loja #2)
 

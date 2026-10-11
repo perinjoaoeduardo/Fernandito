@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { maybeRetryBling } from "@/lib/bling/orders";
 import { orderSchema } from "@/lib/order";
 import { createPixOrder } from "@/lib/store/checkout";
 import { errorResponse, guard, json } from "@/lib/store/http";
@@ -8,6 +10,8 @@ import { publicOrder } from "@/lib/store/orders";
 export async function POST(request: Request) {
   const blocked = await guard(request, "pix", 8, 10 * 60);
   if (blocked) return blocked;
+  // Pedidos que falharam no Bling: tenta de novo depois da resposta.
+  after(maybeRetryBling);
 
   const idempotencyKey = request.headers.get("x-idempotency-key") ?? "";
   if (!/^[\w-]{16,64}$/.test(idempotencyKey)) return json({ error: "Requisição inválida" }, 400);

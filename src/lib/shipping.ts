@@ -42,8 +42,8 @@ export const LOCAL_DELIVERY: ShippingOption = {
   id: "local-poa",
   service: "Entrega própria em Porto Alegre",
   carrier: "Fernandito",
-  priceCents: 1000, // PLACEHOLDER: R$ 10,00
-  days: { min: 1, max: 3 }, // PLACEHOLDER
+  priceCents: 500, // R$ 5,00 — valor simbólico (definido pela Fernandito)
+  days: { min: 1, max: 2 },
   source: "local",
 };
 

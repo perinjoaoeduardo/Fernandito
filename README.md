@@ -48,9 +48,12 @@ Copie `.env.example` para `.env.local` e preencha o que for necessário. Veja
 - Sem essas variáveis, FORA de produção (local/preview) a loja roda em modo
   simulado (pedidos em memória, Pix fictício, botão "Simular pagamento");
   em produção, sem elas, o pagamento responde "indisponível".
-- **`MELHOR_ENVIO_TOKEN`** / **`MELHOR_ENVIO_CEP_ORIGEM`** — ainda não usadas
-  (a cotação de frete está mockada em `src/lib/melhor-envio.ts`, que tem o
-  passo a passo da integração real). Só no servidor, nunca `NEXT_PUBLIC_`.
+- **`MELHOR_ENVIO_TOKEN`** / **`MELHOR_ENVIO_CEP_ORIGEM`** (90430-131) —
+  cotação real do frete fora de POA (`src/lib/melhor-envio.ts`). Sem token:
+  simulado fora de produção; em produção cai na tabela por região.
+- **Textos legais:** `content/legal/termos.md` e `content/legal/privacidade.md`
+  (Markdown). Pra publicar nova versão, mudar `version` e `updatedAt` no
+  topo do arquivo — o pedido grava a versão aceita.
 
 O domínio usado em canonical, Open Graph, `robots.txt`, `sitemap.xml` e
 JSON-LD é fixo em `src/lib/site.ts` (`https://fernandito.com.br`).

@@ -493,7 +493,12 @@ export function CheckoutClient() {
               </label>
               <p className="text-label tracking-[0.04em] uppercase opacity-70">
                 Ao continuar você concorda com os{" "}
-                <NextLink href="/termos" className="underline underline-offset-4" target="_blank">
+                <NextLink
+                  href="/termos"
+                  className="underline underline-offset-4"
+                  target="_blank"
+                  rel="noopener"
+                >
                   Termos de uso
                 </NextLink>{" "}
                 e a{" "}
@@ -501,6 +506,7 @@ export function CheckoutClient() {
                   href="/privacidade"
                   className="underline underline-offset-4"
                   target="_blank"
+                  rel="noopener"
                 >
                   Política de privacidade
                 </NextLink>

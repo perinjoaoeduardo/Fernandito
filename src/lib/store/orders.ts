@@ -31,6 +31,9 @@ export type StoredOrder = {
   ageConfirmed: true;
   ageConfirmedAt: string;
   marketingOptIn: boolean;
+  /** Versões dos Termos e da Política aceitas (frontmatter dos .md). */
+  termsVersion?: string;
+  privacyVersion?: string;
   mpPaymentId: string | null;
   pix: {
     qrCode: string;

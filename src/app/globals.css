@@ -90,3 +90,110 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Páginas legais (/termos, /privacidade) ─────────────────────────────── */
+@keyframes legal-fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.legal-prose {
+  font-family: var(--font-courier-prime), "Courier New", monospace;
+  font-size: 1rem;
+  line-height: 1.75;
+}
+.legal-prose h2 {
+  font-family: var(--font-rampart), Georgia, serif;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  line-height: 1.1;
+  margin-top: 3rem;
+  scroll-margin-top: 8rem;
+}
+.legal-prose h3 {
+  font-weight: 700;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 1.75rem;
+  scroll-margin-top: 8rem;
+}
+.legal-prose p,
+.legal-prose ul,
+.legal-prose ol,
+.legal-table {
+  margin-top: 1rem;
+}
+.legal-prose ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+.legal-prose ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+}
+.legal-prose li + li {
+  margin-top: 0.35rem;
+}
+.legal-prose strong {
+  font-weight: 700;
+}
+.legal-prose a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.legal-table {
+  overflow-x: auto;
+}
+.legal-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.legal-prose th,
+.legal-prose td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+}
+.legal-prose th {
+  font-weight: 700;
+}
+/* [Colchetes] que faltam preencher — só aparecem fora de produção. */
+.legal-todo {
+  background: #fff3a3;
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  [data-print-root],
+  [data-print-root] * {
+    visibility: visible;
+  }
+  [data-print-root] {
+    position: absolute;
+    inset: 0 auto auto 0;
+    max-width: none;
+    padding: 0;
+  }
+  .legal-todo {
+    background: none;
+  }
+}

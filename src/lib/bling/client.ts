@@ -1,5 +1,5 @@
 import "server-only";
-import { kvDel, kvGet, kvSet, kvSetNX } from "@/lib/store/kv";
+import { kvDel, kvGet, kvReleaseLock, kvSet, kvSetNX } from "@/lib/store/kv";
 
 /**
  * Cliente da API v3 do Bling (OAuth 2) — SÓ NO SERVIDOR.
@@ -112,25 +112,46 @@ export async function isBlingConnected() {
   return BLING_CONFIGURED && (await readTokens()) !== null;
 }
 
-/** Renova com o refresh token (com trava, pra duas renovações não brigarem). */
+const LOCK_KEY = "bling:refresh-lock";
+const LOCK_SECONDS = 30;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Renova com o refresh token. O Bling troca o refresh token a cada uso — se
+ * duas instâncias renovassem juntas, a segunda usaria um token já gasto e a
+ * conexão cairia. Por isso:
+ * 1. Trava no Redis (`SET NX EX`), com dono: só quem pegou solta (EVAL).
+ * 2. Quem não pegou espera (até ~10s) e lê o token que o outro salvou.
+ * 3. Quem pegou relê o token DEPOIS de travar: se outro já renovou, usa
+ *    esse em vez de gastar o refresh token de novo.
+ * `force` (cron) renova mesmo dentro da validade, mas não se alguém renovou
+ * há menos de 1 min.
+ */
 export async function refreshTokens(force = false): Promise<Tokens> {
-  const current = await readTokens();
-  if (!current) throw new BlingNotConnectedError();
-  if (!force && current.expiresAt > Date.now()) return current;
-  if (!(await kvSetNX("bling:refresh-lock", "1", 30))) {
-    // Outra requisição está renovando: espera e lê o resultado dela.
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+  const before = await readTokens();
+  if (!before) throw new BlingNotConnectedError();
+  if (!force && before.expiresAt > Date.now()) return before;
+
+  const owner = crypto.randomUUID();
+  for (let attempt = 0; !(await kvSetNX(LOCK_KEY, owner, LOCK_SECONDS)); attempt++) {
+    if (attempt >= 20) throw new BlingError("Renovação do token do Bling travada; tenta de novo");
+    await sleep(500);
     const fresh = await readTokens();
-    if (fresh && fresh.expiresAt > Date.now()) return fresh;
-    throw new BlingError("Renovação do token do Bling em andamento");
+    if (fresh && fresh.refreshToken !== before.refreshToken) return fresh;
   }
   try {
+    const current = await readTokens();
+    if (!current) throw new BlingNotConnectedError();
+    const renewedByOther = current.refreshToken !== before.refreshToken;
+    const recentlyRenewed = current.expiresAt - Date.now() > (21600 - 300 - 60) * 1000;
+    if (renewedByOther || (!force && current.expiresAt > Date.now()) || (force && recentlyRenewed))
+      return current;
     return await requestTokens({
       grant_type: "refresh_token",
       refresh_token: current.refreshToken,
     });
   } finally {
-    await kvDel("bling:refresh-lock");
+    await kvReleaseLock(LOCK_KEY, owner);
   }
 }
 

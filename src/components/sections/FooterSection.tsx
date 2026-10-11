@@ -6,7 +6,7 @@ import { TypewriterText } from "@/components/ui/TypewriterText";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 import { InstagramIcon } from "@/components/ui/icons";
-import { FOOTER, LINKS, NAV, PRELAUNCH } from "@/content/site";
+import { FOOTER, LINKS, NAV, PRELAUNCH, STORE } from "@/content/site";
 
 // Ritmo da frase de fechamento, que se escreve sozinha quando o rodapé
 // aparece (não acompanha a rolagem): devagar, como máquina de escrever.
@@ -96,7 +96,7 @@ export function FooterSection() {
         <Parallax
           speed={-16}
           touch={false}
-          className={`grid gap-10 sm:gap-16 ${PRELAUNCH.enabled ? "grid-cols-1" : "grid-cols-2"}`}
+          className={`grid gap-10 sm:gap-16 ${PRELAUNCH.enabled && !STORE.enabled ? "grid-cols-1" : "grid-cols-2"} ${!PRELAUNCH.enabled && STORE.enabled ? "lg:grid-cols-3" : ""}`}
         >
           {/* No pré-lançamento as seções não existem: some o "Navegar". */}
           {!PRELAUNCH.enabled && (
@@ -137,6 +137,24 @@ export function FooterSection() {
               </li>
             </ul>
           </div>
+
+          {/* Legal: Termos e Privacidade (só com a loja ligada). */}
+          {STORE.enabled && (
+            <div>
+              <h3 className="text-label mb-3 font-sans tracking-[0.08em] uppercase opacity-80">
+                {FOOTER.legalTitle}
+              </h3>
+              <ul className="flex flex-col gap-3">
+                {FOOTER.legalLinks.map((link) => (
+                  <li key={link.href}>
+                    <Link href={link.href} variant="underline-swap" className={FOOTER_LINK_CLASSES}>
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </Parallax>
       </div>
 

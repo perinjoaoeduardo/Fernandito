@@ -1,28 +1,21 @@
 import type { Metadata } from "next";
-import NextLink from "next/link";
 import { notFound } from "next/navigation";
 import { STORE } from "@/content/site";
+import { getLegalDoc } from "@/lib/legal";
+import { LegalPage } from "@/components/legal/LegalPage";
 
-// PLACEHOLDER: texto definitivo ainda não escrito.
-export const metadata: Metadata = {
-  title: "Termos de uso",
-  robots: { index: false, follow: true },
-};
+// Texto em content/legal/termos.md (Markdown + frontmatter).
+export async function generateMetadata(): Promise<Metadata> {
+  const doc = await getLegalDoc("termos");
+  return {
+    title: doc.title,
+    description: doc.description,
+    alternates: { canonical: "/termos" },
+  };
+}
 
-export default function Page() {
-  // Placeholder da loja: some junto com ela (`STORE.enabled`).
+export default async function Page() {
+  // Some junto com a loja (`STORE.enabled`).
   if (!STORE.enabled) notFound();
-  return (
-    <main className="bg-fernandito-off-white text-fernandito-verde-escuro min-h-screen">
-      <div className="mx-auto max-w-3xl px-6 pt-[calc(9rem+var(--announcement-h))] pb-24 sm:px-10">
-        <h1 className="font-rampart text-display-md leading-[1] text-balance">Termos de uso</h1>
-        <p className="text-body-lg mt-6 font-sans">Em breve.</p>
-        <p className="text-body mt-8 font-sans">
-          <NextLink href="/" className="underline underline-offset-4">
-            Voltar pro site
-          </NextLink>
-        </p>
-      </div>
-    </main>
-  );
+  return <LegalPage doc={await getLegalDoc("termos")} />;
 }

@@ -147,3 +147,20 @@ export async function kvDel(key: string) {
   }
   await redis([["DEL", key]]);
 }
+
+/** Solta uma trava só se ainda for nossa (mesmo valor) — atômico no Redis. */
+export async function kvReleaseLock(key: string, owner: string) {
+  if (inMemory()) {
+    if (memGet(key) === owner) mem.delete(key);
+    return;
+  }
+  await redis([
+    [
+      "EVAL",
+      'if redis.call("GET", KEYS[1]) == ARGV[1] then return redis.call("DEL", KEYS[1]) else return 0 end',
+      1,
+      key,
+      owner,
+    ],
+  ]);
+}

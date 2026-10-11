@@ -1,44 +1,140 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import type { ShippingItem, ShippingOption } from "@/lib/shipping";
+import { IS_PRODUCTION, kvGet, kvSet } from "@/lib/store/kv";
 
 /**
  * Cotação de frete no Melhor Envio — SÓ NO SERVIDOR (o token não pode ir
- * pro navegador). Chamada pela rota `/api/frete`.
+ * pro navegador). Usada pela rota `/api/frete` (tela) e pelo checkout no
+ * servidor (que recalcula o frete antes de gerar o Pix).
  *
- * HOJE: retorno MOCKADO (opções fictícias), porque ainda não temos o token.
- * Quando tiver:
- *   1. Criar `MELHOR_ENVIO_TOKEN` (e `MELHOR_ENVIO_CEP_ORIGEM`) na Vercel.
- *   2. Trocar o corpo de `quoteMelhorEnvio` pela chamada real:
- *      POST https://www.melhorenvio.com.br/api/v2/me/shipment/calculate
- *      (sandbox: https://sandbox.melhorenvio.com.br/...)
- *      headers: Authorization: Bearer <token>, Accept/Content-Type JSON,
- *               User-Agent: "Fernandito (email de contato)"
- *      body: { from: { postal_code }, to: { postal_code },
- *              products: [{ id, width, height, length, weight,
- *                           insurance_value, quantity }] }
- *   3. Mapear cada serviço da resposta (sem `error`) pra `ShippingOption`:
- *      id ← `me-${id}`, service ← name, carrier ← company.name,
- *      priceCents ← round(price * 100), days ← delivery_range.
+ * Variáveis:
+ * - `MELHOR_ENVIO_TOKEN`: token gerado no painel do Melhor Envio
+ *   (Integrações → Permissões de acesso → Gerar token, com "shipping-calculate").
+ * - `MELHOR_ENVIO_CEP_ORIGEM`: CEP de onde sai o produto (padrão 90430-131).
+ * - `MELHOR_ENVIO_SANDBOX=1`: usa o ambiente de testes (token do sandbox).
+ * - `MELHOR_ENVIO_USER_AGENT`: "Nome (e-mail de contato técnico)" — o
+ *   Melhor Envio pede isso em toda chamada.
+ *
+ * Sem token: fora de produção → cotação SIMULADA (valores fictícios);
+ * em produção → erro, e o checkout usa a tabela fixa por região.
+ *
+ * A cotação fica 1h no Redis (mesmo CEP + mesmos itens = mesma cotação):
+ * o preço que a pessoa viu na tela é o que o servidor confere depois.
  */
 
-export const ORIGIN_CEP = process.env.MELHOR_ENVIO_CEP_ORIGEM?.trim() || "90430131";
+const TOKEN = process.env.MELHOR_ENVIO_TOKEN?.trim() || "";
+const BASE =
+  process.env.MELHOR_ENVIO_SANDBOX === "1"
+    ? "https://sandbox.melhorenvio.com.br"
+    : "https://www.melhorenvio.com.br";
+const USER_AGENT =
+  process.env.MELHOR_ENVIO_USER_AGENT?.trim() || "Fernandito (https://fernandito.com.br)";
+export const ORIGIN_CEP = (process.env.MELHOR_ENVIO_CEP_ORIGEM?.trim() || "90430131").replace(
+  /\D/g,
+  "",
+);
+const CACHE_SECONDS = 60 * 60;
+// Mostra no máximo as N opções mais baratas.
+const MAX_OPTIONS = 4;
+
+type MeService = {
+  id: number;
+  name: string;
+  price?: string;
+  custom_price?: string;
+  error?: string;
+  delivery_range?: { min: number; max: number };
+  custom_delivery_range?: { min: number; max: number };
+  company?: { name?: string };
+};
 
 export async function quoteMelhorEnvio(
   destinationCep: string,
   items: ShippingItem[],
 ): Promise<ShippingOption[]> {
+  const cep = destinationCep.replace(/\D/g, "");
+  const cacheKey = `frete:${createHash("sha1")
+    .update(JSON.stringify({ cep, items, origin: ORIGIN_CEP, real: Boolean(TOKEN) }))
+    .digest("hex")}`;
+  try {
+    const cached = await kvGet(cacheKey);
+    if (cached) return JSON.parse(cached) as ShippingOption[];
+  } catch {
+    // Sem banco: cota de novo.
+  }
+
+  let options: ShippingOption[];
+  if (TOKEN) options = await quoteReal(cep, items);
+  else if (!IS_PRODUCTION) options = quoteMock(cep, items);
+  else throw new Error("Melhor Envio não configurado (MELHOR_ENVIO_TOKEN)");
+
+  if (options.length === 0) throw new Error("Melhor Envio sem opções pra esse CEP");
+  try {
+    await kvSet(cacheKey, JSON.stringify(options), CACHE_SECONDS);
+  } catch {
+    // Sem banco: segue sem cache.
+  }
+  return options;
+}
+
+async function quoteReal(cep: string, items: ShippingItem[]): Promise<ShippingOption[]> {
+  const response = await fetch(`${BASE}/api/v2/me/shipment/calculate`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${TOKEN}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "User-Agent": USER_AGENT,
+    },
+    body: JSON.stringify({
+      from: { postal_code: ORIGIN_CEP },
+      to: { postal_code: cep },
+      products: items.map((item, index) => ({
+        id: String(index + 1),
+        width: item.widthCm,
+        height: item.heightCm,
+        length: item.lengthCm,
+        weight: item.weightKg,
+        insurance_value: item.priceCents / 100,
+        quantity: item.qty,
+      })),
+      options: { receipt: false, own_hand: false },
+    }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) throw new Error(`Melhor Envio ${response.status}`);
+  const services = (await response.json()) as MeService[];
+  return services
+    .filter((s) => !s.error && (s.custom_price ?? s.price))
+    .map((s) => {
+      const days = s.custom_delivery_range ?? s.delivery_range ?? { min: 0, max: 0 };
+      return {
+        id: `me-${s.id}`,
+        service: s.name,
+        carrier: s.company?.name ?? "Transportadora",
+        priceCents: Math.round(Number(s.custom_price ?? s.price) * 100),
+        days: { min: days.min, max: days.max },
+        source: "melhor-envio" as const,
+      };
+    })
+    .sort((a, b) => a.priceCents - b.priceCents)
+    .slice(0, MAX_OPTIONS);
+}
+
+/** SIMULADO (sem token, fora de produção): valores fictícios, só pra tela. */
+function quoteMock(cep: string, items: ShippingItem[]): ShippingOption[] {
   const weight = items.reduce((sum, item) => sum + item.weightKg * item.qty, 0);
-  // MOCK: valores fictícios, crescem um pouco com o peso e com a distância
-  // "aproximada" pelo primeiro dígito do CEP (só pra variar na tela).
   const distance = Math.min(
     3,
-    Math.round(Math.abs(Number(destinationCep[0] ?? 9) - Number(ORIGIN_CEP[0])) / 3),
+    Math.round(Math.abs(Number(cep[0] ?? 9) - Number(ORIGIN_CEP[0])) / 3),
   );
   const base = 1800 + distance * 450 + Math.round(weight * 300);
   return [
     {
       id: "me-mock-pac",
-      service: "PAC",
+      service: "PAC (simulado)",
       carrier: "Correios",
       priceCents: base,
       days: { min: 5 + distance, max: 8 + distance },
@@ -46,18 +142,10 @@ export async function quoteMelhorEnvio(
     },
     {
       id: "me-mock-sedex",
-      service: "SEDEX",
+      service: "SEDEX (simulado)",
       carrier: "Correios",
       priceCents: Math.round(base * 1.7),
       days: { min: 2 + Math.ceil(distance / 2), max: 4 + Math.ceil(distance / 2) },
-      source: "melhor-envio",
-    },
-    {
-      id: "me-mock-jadlog",
-      service: ".Package",
-      carrier: "Jadlog",
-      priceCents: Math.round(base * 1.2),
-      days: { min: 4 + distance, max: 6 + distance },
       source: "melhor-envio",
     },
   ];

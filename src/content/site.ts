@@ -256,6 +256,12 @@ export const FOOTER = {
   tagline: "Toma Fernandito.",
   navTitle: "Navegar",
   socialTitle: "Social",
+  /** Coluna "Legal" (aparece com a loja ligada, `STORE.enabled`). */
+  legalTitle: "Legal",
+  legalLinks: [
+    { label: "Termos de uso", href: "/termos" },
+    { label: "Política de privacidade", href: "/privacidade" },
+  ],
   backToTop: "Voltar ao topo",
   copyright: "© 2026 Fernandito. Todos os direitos reservados.",
   madeIn: "Feito com brio. Porto Alegre, RS.",

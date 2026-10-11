@@ -46,8 +46,8 @@ export const PRODUCTS: Product[] = [
       },
     ],
     maxQty: 5,
-    // Igual ao cadastro no Bling (peso bruto 1,3 kg; 20 × 16 × 12 cm).
-    shipping: { weightKg: 1.3, widthCm: 20, heightCm: 16, lengthCm: 12 },
+    // Igual ao cadastro no Bling: caixa 19 × 19 × 6,5 cm, 1,2 kg.
+    shipping: { weightKg: 1.2, widthCm: 19, heightCm: 6.5, lengthCm: 19 },
     active: true,
   },
   {
@@ -58,7 +58,8 @@ export const PRODUCTS: Product[] = [
     priceCents: 10000,
     images: [{ src: null, alt: "Pack com 6 latas de Fernandito", placeholder: "Pack 6 latas" }],
     maxQty: 5,
-    shipping: { weightKg: 2.4, widthCm: 25, heightCm: 13, lengthCm: 18 },
+    // Igual ao cadastro no Bling: caixa 24 × 14 × 16,5 cm, 2,5 kg.
+    shipping: { weightKg: 2.5, widthCm: 24, heightCm: 16.5, lengthCm: 14 },
     // Liberado quando os kits de pré-lançamento acabarem.
     active: false,
   },

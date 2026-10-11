@@ -1,6 +1,6 @@
 import "server-only";
 import { LOCAL_DELIVERY } from "@/lib/shipping";
-import { IS_PRODUCTION, kvGet, kvSAdd, kvSMembers, kvSRem, kvSet } from "@/lib/store/kv";
+import { IS_PRODUCTION, kvGet, kvSAdd, kvSMembers, kvSRem, kvSet, kvSetNX } from "@/lib/store/kv";
 import { getOrder, saveOrder, type StoredOrder } from "@/lib/store/orders";
 import { bling, BlingNotConnectedError, isBlingConnected } from "@/lib/bling/client";
 
@@ -14,11 +14,14 @@ import { bling, BlingNotConnectedError, isBlingConnected } from "@/lib/bling/cli
  *    não duplica: antes de criar, procura se já existe), frete, endereço de
  *    entrega (etiqueta) e uma parcela paga no Pix.
  *
- * O pedido "Em aberto" no Bling já reserva o estoque (saldo virtual). A nota
- * fiscal e o envio continuam sendo feitos no Bling, como hoje.
+ * Entra como "Em andamento" (já pago), na loja "Site Fernandito" e, em POA,
+ * com a logística "Entrega própria POA". Contato ganha os campos
+ * customizados "Aceita marketing" e "Confirmou 18+". A nota fiscal e o
+ * envio continuam sendo feitos no Bling, como hoje.
  *
  * Falhou (Bling fora, token vencido…)? O pedido entra na fila `bling:retry`
- * e o cron diário (/api/cron/bling) tenta de novo. Nada se perde: o pedido
+ * e é reenviado a cada requisição relevante (no máximo 1x a cada 10 min,
+ * `maybeRetryBling`) e pelo cron (/api/cron/bling). Nada se perde: o pedido
  * pago continua salvo no Redis.
  *
  * Preview/local: só envia com `BLING_SYNC_PREVIEW=1` (pra teste não virar
@@ -28,7 +31,12 @@ import { bling, BlingNotConnectedError, isBlingConnected } from "@/lib/bling/cli
 const RETRY_SET = "bling:retry";
 const SYNC_ENABLED = IS_PRODUCTION || process.env.BLING_SYNC_PREVIEW === "1";
 const FORMA_PAGAMENTO_ID = Number(process.env.BLING_FORMA_PAGAMENTO_ID) || 0;
+// Loja/canal "Site Fernandito": o "código da loja (API)" dela no Bling.
 const LOJA_ID = Number(process.env.BLING_LOJA_ID) || 0;
+// Situação ao entrar: 15 = "Em andamento" (o pedido só é criado DEPOIS do
+// Pix pago, então já está em preparação). Trocar com BLING_SITUACAO_ID
+// (6 = Em aberto).
+const SITUACAO_ID = Number(process.env.BLING_SITUACAO_ID) || 15;
 
 type Page<T> = { data: T[] };
 type Created = { data: { id: number; numero?: number } };
@@ -40,12 +48,87 @@ function today() {
 
 const reais = (cents: number) => Math.round(cents) / 100;
 
+// Campos customizados do contato (tipo "lógico"). Ids descobertos pelo nome
+// no Bling (ou fixados pelas variáveis). Valor lógico: "1" marcado, "0" não.
+const CAMPO_MARKETING = process.env.BLING_CAMPO_MARKETING_ID;
+const CAMPO_MAIORIDADE = process.env.BLING_CAMPO_18_ID;
+const LOGICO = (value: boolean) => (value ? "1" : "0");
+
+type CampoCustom = { idCampoCustomizado: number; valor: string };
+
+/** Ids dos campos "Aceita marketing" e "Confirmou 18+" (cache de 1 dia). */
+async function contactFieldIds(): Promise<{ marketing?: number; maioridade?: number }> {
+  if (CAMPO_MARKETING || CAMPO_MAIORIDADE)
+    return {
+      marketing: Number(CAMPO_MARKETING) || undefined,
+      maioridade: Number(CAMPO_MAIORIDADE) || undefined,
+    };
+  const cached = await kvGet("bling:campos-contato");
+  if (cached) return JSON.parse(cached) as { marketing?: number; maioridade?: number };
+  const modules = await bling<Page<{ id: number; nome: string; modulo?: string }>>(
+    "/campos-customizados/modulos",
+  );
+  const contatos = modules.data.find((m) => /contato/i.test(`${m.nome} ${m.modulo ?? ""}`));
+  if (!contatos) return {};
+  const fields = await bling<Page<{ id: number; nome: string }>>(
+    `/campos-customizados/modulos/${contatos.id}`,
+  );
+  const norm = (text: string) =>
+    text
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  const ids = {
+    marketing: fields.data.find((f) => norm(f.nome).includes("marketing"))?.id,
+    maioridade: fields.data.find((f) => /18/.test(f.nome))?.id,
+  };
+  await kvSet("bling:campos-contato", JSON.stringify(ids), 60 * 60 * 24);
+  return ids;
+}
+
+async function contactCustomFields(order: StoredOrder): Promise<CampoCustom[]> {
+  const ids = await contactFieldIds();
+  const fields: CampoCustom[] = [];
+  if (ids.marketing)
+    fields.push({ idCampoCustomizado: ids.marketing, valor: LOGICO(order.marketingOptIn) });
+  if (ids.maioridade)
+    fields.push({ idCampoCustomizado: ids.maioridade, valor: LOGICO(order.ageConfirmed) });
+  if (!fields.length)
+    console.warn("[bling] campos 'Aceita marketing'/'Confirmou 18+' não encontrados");
+  return fields;
+}
+
 async function findOrCreateContact(order: StoredOrder) {
   const { customer, address } = order;
+  const campos = await contactCustomFields(order).catch((error: Error) => {
+    console.error("[bling] campos customizados:", error.message);
+    return [] as CampoCustom[];
+  });
   const found = await bling<Page<{ id: number }>>(
     `/contatos?numeroDocumento=${customer.cpf}&limite=1`,
   );
-  if (found.data[0]) return found.data[0].id;
+  if (found.data[0]) {
+    const id = found.data[0].id;
+    // Cliente que já existe: atualiza só os dois campos (a escolha de
+    // marketing mais recente vale). Falhar aqui não trava o pedido.
+    if (campos.length) {
+      try {
+        const full = await bling<{
+          data: Record<string, unknown> & { camposCustomizados?: CampoCustom[] };
+        }>(`/contatos/${id}`);
+        const others = (full.data.camposCustomizados ?? []).filter(
+          (c) => !campos.some((n) => n.idCampoCustomizado === c.idCampoCustomizado),
+        );
+        await bling(`/contatos/${id}`, {
+          method: "PUT",
+          body: { ...full.data, camposCustomizados: [...others, ...campos] },
+        });
+      } catch (error) {
+        console.error(`[bling] não atualizou campos do contato ${id}:`, (error as Error).message);
+      }
+    }
+    return id;
+  }
   const endereco = {
     endereco: address.street,
     numero: address.number,
@@ -67,9 +150,32 @@ async function findOrCreateContact(order: StoredOrder) {
       celular: customer.phone,
       indicadorIe: "9",
       endereco: { geral: endereco },
+      ...(campos.length ? { camposCustomizados: campos } : {}),
     },
   });
   return created.data.id;
+}
+
+// Logística "Entrega própria POA" (pedidos de Porto Alegre): o código do
+// serviço vai em transporte.volumes[].servico. Descoberto pelo nome da
+// logística no Bling (ou fixado em BLING_LOGISTICA_POA_SERVICO).
+const LOGISTICA_POA_NOME = process.env.BLING_LOGISTICA_POA_NOME?.trim() || "Entrega própria POA";
+const LOGISTICA_POA_SERVICO = process.env.BLING_LOGISTICA_POA_SERVICO?.trim();
+
+async function poaLogisticsService(): Promise<string | null> {
+  if (LOGISTICA_POA_SERVICO) return LOGISTICA_POA_SERVICO;
+  const cached = await kvGet("bling:logistica-poa");
+  if (cached) return cached;
+  const list = await bling<Page<{ id: number; descricao: string }>>("/logisticas?situacao=H");
+  const logistica = list.data.find((l) => l.descricao.trim() === LOGISTICA_POA_NOME);
+  if (!logistica) return null;
+  const detail = await bling<{
+    data: { servicos?: { id: number; codigo?: string; descricao?: string }[] };
+  }>(`/logisticas/${logistica.id}`);
+  const servico = detail.data.servicos?.[0];
+  const code = servico?.codigo || servico?.descricao || null;
+  if (code) await kvSet("bling:logistica-poa", code, 60 * 60 * 24);
+  return code;
 }
 
 /** id do produto no Bling pelo SKU. */
@@ -108,14 +214,20 @@ async function createSalesOrder(order: StoredOrder) {
   );
   if (existing.data[0]) return existing.data[0];
 
-  const [contactId, ids, formaPagamento] = await Promise.all([
+  const local = order.shipping.id === LOCAL_DELIVERY.id;
+  const [contactId, ids, formaPagamento, servicoPoa] = await Promise.all([
     findOrCreateContact(order),
     productIds(order.items.map((i) => i.sku)),
     pixPaymentMethodId(),
+    local
+      ? poaLogisticsService().catch((error: Error) => {
+          console.error("[bling] logística POA:", error.message);
+          return null;
+        })
+      : null,
   ]);
   const { address, shipping } = order;
   const date = today();
-  const local = shipping.id === LOCAL_DELIVERY.id;
 
   const created = await bling<Created>("/pedidos/vendas", {
     method: "POST",
@@ -125,6 +237,7 @@ async function createSalesOrder(order: StoredOrder) {
       dataSaida: date,
       dataPrevista: date,
       contato: { id: contactId },
+      situacao: { id: SITUACAO_ID },
       ...(LOJA_ID ? { loja: { id: LOJA_ID } } : {}),
       itens: order.items.map((item) => ({
         produto: { id: ids.get(item.sku) },
@@ -139,6 +252,7 @@ async function createSalesOrder(order: StoredOrder) {
         fretePorConta: local ? "3" : "0",
         frete: reais(shipping.priceCents),
         prazoEntrega: shipping.days.max,
+        ...(servicoPoa ? { volumes: [{ servico: servicoPoa }] } : {}),
         etiqueta: {
           nome: order.customer.name,
           endereco: address.street,
@@ -162,6 +276,9 @@ async function createSalesOrder(order: StoredOrder) {
       observacoesInternas:
         `Site #${order.id} · Pix MP ${order.mpPaymentId ?? "-"} · pago em ${order.paidAt ?? "-"} · ` +
         `frete ${shipping.id} (${shipping.source}) · maioridade declarada em ${order.ageConfirmedAt}` +
+        (order.termsVersion
+          ? ` · aceitou Termos v${order.termsVersion} e Privacidade v${order.privacyVersion}`
+          : "") +
         (order.marketingOptIn ? " · aceitou receber novidades" : "") +
         (IS_PRODUCTION ? "" : " · PEDIDO DE TESTE (preview)"),
     },
@@ -204,6 +321,24 @@ export async function syncOrderToBling(orderId: string) {
     console.error(`[bling] pedido ${order.id} falhou, vai pra fila:`, message);
   }
   return order;
+}
+
+/**
+ * Reenvio "a cada requisição relevante" (status do Pix, checkout, webhook):
+ * no máximo 1x a cada 10 min no site inteiro (trava no Redis). Roda depois
+ * da resposta (`after`), sem atrasar ninguém. Funciona em qualquer plano da
+ * Vercel — o cron é só a rede de segurança.
+ */
+export async function maybeRetryBling() {
+  try {
+    if (!SYNC_ENABLED) return;
+    // Fila vazia → nem gasta a vez (o próximo pedido que falhar não espera 10 min).
+    if ((await kvSMembers(RETRY_SET)).length === 0) return;
+    if (!(await kvSetNX("bling:retry-tick", "1", 10 * 60))) return;
+    await retryPendingBlingOrders();
+  } catch (error) {
+    console.error("[bling] reenvio oportunista:", (error as Error).message);
+  }
 }
 
 /** Cron: reenvia o que ficou na fila. */
