@@ -32,6 +32,17 @@ Copie `.env.example` para `.env.local` e preencha o que for necessário. Veja
   **Settings → Environment Variables** (Production) e um redeploy.
 
 - **Loja escondida por padrão:** `STORE.enabled` em `src/content/site.ts` liga/desliga tudo da venda do kit (seção, botões, carrinho, /comprar, /checkout).
+- **`MERCADOPAGO_ACCESS_TOKEN`** / **`MERCADOPAGO_WEBHOOK_SECRET`** — Pix
+  (Mercado Pago). Só servidor. Teste = credencial `TEST-…`; produção =
+  `APP_USR-…` (trocar de modo é só trocar a variável). Webhook a cadastrar
+  no painel do Mercado Pago (evento "Pagamentos"):
+  `https://fernandito.com.br/api/webhooks/mercadopago`.
+- **`KV_REST_API_URL`** / **`KV_REST_API_TOKEN`** — banco de pedidos
+  (Upstash Redis). Criadas sozinhas ao conectar **Storage → Upstash for
+  Redis** ao projeto na Vercel.
+- Sem essas variáveis, FORA de produção (local/preview) a loja roda em modo
+  simulado (pedidos em memória, Pix fictício, botão "Simular pagamento");
+  em produção, sem elas, o pagamento responde "indisponível".
 - **`MELHOR_ENVIO_TOKEN`** / **`MELHOR_ENVIO_CEP_ORIGEM`** — ainda não usadas
   (a cotação de frete está mockada em `src/lib/melhor-envio.ts`, que tem o
   passo a passo da integração real). Só no servidor, nunca `NEXT_PUBLIC_`.

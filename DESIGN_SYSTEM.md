@@ -325,6 +325,30 @@ Pra lançar o site completo: `PRELAUNCH.enabled = false` — volta tudo como
 era, nada mais precisa mudar. A faixa "Estamos chegando" é outra chave
 (`ANNOUNCEMENT`).
 
+### Loja — pagamento Pix (Prompt Loja #2)
+
+- **Fluxo:** checkout → `POST /api/checkout/pix` (zod + recálculo de preço
+  pelo `catalog.ts` e do frete no servidor; total diferente do mostrado →
+  409 e a pessoa revisa) → pedido "pending" no Redis → Pix no Mercado Pago
+  (30 min, `external_reference` = id do pedido, idempotency key) → tela
+  `/pedido/[id]` (QR, copia e cola, contador, polling de 4s) → pago →
+  `/pedido/[id]/confirmado` ("Pedido confirmado! Toma Fernandito.", esvazia
+  o carrinho). Expirou → "Gerar novo Pix" (novo pedido, mesmos dados).
+- **Confirmação:** webhook `/api/webhooks/mercadopago` (x-signature
+  validado, pagamento buscado na API) e, de reserva, o próprio polling
+  confere no Mercado Pago a cada 8s — funciona mesmo se o webhook não
+  chegar (ex.: preview protegido por login). `onOrderPaid` roda uma vez só
+  (`src/lib/store/on-order-paid.ts`, TODO do Bling no #3).
+- **Banco:** Upstash Redis (REST, sem SDK) — o mais simples na Vercel:
+  um clique em Storage, sem tabela/migração; pedido = JSON em `order:<id>`.
+- **Segurança:** segredos só no servidor; rate limit por IP (Pix 8/10min,
+  frete 30/10min, status 60/min); entrega própria só com CEP de POA
+  (90000-000 a 91999-999); logs sem CPF/e-mail completos; a página do
+  pedido não mostra CPF/e-mail/telefone e o id é aleatório.
+- **Modo teste:** sem credenciais fora de produção → Pix simulado + pedidos
+  em memória + botão "Simular pagamento (só no teste)". O botão também
+  aparece com credencial `TEST-…`, nunca em produção.
+
 ### Loja (venda direta) — fluxo visual
 
 > **Chave liga/desliga: `STORE.enabled` em `src/content/site.ts` (hoje

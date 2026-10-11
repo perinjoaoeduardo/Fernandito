@@ -2,10 +2,11 @@
 
 import { clsx } from "clsx";
 import NextLink from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { maskCEP, maskCPF, maskPhone, onlyDigits } from "@/lib/br";
 import { formatBRL } from "@/lib/money";
-import { addressSchema, customerSchema, fieldErrors, orderSchema, type Order } from "@/lib/order";
+import { addressSchema, customerSchema, fieldErrors, orderSchema } from "@/lib/order";
 import { formatDays, getShippingOptions, type ShippingOption } from "@/lib/shipping";
 import { STORE } from "@/content/site";
 import { Button } from "@/components/ui/Button";
@@ -17,8 +18,9 @@ import { Field } from "@/components/checkout/Field";
  * Checkout em 4 etapas, uma de cada vez (as anteriores ficam resumidas, com
  * "Editar"): A contato → B entrega (CEP via ViaCEP) → C frete → D idade e
  * termos. O resumo do pedido fica fixo do lado no desktop e no fim no
- * celular. "Pagar com Pix" ainda não paga: valida o pedido inteiro (zod) e
- * mostra "Pagamento em breve" com o resumo.
+ * celular. "Pagar com Pix" valida o pedido inteiro (zod), manda pro
+ * servidor (/api/checkout/pix — que recalcula tudo e gera o Pix no Mercado
+ * Pago) e abre a tela do Pix em /pedido/[id].
  */
 
 const STEPS = ["Contato", "Entrega", "Frete", "Confirmação"] as const;
@@ -61,7 +63,11 @@ export function CheckoutClient() {
   const [shippingId, setShippingId] = useState<string | null>(null);
   const [ageConfirmedAt, setAgeConfirmedAt] = useState<string | null>(null);
   const [marketingOptIn, setMarketingOptIn] = useState(false);
-  const [order, setOrder] = useState<Order | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+  // Uma chave por tentativa: clique duplo/reenvio → o mesmo pedido e Pix.
+  const idempotencyKey = useRef<string | null>(null);
+  const router = useRouter();
   const numberRef = useRef<HTMLInputElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
 
@@ -168,8 +174,8 @@ export function CheckoutClient() {
     goTo(3);
   }
 
-  function pay() {
-    if (!shipping || !ageConfirmedAt) return;
+  async function pay() {
+    if (!shipping || !ageConfirmedAt || paying) return;
     const candidate = {
       items: cart.lines.map((line) => ({
         sku: line.sku,
@@ -194,16 +200,40 @@ export function CheckoutClient() {
       goTo(firstKey.startsWith("customer") ? 0 : firstKey.startsWith("address") ? 1 : 2);
       return;
     }
-    if (process.env.NODE_ENV !== "production") {
-      console.log("[checkout] pedido (dev)", parsed.data);
+    setPaying(true);
+    setPayError(null);
+    idempotencyKey.current ??= crypto.randomUUID();
+    try {
+      const response = await fetch("/api/checkout/pix", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": idempotencyKey.current,
+        },
+        body: JSON.stringify(parsed.data),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        order?: { id: string };
+        error?: string;
+        code?: string;
+      };
+      if (!response.ok || !data.order) {
+        // Pedido mudou (frete/preço): nova tentativa = nova chave.
+        idempotencyKey.current = null;
+        if (data.code === "shipping") {
+          setOptions(null);
+          goTo(1);
+        }
+        throw new Error(data.error ?? "Não deu pra gerar o Pix. Tenta de novo.");
+      }
+      router.push(`/pedido/${data.order.id}`);
+    } catch (error) {
+      setPayError((error as Error).message);
+      setPaying(false);
     }
-    setOrder(parsed.data);
-    requestAnimationFrame(() => topRef.current?.scrollIntoView({ block: "start" }));
   }
 
   // ── Telas especiais ──────────────────────────────────────────────────────
-  if (order) return <PaymentSoon order={order} />;
-
   if (cart.ready && cart.lines.length === 0) {
     return (
       <div className="flex flex-col items-start gap-6 py-16">
@@ -481,12 +511,17 @@ export function CheckoutClient() {
               <Button
                 variant="primary"
                 className="w-full sm:w-auto"
-                onClick={pay}
-                disabled={!ageConfirmedAt || !shipping}
-                aria-disabled={!ageConfirmedAt || !shipping}
+                onClick={() => void pay()}
+                disabled={!ageConfirmedAt || !shipping || paying}
+                aria-disabled={!ageConfirmedAt || !shipping || paying}
               >
-                Pagar com Pix · {formatBRL(totalCents)}
+                {paying ? "Gerando Pix…" : `Pagar com Pix · ${formatBRL(totalCents)}`}
               </Button>
+              {payError && (
+                <p role="alert" className="text-body mt-3 font-sans text-red-700">
+                  {payError}
+                </p>
+              )}
               {!ageConfirmedAt && (
                 <p className="text-label mt-3 font-sans uppercase opacity-60">
                   Confirme a declaração de maioridade pra continuar.
@@ -646,62 +681,6 @@ function OrderSummary({
         </div>
       </dl>
     </aside>
-  );
-}
-
-/** Depois do "Pagar com Pix" (o Pix entra no próximo passo). */
-function PaymentSoon({ order }: { order: Order }) {
-  const cart = useCart();
-  return (
-    <div className="flex flex-col items-start gap-8 py-8">
-      <div>
-        <p className="font-accent text-label tracking-[0.16em] uppercase opacity-70">Quase lá</p>
-        <h1 className="font-rampart mt-3 text-[clamp(2rem,5vw,3.5rem)] leading-[1.05]">
-          Pagamento em breve
-        </h1>
-        <p className="text-body-lg mt-4 max-w-xl font-sans">
-          O pagamento por Pix ainda está sendo ligado. Teu pedido não foi cobrado nem enviado — o
-          carrinho continua salvo aqui.
-        </p>
-      </div>
-      <div className="border-fernandito-verde-escuro/15 w-full max-w-xl rounded-2xl border bg-white/40 p-6 font-sans">
-        <h2 className="font-rampart text-[1.5rem] leading-none">Resumo do pedido</h2>
-        <ul className="mt-5 flex flex-col gap-2">
-          {order.items.map((item) => {
-            const name = cart.lines.find((l) => l.sku === item.sku)?.product.name ?? item.sku;
-            return (
-              <li key={item.sku} className="flex justify-between gap-4">
-                <span>
-                  {name} <span className="opacity-60">× {item.qty}</span>
-                </span>
-                <span className="tabular-nums">{formatBRL(item.unitPriceCents * item.qty)}</span>
-              </li>
-            );
-          })}
-          <li className="flex justify-between gap-4">
-            <span>
-              Frete — {order.shipping.service}{" "}
-              <span className="opacity-60">({formatDays(order.shipping.days)})</span>
-            </span>
-            <span className="tabular-nums">{formatBRL(order.shipping.priceCents)}</span>
-          </li>
-        </ul>
-        <div className="border-fernandito-verde-escuro/15 mt-4 flex items-baseline justify-between border-t pt-4">
-          <span className="font-bold">Total</span>
-          <span className="font-rampart text-[1.75rem] leading-none tabular-nums">
-            {formatBRL(order.totalCents)}
-          </span>
-        </div>
-        <p className="text-body mt-5 opacity-75">
-          Entrega para {order.customer.name} — {order.address.street}, {order.address.number}
-          {order.address.complement ? ` (${order.address.complement})` : ""},{" "}
-          {order.address.neighborhood}, {order.address.city}/{order.address.uf}
-        </p>
-      </div>
-      <Button as="a" href="/" variant="secondary">
-        Voltar pro site
-      </Button>
-    </div>
   );
 }
 

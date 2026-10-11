@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { quoteMelhorEnvio } from "@/lib/melhor-envio";
-import { STORE } from "@/content/site";
+import { guard } from "@/lib/store/http";
 
 // Cotação de frete (fora de Porto Alegre). O navegador manda o CEP e os
 // itens (peso/dimensões); a cotação roda aqui, no servidor, onde vai ficar
@@ -24,7 +24,8 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
-  if (!STORE.enabled) return Response.json({ error: "Loja fechada" }, { status: 404 });
+  const blocked = await guard(request, "frete", 30, 10 * 60);
+  if (blocked) return blocked;
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Dados inválidos" }, { status: 400 });
   try {
