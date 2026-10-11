@@ -1,47 +1,48 @@
 import "server-only";
+import Redis from "ioredis";
 
 /**
- * Banco da loja: Upstash Redis pela API REST (sem SDK — é só `fetch`).
+ * Banco da loja: Redis por conexão TCP (pacote `ioredis`).
  *
- * Na Vercel: Storage/Marketplace → Upstash for Redis → conectar ao projeto.
- * A integração cria `KV_REST_API_URL` / `KV_REST_API_TOKEN` (ou
- * `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`, se criado direto
- * no Upstash) — os dois pares funcionam.
+ * Na Vercel: Storage → Redis (ou Marketplace → Upstash/Redis Cloud) →
+ * conectar ao projeto. A integração cria UMA variável com a string de
+ * conexão completa (usuário, senha, host e porta) — hoje chamada
+ * `KV_REDIS_URL` (o prefixo escolhido na instalação pode gerar outro nome;
+ * também aceita `REDIS_URL`, o nome mais comum fora da Vercel).
  *
- * Sem essas variáveis e FORA de produção (local e preview), cai num Map em
+ * Sem essa variável e FORA de produção (local e preview), cai num Map em
  * memória, só pra conseguir ver as telas. Em memória os dados somem quando
  * o servidor reinicia e, na Vercel, não são compartilhados entre
  * instâncias — serve pra olhar, não pra testar de verdade. Em produção sem
  * banco → erro (`StoreUnavailableError`), nunca memória.
  */
 
-const URL_ = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || "";
-const TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || "";
+const REDIS_URL = process.env.KV_REDIS_URL || process.env.REDIS_URL || "";
 
 export const IS_PRODUCTION = process.env.VERCEL_ENV === "production";
-export const HAS_REDIS = Boolean(URL_ && TOKEN);
+export const HAS_REDIS = Boolean(REDIS_URL);
 
 export class StoreUnavailableError extends Error {
   constructor() {
-    super("Banco de pedidos não configurado (KV_REST_API_URL / KV_REST_API_TOKEN)");
+    super("Banco de pedidos não configurado (KV_REDIS_URL)");
   }
 }
 
-type Command = (string | number)[];
+// Reaproveita a conexão entre chamadas na mesma instância "quente" da
+// função serverless — abrir uma conexão nova a cada chamada seria lento.
+const globalRedis = globalThis as unknown as { __fernanditoRedis?: Redis };
 
-async function redis<T>(commands: Command[]): Promise<T[]> {
-  const response = await fetch(`${URL_}/pipeline`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
-    body: JSON.stringify(commands),
-    cache: "no-store",
-  });
-  if (!response.ok) throw new Error(`Redis HTTP ${response.status}`);
-  const data = (await response.json()) as { result?: T; error?: string }[];
-  return data.map((entry) => {
-    if (entry.error) throw new Error(`Redis: ${entry.error}`);
-    return entry.result as T;
-  });
+function client(): Redis {
+  if (!globalRedis.__fernanditoRedis) {
+    const redis = new Redis(REDIS_URL, {
+      maxRetriesPerRequest: 2,
+      connectTimeout: 5000,
+      lazyConnect: true,
+    });
+    redis.on("error", (error) => console.error("[redis] erro de conexão:", error.message));
+    globalRedis.__fernanditoRedis = redis;
+  }
+  return globalRedis.__fernanditoRedis;
 }
 
 // ── Memória (só fora de produção, sem Redis) ───────────────────────────────
@@ -69,8 +70,7 @@ function inMemory() {
 
 export async function kvGet(key: string): Promise<string | null> {
   if (inMemory()) return memGet(key);
-  const [value] = await redis<string | null>([["GET", key]]);
-  return value;
+  return client().get(key);
 }
 
 /** Grava (com validade opcional em segundos). */
@@ -79,7 +79,8 @@ export async function kvSet(key: string, value: string, ttlSeconds?: number) {
     mem.set(key, { value, expiresAt: ttlSeconds ? Date.now() + ttlSeconds * 1000 : null });
     return;
   }
-  await redis([ttlSeconds ? ["SET", key, value, "EX", ttlSeconds] : ["SET", key, value]]);
+  if (ttlSeconds) await client().set(key, value, "EX", ttlSeconds);
+  else await client().set(key, value);
 }
 
 /** Grava só se a chave ainda não existe. `true` = gravou (foi o primeiro). */
@@ -89,7 +90,7 @@ export async function kvSetNX(key: string, value: string, ttlSeconds: number) {
     mem.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
     return true;
   }
-  const [result] = await redis<string | null>([["SET", key, value, "NX", "EX", ttlSeconds]]);
+  const result = await client().set(key, value, "EX", ttlSeconds, "NX");
   return result === "OK";
 }
 
@@ -105,10 +106,8 @@ export async function rateLimit(bucket: string, id: string, limit: number, windo
     mem.set(key, { value: String(count), expiresAt: Date.now() + windowSeconds * 1000 });
     return count <= limit;
   }
-  const [count] = await redis<number>([
-    ["INCR", key],
-    ["EXPIRE", key, windowSeconds],
-  ]);
+  const count = await client().incr(key);
+  await client().expire(key, windowSeconds);
   return count <= limit;
 }
 
@@ -121,7 +120,7 @@ export async function kvSAdd(key: string, member: string) {
     mem.set(key, { value: JSON.stringify([...set]), expiresAt: null });
     return;
   }
-  await redis([["SADD", key, member]]);
+  await client().sadd(key, member);
 }
 
 export async function kvSRem(key: string, member: string) {
@@ -131,13 +130,12 @@ export async function kvSRem(key: string, member: string) {
     mem.set(key, { value: JSON.stringify([...set]), expiresAt: null });
     return;
   }
-  await redis([["SREM", key, member]]);
+  await client().srem(key, member);
 }
 
 export async function kvSMembers(key: string): Promise<string[]> {
   if (inMemory()) return JSON.parse(memGet(key) ?? "[]") as string[];
-  const [members] = await redis<string[]>([["SMEMBERS", key]]);
-  return members ?? [];
+  return client().smembers(key);
 }
 
 export async function kvDel(key: string) {
@@ -145,7 +143,7 @@ export async function kvDel(key: string) {
     mem.delete(key);
     return;
   }
-  await redis([["DEL", key]]);
+  await client().del(key);
 }
 
 /** Solta uma trava só se ainda for nossa (mesmo valor) — atômico no Redis. */
@@ -154,13 +152,10 @@ export async function kvReleaseLock(key: string, owner: string) {
     if (memGet(key) === owner) mem.delete(key);
     return;
   }
-  await redis([
-    [
-      "EVAL",
-      'if redis.call("GET", KEYS[1]) == ARGV[1] then return redis.call("DEL", KEYS[1]) else return 0 end',
-      1,
-      key,
-      owner,
-    ],
-  ]);
+  await client().eval(
+    'if redis.call("GET", KEYS[1]) == ARGV[1] then return redis.call("DEL", KEYS[1]) else return 0 end',
+    1,
+    key,
+    owner,
+  );
 }

@@ -37,21 +37,20 @@ Copie `.env.example` para `.env.local` e preencha o que for necessário. Veja
   `APP_USR-…` (trocar de modo é só trocar a variável). Webhook a cadastrar
   no painel do Mercado Pago (evento "Pagamentos"):
   `https://fernandito.com.br/api/webhooks/mercadopago`.
-- **`KV_REST_API_URL`** / **`KV_REST_API_TOKEN`** — banco de pedidos
-  (Upstash Redis). Criadas sozinhas ao conectar **Storage → Upstash for
-  Redis** ao projeto na Vercel.
+- **`KV_REDIS_URL`** — banco de pedidos (Redis). Criada sozinha ao conectar
+  **Storage → Redis** ao projeto na Vercel (string de conexão completa; o
+  nome pode sair diferente conforme o prefixo escolhido na instalação —
+  também aceita `REDIS_URL`).
 - **Bling** — `BLING_CLIENT_ID`, `BLING_CLIENT_SECRET`, `BLING_ADMIN_KEY`
   (+ opcionais `BLING_FORMA_PAGAMENTO_ID`, `BLING_LOJA_ID`,
   `BLING_SYNC_PREVIEW`) e `CRON_SECRET`. Conectar uma vez em
   `https://fernandito.com.br/api/bling/connect?key=<BLING_ADMIN_KEY>`.
   Detalhes em `src/lib/bling/client.ts`.
-- **ANTES DE VENDER DE VERDADE:** o plano Free do Upstash (30 MB) é RAM-only,
-  sem persistência — os dados podem sumir se o servidor reiniciar (pedidos
-  pendentes, login do Bling). Trocar para o plano de 250 MB (US$ 10/mês,
-  com persistência) no painel do Upstash. Não precisa mudar código.
 - Sem essas variáveis, FORA de produção (local/preview) a loja roda em modo
   simulado (pedidos em memória, Pix fictício, botão "Simular pagamento");
   em produção, sem elas, o pagamento responde "indisponível".
+- **ANTES DE VENDER DE VERDADE:** confira se o Redis contratado tem
+  persistência (o plano Free de 30 MB é RAM-only — ver aviso logo abaixo).
 - **`MELHOR_ENVIO_TOKEN`** / **`MELHOR_ENVIO_CEP_ORIGEM`** (90430-131) —
   cotação real do frete fora de POA (`src/lib/melhor-envio.ts`). Sem token:
   simulado fora de produção; em produção cai na tabela por região.
