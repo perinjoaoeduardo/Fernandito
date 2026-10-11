@@ -43,6 +43,11 @@ export const LINKS = {
 /** Textos da loja (seção/página Comprar, carrinho e checkout). Produtos e
  * preços moram em `src/lib/catalog.ts`; frete em `src/lib/shipping.ts`. */
 export const STORE = {
+  /** Liga a loja (venda do kit pré-lançamento). `false` esconde tudo dela:
+   * seção Comprar, botões de compra (menu, Hero, bloco final), carrinho e as
+   * páginas /comprar e /checkout (viram 404) — o site volta ao que era antes
+   * da loja. O código continua aqui; pra religar é só `true`. */
+  enabled: false,
   eyebrow: "Comprar",
   badge: "Pré-lançamento · edição limitada",
   contentsTitle: "O que vem no kit",

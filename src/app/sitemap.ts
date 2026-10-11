@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
+import { STORE } from "@/content/site";
 
 // Landing de página única por enquanto. Pra adicionar rota nova é só somar
 // uma entrada aqui — o resto (lastModified, XML, headers) o Next resolve.
@@ -9,7 +10,9 @@ const ROUTES: {
   priority: number;
 }[] = [
   { path: "/", changeFrequency: "monthly", priority: 1 },
-  { path: "/comprar", changeFrequency: "weekly", priority: 0.9 },
+  ...(STORE.enabled
+    ? [{ path: "/comprar", changeFrequency: "weekly" as const, priority: 0.9 }]
+    : []),
   { path: "/legal/avisos", changeFrequency: "yearly", priority: 0.3 },
 ];
 

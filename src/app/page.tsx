@@ -14,19 +14,22 @@ import { PRELAUNCH, STORE } from "@/content/site";
 // não estão montados aqui. Ver DESIGN_SYSTEM.md.
 export default function Home() {
   // Pré-lançamento (`PRELAUNCH.enabled` em src/content/site.ts): só a Hero,
-  // a compra do kit (#comprar), o bloco "estamos chegando" (o Contato com
-  // outro texto, com a compra como CTA principal) e o rodapé.
+  // a compra do kit (#comprar, se a loja estiver ligada), o bloco "estamos
+  // chegando" (o Contato com outro texto) e o rodapé. Loja desligada
+  // (`STORE.enabled`): o Contato encosta na Hero de novo, sem botão de compra.
+  const shop = STORE.enabled;
   if (PRELAUNCH.enabled) {
     return (
       <main>
         <HeroSection />
-        <ComprarSection />
+        {shop && <ComprarSection />}
         <ContatoSection
           title={PRELAUNCH.title}
           text={PRELAUNCH.text}
           cta={PRELAUNCH.cta}
           instagram={PRELAUNCH.instagram}
-          shopCta={STORE.cta}
+          shopCta={shop ? STORE.cta : undefined}
+          joinHero={!shop}
           // Duas linhas exatas: "O Fernandito" / "está chegando." — a largura
           // em em (cabe a 2ª linha, não cabe "O Fernandito está") vale em
           // qualquer tela, e a fonte acompanha a coluna pra 2ª linha caber.
@@ -44,8 +47,8 @@ export default function Home() {
       <OQueESection />
       <GaleriaSection />
       <CartaSection />
-      <ComprarSection />
-      <ContatoSection shopCta={STORE.cta} />
+      {shop && <ComprarSection />}
+      <ContatoSection shopCta={shop ? STORE.cta : undefined} />
       <SocialGallerySection />
       <FichaTecnicaSection />
       <FooterSection />

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import NextLink from "next/link";
+import { notFound } from "next/navigation";
+import { STORE } from "@/content/site";
 
 // PLACEHOLDER: texto definitivo ainda não escrito.
 export const metadata: Metadata = {
@@ -8,6 +10,8 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
+  // Placeholder da loja: some junto com ela (`STORE.enabled`).
+  if (!STORE.enabled) notFound();
   return (
     <main className="bg-fernandito-off-white text-fernandito-verde-escuro min-h-screen">
       <div className="mx-auto max-w-3xl px-6 pt-[calc(9rem+var(--announcement-h))] pb-24 sm:px-10">

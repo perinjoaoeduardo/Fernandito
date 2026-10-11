@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { STORE } from "@/content/site";
 import { ComprarSection } from "@/components/sections/ComprarSection";
 import { FooterSection } from "@/components/sections/FooterSection";
 
@@ -10,6 +12,8 @@ export const metadata: Metadata = {
 };
 
 export default function ComprarPage() {
+  // Loja desligada (`STORE.enabled` em src/content/site.ts) → 404.
+  if (!STORE.enabled) notFound();
   return (
     <main className="pt-[calc(4rem+var(--announcement-h))]">
       <ComprarSection headingLevel="h1" />

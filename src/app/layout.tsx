@@ -10,7 +10,7 @@ import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { AnnouncementBar } from "@/components/ui/AnnouncementBar";
 import { CartProvider } from "@/components/cart/CartProvider";
 import { CartDrawer } from "@/components/cart/CartDrawer";
-import { ANNOUNCEMENT } from "@/content/site";
+import { ANNOUNCEMENT, STORE } from "@/content/site";
 import { SITE_URL, SITE_TITLE, SITE_DESCRIPTION, GOOGLE_SITE_VERIFICATION } from "@/lib/site";
 import "./globals.css";
 
@@ -252,7 +252,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <FloatingNav />
             <ThemeColorSync />
             {children}
-            <CartDrawer />
+            {STORE.enabled && <CartDrawer />}
           </CartProvider>
         </SmoothScrollProvider>
       </body>

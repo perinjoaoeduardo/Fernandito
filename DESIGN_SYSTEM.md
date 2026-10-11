@@ -327,6 +327,14 @@ era, nada mais precisa mudar. A faixa "Estamos chegando" é outra chave
 
 ### Loja (venda direta) — fluxo visual
 
+> **Chave liga/desliga: `STORE.enabled` em `src/content/site.ts` (hoje
+> `false`).** Desligada, some tudo da loja e o site volta ao que era antes
+> dela: sem seção Comprar, sem botão de compra na Hero, no menu (a pill volta
+> a ter o WhatsApp) e no bloco final (o Contato volta a encostar na Hero, com
+> a moldura verde-medio e o "scroll" levando pra `#contato`), sem carrinho;
+> `/comprar`, `/checkout`, `/termos` e `/privacidade` dão 404, `/api/frete`
+> responde 404 e `/comprar` sai do sitemap. O código fica; `true` religa.
+
 Site próprio → Pix → pedido no Bling → NF/envio pelo Bling/Melhor Envio.
 Sem plataforma de e-commerce. **Prompt Loja #1 = só visual e fluxo**: o Pix
 e a criação do pedido no Bling ainda não existem.

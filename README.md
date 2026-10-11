@@ -31,6 +31,7 @@ Copie `.env.example` para `.env.local` e preencha o que for necessário. Veja
   emitir `<meta name="google-site-verification" ...>`. Na Vercel: projeto →
   **Settings → Environment Variables** (Production) e um redeploy.
 
+- **Loja escondida por padrão:** `STORE.enabled` em `src/content/site.ts` liga/desliga tudo da venda do kit (seção, botões, carrinho, /comprar, /checkout).
 - **`MELHOR_ENVIO_TOKEN`** / **`MELHOR_ENVIO_CEP_ORIGEM`** — ainda não usadas
   (a cotação de frete está mockada em `src/lib/melhor-envio.ts`, que tem o
   passo a passo da integração real). Só no servidor, nunca `NEXT_PUBLIC_`.
