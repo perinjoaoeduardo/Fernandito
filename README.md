@@ -37,10 +37,11 @@ Copie `.env.example` para `.env.local` e preencha o que for necessário. Veja
   `APP_USR-…` (trocar de modo é só trocar a variável). Webhook a cadastrar
   no painel do Mercado Pago (evento "Pagamentos"):
   `https://fernandito.com.br/api/webhooks/mercadopago`.
-- **`KV_REDIS_URL`** — banco de pedidos (Redis). Criada sozinha ao conectar
-  **Storage → Redis** ao projeto na Vercel (string de conexão completa; o
-  nome pode sair diferente conforme o prefixo escolhido na instalação —
-  também aceita `REDIS_URL`).
+- **`KV_REST_API_URL`** + **`KV_REST_API_TOKEN`** — banco de pedidos
+  (Upstash Redis por HTTPS: sempre criptografado, sem limite de conexões).
+  Criadas sozinhas ao conectar **Upstash** (Storage/Marketplace) ao projeto
+  na Vercel; qualquer prefixo `<PREFIXO>_REST_API_URL/TOKEN` também vale.
+  Reserva: `KV_REDIS_URL` (Redis por TCP). O REST tem preferência.
 - **Bling** — `BLING_CLIENT_ID`, `BLING_CLIENT_SECRET`, `BLING_ADMIN_KEY`
   (+ opcionais `BLING_FORMA_PAGAMENTO_ID`, `BLING_LOJA_ID`,
   `BLING_SYNC_PREVIEW`) e `CRON_SECRET`. Conectar uma vez em
@@ -49,12 +50,12 @@ Copie `.env.example` para `.env.local` e preencha o que for necessário. Veja
 - Sem essas variáveis, FORA de produção (local/preview) a loja roda em modo
   simulado (pedidos em memória, Pix fictício, botão "Simular pagamento");
   em produção, sem elas, o pagamento responde "indisponível".
-- **ANTES DE VENDER DE VERDADE (segurança):** a conexão com o Redis hoje é
-  `redis://` (SEM criptografia). Ao contratar o plano pago, ligar TLS no
-  painel do banco e conferir que `KV_REDIS_URL` passou a começar com
-  `rediss://` (dois "s"). O servidor avisa no log se estiver sem TLS.
-- **ANTES DE VENDER DE VERDADE:** confira se o Redis contratado tem
-  persistência (o plano Free de 30 MB é RAM-only — ver aviso logo abaixo).
+- **ANTES DE VENDER DE VERDADE:** (1) usar o Upstash (REST/HTTPS), não o
+  Redis por TCP: o Redis gratuito da Vercel é `redis://` (SEM criptografia),
+  RAM-only (sem persistência) e limitado a 30 conexões simultâneas — ruim
+  pra função serverless; (2) conferir no painel do Upstash que o plano
+  escolhido guarda os dados em disco (persistência) e o limite de comandos
+  por mês (grátis: 500 mil; cada consulta de status gasta ~2).
 - **`MELHOR_ENVIO_TOKEN`** / **`MELHOR_ENVIO_CEP_ORIGEM`** (90430-131) —
   cotação real do frete fora de POA (`src/lib/melhor-envio.ts`). Sem token:
   simulado fora de produção; em produção cai na tabela por região.

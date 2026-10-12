@@ -378,10 +378,11 @@ era, nada mais precisa mudar. A faixa "Estamos chegando" é outra chave
   confere no Mercado Pago a cada 8s — funciona mesmo se o webhook não
   chegar (ex.: preview protegido por login). `onOrderPaid` roda uma vez só
   (`src/lib/store/on-order-paid.ts`, TODO do Bling no #3).
-- **Banco:** Redis via TCP (`ioredis`), conectado por `KV_REDIS_URL` — o
-  mais simples na Vercel: um clique em Storage, sem tabela/migração;
-  pedido = JSON em `order:<id>`. A variável é uma string de conexão única
-  (não o par REST `KV_REST_API_URL`/`TOKEN` de integrações antigas).
+- **Banco:** Redis. Preferido: Upstash por REST/HTTPS (`KV_REST_API_URL` +
+  `KV_REST_API_TOKEN`) — sempre criptografado e sem limite de conexões
+  (certo pra serverless). Reserva: TCP via `ioredis` (`KV_REDIS_URL`). O
+  REST tem preferência. Sem tabela/migração; pedido = JSON em
+  `order:<id>`. Rate limit = 1 comando (script Lua) por chamada.
 - **Segurança:** segredos só no servidor; rate limit por IP (Pix 8/10min,
   frete 30/10min, status 60/min); entrega própria só com CEP de POA
   (90000-000 a 91999-999); logs sem CPF/e-mail completos; a página do
