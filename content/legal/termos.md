@@ -2,14 +2,14 @@
 title: Termos de Uso e Condições de Venda
 description: Termos de uso do site fernandito.com.br e condições de venda do Fernandito — venda proibida para menores de 18 anos.
 version: "1.0"
-updatedAt: "[data]"
+updatedAt: "12/10/2026"
 ---
 
 ## 1. Quem somos
 
 Este site (**fernandito.com.br**) é operado por **FERNANDITO BEBIDAS LTDA**, inscrita no CNPJ sob o nº **69.252.946/0001-41**, Inscrição Estadual nº **096/4146258**, com sede na Rua Castro Alves, 433, Rio Branco, Porto Alegre/RS, CEP 90430-131 ("Fernandito", "nós").
 
-Contato: **[e-mail de atendimento]** · **[WhatsApp/telefone]** · Atendimento de **[dias e horários]**.
+Contato: **contato@fernandito.com.br** · **WhatsApp +55 51 9338-3764** · Atendimento de segunda a sexta, das 9h às 18h (exceto feriados).
 
 ## 2. Aceitação
 
@@ -48,7 +48,7 @@ Beba com moderação. Não dirija após consumir bebidas alcoólicas. O consumo 
 
 ## 7. Estoque
 
-O estoque é verificado antes da geração do Pix. Em caso raro de indisponibilidade após o pagamento, você será avisado e terá **reembolso integral** em até **[X] dias úteis**, ou poderá aceitar outro produto, se oferecido.
+O estoque é verificado antes da geração do Pix. Em caso raro de indisponibilidade após o pagamento, você será avisado e terá **reembolso integral** em até **5 dias úteis**, ou poderá aceitar outro produto, se oferecido.
 
 ## 8. Entrega
 
@@ -56,7 +56,7 @@ O estoque é verificado antes da geração do Pix. Em caso raro de indisponibili
 - **Demais localidades:** entrega por transportadora parceira, com valor e prazo calculados no checkout
 - O prazo começa a contar após a confirmação do pagamento e é estimado. Atrasos causados por transportadora, greve, clima ou outros eventos fora do nosso controle serão comunicados
 - Confira o endereço antes de pagar. Endereço incorreto ou incompleto pode gerar custo extra de reenvio
-- Ao receber, confira a embalagem. Se houver avaria aparente, **recuse o recebimento** ou registre a ocorrência com fotos e nos avise em até **[7] dias**
+- Ao receber, confira a embalagem. Se houver avaria aparente, **recuse o recebimento** ou registre a ocorrência com fotos. Pedimos que nos avise o quanto antes — idealmente em até **5 dias** — para agilizar a troca, sem prejuízo do seu direito de reclamar em até 30 dias (ver item 11)
 
 ## 9. Nota fiscal
 
@@ -68,14 +68,14 @@ Nas compras feitas pela internet, você pode **desistir da compra em até 7 dias
 
 Para exercer:
 
-1. Entre em contato pelo **[e-mail/WhatsApp]** informando o número do pedido
+1. Entre em contato pelo e-mail **contato@fernandito.com.br** ou pelo **WhatsApp +55 51 9338-3764**, informando o número do pedido
 2. Devolva o produto **com a embalagem original e sem sinais de consumo**, sempre que possível
 3. Os custos de devolução são **por nossa conta**
-4. O reembolso integral (incluindo o frete pago) será feito por **Pix** em até **[X] dias úteis** após recebermos o produto de volta
+4. O reembolso integral (incluindo o frete pago), com correção monetária, será feito por **Pix** assim que recebermos e conferirmos o produto de volta — em até **5 dias úteis** (Código de Defesa do Consumidor, art. 49, parágrafo único)
 
 ## 11. Produto com defeito
 
-Se o produto chegar com defeito, vazamento, lata amassada que comprometa o conteúdo ou fora da validade, entre em contato em até **[30] dias** do recebimento. Faremos a **troca** ou o **reembolso**, conforme o CDC.
+Se o produto chegar com defeito, vazamento, lata amassada que comprometa o conteúdo ou fora da validade, você tem **30 dias a contar do recebimento** para reclamar de defeitos aparentes (prazo mínimo garantido pelo art. 26, I, do CDC para produtos não duráveis). Para defeitos ocultos, o prazo conta a partir do momento em que o problema ficar evidente. Entre em contato pelos canais do item 1 — faremos a **troca** ou o **reembolso**, conforme o CDC.
 
 ## 12. Cancelamento pela Fernandito
 
@@ -99,7 +99,7 @@ O tratamento dos seus dados pessoais está descrito na nossa [Política de Priva
 
 ## 17. Atendimento
 
-Dúvidas, reclamações e solicitações: **[e-mail]** · **[WhatsApp]**. Respondemos em até **[X] dias úteis**.
+Dúvidas, reclamações e solicitações: **contato@fernandito.com.br** · **WhatsApp +55 51 9338-3764**. Respondemos em até **1 dia útil**.
 
 ## 18. Lei aplicável e foro
 

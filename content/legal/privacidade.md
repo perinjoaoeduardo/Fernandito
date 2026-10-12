@@ -2,14 +2,14 @@
 title: Política de Privacidade
 description: Como a Fernandito coleta, usa, compartilha e protege seus dados pessoais, conforme a LGPD.
 version: "1.0"
-updatedAt: "[data]"
+updatedAt: "12/10/2026"
 ---
 
 ## 1. Quem é responsável pelos seus dados
 
 **FERNANDITO BEBIDAS LTDA**, CNPJ **69.252.946/0001-41**, Rua Castro Alves, 433, Rio Branco, Porto Alegre/RS, CEP 90430-131, é a **controladora** dos seus dados pessoais, nos termos da Lei Geral de Proteção de Dados (Lei 13.709/2018, "LGPD").
 
-**Encarregado de dados (DPO):** **[nome]** · **[e-mail de privacidade]**
+**Encarregado de dados (DPO):** Equipe Fernandito (atendimento a titulares de dados) · **contato@fernandito.com.br**
 
 ## 2. Quais dados coletamos
 
@@ -82,7 +82,7 @@ Você pode, a qualquer momento e de graça (art. 18 da LGPD):
 - Pedir a eliminação de dados tratados com base no consentimento
 - Revisar decisões automatizadas, se houver
 
-Para exercer, escreva para **[e-mail de privacidade]**. Podemos pedir informações para confirmar sua identidade. Respondemos em até **15 dias**.
+Para exercer, escreva para **contato@fernandito.com.br**. Podemos pedir informações para confirmar sua identidade. Respondemos em até **15 dias**.
 
 Você também pode reclamar à **Autoridade Nacional de Proteção de Dados (ANPD)**.
 
@@ -91,7 +91,7 @@ Você também pode reclamar à **Autoridade Nacional de Proteção de Dados (ANP
 Usamos:
 
 - **Cookies essenciais:** necessários para o site e o carrinho funcionarem
-- **[Cookies de análise]:** para entender como o site é usado, de forma agregada **[remover se não houver]**
+- **Cookies de análise:** hoje usamos o Vercel Analytics, que **não usa cookies** e não identifica você individualmente. Podemos futuramente usar ferramentas como o Google Analytics, que usam cookies para entender, de forma agregada, como o site é usado
 
 Você pode bloquear cookies no seu navegador, mas algumas funções (como o carrinho) podem deixar de funcionar.
 
@@ -109,4 +109,4 @@ Podemos atualizar esta Política. A data da última atualização fica sempre no
 
 ## 12. Contato
 
-**[e-mail de privacidade]** · **[WhatsApp]** · Rua Castro Alves, 433, Rio Branco, Porto Alegre/RS, CEP 90430-131.
+**contato@fernandito.com.br** · **WhatsApp +55 51 9338-3764** · Rua Castro Alves, 433, Rio Branco, Porto Alegre/RS, CEP 90430-131.
