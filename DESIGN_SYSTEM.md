@@ -414,6 +414,18 @@ e a criação do pedido no Bling ainda não existem.
   (`Button` primary), aviso de 18 anos e WhatsApp como contato
   secundário. Na home fica logo depois da Hero (pré-lançamento) ou antes
   do Contato (site completo); a moldura da Hero é off-white, a cor dela.
+- **Melhorias do módulo do kit** (só loja/teste): galeria `ProductGallery`
+  (foto 4:5 + miniaturas quadradas; some com 1 foto; fotos 2–4 ainda são
+  placeholders no catálogo); "O que vem no kit" em cartões com ícone
+  (`contents` = `{icon, label}`; ícones em `ui/icons.tsx`); bloco de
+  confiança sob o botão (Pix, entrega própria POA com valor/prazo de
+  `LOCAL_DELIVERY`, frete do resto no checkout — textos em `STORE.trust`);
+  selo "Restam X unidades" só com estoque 1–30, vindo de `/api/estoque`
+  (Bling, cache 60 s; Bling fora do ar = sem selo; também limita a
+  quantidade); **barra de compra fixa só no celular** (preço + "Adicionar"),
+  aparece quando o botão principal saiu por cima e some antes do rodapé.
+  `/comprar`: `<main>` tem fundo off-white (corrigiu a faixa escura atrás do
+  menu).
 - **CTAs de compra** (`useGoToShop`: na home teletransporta pro
   `#comprar`, fora dela abre `/comprar`): "Comprar" no menu (no lugar do
   WhatsApp), "Comprar o kit" na Hero e no bloco final (botão claro, com

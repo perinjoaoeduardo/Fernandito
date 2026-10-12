@@ -15,7 +15,7 @@ export default function ComprarPage() {
   // Loja desligada (`STORE.enabled` em src/content/site.ts) → 404.
   if (!STORE.enabled) notFound();
   return (
-    <main className="pt-[calc(4rem+var(--announcement-h))]">
+    <main className="bg-fernandito-off-white pt-[calc(4rem+var(--announcement-h))]">
       <ComprarSection headingLevel="h1" />
       <FooterSection />
     </main>

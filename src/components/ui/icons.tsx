@@ -65,3 +65,65 @@ export function CloseIcon({ className = "h-5 w-5" }: IconProps) {
 }
 
 export default InstagramIcon;
+
+/** Lata de bebida. */
+export function CanIcon({ className = "h-6 w-6" }: IconProps) {
+  return (
+    <svg {...strokeProps} className={className}>
+      <path d="M7 6c0-1.1 2.2-2 5-2s5 .9 5 2v12c0 1.1-2.2 2-5 2s-5-.9-5-2V6Z" />
+      <path d="M7 6c0 1.1 2.2 2 5 2s5-.9 5-2" />
+      <path d="M7 16c0 1.1 2.2 2 5 2s5-.9 5-2" />
+    </svg>
+  );
+}
+
+/** Copo. */
+export function CupIcon({ className = "h-6 w-6" }: IconProps) {
+  return (
+    <svg {...strokeProps} className={className}>
+      <path d="M6 4h12l-1.4 15.1a2 2 0 0 1-2 1.9H9.4a2 2 0 0 1-2-1.9L6 4Z" />
+      <path d="M6.6 10h10.8" />
+    </svg>
+  );
+}
+
+/** Adesivo (folha com a ponta dobrada). */
+export function StickerIcon({ className = "h-6 w-6" }: IconProps) {
+  return (
+    <svg {...strokeProps} className={className}>
+      <path d="M5 5a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v8l-6 7H6a1 1 0 0 1-1-1V5Z" />
+      <path d="M19 13h-5a1 1 0 0 0-1 1v6" />
+    </svg>
+  );
+}
+
+/** Pix (losango). */
+export function PixIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...strokeProps} className={className}>
+      <path d="m12 3 4.5 4.5a2.1 2.1 0 0 1 0 3L12 12l-4.5-1.5a2.1 2.1 0 0 1 0-3L12 3Z" />
+      <path d="m12 21-4.5-4.5a2.1 2.1 0 0 1 0-3L12 12l4.5 1.5a2.1 2.1 0 0 1 0 3L12 21Z" />
+    </svg>
+  );
+}
+
+/** Caminhão de entrega. */
+export function TruckIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...strokeProps} className={className}>
+      <path d="M3 6h11v10H3zM14 9h4l3 3v4h-7" />
+      <circle cx="7.5" cy="17.5" r="1.7" />
+      <circle cx="17.5" cy="17.5" r="1.7" />
+    </svg>
+  );
+}
+
+/** Caixa/pacote (frete pro resto do Brasil). */
+export function BoxIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...strokeProps} className={className}>
+      <path d="M12 3 4 7v10l8 4 8-4V7l-8-4Z" />
+      <path d="m4 7 8 4 8-4M12 11v10" />
+    </svg>
+  );
+}

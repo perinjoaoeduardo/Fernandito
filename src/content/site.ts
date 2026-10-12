@@ -51,6 +51,18 @@ export const STORE = {
   eyebrow: "Comprar",
   badge: "Pré-lançamento · edição limitada",
   contentsTitle: "O que vem no kit",
+  /** Bloco de confiança ao lado do botão. Valor e prazo da entrega em Porto
+   * Alegre vêm de `LOCAL_DELIVERY` (src/lib/shipping.ts). */
+  trust: {
+    pix: "Pagamento por Pix, aprovado na hora",
+    localPrefix: "Porto Alegre: entrega própria",
+    other: "Resto do Brasil: frete calculado no checkout",
+  },
+  /** Selo de estoque real (Bling). `{n}` vira o número. */
+  stockLeft: "Restam {n} unidades",
+  stockLast: "Última unidade",
+  /** Barra de compra fixa no celular. */
+  stickyCta: "Adicionar",
   addToCart: "Adicionar ao carrinho",
   ageNotice: "Venda proibida para menores de 18 anos",
   /** CTA dos outros lugares do site (menu, Hero, bloco final). */

@@ -13,13 +13,16 @@ export type ProductImage = {
   placeholder: string;
 };
 
+/** Ícone do cartão "O que vem no kit" (ver `ContentIconView`). */
+export type ContentIcon = "can" | "cup" | "sticker";
+
 export type Product = {
   sku: string;
   name: string;
   /** Descrição curta, uma frase. */
   description: string;
   /** O que vem dentro (lista curta, mostrada na página de compra). */
-  contents: string[];
+  contents: { icon: ContentIcon; label: string }[];
   priceCents: number;
   images: ProductImage[];
   /** Máximo por pedido. */
@@ -35,7 +38,11 @@ export const PRODUCTS: Product[] = [
     sku: "FERN-KIT-PRE",
     name: "Kit Fernandito Pré-Lançamento",
     description: "A primeira leva do Fernandito, num kit pra quem quer provar antes de todo mundo.",
-    contents: ["2 latas de Fernandito 350ml", "1 copo Fernandito", "Adesivos"],
+    contents: [
+      { icon: "can", label: "2 latas de Fernandito 350ml" },
+      { icon: "cup", label: "1 copo Fernandito" },
+      { icon: "sticker", label: "Adesivos" },
+    ],
     priceCents: 10000,
     images: [
       {
@@ -43,6 +50,14 @@ export const PRODUCTS: Product[] = [
         src: "/images/hero-rotulo.jpg",
         alt: "Rótulo do Fernandito sobre a mesa — foto provisória do kit pré-lançamento",
         placeholder: "Foto do kit",
+      },
+      // PLACEHOLDERS: trocar pelas fotos reais (latas, copo, adesivos).
+      { src: null, alt: "Latas do kit Fernandito — foto a definir", placeholder: "Foto: latas" },
+      { src: null, alt: "Copo do kit Fernandito — foto a definir", placeholder: "Foto: copo" },
+      {
+        src: null,
+        alt: "Adesivos do kit Fernandito — foto a definir",
+        placeholder: "Foto: adesivos",
       },
     ],
     maxQty: 5,
@@ -54,7 +69,7 @@ export const PRODUCTS: Product[] = [
     sku: "FERN-350-6",
     name: "Pack 6 latas",
     description: "Seis latas de Fernandito 350ml.",
-    contents: ["6 latas de Fernandito 350ml"],
+    contents: [{ icon: "can", label: "6 latas de Fernandito 350ml" }],
     priceCents: 10000,
     images: [{ src: null, alt: "Pack com 6 latas de Fernandito", placeholder: "Pack 6 latas" }],
     maxQty: 5,
