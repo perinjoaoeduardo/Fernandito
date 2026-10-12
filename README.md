@@ -49,6 +49,10 @@ Copie `.env.example` para `.env.local` e preencha o que for necessário. Veja
 - Sem essas variáveis, FORA de produção (local/preview) a loja roda em modo
   simulado (pedidos em memória, Pix fictício, botão "Simular pagamento");
   em produção, sem elas, o pagamento responde "indisponível".
+- **ANTES DE VENDER DE VERDADE (segurança):** a conexão com o Redis hoje é
+  `redis://` (SEM criptografia). Ao contratar o plano pago, ligar TLS no
+  painel do banco e conferir que `KV_REDIS_URL` passou a começar com
+  `rediss://` (dois "s"). O servidor avisa no log se estiver sem TLS.
 - **ANTES DE VENDER DE VERDADE:** confira se o Redis contratado tem
   persistência (o plano Free de 30 MB é RAM-only — ver aviso logo abaixo).
 - **`MELHOR_ENVIO_TOKEN`** / **`MELHOR_ENVIO_CEP_ORIGEM`** (90430-131) —
