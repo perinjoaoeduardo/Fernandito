@@ -40,6 +40,10 @@ function client(): Redis {
       lazyConnect: true,
     });
     redis.on("error", (error) => console.error("[redis] erro de conexão:", error.message));
+    // `rediss://` = conexão criptografada (TLS). `redis://` passa os dados
+    // dos pedidos sem criptografia pela internet — avisa no log.
+    if (REDIS_URL.startsWith("redis://"))
+      console.warn("[redis] conexão SEM TLS (redis://): ative TLS no provedor e use rediss://");
     globalRedis.__fernanditoRedis = redis;
   }
   return globalRedis.__fernanditoRedis;

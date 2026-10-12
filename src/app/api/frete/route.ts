@@ -4,7 +4,7 @@ import { guard } from "@/lib/store/http";
 
 // Cotação de frete (fora de Porto Alegre). O navegador manda o CEP e os
 // itens (peso/dimensões); a cotação roda aqui, no servidor, onde vai ficar
-// o token do Melhor Envio. Hoje o retorno é mockado — ver melhor-envio.ts.
+// o token do Melhor Envio (ver melhor-envio.ts).
 // Qualquer erro → 4xx/5xx, e o checkout cai na tabela fixa da região.
 
 const bodySchema = z.object({
@@ -13,14 +13,17 @@ const bodySchema = z.object({
     .array(
       z.object({
         qty: z.number().int().min(1).max(50),
-        weightKg: z.number().positive(),
-        widthCm: z.number().positive(),
-        heightCm: z.number().positive(),
-        lengthCm: z.number().positive(),
-        priceCents: z.number().int().nonnegative(),
+        // Limites pra ninguém usar a nossa conta do Melhor Envio pra cotar
+        // qualquer coisa: caixa até 100 cm por lado, 30 kg, R$ 10 mil.
+        weightKg: z.number().positive().max(30),
+        widthCm: z.number().positive().max(100),
+        heightCm: z.number().positive().max(100),
+        lengthCm: z.number().positive().max(100),
+        priceCents: z.number().int().nonnegative().max(1_000_000),
       }),
     )
-    .min(1),
+    .min(1)
+    .max(10),
 });
 
 export async function POST(request: Request) {

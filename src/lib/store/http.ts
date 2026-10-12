@@ -4,9 +4,17 @@ import { rateLimit, StoreUnavailableError } from "@/lib/store/kv";
 import { PaymentUnavailableError } from "@/lib/mercadopago";
 import { CheckoutError } from "@/lib/store/checkout";
 
-/** IP de quem chamou (na Vercel vem no x-forwarded-for). */
+/**
+ * IP de quem chamou, pro rate limit. Na Vercel, `x-real-ip` é preenchido
+ * pela própria Vercel (o visitante não consegue forjar); `x-forwarded-for`
+ * fica de reserva.
+ */
 export function clientIp(request: Request) {
-  return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+  return (
+    request.headers.get("x-real-ip")?.trim() ||
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "local"
+  );
 }
 
 export function json(body: unknown, status = 200) {

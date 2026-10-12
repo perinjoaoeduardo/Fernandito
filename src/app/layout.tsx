@@ -3,7 +3,7 @@ import localFont from "next/font/local";
 import Script from "next/script";
 import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvider";
 import { IntroLoader } from "@/components/providers/IntroLoader";
-import { Analytics } from "@vercel/analytics/next";
+import { SiteAnalytics } from "@/components/providers/SiteAnalytics";
 import { ThemeColorSync } from "@/components/providers/ThemeColorSync";
 import { FloatingNav } from "@/components/ui/FloatingNav";
 import { CustomCursor } from "@/components/ui/CustomCursor";
@@ -256,8 +256,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             {STORE.enabled && <CartDrawer />}
           </CartProvider>
         </SmoothScrollProvider>
-        {/* Vercel Analytics: visitantes e visualizações, sem cookies. */}
-        <Analytics />
+        <SiteAnalytics />
       </body>
     </html>
   );

@@ -1,0 +1,18 @@
+# Dependabot: toda semana confere se alguma dependência do site ganhou falha
+# de segurança conhecida e abre um pull request com a atualização — sempre
+# contra a branch `teste` (nunca direto no site no ar), pra revisar antes.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: teste
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    groups:
+      # Só patches/minors juntos num PR; major (que pode quebrar) separado.
+      minor-e-patch:
+        update-types: [minor, patch]
