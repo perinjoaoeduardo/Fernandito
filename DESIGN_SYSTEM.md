@@ -416,16 +416,27 @@ e a criação do pedido no Bling ainda não existem.
   do Contato (site completo); a moldura da Hero é off-white, a cor dela.
 - **Melhorias do módulo do kit** (só loja/teste): galeria `ProductGallery`
   (foto 4:5 + miniaturas quadradas; some com 1 foto; fotos 2–4 ainda são
-  placeholders no catálogo); "O que vem no kit" em cartões com ícone
-  (`contents` = `{icon, label}`; ícones em `ui/icons.tsx`); bloco de
-  confiança sob o botão (Pix, entrega própria POA com valor/prazo de
-  `LOCAL_DELIVERY`, frete do resto no checkout — textos em `STORE.trust`);
+  placeholders no catálogo); selo "Pré-lançamento" em duas linhas, maior,
+  com aro interno e sombra, que "carimba" (`back.out(2.2)`) ao entrar;
+  título em duas linhas (nome + "Pré-lançamento" em verde-médio); blocos
+  entram em cascata (`data-reveal`, `DURATION.enter` + `EASE.outStandard`,
+  sem animação sob reduced-motion); "O que vem no kit" em cartões com ícone
+  (`contents` = `{icon, qty, label}`: ícone, quantidade grande em Rampart
+  e nome — "2 latas", "1 copo", "5 adesivos"; ícones em `ui/icons.tsx`).
+  Sem bloco de "confiança" (Pix/frete) sob o botão: foi testado e removido
+  por ser informação inútil ali — frete e Pix aparecem no checkout;
   selo "Restam X unidades" só com estoque 1–30, vindo de `/api/estoque`
   (Bling, cache 60 s; Bling fora do ar = sem selo; também limita a
   quantidade); **barra de compra fixa só no celular** (preço + "Adicionar"),
   aparece quando o botão principal saiu por cima e some antes do rodapé.
   `/comprar`: `<main>` tem fundo off-white (corrigiu a faixa escura atrás do
   menu).
+- **Menu no computador (md+):** uma pill só, com divisórias finas entre
+  cavalo | Comprar | Instagram | carrinho (antes eram 4 peças soltas). No
+  celular continuam as pills separadas.
+- **Preço em texto grande:** componente `ui/Price` — "R$" em fonte comum
+  (a Rampart borra o `$`), só os números em Rampart.
+- **Aviso +18:** pílula verde-médio com selo "+18" redondo, em /comprar.
 - **CTAs de compra** (`useGoToShop`: na home teletransporta pro
   `#comprar`, fora dela abre `/comprar`): "Comprar" no menu (no lugar do
   WhatsApp), "Comprar o kit" na Hero e no bloco final (botão claro, com

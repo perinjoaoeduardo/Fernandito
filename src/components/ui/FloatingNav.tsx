@@ -145,11 +145,20 @@ export function FloatingNav() {
         onFocus={() => setTucked(false)}
         className={clsx(
           // `--announcement-h`: altura da faixa "Estamos chegando" (0 sem ela).
-          "fixed top-[calc(1rem+var(--announcement-h))] left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 sm:top-[calc(1.5rem+var(--announcement-h))]",
+          "fixed top-[calc(1rem+var(--announcement-h))] left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 sm:top-[calc(1.5rem+var(--announcement-h))] md:gap-1 md:p-1.5",
           hidden && "pointer-events-none",
         )}
         aria-label="Navegação principal"
       >
+        {/* md+: UMA pill só por trás de tudo (cavalo, links, CTA, Instagram e
+            carrinho), com divisórias finas. No celular continuam as pills
+            separadas de antes. */}
+        <motion.div
+          aria-hidden="true"
+          animate={pillAnimation}
+          transition={pillTransition}
+          className="pointer-events-none absolute inset-0 -z-10 hidden rounded-full md:block pointer-fine:backdrop-blur-md"
+        />
         {/* Pill 1 — símbolo do cavalo, volta ao topo (todos os tamanhos) */}
         <motion.button
           type="button"
@@ -157,7 +166,7 @@ export function FloatingNav() {
           transition={pillTransition}
           onClick={handleHorseClick}
           aria-label="Voltar ao topo"
-          className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 pointer-fine:backdrop-blur-md"
+          className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 md:h-10 md:w-10 md:!bg-transparent max-md:pointer-fine:backdrop-blur-md"
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- raster estático de tamanho fixo, next/image não traz benefício */}
           <img
@@ -169,6 +178,7 @@ export function FloatingNav() {
             className="h-full w-full rounded-full"
           />
         </motion.button>
+        <Divider overLight={overLight} />
 
         {/* Pill 2 (mobile/tablet) — botão "Menu" explícito: antes o próprio
             cavalo abria o menu, e ninguém adivinhava isso. */}
@@ -199,9 +209,8 @@ export function FloatingNav() {
           animate={pillAnimation}
           transition={pillTransition}
           className={clsx(
-            "hidden items-center gap-1 rounded-full py-1.5 pr-1.5 md:flex lg:py-2 lg:pr-2 pointer-fine:backdrop-blur-md",
-            // Sem links (pré-lançamento) a pill abraça só o WhatsApp.
-            LINKS.length ? "pl-3 lg:pl-4" : "pl-1.5 lg:pl-2",
+            "hidden items-center gap-1 rounded-full md:flex md:!bg-transparent",
+            LINKS.length ? "pl-2 lg:pl-3" : "pl-0",
           )}
         >
           {LINKS.map((link) => (
@@ -241,6 +250,7 @@ export function FloatingNav() {
             </WhatsAppButton>
           )}
         </motion.div>
+        <Divider overLight={overLight} />
 
         {/* Pill 3 (md+) — atalho pro Instagram: só o ícone, num círculo do
             mesmo tamanho do cavalo. Fica à mão o tempo todo, mas mais
@@ -254,7 +264,7 @@ export function FloatingNav() {
           aria-label={`Instagram ${SITE_LINKS.instagramHandle} — abre em nova aba`}
           title={SITE_LINKS.instagramHandle}
           className={clsx(
-            "duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio hidden h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 md:flex pointer-fine:backdrop-blur-md",
+            "duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio hidden h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 md:flex md:h-10 md:w-10 md:!bg-transparent",
             overLight ? "text-fernandito-off-white" : "text-fernandito-verde-escuro",
           )}
         >
@@ -275,7 +285,7 @@ export function FloatingNav() {
                 : "Abrir carrinho"
             }
             className={clsx(
-              "duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 pointer-fine:backdrop-blur-md",
+              "duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 md:h-10 md:w-10 md:!bg-transparent max-md:pointer-fine:backdrop-blur-md",
               overLight ? "text-fernandito-off-white" : "text-fernandito-verde-escuro",
             )}
           >
@@ -363,3 +373,16 @@ export function FloatingNav() {
 }
 
 export default FloatingNav;
+
+/** Divisória fina entre os grupos da pill única (só md+). */
+function Divider({ overLight }: { overLight: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={clsx(
+        "mx-1 hidden h-5 w-px opacity-25 md:block",
+        overLight ? "bg-fernandito-off-white" : "bg-fernandito-verde-escuro",
+      )}
+    />
+  );
+}

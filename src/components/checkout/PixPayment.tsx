@@ -3,10 +3,10 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { formatBRL } from "@/lib/money";
 import type { OrderStatus, PublicOrder } from "@/lib/store/orders";
 import { Button } from "@/components/ui/Button";
 import { OrderReceipt } from "@/components/checkout/OrderReceipt";
+import { Price } from "@/components/ui/Price";
 
 /**
  * Tela do Pix: QR code, "copiar código", valor, contador de expiração e
@@ -123,7 +123,7 @@ export function PixPayment({
             <p className="text-body-lg mt-4 font-sans">
               Total:{" "}
               <strong className="font-rampart text-[1.5em] leading-none tabular-nums">
-                {formatBRL(order.totalCents)}
+                <Price cents={order.totalCents} />
               </strong>
             </p>
           )}

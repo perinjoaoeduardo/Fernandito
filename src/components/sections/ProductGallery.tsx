@@ -20,7 +20,7 @@ export function ProductGallery({
   const current = images[active] ?? images[0];
 
   return (
-    <div>
+    <div data-reveal>
       <div className="relative">
         <div className="bg-fernandito-verde-medio relative aspect-[4/5] overflow-hidden rounded-2xl shadow-[0_24px_60px_rgba(36,48,34,0.25)]">
           <PhotoSlot

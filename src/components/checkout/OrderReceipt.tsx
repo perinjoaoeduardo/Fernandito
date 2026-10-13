@@ -1,6 +1,7 @@
 import { formatBRL } from "@/lib/money";
 import { formatDays } from "@/lib/shipping";
 import type { PublicOrder } from "@/lib/store/orders";
+import { Price } from "@/components/ui/Price";
 
 /** Resumo do pedido salvo (tela do Pix e de confirmação). Sem CPF/e-mail. */
 export function OrderReceipt({ order }: { order: PublicOrder }) {
@@ -34,7 +35,7 @@ export function OrderReceipt({ order }: { order: PublicOrder }) {
       <div className="border-fernandito-verde-escuro/15 mt-4 flex items-baseline justify-between border-t pt-4">
         <span className="font-bold">Total</span>
         <span className="font-rampart text-[1.75rem] leading-none tabular-nums">
-          {formatBRL(order.totalCents)}
+          <Price cents={order.totalCents} />
         </span>
       </div>
       <p className="text-body mt-5 opacity-75">

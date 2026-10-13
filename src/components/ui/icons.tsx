@@ -96,34 +96,3 @@ export function StickerIcon({ className = "h-6 w-6" }: IconProps) {
     </svg>
   );
 }
-
-/** Pix (losango). */
-export function PixIcon({ className = "h-5 w-5" }: IconProps) {
-  return (
-    <svg {...strokeProps} className={className}>
-      <path d="m12 3 4.5 4.5a2.1 2.1 0 0 1 0 3L12 12l-4.5-1.5a2.1 2.1 0 0 1 0-3L12 3Z" />
-      <path d="m12 21-4.5-4.5a2.1 2.1 0 0 1 0-3L12 12l4.5 1.5a2.1 2.1 0 0 1 0 3L12 21Z" />
-    </svg>
-  );
-}
-
-/** Caminhão de entrega. */
-export function TruckIcon({ className = "h-5 w-5" }: IconProps) {
-  return (
-    <svg {...strokeProps} className={className}>
-      <path d="M3 6h11v10H3zM14 9h4l3 3v4h-7" />
-      <circle cx="7.5" cy="17.5" r="1.7" />
-      <circle cx="17.5" cy="17.5" r="1.7" />
-    </svg>
-  );
-}
-
-/** Caixa/pacote (frete pro resto do Brasil). */
-export function BoxIcon({ className = "h-5 w-5" }: IconProps) {
-  return (
-    <svg {...strokeProps} className={className}>
-      <path d="M12 3 4 7v10l8 4 8-4V7l-8-4Z" />
-      <path d="m4 7 8 4 8-4M12 11v10" />
-    </svg>
-  );
-}

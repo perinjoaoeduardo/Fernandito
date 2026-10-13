@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { useCart } from "@/components/cart/CartProvider";
 import { Field } from "@/components/checkout/Field";
+import { Price } from "@/components/ui/Price";
 
 /**
  * Checkout em 4 etapas, uma de cada vez (as anteriores ficam resumidas, com
@@ -682,7 +683,7 @@ function OrderSummary({
         <div className="border-fernandito-verde-escuro/15 mt-2 flex items-baseline justify-between border-t pt-4">
           <dt className="font-bold">Total</dt>
           <dd className="font-rampart text-[1.75rem] leading-none tabular-nums">
-            {formatBRL(totalCents)}
+            <Price cents={totalCents} />
           </dd>
         </div>
       </dl>
