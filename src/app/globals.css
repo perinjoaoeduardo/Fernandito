@@ -219,9 +219,20 @@ html[data-age="ask"]:has(#age-gate) {
     transform: none;
   }
 }
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   #age-gate > div,
-  [aria-label="Aviso de cookies"] {
+  [aria-label="Aviso de cookies"],
+  [class*="pageIn_"] {
     animation: none !important;
   }
 }

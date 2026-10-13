@@ -453,14 +453,14 @@ export function CheckoutClient() {
                     Não deu pra cotar agora — usando o frete padrão da tua região.
                   </p>
                 )}
-                {options.map((option) => (
+                {options.map((option, i) => (
                   <label
                     key={option.id}
                     className={clsx(
-                      "duration-base ease-out-standard flex cursor-pointer items-center gap-4 rounded-xl border px-4 py-4 transition-colors",
+                      "duration-base ease-out-standard relative flex cursor-pointer items-center gap-4 rounded-2xl border px-4 py-4 transition-[background-color,border-color,transform] hover:-translate-y-0.5",
                       option.id === shippingId
                         ? "border-fernandito-verde-medio bg-fernandito-verde-medio/10"
-                        : "border-fernandito-verde-escuro/20 hover:border-fernandito-verde-escuro/40",
+                        : "border-fernandito-verde-escuro/20 hover:border-fernandito-verde-medio/60",
                     )}
                   >
                     <input
@@ -469,16 +469,39 @@ export function CheckoutClient() {
                       value={option.id}
                       checked={option.id === shippingId}
                       onChange={() => setShippingId(option.id)}
-                      className="accent-fernandito-verde-medio h-4 w-4 shrink-0"
+                      className="peer sr-only"
                     />
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="text-body font-bold">{option.service}</span>
-                      <span className="text-label uppercase opacity-70">
-                        {option.carrier} · {formatDays(option.days)}
+                    <span
+                      aria-hidden="true"
+                      className={clsx(
+                        "duration-base ease-out-standard peer-focus-visible:outline-fernandito-verde-medio flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2",
+                        option.id === shippingId
+                          ? "border-fernandito-verde-medio"
+                          : "border-fernandito-verde-escuro/40",
+                      )}
+                    >
+                      <span
+                        className={clsx(
+                          "bg-fernandito-verde-medio duration-base ease-out-standard h-3 w-3 rounded-full transition-transform",
+                          option.id === shippingId ? "scale-100" : "scale-0",
+                        )}
+                      />
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="text-body flex flex-wrap items-center gap-2 font-bold">
+                        {option.carrier}
+                        {i === 0 && option.source !== "local" && (
+                          <span className="bg-fernandito-verde-medio text-fernandito-off-white rounded-full px-2 py-0.5 font-sans text-[0.65rem] tracking-[0.08em] uppercase">
+                            Mais barato
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-label opacity-65">
+                        {option.service} · {formatDays(option.days)}
                       </span>
                     </span>
-                    <span className="text-body font-bold tabular-nums">
-                      {formatBRL(option.priceCents)}
+                    <span className="font-rampart text-[1.25rem] leading-none tabular-nums">
+                      <Price cents={option.priceCents} />
                     </span>
                   </label>
                 ))}

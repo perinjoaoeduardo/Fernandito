@@ -439,6 +439,16 @@ e a criação do pedido no Bling ainda não existem.
   flutuante afastado das bordas, `rounded-3xl`, véu com blur; item em
   cartão (nome em 2 linhas, quantidade e total na mesma linha), subtotal em
   Rampart e o aviso +18 no rodapé.
+- **Pix e confirmação (verde-escuro):** mesmo padrão do checkout — fundo
+  verde, cartões off-white flutuantes, entrada em cascata (`data-enter`,
+  `ui/EnterStagger`). Pix: total, QR + copia e cola, barra de tempo que
+  esvazia e 3 passos curtos; confirmação com ✓ que "estoura"
+  (`back.out`). Frete: opções em cartões com rádio próprio, transportadora
+  em destaque, preço em Rampart e selo "Mais barato". Campos: o azul do
+  autofill do Chrome é neutralizado (`Field`).
+- **Transição entre páginas:** `app/template.tsx` — a página nova entra com
+  fade + 12px de subida (`pageIn`, 0,55s, `out-standard`); a home fica de
+  fora (cortina de abertura e seções presas à rolagem).
 - **Menu no computador (md+):** uma pill só, com divisórias finas entre
   cavalo | Comprar | Instagram | carrinho (antes eram 4 peças soltas). No
   celular continuam as pills separadas.

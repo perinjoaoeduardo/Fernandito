@@ -9,7 +9,7 @@ export function OrderReceipt({ order }: { order: PublicOrder }) {
   return (
     <section
       aria-label="Resumo do pedido"
-      className="border-fernandito-verde-escuro/15 w-full rounded-2xl border bg-white/40 p-6 font-sans"
+      className="bg-fernandito-off-white text-fernandito-verde-escuro w-full rounded-3xl p-6 font-sans shadow-[0_24px_60px_rgba(0,0,0,0.35)]"
     >
       <div className="flex items-baseline justify-between gap-4">
         <h2 className="font-rampart text-[1.5rem] leading-none">Resumo do pedido</h2>
