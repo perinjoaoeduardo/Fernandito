@@ -408,8 +408,8 @@ e a criação do pedido no Bling ainda não existem.
 - **Catálogo** `src/lib/catalog.ts`: SKUs iguais aos do Bling
   (`FERN-KIT-PRE` ativo, `FERN-350-6` inativo até os kits acabarem), preço
   em centavos, peso/dimensões pra frete. Só `active: true` aparece.
-- **Comprar** (`ComprarSection`, âncora `#comprar`, e a página `/comprar`
-  com o nome como h1): foto com selo "Pré-lançamento · edição limitada",
+- **Comprar** (`ComprarSection`, âncora `#comprar` na home; `/comprar` só
+  redireciona pra lá): foto com selo "Pré-lançamento · edição limitada",
   o que vem, preço, quantidade 1–5 (`QtyStepper`), "Adicionar ao carrinho"
   (`Button` primary), aviso de 18 anos e WhatsApp como contato
   secundário. Na home fica logo depois da Hero (pré-lançamento) ou antes
@@ -429,7 +429,10 @@ e a criação do pedido no Bling ainda não existem.
   bloco de Pix/frete (inútil ali) e sem aviso de +18 (ver "Idade").
   **Barra de compra do celular**: flutuante, escura e redonda como o menu;
   aparece enquanto o botão de verdade está ABAIXO da tela e some quando ele
-  aparece. `/comprar`: `<main>` com fundo off-white (sem faixa escura).
+  aparece. **O kit só existe dentro da home** (`#comprar`): `/comprar`
+  redireciona pra `/#comprar`, e todo "Comprar"/"Voltar ao kit" fora da home
+  volta pra home já na seção (`providers/HashScroll` espera o intro e a
+  idade e pula direto). Fora da home o cavalo do menu volta pro início.
 - **Carrinho:** container flutuante (afastado 12–16px das bordas,
   `rounded-3xl`, véu verde com blur). Cabeçalho de altura fixa (72px) com
   contador; item em cartão claro (foto, nome em Rampart, "Pré-lançamento" e

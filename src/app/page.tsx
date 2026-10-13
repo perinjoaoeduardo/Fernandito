@@ -8,6 +8,7 @@ import { SocialGallerySection } from "@/components/sections/SocialGallerySection
 import { FichaTecnicaSection } from "@/components/sections/FichaTecnicaSection";
 import { FooterSection } from "@/components/sections/FooterSection";
 import { PRELAUNCH, STORE } from "@/content/site";
+import { HashScroll } from "@/components/providers/HashScroll";
 
 // ManifestoSection e ProdutoSection saíram da página por enquanto (pedido
 // explícito) — os componentes continuam em src/components/sections/, só
@@ -21,6 +22,7 @@ export default function Home() {
   if (PRELAUNCH.enabled) {
     return (
       <main>
+        <HashScroll />
         <HeroSection />
         {shop && <ComprarSection />}
         <ContatoSection
@@ -43,6 +45,7 @@ export default function Home() {
 
   return (
     <main>
+      <HashScroll />
       <HeroSection />
       <OQueESection />
       <GaleriaSection />

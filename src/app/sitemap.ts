@@ -12,7 +12,6 @@ const ROUTES: {
   { path: "/", changeFrequency: "monthly", priority: 1 },
   ...(STORE.enabled
     ? [
-        { path: "/comprar", changeFrequency: "weekly" as const, priority: 0.9 },
         { path: "/termos", changeFrequency: "yearly" as const, priority: 0.3 },
         { path: "/privacidade", changeFrequency: "yearly" as const, priority: 0.3 },
       ]

@@ -270,7 +270,7 @@ export function CheckoutClient() {
         <p className="text-body-lg font-sans">Escolhe o teu kit e volta aqui pra finalizar.</p>
         <Button
           as="a"
-          href="/comprar"
+          href="/#comprar"
           variant="primary"
           className="!bg-fernandito-off-white !text-fernandito-verde-escuro hover:!bg-fernandito-verde-claro hover:!text-fernandito-off-white"
         >
@@ -283,7 +283,8 @@ export function CheckoutClient() {
   return (
     <div ref={topRef} className="scroll-mt-32">
       <NextLink
-        href="/comprar"
+        href="/#comprar"
+        scroll={false}
         data-enter
         className="text-label duration-base ease-out-standard inline-flex items-center gap-2 font-sans tracking-[0.1em] uppercase opacity-70 transition-opacity hover:opacity-100"
       >

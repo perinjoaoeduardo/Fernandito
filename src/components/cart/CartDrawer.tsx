@@ -103,7 +103,7 @@ export function CartDrawer() {
                   variant="primary"
                   onClick={() => {
                     close();
-                    router.push("/comprar");
+                    router.push("/#comprar", { scroll: false });
                   }}
                 >
                   Ver o kit

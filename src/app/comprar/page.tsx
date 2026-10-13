@@ -1,23 +1,11 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { STORE } from "@/content/site";
-import { ComprarSection } from "@/components/sections/ComprarSection";
-import { FooterSection } from "@/components/sections/FooterSection";
 
-export const metadata: Metadata = {
-  title: "Comprar o Kit Pré-Lançamento",
-  description:
-    "Compre o Kit Fernandito Pré-Lançamento: 2 latas de fernet com cola 350ml, copo e adesivos. Edição limitada, pagamento por Pix. Venda proibida para menores de 18 anos.",
-  alternates: { canonical: "/comprar" },
-};
-
+// O kit mora dentro da home (seção #comprar) — assim quem compra vê a Hero e
+// o resto do site em volta, e o menu volta pra home naturalmente. Esta rota
+// fica só pra links antigos/compartilhados: manda pra home já na seção.
 export default function ComprarPage() {
   // Loja desligada (`STORE.enabled` em src/content/site.ts) → 404.
   if (!STORE.enabled) notFound();
-  return (
-    <main className="bg-fernandito-off-white pt-[calc(4rem+var(--announcement-h))]">
-      <ComprarSection headingLevel="h1" />
-      <FooterSection />
-    </main>
-  );
+  redirect("/#comprar");
 }

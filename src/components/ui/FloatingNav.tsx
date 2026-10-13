@@ -2,7 +2,7 @@
 
 import { clsx } from "clsx";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { backgroundAt } from "@/lib/background";
 import { DURATION, EASE_BEZIER, IS_TOUCH, prefersReducedMotion } from "@/lib/gsap";
@@ -59,7 +59,13 @@ export function FloatingNav() {
   const pathname = usePathname();
   const inPurchase = pathname.startsWith("/checkout") || pathname.startsWith("/pedido");
 
+  const router = useRouter();
   const handleHorseClick = () => {
+    // Fora da home o cavalo é o "voltar pro início".
+    if (window.location.pathname !== "/") {
+      router.push("/");
+      return;
+    }
     teleportToTop();
     const now = performance.now();
     horseTaps.current = [...horseTaps.current, now].filter((t) => now - t < TAP_WINDOW_MS);
@@ -181,7 +187,7 @@ export function FloatingNav() {
         <button
           type="button"
           onClick={handleHorseClick}
-          aria-label="Voltar ao topo"
+          aria-label={pathname === "/" ? "Voltar ao topo" : "Voltar pro início"}
           className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- raster estático de tamanho fixo, next/image não traz benefício */}
