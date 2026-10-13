@@ -408,22 +408,23 @@ e a criação do pedido no Bling ainda não existem.
   (`Button` primary), aviso de 18 anos e WhatsApp como contato
   secundário. Na home fica logo depois da Hero (pré-lançamento) ou antes
   do Contato (site completo); a moldura da Hero é off-white, a cor dela.
-- **Página do kit (`ComprarSection`)**: galeria `ProductGallery` (foto
-  4:5 `rounded-[1.75rem]` + miniaturas 80px; troca com fade; fotos 2–4 ainda
-  placeholders; **passa sozinha a cada 5 s** com barrinha de tempo embaixo da
-  foto, **setas** anterior/próxima que aparecem no hover (sempre visíveis no
-  toque); pausa com o mouse em cima, fora da tela e sob reduced-motion;
-  clicar em seta/miniatura recomeça a contagem); **selo redondo de carimbo** `ui/KitSeal` no canto da foto,
-  vazando pra fora (texto "Pré-lançamento ✦ Edição limitada ✦" correndo em
-  volta e girando devagar, cavalo no meio); linha "Fernet y cola em lata"
-  (`STORE.kitEyebrow`) + nome "Kit Fernandito" **digitado** (`TypewriterText`
-  modo play, como os títulos do site); "O que vem no kit" como **ficha
-  única** de 3 colunas (ícone, número grande em Rampart, nome: 2 latas,
-  1 copo, 5 adesivos); preço em Rampart + selo "Restam X" (estoque real,
-  só 1–30); quantidade + botão (no celular empilhados, botão inteiro).
-  Entrada: foto desfaz um zoom leve (como o Contato), miniaturas e textos
-  sobem em cascata, o selo "carimba" (`back.out(2.2)`, como a Carta). Sem
-  bloco de Pix/frete (inútil ali) e sem aviso de +18 (ver "Idade").
+- **Página do kit (`ComprarSection`)**: a foto é a protagonista (coluna
+  maior), o texto é enxuto. Galeria `ProductGallery` (foto 4:5
+  `rounded-[1.75rem]` + miniaturas 80px; troca com fade; fotos 2–4 ainda
+  placeholders; **passa sozinha a cada 5 s, sem marcador de tempo**; **setas**
+  anterior/próxima no hover, sempre visíveis no toque; pausa com o mouse em
+  cima, fora da tela e sob reduced-motion; clicar em seta/miniatura recomeça
+  a contagem). **Etiqueta simples** "Pré-lançamento / Edição limitada" no
+  canto da foto (retângulo escuro inclinado -4°, `font-rampart-stamp`).
+  Nome "Kit Fernandito" **digitado** (`TypewriterText` modo play), sem
+  linha acima; descrição curta; "O que vem no kit" em **etiquetas
+  pequenas** (ícone + "2 latas 350ml" etc.), um detalhe que não compete com
+  a foto; preço em Rampart (tamanho contido) + "Restam X" (estoque real, só
+  1–30); quantidade + botão (no celular empilhados, botão inteiro).
+  **Animação de rolagem nos dois sentidos** (`toggleActions: "play reverse
+play reverse"`): cada bloco sobe e aparece ao entrar na tela, descendo ou
+  subindo, e some de leve ao sair; a foto desfaz um zoom leve e a etiqueta
+  "carimba" (`back.out(2.2)`). Sem bloco de Pix/frete e sem aviso de +18.
   **Barra de compra do celular**: flutuante, escura e redonda como o menu;
   aparece enquanto o botão de verdade está ABAIXO da tela e some quando ele
   aparece. **O kit só existe dentro da home** (`#comprar`): `/comprar`
@@ -474,11 +475,13 @@ e a criação do pedido no Bling ainda não existem.
   terminou E a idade foi confirmada). O portão aparece quando a cortina do
   cavalo COMEÇA a subir (`markIntroReveal` → `html[data-intro="reveal"]`),
   fica por baixo dela (z 95 < 100) e o cartão sobe junto (`gate-rise`).
-  Cartão off-white com moldura tracejada, selo `KitSeal` carimbando no
-  topo e linhas em cascata (`gate-item`). "Sim": o cartão sobe e some
+  Cartão off-white com moldura tracejada, o selo do cavalo
+  (`public/logo/fernandito-selo.webp`, arte da marca, sem texto) carimbando
+  no topo e linhas em cascata (`gate-item`). "Sim": o cartão sobe e some
   (`gate-leave`) enquanto a Hero entra. "Não": o texto troca por um recado
-  ("Então, até daqui a pouco.") e o site segue fechado, com "Enganei, tenho
-  18" pra voltar. Tudo desliga sob prefers-reduced-motion. **Cookies:** `providers/CookieBanner`, flutuante embaixo à esquerda, só
+  ("Então, até daqui a pouco.") e o site segue fechado, com um "← Voltar"
+  (botão contornado) pra refazer a pergunta. Sem "Beba com moderação" no
+  cartão. Tudo desliga sob prefers-reduced-motion. **Cookies:** `providers/CookieBanner`, flutuante embaixo à esquerda, só
   depois do portão; só "Entendi" porque hoje não há cookies de análise.
 - **CTAs de compra** (`useGoToShop`: na home teletransporta pro
   `#comprar`, fora dela abre `/comprar`): "Comprar" no menu (no lugar do

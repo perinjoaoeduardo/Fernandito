@@ -1,9 +1,7 @@
 "use client";
 
-import { clsx } from "clsx";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
-import { KitSeal } from "@/components/ui/KitSeal";
 import { markAgeConfirmed } from "@/lib/introSignal";
 import { prefersReducedMotion } from "@/lib/gsap";
 
@@ -68,7 +66,7 @@ export function AgeGate() {
         className="gate-backdrop bg-fernandito-verde-escuro/60 absolute inset-0 backdrop-blur-xl"
       />
 
-      <div className="gate-card bg-fernandito-off-white text-fernandito-verde-escuro relative w-full max-w-[26rem] rounded-[2rem] px-7 pt-20 pb-7 text-center shadow-[0_40px_90px_rgba(0,0,0,0.5)] sm:px-10">
+      <div className="gate-card bg-fernandito-off-white text-fernandito-verde-escuro relative w-full max-w-[26rem] rounded-[2rem] px-7 pt-[5.5rem] pb-9 text-center shadow-[0_40px_90px_rgba(0,0,0,0.5)] sm:px-10">
         {/* Moldura tracejada de rótulo, por dentro do cartão. */}
         <span
           aria-hidden="true"
@@ -76,9 +74,17 @@ export function AgeGate() {
         />
 
         {/* Selo de carimbo no topo, vazando pra fora do cartão. */}
-        <div className="absolute -top-14 left-1/2 -translate-x-1/2">
+        <div className="absolute -top-16 left-1/2 -translate-x-1/2">
           <div className="gate-seal">
-            <KitSeal text="Fernet y cola · Toma Fernandito" className="h-28 w-28" />
+            {/* eslint-disable-next-line @next/next/no-img-element -- raster pequeno de tamanho fixo */}
+            <img
+              src="/logo/fernandito-selo.webp"
+              alt=""
+              width={480}
+              height={490}
+              decoding="async"
+              className="h-auto w-32 rotate-[-6deg] drop-shadow-[0_14px_24px_rgba(20,28,18,0.35)]"
+            />
           </div>
         </div>
 
@@ -111,9 +117,9 @@ export function AgeGate() {
               <button
                 type="button"
                 onClick={() => setState("ask")}
-                className="text-label duration-base ease-out-standard h-11 px-5 tracking-[0.12em] uppercase underline underline-offset-4 opacity-70 transition-opacity hover:opacity-100"
+                className="text-label border-fernandito-verde-escuro/25 duration-base ease-out-standard hover:border-fernandito-verde-escuro/60 h-11 rounded-full border px-6 tracking-[0.12em] uppercase transition-colors"
               >
-                Enganei, tenho 18
+                ← Voltar
               </button>
             ) : (
               <>
@@ -136,15 +142,6 @@ export function AgeGate() {
             )}
           </div>
         </div>
-
-        <p
-          className={clsx(
-            "gate-item relative mt-5 font-sans text-[0.65rem] tracking-[0.14em] uppercase opacity-50",
-          )}
-          style={itemDelay(4)}
-        >
-          Beba com moderação
-        </p>
       </div>
     </div>
   );
