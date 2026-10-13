@@ -259,3 +259,13 @@ html[data-age="ask"][data-intro="done"]:has(#age-gate) {
     animation: none;
   }
 }
+
+/* Barrinha de tempo da galeria do kit (5 s por foto). */
+@keyframes gallery-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}

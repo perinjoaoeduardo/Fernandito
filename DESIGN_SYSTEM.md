@@ -416,7 +416,10 @@ e a criação do pedido no Bling ainda não existem.
   do Contato (site completo); a moldura da Hero é off-white, a cor dela.
 - **Página do kit (`ComprarSection`)**: galeria `ProductGallery` (foto
   4:5 `rounded-[1.75rem]` + miniaturas 80px; troca com fade; fotos 2–4 ainda
-  placeholders); **selo redondo de carimbo** `ui/KitSeal` no canto da foto,
+  placeholders; **passa sozinha a cada 5 s** com barrinha de tempo embaixo da
+  foto, **setas** anterior/próxima que aparecem no hover (sempre visíveis no
+  toque); pausa com o mouse em cima, fora da tela e sob reduced-motion;
+  clicar em seta/miniatura recomeça a contagem); **selo redondo de carimbo** `ui/KitSeal` no canto da foto,
   vazando pra fora (texto "Pré-lançamento ✦ Edição limitada ✦" correndo em
   volta e girando devagar, cavalo no meio); linha "Fernet y cola em lata"
   (`STORE.kitEyebrow`) + nome "Kit Fernandito" **digitado** (`TypewriterText`
