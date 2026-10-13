@@ -203,10 +203,10 @@ body {
 #age-gate {
   display: none;
 }
-html[data-age="ask"] #age-gate {
+html[data-age="ask"][data-intro="done"] #age-gate {
   display: flex;
 }
-html[data-age="ask"]:has(#age-gate) {
+html[data-age="ask"][data-intro="done"]:has(#age-gate) {
   overflow: hidden;
 }
 @keyframes ageIn {

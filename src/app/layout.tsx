@@ -233,7 +233,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script
           dangerouslySetInnerHTML={{
             __html:
-              'try{document.documentElement.dataset.age=localStorage.getItem("fernandito:age:v1")?"ok":"ask"}catch(e){document.documentElement.dataset.age="ask"}',
+              'var d=document.documentElement;d.dataset.intro=location.pathname==="/"?"run":"done";try{d.dataset.age=localStorage.getItem("fernandito:age:v1")?"ok":"ask"}catch(e){d.dataset.age="ask"}',
           }}
         />
         <script

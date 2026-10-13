@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { markAgeConfirmed } from "@/lib/introSignal";
 
 const AGE_KEY = "fernandito:age:v1";
 
@@ -13,7 +14,7 @@ const OPEN_PATHS = ["/termos", "/privacidade", "/legal"];
  * Portão de idade da primeira visita: "Você tem 18 anos ou mais?". Quem
  * confirma não vê de novo (localStorage). O `<script>` do layout decide
  * antes de pintar se o portão aparece (`html[data-age="ask"]`, ver
- * globals.css), então não pisca pra quem já confirmou. Não é a prova de
+ * globals.css; na home só depois da animação do cavalo, `data-intro`), então não pisca pra quem já confirmou. Não é a prova de
  * idade da compra: essa é a caixa marcada no fim do checkout.
  */
 export function AgeGate() {
@@ -30,6 +31,7 @@ export function AgeGate() {
     }
     document.documentElement.dataset.age = "ok";
     window.dispatchEvent(new Event("fernandito:age-ok"));
+    markAgeConfirmed();
   };
 
   return (
@@ -38,7 +40,7 @@ export function AgeGate() {
       role="dialog"
       aria-modal="true"
       aria-labelledby="age-gate-title"
-      className="bg-fernandito-verde-escuro/70 fixed inset-0 z-[300] items-center justify-center p-5 backdrop-blur-xl"
+      className="bg-fernandito-verde-escuro/55 fixed inset-0 z-[190] items-center justify-center p-5 backdrop-blur-xl"
     >
       <div className="bg-fernandito-off-white text-fernandito-verde-escuro w-full max-w-md animate-[ageIn_0.6s_cubic-bezier(0.22,1,0.36,1)_both] rounded-3xl p-8 text-center shadow-[0_30px_80px_rgba(0,0,0,0.45)] sm:p-10">
         {/* eslint-disable-next-line @next/next/no-img-element -- raster estático de tamanho fixo */}

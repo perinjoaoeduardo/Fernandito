@@ -2,6 +2,7 @@
 
 import NextLink from "next/link";
 import { useEffect, useState } from "react";
+import { onIntroComplete } from "@/lib/introSignal";
 
 const COOKIE_KEY = "fernandito:cookies:v1";
 
@@ -23,13 +24,28 @@ export function CookieBanner() {
       // sem armazenamento: mostra sempre
     }
     if (answered) return;
-    const show = () => setVisible(true);
-    if (document.documentElement.dataset.age === "ok") {
-      const timer = window.setTimeout(show, 1200);
-      return () => window.clearTimeout(timer);
-    }
-    window.addEventListener("fernandito:age-ok", show, { once: true });
-    return () => window.removeEventListener("fernandito:age-ok", show);
+    // Só depois do portão de idade E da animação do cavalo (home).
+    let ageOk = document.documentElement.dataset.age === "ok";
+    let introOk = false;
+    let timer: number | undefined;
+    const check = () => {
+      if (ageOk && introOk) timer = window.setTimeout(() => setVisible(true), 800);
+    };
+    const onAge = () => {
+      ageOk = true;
+      check();
+    };
+    const offIntro = onIntroComplete(() => {
+      introOk = true;
+      check();
+    });
+    if (ageOk) check();
+    else window.addEventListener("fernandito:age-ok", onAge, { once: true });
+    return () => {
+      offIntro();
+      window.removeEventListener("fernandito:age-ok", onAge);
+      window.clearTimeout(timer);
+    };
   }, []);
 
   if (!visible) return null;

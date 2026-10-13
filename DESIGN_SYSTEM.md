@@ -461,7 +461,10 @@ e a criação do pedido no Bling ainda não existem.
   /legal) e (2) a caixa "Tenho 18 anos ou mais" no fim do checkout (a que
   vale como declaração do pedido). Avisos repetidos de +18 em /comprar,
   carrinho e checkout foram removidos de propósito (ficou excessivo).
-  **Cookies:** `providers/CookieBanner`, flutuante embaixo à esquerda, só
+  Na home a ordem é: cavalo correndo (intro) → portão de idade → entrada da
+  Hero → aviso de cookies (`lib/introSignal`: a Hero só anima quando o intro
+  terminou E a idade foi confirmada; o portão fica abaixo do cursor
+  customizado, z 190 < 200). **Cookies:** `providers/CookieBanner`, flutuante embaixo à esquerda, só
   depois do portão; só "Entendi" porque hoje não há cookies de análise.
 - **CTAs de compra** (`useGoToShop`: na home teletransporta pro
   `#comprar`, fora dela abre `/comprar`): "Comprar" no menu (no lugar do
