@@ -444,7 +444,15 @@ e a criação do pedido no Bling ainda não existem.
   celular continuam as pills separadas.
 - **Preço em texto grande:** componente `ui/Price` — "R$" em fonte comum
   (a Rampart borra o `$`), só os números em Rampart.
-- **Aviso +18:** pílula verde-médio com selo "+18" redondo, em /comprar.
+- **Idade (18+): só dois momentos.** (1) Portão na 1ª visita
+  (`providers/AgeGate`: "Você tem 18 anos ou mais?", Sim/Não; guarda
+  `fernandito:age:v1`; o `<script>` do layout decide antes de pintar via
+  `html[data-age]`, sem piscar; não aparece em /termos, /privacidade,
+  /legal) e (2) a caixa "Tenho 18 anos ou mais" no fim do checkout (a que
+  vale como declaração do pedido). Avisos repetidos de +18 em /comprar,
+  carrinho e checkout foram removidos de propósito (ficou excessivo).
+  **Cookies:** `providers/CookieBanner`, flutuante embaixo à esquerda, só
+  depois do portão; só "Entendi" porque hoje não há cookies de análise.
 - **CTAs de compra** (`useGoToShop`: na home teletransporta pro
   `#comprar`, fora dela abre `/comprar`): "Comprar" no menu (no lugar do
   WhatsApp), "Comprar o kit" na Hero e no bloco final (botão claro, com

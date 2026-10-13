@@ -29,9 +29,6 @@ import { splitName } from "@/lib/catalog";
 
 const STEPS = ["Contato", "Entrega", "Frete", "Confirmação"] as const;
 
-const AGE_TEXT =
-  "Declaro ter 18 anos ou mais e estou ciente de que a venda de bebidas alcoólicas é proibida para menores. A entrega só será feita a maior de 18 anos mediante documento com foto.";
-
 type Contact = { name: string; email: string; phone: string; cpf: string };
 type AddressForm = {
   cep: string;
@@ -283,9 +280,6 @@ export function CheckoutClient() {
       <h1 data-enter className="font-rampart text-[clamp(2rem,5vw,3.5rem)] leading-[1.05]">
         Finalizar compra
       </h1>
-      <p data-enter className="text-label mt-3 font-sans tracking-[0.08em] uppercase opacity-70">
-        {STORE.ageNotice}
-      </p>
 
       <div className="mt-10 grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-14">
         <ol className="flex flex-col gap-4">
@@ -497,56 +491,25 @@ export function CheckoutClient() {
 
           {/* D — Idade e termos */}
           <Step index={3} current={step} onEdit={() => goTo(3)} summary="">
-            <div className="flex flex-col gap-4 font-sans">
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={ageConfirmedAt !== null}
-                  onChange={(e) =>
-                    setAgeConfirmedAt(e.target.checked ? new Date().toISOString() : null)
-                  }
-                  className="accent-fernandito-verde-medio mt-1 h-5 w-5 shrink-0"
-                  required
-                />
-                <span className="text-body">
-                  {AGE_TEXT} <span className="opacity-60">(obrigatório)</span>
-                </span>
-              </label>
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={marketingOptIn}
-                  onChange={(e) => setMarketingOptIn(e.target.checked)}
-                  className="accent-fernandito-verde-medio mt-1 h-5 w-5 shrink-0"
-                />
-                <span className="text-body">Quero receber novidades da Fernandito por e-mail</span>
-              </label>
-              <p className="text-label tracking-[0.04em] uppercase opacity-70">
-                Ao continuar você concorda com os{" "}
-                <NextLink
-                  href="/termos"
-                  className="underline underline-offset-4"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  Termos de uso
-                </NextLink>{" "}
-                e a{" "}
-                <NextLink
-                  href="/privacidade"
-                  className="underline underline-offset-4"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  Política de privacidade
-                </NextLink>
-                .
-              </p>
+            <div className="flex flex-col gap-3 font-sans">
+              <ConfirmRow
+                checked={ageConfirmedAt !== null}
+                onChange={(checked) => setAgeConfirmedAt(checked ? new Date().toISOString() : null)}
+                title="Tenho 18 anos ou mais"
+                hint="Venda proibida a menores. A entrega exige documento com foto."
+                required
+              />
+              <ConfirmRow
+                checked={marketingOptIn}
+                onChange={setMarketingOptIn}
+                title="Quero receber novidades por e-mail"
+                hint="Opcional."
+              />
             </div>
             <div className="mt-6">
               <Button
                 variant="primary"
-                className="w-full sm:w-auto"
+                className="w-full !py-4"
                 onClick={() => void pay()}
                 disabled={!ageConfirmedAt || !shipping || paying}
                 aria-disabled={!ageConfirmedAt || !shipping || paying}
@@ -558,11 +521,26 @@ export function CheckoutClient() {
                   {payError}
                 </p>
               )}
-              {!ageConfirmedAt && (
-                <p className="text-label mt-3 font-sans uppercase opacity-60">
-                  Confirme a declaração de maioridade pra continuar.
-                </p>
-              )}
+              <p className="text-label mt-4 text-center font-sans tracking-[0.04em] uppercase opacity-60">
+                Ao pagar, você aceita os{" "}
+                <NextLink
+                  href="/termos"
+                  className="underline underline-offset-4"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Termos
+                </NextLink>{" "}
+                e a{" "}
+                <NextLink
+                  href="/privacidade"
+                  className="underline underline-offset-4"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Privacidade
+                </NextLink>
+              </p>
             </div>
           </Step>
         </ol>
@@ -570,6 +548,55 @@ export function CheckoutClient() {
         <OrderSummary shipping={shipping} totalCents={totalCents} />
       </div>
     </div>
+  );
+}
+
+/** Linha de confirmação: cartão clicável com caixa de seleção própria. */
+function ConfirmRow({
+  checked,
+  onChange,
+  title,
+  hint,
+  required,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  title: string;
+  hint: string;
+  required?: boolean;
+}) {
+  return (
+    <label
+      className={clsx(
+        "duration-base ease-out-standard flex cursor-pointer items-center gap-4 rounded-2xl border px-4 py-3.5 transition-[background-color,border-color]",
+        checked
+          ? "border-fernandito-verde-medio bg-fernandito-verde-medio/10"
+          : "border-fernandito-verde-escuro/20 hover:border-fernandito-verde-medio/60",
+      )}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        required={required}
+        className="peer sr-only"
+      />
+      <span
+        aria-hidden="true"
+        className={clsx(
+          "duration-base ease-out-standard peer-focus-visible:outline-fernandito-verde-medio flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-[0.8rem] leading-none transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2",
+          checked
+            ? "bg-fernandito-verde-medio border-fernandito-verde-medio text-fernandito-off-white"
+            : "border-fernandito-verde-escuro/40",
+        )}
+      >
+        {checked ? "✓" : ""}
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="text-body font-bold">{title}</span>
+        <span className="text-label opacity-65">{hint}</span>
+      </span>
+    </label>
   );
 }
 

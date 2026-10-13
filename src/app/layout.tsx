@@ -4,6 +4,8 @@ import Script from "next/script";
 import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvider";
 import { IntroLoader } from "@/components/providers/IntroLoader";
 import { SiteAnalytics } from "@/components/providers/SiteAnalytics";
+import { AgeGate } from "@/components/providers/AgeGate";
+import { CookieBanner } from "@/components/providers/CookieBanner";
 import { ThemeColorSync } from "@/components/providers/ThemeColorSync";
 import { FloatingNav } from "@/components/ui/FloatingNav";
 import { CustomCursor } from "@/components/ui/CustomCursor";
@@ -220,11 +222,20 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="pt-BR"
+      suppressHydrationWarning
       className={[fontVariables, "antialiased", ANNOUNCEMENT.enabled && "has-announcement"]
         .filter(Boolean)
         .join(" ")}
     >
       <body>
+        {/* Decide ANTES de pintar se mostra o portão de idade (sem piscar
+            pra quem já confirmou). Sem JS o portão fica escondido. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'try{document.documentElement.dataset.age=localStorage.getItem("fernandito:age:v1")?"ok":"ask"}catch(e){document.documentElement.dataset.age="ask"}',
+          }}
+        />
         <script
           type="application/ld+json"
           // JSON gerado por nós, sem entrada de usuário — o replace de "<"
@@ -256,6 +267,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             {STORE.enabled && <CartDrawer />}
           </CartProvider>
         </SmoothScrollProvider>
+        <AgeGate />
+        <CookieBanner />
         <SiteAnalytics />
       </body>
     </html>

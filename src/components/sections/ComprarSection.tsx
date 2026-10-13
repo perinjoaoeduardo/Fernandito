@@ -4,7 +4,6 @@ import { clsx } from "clsx";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FEATURED_PRODUCT, splitName, type ContentIcon } from "@/lib/catalog";
 import { Price } from "@/components/ui/Price";
-import { AgeNotice } from "@/components/ui/AgeNotice";
 import { STORE } from "@/content/site";
 import { Button } from "@/components/ui/Button";
 import { ProductGallery } from "@/components/sections/ProductGallery";
@@ -55,7 +54,7 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
   const [showSticky, setShowSticky] = useState(false);
 
   // Barra fixa do celular: aparece quando o botão de compra já passou por
-  // cima da tela e o fim do bloco (aviso de 18 anos) ainda não chegou — assim
+  // cima da tela e o fim do bloco (fim do bloco) ainda não chegou — assim
   // não cobre o rodapé nem aparece antes da hora.
   useEffect(() => {
     const buy = buyRef.current;
@@ -241,9 +240,8 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
               {STORE.addToCart}
             </Button>
           </div>
-          <div ref={endRef} data-reveal className="mt-6">
-            <AgeNotice />
-          </div>
+          {/* Marca o fim do bloco (a barra fixa do celular some aqui). */}
+          <div ref={endRef} aria-hidden="true" className="h-px w-full" />
 
           {WHATSAPP_HREF && (
             <p data-reveal className="text-body mt-6 opacity-80">

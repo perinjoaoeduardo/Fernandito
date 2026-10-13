@@ -8,7 +8,6 @@ import { getLenis } from "@/lib/lenis";
 import { formatBRL } from "@/lib/money";
 import { Button } from "@/components/ui/Button";
 import { Price } from "@/components/ui/Price";
-import { AgeNotice } from "@/components/ui/AgeNotice";
 import { splitName } from "@/lib/catalog";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { CloseIcon } from "@/components/ui/icons";
@@ -178,7 +177,6 @@ export function CartDrawer() {
                   >
                     Finalizar compra
                   </Button>
-                  <AgeNotice className="self-center" />
                 </footer>
               </>
             )}

@@ -57,7 +57,6 @@ export const STORE = {
   /** Barra de compra fixa no celular. */
   stickyCta: "Adicionar",
   addToCart: "Adicionar ao carrinho",
-  ageNotice: "Venda proibida para menores de 18 anos",
   /** CTA dos outros lugares do site (menu, Hero, bloco final). */
   cta: "Comprar o kit",
   navCta: "Comprar",
