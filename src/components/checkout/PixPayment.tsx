@@ -20,9 +20,9 @@ import { Price } from "@/components/ui/Price";
 const POLL_MS = 4000;
 const PIX_TOTAL_MS = 30 * 60 * 1000;
 const PIX_STEPS = [
-  "Abra o app do banco e escolha Pix",
-  "Leia o QR code ou cole o código",
-  "Confirme: esta tela atualiza sozinha",
+  "Abre o app do banco",
+  "Lê o QR ou cola o código",
+  "Confirma: a tela atualiza sozinha",
 ];
 
 export function PixPayment({
@@ -142,39 +142,47 @@ export function PixPayment({
   }, []);
 
   const progress = Math.min(1, remaining / PIX_TOTAL_MS);
+  const timeLeft = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+
+  const qr = (
+    <div className="border-fernandito-verde-escuro/10 flex aspect-square w-full max-w-[15rem] items-center justify-center rounded-2xl border bg-white p-3 shadow-[inset_0_0_0_6px_rgba(255,255,255,1)]">
+      {order.pix?.qrCodeBase64 ? (
+        <Image
+          src={`data:image/png;base64,${order.pix.qrCodeBase64}`}
+          alt="QR code do Pix"
+          width={220}
+          height={220}
+          unoptimized
+          className="h-full w-full [image-rendering:pixelated]"
+        />
+      ) : (
+        <span className="text-label px-4 text-center uppercase opacity-50">QR code de teste</span>
+      )}
+    </div>
+  );
 
   return (
     <div
       ref={rootRef}
-      className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-14"
+      className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-12"
     >
       <div className="flex flex-col gap-8">
         <div data-enter>
-          <p className="font-accent text-label tracking-[0.16em] uppercase opacity-70">
-            {expired ? "Pix expirado" : status === "paid" ? "Pago" : "Falta pouco"}
+          <p className="font-accent text-label tracking-[0.18em] uppercase opacity-70">
+            {expired ? "Pix expirado" : "Falta pouco"}
           </p>
-          <h1 className="font-rampart mt-3 text-[clamp(2rem,5vw,3.5rem)] leading-[1.05]">
+          <h1 className="font-rampart mt-3 text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.02]">
             {expired ? "Esse Pix expirou" : "Paga com Pix"}
           </h1>
         </div>
 
-        {simulated && (
-          <p
-            data-enter
-            className="text-label border-fernandito-off-white/40 rounded-2xl border border-dashed px-4 py-3 font-sans tracking-[0.04em] uppercase opacity-90"
-          >
-            Modo teste: Pix simulado. Não pague este código.
-          </p>
-        )}
-
         {expired ? (
           <div
             data-enter
-            className="bg-fernandito-off-white text-fernandito-verde-escuro flex flex-col items-start gap-4 rounded-3xl p-6 font-sans shadow-[0_24px_60px_rgba(0,0,0,0.35)] sm:p-8"
+            className="bg-fernandito-off-white text-fernandito-verde-escuro flex flex-col items-start gap-5 rounded-3xl p-7 font-sans shadow-[0_24px_60px_rgba(0,0,0,0.35)] sm:p-9"
           >
             <p className="text-body-lg max-w-xl">
-              O código vale por 30 minutos e esse tempo passou. Nada foi cobrado. Gera um novo Pix
-              com o mesmo pedido.
+              O código vale por 30 minutos. Nada foi cobrado: gera um novo Pix pro mesmo pedido.
             </p>
             <Button variant="primary" onClick={() => void renew()} disabled={busy}>
               {busy ? "Gerando…" : "Gerar novo Pix"}
@@ -186,106 +194,104 @@ export function PixPayment({
             )}
           </div>
         ) : (
-          <>
-            <div
-              data-enter
-              className="bg-fernandito-off-white text-fernandito-verde-escuro flex flex-col gap-6 rounded-3xl p-6 font-sans shadow-[0_24px_60px_rgba(0,0,0,0.35)] sm:p-8"
-            >
-              <div className="flex items-end justify-between gap-4">
-                <span className="text-label tracking-[0.08em] uppercase opacity-70">Total</span>
-                <span className="font-rampart text-[2.25rem] leading-none tabular-nums">
+          <div
+            data-enter
+            className="bg-fernandito-off-white text-fernandito-verde-escuro overflow-hidden rounded-3xl font-sans shadow-[0_24px_60px_rgba(0,0,0,0.35)]"
+          >
+            {/* Topo: total + tempo restante. */}
+            <div className="border-fernandito-verde-escuro/10 flex flex-wrap items-end justify-between gap-4 border-b px-6 pt-6 pb-5 sm:px-8">
+              <div>
+                <p className="text-label tracking-[0.1em] uppercase opacity-60">Total</p>
+                <p className="font-rampart mt-1.5 text-[2.5rem] leading-none tabular-nums">
                   <Price cents={order.totalCents} />
-                </span>
+                </p>
               </div>
-
-              <div className="flex flex-col gap-6 md:flex-row-reverse md:items-start md:gap-8">
-                <div className="flex min-w-0 flex-1 flex-col gap-3">
-                  <label
-                    htmlFor="pix-code"
-                    className="text-label tracking-[0.08em] uppercase opacity-70"
-                  >
-                    Código Pix (copia e cola)
-                  </label>
-                  <textarea
-                    id="pix-code"
-                    readOnly
-                    rows={3}
-                    value={order.pix?.qrCode ?? ""}
-                    onFocus={(e) => e.currentTarget.select()}
-                    className="border-fernandito-verde-escuro/20 w-full resize-none rounded-2xl border bg-white/70 px-4 py-3 font-mono text-[0.8rem] leading-snug break-all"
-                  />
-                  <Button variant="primary" onClick={() => void copy()} className="w-full !py-3.5">
-                    {copied ? "Código copiado ✓" : "Copiar código Pix"}
-                  </Button>
-                </div>
-
-                <div className="border-fernandito-verde-escuro/15 flex h-52 w-52 shrink-0 items-center justify-center self-center rounded-2xl border bg-white p-3">
-                  {order.pix?.qrCodeBase64 ? (
-                    <Image
-                      src={`data:image/png;base64,${order.pix.qrCodeBase64}`}
-                      alt="QR code do Pix"
-                      width={200}
-                      height={200}
-                      unoptimized
-                      className="h-full w-full [image-rendering:pixelated]"
-                    />
-                  ) : (
-                    <span className="text-label px-4 text-center uppercase opacity-60">
-                      QR code de teste
-                    </span>
-                  )}
-                </div>
+              <div className="text-right" aria-live="polite">
+                <p className="text-label tracking-[0.1em] uppercase opacity-60">Expira em</p>
+                <p className="font-rampart mt-1.5 text-[1.75rem] leading-none tabular-nums">
+                  {timeLeft}
+                </p>
               </div>
-
-              {/* Tempo restante: barra que vai esvaziando. */}
-              <div aria-live="polite">
-                <div className="text-label flex items-center justify-between tracking-[0.06em] uppercase">
-                  <span className="flex items-center gap-2 opacity-70">
-                    <span className="bg-fernandito-verde-medio inline-block h-2 w-2 animate-pulse rounded-full" />
-                    Aguardando pagamento
-                  </span>
-                  <span className="tabular-nums">
-                    Expira em {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
-                  </span>
-                </div>
-                <div className="bg-fernandito-verde-escuro/10 mt-2 h-1.5 overflow-hidden rounded-full">
-                  <div
-                    className="bg-fernandito-verde-medio h-full rounded-full transition-[width] duration-1000 ease-linear"
-                    style={{ width: `${progress * 100}%` }}
-                  />
-                </div>
+              <div className="bg-fernandito-verde-escuro/10 h-1 w-full overflow-hidden rounded-full">
+                <div
+                  className="bg-fernandito-verde-medio h-full rounded-full transition-[width] duration-1000 ease-linear"
+                  style={{ width: `${progress * 100}%` }}
+                />
               </div>
-
-              {canSimulate && (
-                <button
-                  type="button"
-                  onClick={() => void simulatePaid()}
-                  disabled={busy}
-                  className="text-label border-fernandito-verde-escuro/40 self-start rounded-full border border-dashed px-4 py-2 uppercase opacity-70 transition-opacity hover:opacity-100"
-                >
-                  Simular pagamento (só no teste)
-                </button>
-              )}
             </div>
 
-            <ol data-enter className="grid gap-3 font-sans sm:grid-cols-3">
-              {PIX_STEPS.map((step, i) => (
-                <li
-                  key={step}
-                  className="border-fernandito-off-white/20 flex items-center gap-3 rounded-2xl border px-4 py-3"
+            <div className="grid gap-7 px-6 py-7 sm:px-8 md:grid-cols-[13rem_minmax(0,1fr)] md:items-center md:gap-8">
+              {/* QR: no computador sempre; no celular, sob demanda (quem
+                  está no celular copia o código). */}
+              <div className="hidden md:block">{qr}</div>
+
+              <div className="flex min-w-0 flex-col gap-3">
+                <label
+                  htmlFor="pix-code"
+                  className="text-label tracking-[0.1em] uppercase opacity-60"
                 >
-                  <span className="bg-fernandito-off-white text-fernandito-verde-escuro font-accent flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[0.8rem]">
+                  Pix copia e cola
+                </label>
+                <textarea
+                  id="pix-code"
+                  readOnly
+                  rows={3}
+                  value={order.pix?.qrCode ?? ""}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="border-fernandito-verde-escuro/15 w-full resize-none rounded-xl border bg-white/70 px-4 py-3 font-mono text-[0.75rem] leading-snug break-all"
+                />
+                <Button variant="primary" onClick={() => void copy()} className="w-full !py-4">
+                  {copied ? "Código copiado ✓" : "Copiar código Pix"}
+                </Button>
+                <p className="text-label mt-1 flex items-center gap-2 tracking-[0.08em] uppercase opacity-70">
+                  <span className="bg-fernandito-verde-medio inline-block h-2 w-2 animate-pulse rounded-full" />
+                  Aguardando pagamento
+                </p>
+                <details className="group mt-1 md:hidden">
+                  <summary className="text-label flex cursor-pointer list-none items-center gap-2 tracking-[0.1em] uppercase underline underline-offset-4 opacity-70">
+                    Mostrar QR code
+                  </summary>
+                  <div className="mt-4 flex justify-center">{qr}</div>
+                </details>
+              </div>
+            </div>
+
+            {/* Como pagar: três passos curtos. */}
+            <ol className="border-fernandito-verde-escuro/10 grid gap-3 border-t px-6 py-5 sm:px-8 md:grid-cols-3 md:gap-4">
+              {PIX_STEPS.map((step, i) => (
+                <li key={step} className="flex items-center gap-3">
+                  <span className="bg-fernandito-verde-escuro text-fernandito-off-white flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[0.8rem] leading-none font-bold">
                     {i + 1}
                   </span>
-                  <span className="text-label leading-snug">{step}</span>
+                  <span className="text-label leading-snug tracking-[0.04em]">{step}</span>
                 </li>
               ))}
             </ol>
-          </>
+
+            {(simulated || canSimulate) && (
+              <div className="border-fernandito-verde-escuro/10 bg-fernandito-verde-escuro/[0.04] flex flex-wrap items-center justify-between gap-3 border-t px-6 py-4 sm:px-8">
+                {simulated && (
+                  <p className="text-label tracking-[0.06em] uppercase opacity-70">
+                    Modo teste: não pague este código
+                  </p>
+                )}
+                {canSimulate && (
+                  <button
+                    type="button"
+                    onClick={() => void simulatePaid()}
+                    disabled={busy}
+                    className="text-label border-fernandito-verde-escuro/40 rounded-full border border-dashed px-4 py-2 tracking-[0.06em] uppercase opacity-80 transition-opacity hover:opacity-100"
+                  >
+                    Simular pagamento
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
-      <div data-enter>
+      <div data-enter className="lg:sticky lg:top-32">
         <OrderReceipt order={order} />
       </div>
     </div>

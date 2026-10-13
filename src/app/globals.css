@@ -236,3 +236,26 @@ html[data-age="ask"][data-intro="done"]:has(#age-gate) {
     animation: none !important;
   }
 }
+
+/* Selo do kit: o anel de texto gira devagar. */
+@keyframes seal-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.kit-seal-ring {
+  animation: seal-spin 28s linear infinite;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kit-seal-ring {
+    animation: none;
+  }
+}

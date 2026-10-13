@@ -96,3 +96,21 @@ export function StickerIcon({ className = "h-6 w-6" }: IconProps) {
     </svg>
   );
 }
+
+/** Lixeira (remover item). */
+export function TrashIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg {...strokeProps} className={className}>
+      <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+    </svg>
+  );
+}
+
+/** Seta pra direita (avançar). */
+export function ArrowRightIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg {...strokeProps} className={className}>
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  );
+}

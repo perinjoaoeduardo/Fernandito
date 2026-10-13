@@ -414,44 +414,52 @@ e a criação do pedido no Bling ainda não existem.
   (`Button` primary), aviso de 18 anos e WhatsApp como contato
   secundário. Na home fica logo depois da Hero (pré-lançamento) ou antes
   do Contato (site completo); a moldura da Hero é off-white, a cor dela.
-- **Melhorias do módulo do kit** (só loja/teste): galeria `ProductGallery`
-  (foto 4:5 + miniaturas quadradas; some com 1 foto; fotos 2–4 ainda são
-  placeholders no catálogo); selo "Pré-lançamento" em duas linhas, maior,
-  com aro interno e sombra, que "carimba" (`back.out(2.2)`) ao entrar;
-  título em duas linhas (nome + "Pré-lançamento" em verde-médio); blocos
-  entram em cascata (`data-reveal`, `DURATION.enter` + `EASE.outStandard`,
-  sem animação sob reduced-motion); "O que vem no kit" em cartões com ícone
-  (`contents` = `{icon, qty, label}`: ícone, quantidade grande em Rampart
-  e nome — "2 latas", "1 copo", "5 adesivos"; ícones em `ui/icons.tsx`).
-  Sem bloco de "confiança" (Pix/frete) sob o botão: foi testado e removido
-  por ser informação inútil ali — frete e Pix aparecem no checkout;
-  selo "Restam X unidades" só com estoque 1–30, vindo de `/api/estoque`
-  (Bling, cache 60 s; Bling fora do ar = sem selo; também limita a
-  quantidade); **barra de compra fixa só no celular** (preço + "Adicionar"),
-  aparece quando o botão principal saiu por cima e some antes do rodapé.
-  `/comprar`: `<main>` tem fundo off-white (corrigiu a faixa escura atrás do
-  menu).
-- **Checkout (verde-escuro):** fundo da página `verde-escuro`, etapas e
-  resumo como cartões off-white flutuantes (`rounded-3xl`, sombra funda),
-  etapa bloqueada só com contorno; número da etapa em círculo (✓ quando
-  concluída); entrada em cascata (`data-enter`) e o formulário de cada
-  etapa aparece subindo (`DURATION.slow`). **Carrinho:** container
-  flutuante afastado das bordas, `rounded-3xl`, véu com blur; item em
-  cartão (nome em 2 linhas, quantidade e total na mesma linha), subtotal em
-  Rampart e o aviso +18 no rodapé.
-- **Pix e confirmação (verde-escuro):** mesmo padrão do checkout — fundo
-  verde, cartões off-white flutuantes, entrada em cascata (`data-enter`,
-  `ui/EnterStagger`). Pix: total, QR + copia e cola, barra de tempo que
-  esvazia e 3 passos curtos; confirmação com ✓ que "estoura"
-  (`back.out`). Frete: opções em cartões com rádio próprio, transportadora
-  em destaque, preço em Rampart e selo "Mais barato". Campos: o azul do
-  autofill do Chrome é neutralizado (`Field`).
+- **Página do kit (`ComprarSection`)**: galeria `ProductGallery` (foto
+  4:5 `rounded-[1.75rem]` + miniaturas 80px; troca com fade; fotos 2–4 ainda
+  placeholders); **selo redondo de carimbo** `ui/KitSeal` no canto da foto,
+  vazando pra fora (texto "Pré-lançamento ✦ Edição limitada ✦" correndo em
+  volta e girando devagar, cavalo no meio); linha "Fernet y cola em lata"
+  (`STORE.kitEyebrow`) + nome "Kit Fernandito" **digitado** (`TypewriterText`
+  modo play, como os títulos do site); "O que vem no kit" como **ficha
+  única** de 3 colunas (ícone, número grande em Rampart, nome: 2 latas,
+  1 copo, 5 adesivos); preço em Rampart + selo "Restam X" (estoque real,
+  só 1–30); quantidade + botão (no celular empilhados, botão inteiro).
+  Entrada: foto desfaz um zoom leve (como o Contato), miniaturas e textos
+  sobem em cascata, o selo "carimba" (`back.out(2.2)`, como a Carta). Sem
+  bloco de Pix/frete (inútil ali) e sem aviso de +18 (ver "Idade").
+  **Barra de compra do celular**: flutuante, escura e redonda como o menu;
+  aparece enquanto o botão de verdade está ABAIXO da tela e some quando ele
+  aparece. `/comprar`: `<main>` com fundo off-white (sem faixa escura).
+- **Carrinho:** container flutuante (afastado 12–16px das bordas,
+  `rounded-3xl`, véu verde com blur). Cabeçalho de altura fixa (72px) com
+  contador; item em cartão claro (foto, nome em Rampart, "Pré-lançamento" e
+  preço unitário embaixo, lixeira, quantidade + total em Rampart); itens
+  entram subindo; rodapé com subtotal em Rampart e "Finalizar compra →".
+  Vazio: ícone, frase e "Ver o kit".
+- **Checkout (verde-escuro):** "← Voltar ao kit", título; etapas como
+  cartões off-white flutuantes (`rounded-3xl`, sombra funda), número em
+  círculo (✓ quando concluída), etapa bloqueada só contornada; o formulário
+  de cada etapa aparece subindo. Resumo: cartão fixo do lado no computador;
+  no celular, **resumo recolhível no topo** ("Ver resumo" + total). Item do
+  resumo com foto e quantidade em selinho. Frete em cartões com rádio
+  próprio e selo "Mais barato"; confirmação enxuta (2 linhas clicáveis +
+  "Pagar com Pix" largo). Campos sem o azul do autofill (`Field`).
+- **Pix e confirmação (verde-escuro):** cartão único: total e "expira em"
+  no topo com barra de tempo; QR (no celular escondido em "Mostrar QR
+  code") + copia e cola + "Copiar código Pix"; 3 passos curtos embaixo;
+  faixa de modo teste no rodapé do cartão. Resumo "Teu pedido" (#id em
+  selinho, itens, frete, total, endereço). Confirmação: ✓ que "estoura",
+  texto curto, "Voltar pro site" + WhatsApp. Entrada em cascata
+  (`data-enter`, `ui/EnterStagger`).
 - **Transição entre páginas:** `app/template.tsx` — a página nova entra com
-  fade + 12px de subida (`pageIn`, 0,55s, `out-standard`); a home fica de
-  fora (cortina de abertura e seções presas à rolagem).
-- **Menu no computador (md+):** uma pill só, com divisórias finas entre
-  cavalo | Comprar | Instagram | carrinho (antes eram 4 peças soltas). No
-  celular continuam as pills separadas.
+  fade + 12px de subida (`pageIn`, 0,55s, `out-standard`, fill
+  `backwards` pra não sobrar transform e não prender elementos `fixed`); a
+  home fica de fora (cortina de abertura e seções presas à rolagem).
+- **Menu (todos os tamanhos):** uma barra só (cavalo · CTA · | · Instagram
+  (md+) · carrinho · menu (celular)). Sobre fundo claro a barra é
+  verde-escura com CTA off-white; sobre fundo escuro, off-white com CTA
+  verde-escuro. No checkout e no pedido o CTA "Comprar" some. O menu do
+  celular abre por um ícone (vira ×) e mostra WhatsApp e Instagram.
 - **Preço em texto grande:** componente `ui/Price` — "R$" em fonte comum
   (a Rampart borra o `$`), só os números em Rampart.
 - **Idade (18+): só dois momentos.** (1) Portão na 1ª visita

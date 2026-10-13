@@ -2,6 +2,7 @@
 
 import { clsx } from "clsx";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { backgroundAt } from "@/lib/background";
 import { DURATION, EASE_BEZIER, IS_TOUCH, prefersReducedMotion } from "@/lib/gsap";
@@ -10,7 +11,6 @@ import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 import { Gallop } from "@/components/ui/Gallop";
 import { CartIcon, InstagramIcon } from "@/components/ui/icons";
-import { Button } from "@/components/ui/Button";
 import { useCart } from "@/components/cart/CartProvider";
 import { useGoToShop } from "@/components/cart/useGoToShop";
 import { LINKS as SITE_LINKS, NAV, PRELAUNCH, STORE } from "@/content/site";
@@ -55,6 +55,9 @@ export function FloatingNav() {
   const endGallop = useCallback(() => setGalloping(false), []);
   const cart = useCart();
   const goToShop = useGoToShop();
+  // No checkout e nas telas do pedido a pessoa já está comprando: sem CTA.
+  const pathname = usePathname();
+  const inPurchase = pathname.startsWith("/checkout") || pathname.startsWith("/pedido");
 
   const handleHorseClick = () => {
     teleportToTop();
@@ -120,7 +123,7 @@ export function FloatingNav() {
   // No toque a pill não tem desfoque (backdrop-blur por cima das fotos da
   // Hero se mexendo pesava no celular), então no topo ela fica mais opaca
   // pra continuar legível.
-  const restAlpha = IS_TOUCH ? 0.88 : 0.7;
+  const restAlpha = IS_TOUCH ? 0.94 : 0.88;
   const pillAnimation = {
     backgroundColor: overLight
       ? scrolled
@@ -135,38 +138,51 @@ export function FloatingNav() {
   // Com o menu do celular aberto a nav nunca se recolhe (o "Fechar" mora nela).
   const hidden = tucked && !menuOpen;
 
+  // Cores da barra: sobre fundo claro ela é verde-escura (conteúdo claro);
+  // sobre fundo escuro, off-white (conteúdo verde-escuro). O CTA sempre
+  // contrasta com a barra: claro na barra escura, escuro na barra clara.
+  const ink = overLight ? "text-fernandito-off-white" : "text-fernandito-verde-escuro";
+  const iconButton = clsx(
+    "duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
+    ink,
+    overLight ? "hover:bg-fernandito-off-white/12" : "hover:bg-fernandito-verde-escuro/10",
+  );
+
   return (
     <>
+      {/* Barra única (computador e celular): cavalo · CTA · Instagram ·
+          carrinho (· menu no celular), tudo num container só — antes eram
+          peças soltas. */}
       <motion.div
         initial={{ opacity: 0, y: -16 }}
-        animate={!visible ? {} : hidden ? { opacity: 0, y: "-160%" } : { opacity: 1, y: 0 }}
-        transition={{ duration: DURATION.slow, ease: EASE_BEZIER.outStandard }}
+        animate={
+          !visible
+            ? {}
+            : hidden
+              ? { opacity: 0, y: "-160%", ...pillAnimation }
+              : { opacity: 1, y: 0, ...pillAnimation }
+        }
+        transition={{
+          duration: DURATION.slow,
+          ease: EASE_BEZIER.outStandard,
+          backgroundColor: pillTransition,
+        }}
         // Foco de teclado entrando na nav traz ela de volta.
         onFocus={() => setTucked(false)}
         className={clsx(
           // `--announcement-h`: altura da faixa "Estamos chegando" (0 sem ela).
-          "fixed top-[calc(1rem+var(--announcement-h))] left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 sm:top-[calc(1.5rem+var(--announcement-h))] md:gap-1 md:p-1.5",
+          "fixed top-[calc(1rem+var(--announcement-h))] left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-full p-1.5 shadow-[0_12px_32px_rgba(20,28,18,0.28)] ring-1 sm:top-[calc(1.5rem+var(--announcement-h))] pointer-fine:backdrop-blur-md",
+          overLight ? "ring-fernandito-off-white/10" : "ring-fernandito-verde-escuro/10",
           hidden && "pointer-events-none",
         )}
         aria-label="Navegação principal"
       >
-        {/* md+: UMA pill só por trás de tudo (cavalo, links, CTA, Instagram e
-            carrinho), com divisórias finas. No celular continuam as pills
-            separadas de antes. */}
-        <motion.div
-          aria-hidden="true"
-          animate={pillAnimation}
-          transition={pillTransition}
-          className="pointer-events-none absolute inset-0 -z-10 hidden rounded-full md:block pointer-fine:backdrop-blur-md"
-        />
-        {/* Pill 1 — símbolo do cavalo, volta ao topo (todos os tamanhos) */}
-        <motion.button
+        {/* Cavalo — volta ao topo (3 toques: galope escondido). */}
+        <button
           type="button"
-          animate={pillAnimation}
-          transition={pillTransition}
           onClick={handleHorseClick}
           aria-label="Voltar ao topo"
-          className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 md:h-10 md:w-10 md:!bg-transparent max-md:pointer-fine:backdrop-blur-md"
+          className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- raster estático de tamanho fixo, next/image não traz benefício */}
           <img
@@ -177,129 +193,120 @@ export function FloatingNav() {
             decoding="async"
             className="h-full w-full rounded-full"
           />
-        </motion.button>
-        <Divider overLight={overLight} />
+        </button>
 
-        {/* Pill 2 (mobile/tablet) — botão "Menu" explícito: antes o próprio
-            cavalo abria o menu, e ninguém adivinhava isso. */}
-        <motion.button
-          type="button"
-          animate={pillAnimation}
-          transition={pillTransition}
-          onClick={() => setMenuOpen((open) => !open)}
-          aria-expanded={menuOpen}
-          aria-controls="menu-mobile"
+        {/* Links das seções (site completo, md+). */}
+        {LINKS.length > 0 && (
+          <div className="hidden items-center md:flex">
+            {LINKS.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className={clsx(
+                  "text-label duration-base ease-out-standard rounded-full px-3 py-2 font-sans tracking-[0.08em] whitespace-nowrap uppercase transition-colors lg:px-4",
+                  ink,
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* CTA: compra (loja ligada) ou WhatsApp (loja desligada, md+). */}
+        {inPurchase ? null : STORE.enabled ? (
+          <button
+            type="button"
+            onClick={goToShop}
+            className={clsx(
+              "duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio ml-1 flex h-11 items-center rounded-full px-5 font-sans text-[0.8125rem] font-bold tracking-[0.06em] whitespace-nowrap uppercase transition-[background-color,color,transform] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]",
+              overLight
+                ? "bg-fernandito-off-white text-fernandito-verde-escuro hover:bg-fernandito-verde-claro hover:text-fernandito-off-white"
+                : "bg-fernandito-verde-escuro text-fernandito-off-white hover:bg-fernandito-verde-medio",
+            )}
+          >
+            {STORE.navCta}
+          </button>
+        ) : (
+          <WhatsAppButton
+            background={overLight ? "verde-medio" : "verde-escuro"}
+            className="!text-label ml-1 hidden !px-4 !py-2 whitespace-nowrap md:inline-flex"
+          >
+            {NAV.whatsappLabel}
+          </WhatsAppButton>
+        )}
+
+        <span
+          aria-hidden="true"
           className={clsx(
-            "text-label duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 items-center gap-2 rounded-full px-5 font-sans tracking-[0.12em] whitespace-nowrap uppercase transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 md:hidden pointer-fine:backdrop-blur-md",
-            overLight ? "text-fernandito-off-white" : "text-fernandito-verde-escuro",
+            "mx-1.5 h-6 w-px",
+            overLight ? "bg-fernandito-off-white/20" : "bg-fernandito-verde-escuro/20",
           )}
-        >
-          <span aria-hidden="true" className="flex w-4 flex-col gap-[3px]">
-            <span className="h-px w-full bg-current" />
-            <span className="h-px w-full bg-current" />
-            <span className="h-px w-2/3 bg-current" />
-          </span>
-          {menuOpen ? "Fechar" : "Menu"}
-        </motion.button>
+        />
 
-        {/* Pill 2 (md+) — links + CTA WhatsApp em destaque. Só a partir de
-            768px: abaixo disso não cabe sem quebrar os links em várias
-            linhas (era o "O / QUE / É" empilhado no tablet). */}
-        <motion.div
-          animate={pillAnimation}
-          transition={pillTransition}
-          className={clsx(
-            "hidden items-center gap-1 rounded-full md:flex md:!bg-transparent",
-            LINKS.length ? "pl-2 lg:pl-3" : "pl-0",
-          )}
-        >
-          {LINKS.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className={clsx(
-                "text-label duration-base ease-out-standard rounded-full px-3 py-2 font-sans tracking-[0.08em] whitespace-nowrap uppercase transition-colors lg:px-4",
-                overLight ? "text-fernandito-off-white" : "text-fernandito-verde-escuro",
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
-          {/* CTA principal agora é a compra (o WhatsApp virou contato
-              secundário: menu do celular, rodapé e página de compra). Sempre
-              verde-escuro, com a mesma borda sutil que o WhatsApp tinha. */}
-          {/* Loja desligada (`STORE.enabled`): volta o WhatsApp de antes —
-              sempre verde-escuro, a borda sutil mantém a forma legível. */}
-          {STORE.enabled ? (
-            <Button
-              variant="cta-destaque"
-              onClick={goToShop}
-              className={clsx(
-                "!text-label border-fernandito-off-white/15 border !px-5 !py-2 whitespace-nowrap",
-                LINKS.length && "ml-1",
-              )}
-            >
-              {STORE.navCta}
-            </Button>
-          ) : (
-            <WhatsAppButton
-              background="verde-escuro"
-              className="!text-label ml-1 !px-4 !py-2 whitespace-nowrap"
-            >
-              {NAV.whatsappLabel}
-            </WhatsAppButton>
-          )}
-        </motion.div>
-        <Divider overLight={overLight} />
-
-        {/* Pill 3 (md+) — atalho pro Instagram: só o ícone, num círculo do
-            mesmo tamanho do cavalo. Fica à mão o tempo todo, mas mais
-            discreto que o WhatsApp (sem fundo próprio nem texto). */}
+        {/* Instagram (md+; no celular ele está dentro do menu). */}
         <motion.a
           href={SITE_LINKS.instagramUrl}
           target="_blank"
           rel="noopener noreferrer"
-          animate={pillAnimation}
-          transition={pillTransition}
           aria-label={`Instagram ${SITE_LINKS.instagramHandle} — abre em nova aba`}
           title={SITE_LINKS.instagramHandle}
-          className={clsx(
-            "duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio hidden h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 md:flex md:h-10 md:w-10 md:!bg-transparent",
-            overLight ? "text-fernandito-off-white" : "text-fernandito-verde-escuro",
-          )}
+          className={clsx(iconButton, "!hidden md:!flex")}
         >
-          <InstagramIcon className="h-[18px] w-[18px]" />
+          <InstagramIcon className="h-[19px] w-[19px]" />
         </motion.a>
 
-        {/* Carrinho (todos os tamanhos): mesmo círculo do Instagram, com o
-            contador de itens num selo verde-medio. */}
+        {/* Carrinho, com contador. */}
         {STORE.enabled && (
-          <motion.button
+          <button
             type="button"
             onClick={cart.open}
-            animate={pillAnimation}
-            transition={pillTransition}
             aria-label={
               cart.count
                 ? `Abrir carrinho (${cart.count} ${cart.count === 1 ? "item" : "itens"})`
                 : "Abrir carrinho"
             }
-            className={clsx(
-              "duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 md:h-10 md:w-10 md:!bg-transparent max-md:pointer-fine:backdrop-blur-md",
-              overLight ? "text-fernandito-off-white" : "text-fernandito-verde-escuro",
-            )}
+            className={iconButton}
           >
-            <CartIcon className="h-[19px] w-[19px]" />
+            <CartIcon className="h-[20px] w-[20px]" />
             {cart.count > 0 && (
               <span
                 aria-hidden="true"
-                className="bg-fernandito-verde-medio text-fernandito-off-white absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 font-sans text-[11px] leading-none font-bold"
+                className={clsx(
+                  "bg-fernandito-verde-claro text-fernandito-off-white absolute top-0.5 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 font-sans text-[10px] leading-none font-bold ring-2",
+                  overLight ? "ring-fernandito-verde-escuro" : "ring-fernandito-off-white",
+                )}
               >
                 {cart.count}
               </span>
             )}
-          </motion.button>
+          </button>
         )}
+
+        {/* Menu (celular): ícone que vira × com o overlay aberto. */}
+        <button
+          type="button"
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-expanded={menuOpen}
+          aria-controls="menu-mobile"
+          aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
+          className={clsx(iconButton, "md:hidden")}
+        >
+          <span aria-hidden="true" className="relative block h-3 w-5">
+            <span
+              className={clsx(
+                "duration-base ease-out-standard absolute left-0 h-[1.5px] w-full bg-current transition-transform",
+                menuOpen ? "top-1/2 -translate-y-1/2 rotate-45" : "top-0",
+              )}
+            />
+            <span
+              className={clsx(
+                "duration-base ease-out-standard absolute left-0 h-[1.5px] w-full bg-current transition-transform",
+                menuOpen ? "top-1/2 -translate-y-1/2 -rotate-45" : "bottom-0",
+              )}
+            />
+          </span>
+        </button>
       </motion.div>
 
       {/* Overlay fullscreen (mobile) */}
@@ -334,21 +341,9 @@ export function FloatingNav() {
             {/* Fundo padrão (verde-medio) aqui — o overlay já é verde-escuro,
                 então o CTA "verde-escuro" do pill ficaria invisível contra ele. */}
             <div className="flex flex-col items-center gap-4">
-              {/* Compra primeiro (botão claro, o mais forte aqui); WhatsApp e
-                  Instagram como contato. */}
-              {STORE.enabled && (
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    goToShop();
-                  }}
-                  className="!bg-fernandito-off-white !text-fernandito-verde-escuro hover:!bg-fernandito-verde-claro hover:!text-fernandito-off-white"
-                >
-                  {STORE.cta}
-                </Button>
-              )}
-              <WhatsAppButton>{NAV.whatsappLabel}</WhatsAppButton>
+              {/* A compra já está na barra ("Comprar"); aqui ficam os
+                  contatos: WhatsApp (sólido) e Instagram (contornado). */}
+              <WhatsAppButton className="w-64 justify-center">{NAV.whatsappLabel}</WhatsAppButton>
               {/* Instagram: o lugar onde mais coisa acontece — no menu do
                   celular ganha um botão próprio, contornado (o WhatsApp
                   segue sendo o sólido). */}
@@ -357,7 +352,7 @@ export function FloatingNav() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`${SITE_LINKS.instagramHandle} — seguir no Instagram, abre em nova aba`}
-                className="border-fernandito-off-white/40 text-fernandito-off-white text-body active:bg-fernandito-off-white/10 focus-visible:outline-fernandito-off-white inline-flex items-center gap-2 rounded-full border px-6 py-3 font-sans transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                className="border-fernandito-off-white/40 text-fernandito-off-white text-body active:bg-fernandito-off-white/10 focus-visible:outline-fernandito-off-white inline-flex w-64 items-center justify-center gap-2 rounded-full border px-6 py-3 font-sans transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               >
                 <InstagramIcon />
                 {SITE_LINKS.instagramHandle}
@@ -373,16 +368,3 @@ export function FloatingNav() {
 }
 
 export default FloatingNav;
-
-/** Divisória fina entre os grupos da pill única (só md+). */
-function Divider({ overLight }: { overLight: boolean }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={clsx(
-        "mx-1 hidden h-5 w-px opacity-25 md:block",
-        overLight ? "bg-fernandito-off-white" : "bg-fernandito-verde-escuro",
-      )}
-    />
-  );
-}

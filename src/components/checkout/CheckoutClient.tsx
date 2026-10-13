@@ -3,7 +3,7 @@
 import { clsx } from "clsx";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
-import { motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { gsap, DURATION, EASE, prefersReducedMotion } from "@/lib/gsap";
 import { maskCEP, maskCPF, maskPhone, onlyDigits } from "@/lib/br";
@@ -268,7 +268,12 @@ export function CheckoutClient() {
           Teu carrinho está vazio
         </h1>
         <p className="text-body-lg font-sans">Escolhe o teu kit e volta aqui pra finalizar.</p>
-        <Button as="a" href="/comprar" variant="primary">
+        <Button
+          as="a"
+          href="/comprar"
+          variant="primary"
+          className="!bg-fernandito-off-white !text-fernandito-verde-escuro hover:!bg-fernandito-verde-claro hover:!text-fernandito-off-white"
+        >
           {STORE.cta}
         </Button>
       </div>
@@ -277,11 +282,22 @@ export function CheckoutClient() {
 
   return (
     <div ref={topRef} className="scroll-mt-32">
-      <h1 data-enter className="font-rampart text-[clamp(2rem,5vw,3.5rem)] leading-[1.05]">
+      <NextLink
+        href="/comprar"
+        data-enter
+        className="text-label duration-base ease-out-standard inline-flex items-center gap-2 font-sans tracking-[0.1em] uppercase opacity-70 transition-opacity hover:opacity-100"
+      >
+        <span aria-hidden="true">←</span> Voltar ao kit
+      </NextLink>
+      <h1 data-enter className="font-rampart mt-4 text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.05]">
         Finalizar compra
       </h1>
 
-      <div className="mt-10 grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-14">
+      <div className="mt-8 lg:hidden">
+        <MobileSummary shipping={shipping} totalCents={totalCents} />
+      </div>
+
+      <div className="mt-6 grid items-start gap-10 lg:mt-10 lg:grid-cols-[minmax(0,1fr)_23rem] lg:gap-14">
         <ol className="flex flex-col gap-4">
           {/* A — Contato */}
           <Step
@@ -616,8 +632,8 @@ function ConfirmRow({
         {checked ? "✓" : ""}
       </span>
       <span className="flex min-w-0 flex-col">
-        <span className="text-body font-bold">{title}</span>
-        <span className="text-label opacity-65">{hint}</span>
+        <span className="text-body leading-snug font-bold">{title}</span>
+        <span className="text-label mt-0.5 leading-snug opacity-65">{hint}</span>
       </span>
     </label>
   );
@@ -663,7 +679,7 @@ function Step({
           <span
             aria-hidden="true"
             className={clsx(
-              "duration-base ease-out-standard font-accent flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[0.8rem] transition-colors",
+              "duration-base ease-out-standard flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-sans text-[0.85rem] leading-none font-bold tabular-nums transition-colors",
               state === "open" && "bg-fernandito-verde-medio text-fernandito-off-white",
               state === "done" && "bg-fernandito-verde-escuro text-fernandito-off-white",
               state === "locked" && "border-fernandito-off-white/40 border",
@@ -724,7 +740,75 @@ function StepButton({
   );
 }
 
-/** Resumo: fixo do lado no desktop, no fim da página no celular. */
+/** Conteúdo do resumo (itens, subtotal, frete, total) — usado no cartão
+ * fixo do computador e no resumo recolhível do celular. */
+function SummaryBody({
+  shipping,
+  totalCents,
+}: {
+  shipping: ShippingOption | null;
+  totalCents: number;
+}) {
+  const cart = useCart();
+  return (
+    <>
+      <ul className="flex flex-col gap-4">
+        {cart.lines.map((line) => {
+          const { main, sub } = splitName(line.product.name);
+          return (
+            <li key={line.sku} className="flex items-center gap-4">
+              <div className="relative shrink-0">
+                <div className="bg-fernandito-verde-medio relative h-16 w-14 overflow-hidden rounded-xl">
+                  <PhotoSlot
+                    image={line.product.images[0]}
+                    sizes="56px"
+                    placeholderClassName="bg-fernandito-verde-medio"
+                  />
+                </div>
+                <span className="bg-fernandito-verde-escuro text-fernandito-off-white ring-fernandito-off-white absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[0.7rem] leading-none font-bold tabular-nums ring-2">
+                  {line.qty}
+                </span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-rampart text-[1.1rem] leading-tight">{main}</p>
+                {sub && (
+                  <p className="text-label mt-1 tracking-[0.06em] uppercase opacity-60">{sub}</p>
+                )}
+              </div>
+              <p className="text-body whitespace-nowrap tabular-nums">
+                {formatBRL(line.lineTotalCents)}
+              </p>
+            </li>
+          );
+        })}
+      </ul>
+      <dl className="border-fernandito-verde-escuro/12 mt-5 flex flex-col gap-2.5 border-t pt-5">
+        <div className="flex justify-between gap-4">
+          <dt className="opacity-75">Subtotal</dt>
+          <dd className="tabular-nums">{formatBRL(cart.subtotalCents)}</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="opacity-75">Frete</dt>
+          <dd className="text-right tabular-nums">
+            {shipping ? (
+              formatBRL(shipping.priceCents)
+            ) : (
+              <span className="opacity-55">a calcular</span>
+            )}
+          </dd>
+        </div>
+        <div className="border-fernandito-verde-escuro/12 mt-2 flex items-end justify-between border-t pt-4">
+          <dt className="text-label tracking-[0.1em] uppercase">Total</dt>
+          <dd className="font-rampart text-[2rem] leading-none tabular-nums">
+            <Price cents={totalCents} />
+          </dd>
+        </div>
+      </dl>
+    </>
+  );
+}
+
+/** Resumo fixo do lado (computador). */
 function OrderSummary({
   shipping,
   totalCents,
@@ -737,62 +821,84 @@ function OrderSummary({
     <aside
       aria-label="Resumo do pedido"
       data-enter
-      className="bg-fernandito-off-white text-fernandito-verde-escuro rounded-3xl p-6 font-sans shadow-[0_24px_60px_rgba(0,0,0,0.35)] lg:sticky lg:top-32"
+      className="bg-fernandito-off-white text-fernandito-verde-escuro hidden rounded-3xl p-7 font-sans shadow-[0_24px_60px_rgba(0,0,0,0.35)] lg:sticky lg:top-32 lg:block"
     >
-      <div className="flex items-baseline justify-between gap-4">
-        <h2 className="font-rampart text-[1.5rem] leading-none">Resumo</h2>
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <h2 className="font-rampart translate-y-[0.06em] text-[1.5rem] leading-none">Resumo</h2>
         <button
           type="button"
           onClick={cart.open}
-          className="text-label duration-base ease-out-standard hover:text-fernandito-verde-medio uppercase underline underline-offset-4 transition-colors"
+          className="text-label duration-base ease-out-standard hover:text-fernandito-verde-medio tracking-[0.06em] uppercase underline underline-offset-4 opacity-70 transition-[color,opacity] hover:opacity-100"
         >
-          Editar carrinho
+          Editar
         </button>
       </div>
-      <ul className="mt-5 flex flex-col gap-4">
-        {cart.lines.map((line) => (
-          <li key={line.sku} className="flex items-center gap-3">
-            <div className="bg-fernandito-verde-medio relative h-14 w-12 shrink-0 overflow-hidden rounded-md">
-              <PhotoSlot
-                image={line.product.images[0]}
-                sizes="48px"
-                placeholderClassName="bg-fernandito-verde-medio"
-              />
-            </div>
-            <div className="text-body min-w-0 flex-1 leading-snug">
-              <p className="font-bold">{splitName(line.product.name).main}</p>
-              {splitName(line.product.name).sub && (
-                <p className="opacity-80">{splitName(line.product.name).sub}</p>
-              )}
-              <p className="text-label mt-0.5 opacity-60">× {line.qty}</p>
-            </div>
-            <p className="text-body tabular-nums">{formatBRL(line.lineTotalCents)}</p>
-          </li>
-        ))}
-      </ul>
-      <dl className="border-fernandito-verde-escuro/15 mt-5 flex flex-col gap-2 border-t pt-5">
-        <div className="flex justify-between">
-          <dt>Subtotal</dt>
-          <dd className="tabular-nums">{formatBRL(cart.subtotalCents)}</dd>
-        </div>
-        <div className="flex justify-between gap-4">
-          <dt>Frete</dt>
-          <dd className="text-right tabular-nums">
-            {shipping ? (
-              formatBRL(shipping.priceCents)
-            ) : (
-              <span className="opacity-60">calculado na entrega</span>
-            )}
-          </dd>
-        </div>
-        <div className="border-fernandito-verde-escuro/15 mt-2 flex items-baseline justify-between border-t pt-4">
-          <dt className="font-bold">Total</dt>
-          <dd className="font-rampart text-[1.75rem] leading-none tabular-nums">
-            <Price cents={totalCents} />
-          </dd>
-        </div>
-      </dl>
+      <SummaryBody shipping={shipping} totalCents={totalCents} />
     </aside>
+  );
+}
+
+/** Resumo recolhível no topo (celular e tablet): mostra o total e abre. */
+function MobileSummary({
+  shipping,
+  totalCents,
+}: {
+  shipping: ShippingOption | null;
+  totalCents: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
+  return (
+    <section
+      aria-label="Resumo do pedido"
+      data-enter
+      className="bg-fernandito-off-white text-fernandito-verde-escuro overflow-hidden rounded-3xl font-sans shadow-[0_18px_40px_rgba(0,0,0,0.3)] lg:hidden"
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+      >
+        <span className="flex items-center gap-2">
+          <span className="text-label tracking-[0.1em] uppercase">
+            {open ? "Esconder resumo" : "Ver resumo"}
+          </span>
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            className={clsx(
+              "duration-base ease-out-standard h-4 w-4 transition-transform",
+              open && "rotate-180",
+            )}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </span>
+        <span className="font-rampart text-[1.5rem] leading-none tabular-nums">
+          <Price cents={totalCents} />
+        </span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
+            transition={{ duration: DURATION.slow, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className="border-fernandito-verde-escuro/12 border-t px-5 pt-5 pb-6">
+              <SummaryBody shipping={shipping} totalCents={totalCents} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
   );
 }
 

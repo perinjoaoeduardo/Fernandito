@@ -6,7 +6,7 @@ import { gsap, ScrollTrigger, SplitText, SCRUB, prefersReducedMotion } from "@/l
 
 type TypewriterTextProps = {
   text: string;
-  as?: "h2" | "h3" | "p";
+  as?: "h1" | "h2" | "h3" | "p";
   className?: string;
   /** Faixa do ScrollTrigger (relativa ao próprio texto). */
   start?: string;

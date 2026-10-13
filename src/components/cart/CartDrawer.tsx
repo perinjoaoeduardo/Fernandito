@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Price } from "@/components/ui/Price";
 import { splitName } from "@/lib/catalog";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
-import { CloseIcon } from "@/components/ui/icons";
+import { ArrowRightIcon, CartIcon, CloseIcon, TrashIcon } from "@/components/ui/icons";
 import { QtyStepper } from "@/components/cart/QtyStepper";
 import { useCart } from "@/components/cart/CartProvider";
 
@@ -71,12 +71,14 @@ export function CartDrawer() {
             exit={{ x: "calc(100% + 2rem)", opacity: 0.6 }}
             transition={transition}
           >
-            <header className="border-fernandito-verde-escuro/15 flex h-[4.5rem] shrink-0 items-center justify-between border-b px-6">
-              <div className="flex items-baseline gap-3">
-                <h2 className="font-rampart text-[1.75rem] leading-none">Carrinho</h2>
+            <header className="border-fernandito-verde-escuro/12 flex h-[4.5rem] shrink-0 items-center justify-between border-b pr-4 pl-6">
+              <div className="flex items-center gap-3">
+                <h2 className="font-rampart translate-y-[0.06em] text-[1.75rem] leading-none">
+                  Carrinho
+                </h2>
                 {count > 0 && (
-                  <span className="text-label font-sans uppercase opacity-60">
-                    {count} {count === 1 ? "item" : "itens"}
+                  <span className="bg-fernandito-verde-medio text-fernandito-off-white flex h-6 min-w-6 items-center justify-center rounded-full px-2 font-sans text-[0.75rem] font-bold tabular-nums">
+                    {count}
                   </span>
                 )}
               </div>
@@ -85,59 +87,68 @@ export function CartDrawer() {
                 type="button"
                 onClick={close}
                 aria-label="Fechar carrinho"
-                className="duration-base ease-out-standard hover:bg-fernandito-verde-escuro/10 border-fernandito-verde-escuro/20 focus-visible:outline-fernandito-verde-medio flex h-10 w-10 items-center justify-center rounded-full border transition-colors focus-visible:outline focus-visible:outline-2"
+                className="duration-base ease-out-standard hover:bg-fernandito-verde-escuro/10 focus-visible:outline-fernandito-verde-medio flex h-10 w-10 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2"
               >
-                <CloseIcon className="h-4 w-4" />
+                <CloseIcon className="h-5 w-5" />
               </button>
             </header>
 
             {lines.length === 0 ? (
-              <div className="flex flex-1 flex-col items-start justify-center gap-6 px-6">
-                <p className="font-accent text-body-lg">Teu carrinho está vazio.</p>
-                <Button variant="secondary" onClick={close}>
-                  Continuar navegando
+              <div className="flex flex-1 flex-col items-center justify-center gap-5 px-8 text-center">
+                <span className="bg-fernandito-verde-escuro/[0.06] text-fernandito-verde-medio flex h-16 w-16 items-center justify-center rounded-full">
+                  <CartIcon className="h-7 w-7" />
+                </span>
+                <p className="font-rampart text-[1.5rem] leading-tight">Teu carrinho está vazio</p>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    close();
+                    router.push("/comprar");
+                  }}
+                >
+                  Ver o kit
                 </Button>
               </div>
             ) : (
               <>
-                <ul className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4 sm:px-5">
-                  {lines.map((line) => {
+                <ul className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+                  {lines.map((line, i) => {
                     const { main, sub } = splitName(line.product.name);
                     return (
-                      <li
+                      <motion.li
                         key={line.sku}
-                        className="bg-fernandito-verde-escuro/[0.05] border-fernandito-verde-escuro/10 flex gap-4 rounded-2xl border p-3"
+                        layout
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ ...transition, delay: 0.15 + i * 0.05 }}
+                        className="flex gap-4 rounded-2xl bg-white/45 p-3 shadow-[0_1px_0_rgba(36,48,34,0.06)]"
                       >
-                        <div className="bg-fernandito-verde-medio relative h-28 w-24 shrink-0 overflow-hidden rounded-xl">
+                        <div className="bg-fernandito-verde-medio relative h-[6.5rem] w-[5.25rem] shrink-0 overflow-hidden rounded-xl">
                           <PhotoSlot
                             image={line.product.images[0]}
-                            sizes="96px"
+                            sizes="84px"
                             placeholderClassName="bg-fernandito-verde-medio"
                           />
                         </div>
                         <div className="flex min-w-0 flex-1 flex-col font-sans">
                           <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="font-rampart text-[1.15rem] leading-[1.1]">{main}</p>
-                              {sub && (
-                                <p className="font-rampart text-fernandito-verde-medio text-[1.15rem] leading-[1.1]">
-                                  {sub}
-                                </p>
-                              )}
+                            <div className="min-w-0 pt-0.5">
+                              <p className="font-rampart text-[1.2rem] leading-[1.1]">{main}</p>
+                              <p className="text-label mt-1.5 flex flex-col gap-0.5 tracking-[0.06em] uppercase opacity-60">
+                                {sub && <span>{sub}</span>}
+                                <span>{formatBRL(line.product.priceCents)} cada</span>
+                              </p>
                             </div>
                             <button
                               type="button"
                               onClick={() => remove(line.sku)}
                               aria-label={`Remover ${line.product.name}`}
-                              className="text-label duration-base ease-out-standard hover:text-fernandito-verde-medio shrink-0 uppercase underline underline-offset-4 opacity-60 transition-colors hover:opacity-100"
+                              className="hover:bg-fernandito-verde-escuro/10 duration-base ease-out-standard -mt-1 -mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full opacity-60 transition-[background-color,opacity] hover:opacity-100"
                             >
-                              Remover
+                              <TrashIcon />
                             </button>
                           </div>
-                          <p className="text-label mt-1 uppercase opacity-60">
-                            {formatBRL(line.product.priceCents)} cada
-                          </p>
-                          <div className="mt-auto flex items-center justify-between gap-3 pt-3">
+                          <div className="mt-auto flex items-end justify-between gap-3 pt-3">
                             <QtyStepper
                               size="sm"
                               value={line.qty}
@@ -145,37 +156,38 @@ export function CartDrawer() {
                               onChange={(qty) => setQty(line.sku, qty)}
                               label={`Quantidade de ${line.product.name}`}
                             />
-                            <p className="text-body-lg font-bold whitespace-nowrap tabular-nums">
-                              {formatBRL(line.lineTotalCents)}
+                            <p className="font-rampart text-[1.35rem] leading-none whitespace-nowrap tabular-nums">
+                              <Price cents={line.lineTotalCents} />
                             </p>
                           </div>
                         </div>
-                      </li>
+                      </motion.li>
                     );
                   })}
                 </ul>
 
-                <footer className="border-fernandito-verde-escuro/15 flex shrink-0 flex-col gap-4 border-t px-6 pt-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] font-sans">
-                  <div>
-                    <div className="flex items-end justify-between">
-                      <span className="text-label uppercase opacity-70">Subtotal</span>
-                      <span className="font-rampart text-[2rem] leading-none tabular-nums">
-                        <Price cents={subtotalCents} />
-                      </span>
+                <footer className="border-fernandito-verde-escuro/12 flex shrink-0 flex-col gap-4 border-t px-6 pt-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] font-sans">
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <p className="text-label tracking-[0.1em] uppercase opacity-70">Subtotal</p>
+                      <p className="text-label mt-1 opacity-55">Frete calculado no checkout</p>
                     </div>
-                    <p className="text-label mt-1.5 text-right uppercase opacity-60">
-                      Frete calculado no checkout
+                    <p className="font-rampart text-[2.1rem] leading-none tabular-nums">
+                      <Price cents={subtotalCents} />
                     </p>
                   </div>
                   <Button
                     variant="primary"
-                    className="w-full"
+                    className="w-full !py-4"
                     onClick={() => {
                       close();
                       router.push("/checkout");
                     }}
                   >
-                    Finalizar compra
+                    <span className="flex items-center gap-2">
+                      Finalizar compra
+                      <ArrowRightIcon />
+                    </span>
                   </Button>
                 </footer>
               </>

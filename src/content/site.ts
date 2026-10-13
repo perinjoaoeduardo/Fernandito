@@ -49,6 +49,8 @@ export const STORE = {
    * da loja. O código continua aqui; pra religar é só `true`. */
   enabled: true,
   eyebrow: "Comprar",
+  /** Linha curta acima do nome do kit (o que é). */
+  kitEyebrow: "Fernet y cola em lata",
   badge: "Pré-lançamento · edição limitada",
   contentsTitle: "O que vem no kit",
   /** Selo de estoque real (Bling). `{n}` vira o número. */

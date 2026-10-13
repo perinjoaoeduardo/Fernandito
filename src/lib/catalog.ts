@@ -39,7 +39,7 @@ export const PRODUCTS: Product[] = [
     name: "Kit Fernandito Pré-Lançamento",
     description: "A primeira leva do Fernandito, num kit pra quem quer provar antes de todo mundo.",
     contents: [
-      { icon: "can", qty: "2", label: "latas de Fernandito 350ml" },
+      { icon: "can", qty: "2", label: "latas 350ml" },
       { icon: "cup", qty: "1", label: "copo Fernandito" },
       { icon: "sticker", qty: "5", label: "adesivos" },
     ],
@@ -69,7 +69,7 @@ export const PRODUCTS: Product[] = [
     sku: "FERN-350-6",
     name: "Pack 6 latas",
     description: "Seis latas de Fernandito 350ml.",
-    contents: [{ icon: "can", qty: "6", label: "latas de Fernandito 350ml" }],
+    contents: [{ icon: "can", qty: "6", label: "latas 350ml" }],
     priceCents: 10000,
     images: [{ src: null, alt: "Pack com 6 latas de Fernandito", placeholder: "Pack 6 latas" }],
     maxQty: 5,

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
-import { STORE } from "@/content/site";
+import { LINKS, STORE } from "@/content/site";
 import { getOrder, publicOrder } from "@/lib/store/orders";
 import { OrderReceipt } from "@/components/checkout/OrderReceipt";
 import { ClearCart } from "@/components/checkout/ClearCart";
@@ -12,6 +12,13 @@ export const metadata: Metadata = {
   title: "Pedido confirmado",
   robots: { index: false, follow: false },
 };
+
+// Link do WhatsApp montado aqui (página do servidor): o WHATSAPP_HREF do
+// botão mora num módulo de cliente.
+const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.trim() || LINKS.whatsappNumber;
+const WHATSAPP_HREF = WA_NUMBER
+  ? `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(LINKS.whatsappMessage)}`
+  : null;
 
 export default async function ConfirmadoPage(props: PageProps<"/pedido/[id]/confirmado">) {
   if (!STORE.enabled) notFound();
@@ -40,14 +47,14 @@ export default async function ConfirmadoPage(props: PageProps<"/pedido/[id]/conf
             Pedido confirmado! Toma Fernandito.
           </h1>
           <p className="text-body-lg mt-4 max-w-xl font-sans">
-            Valeu, {order.customer.name.split(/\s+/)[0]}! O pagamento chegou. Pedido #{order.id}.
-            Qualquer dúvida, chama a gente no WhatsApp.
+            Valeu, {order.customer.name.split(/\s+/)[0]}! O pagamento chegou e o teu kit já está na
+            fila de envio.
           </p>
         </div>
         <div data-enter className="w-full">
           <OrderReceipt order={publicOrder(order)} />
         </div>
-        <div data-enter>
+        <div data-enter className="flex flex-wrap items-center">
           <Button
             as="a"
             href="/"
@@ -56,6 +63,16 @@ export default async function ConfirmadoPage(props: PageProps<"/pedido/[id]/conf
           >
             Voltar pro site
           </Button>
+          {WHATSAPP_HREF && (
+            <a
+              href={WHATSAPP_HREF}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-label ml-5 tracking-[0.08em] uppercase underline underline-offset-4 opacity-75 hover:opacity-100"
+            >
+              Dúvidas? WhatsApp
+            </a>
+          )}
         </div>
       </EnterStagger>
     </main>
