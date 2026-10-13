@@ -1,4 +1,5 @@
 import { clsx } from "clsx";
+import { useId } from "react";
 
 /**
  * Selo redondo de carimbo: texto correndo em volta (girando devagar) e o
@@ -9,6 +10,8 @@ export function KitSeal({ text, className }: { text: string; className?: string 
   // Uma volta: "PRÉ-LANÇAMENTO ✦ EDIÇÃO LIMITADA ✦" (o textLength espalha
   // as letras pra fechar o círculo certinho).
   const ring = `${text.replace(" · ", " ✦ ")} ✦ `;
+  // id único: o selo aparece mais de uma vez na página (kit e portão).
+  const pathId = `seal-path-${useId().replace(/:/g, "")}`;
   return (
     <div
       role="img"
@@ -24,13 +27,13 @@ export function KitSeal({ text, className }: { text: string; className?: string 
         aria-hidden="true"
       >
         <defs>
-          <path id="kit-seal-path" d="M100,100 m-76,0 a76,76 0 1,1 152,0 a76,76 0 1,1 -152,0" />
+          <path id={pathId} d="M100,100 m-76,0 a76,76 0 1,1 152,0 a76,76 0 1,1 -152,0" />
         </defs>
         <text
           className="font-accent fill-current uppercase"
           style={{ fontSize: 15.5, letterSpacing: "0.16em" }}
         >
-          <textPath href="#kit-seal-path" textLength={474} lengthAdjust="spacing">
+          <textPath href={`#${pathId}`} textLength={474} lengthAdjust="spacing">
             {ring}
           </textPath>
         </text>

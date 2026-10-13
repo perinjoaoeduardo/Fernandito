@@ -24,6 +24,13 @@ export function markIntroComplete() {
   flush();
 }
 
+/** A cortina do cavalo começou a subir: o portão de idade já aparece por
+ * baixo dela, subindo junto (ver globals.css, `data-intro="reveal"`). */
+export function markIntroReveal() {
+  if (document.documentElement.dataset.intro !== "done")
+    document.documentElement.dataset.intro = "reveal";
+}
+
 /** O visitante confirmou a idade no portão. */
 export function markAgeConfirmed() {
   ageConfirmed = true;

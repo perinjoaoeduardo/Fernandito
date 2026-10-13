@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { gsap, EASE, prefersReducedMotion } from "@/lib/gsap";
-import { markIntroComplete } from "@/lib/introSignal";
+import { markIntroComplete, markIntroReveal } from "@/lib/introSignal";
 
 // Cortina de abertura: cavalinho por ~2s, depois sobe e revela o site —
 // estilo intro de landing page. Roda uma vez por carregamento (não tem
@@ -57,6 +57,8 @@ export function IntroLoader() {
       },
     });
 
+    // A cortina começa a subir: o portão de idade aparece por baixo dela.
+    tl.call(markIntroReveal);
     tl.to(overlay, {
       yPercent: -100,
       duration: REVEAL_DURATION,

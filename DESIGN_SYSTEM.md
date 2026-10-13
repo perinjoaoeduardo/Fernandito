@@ -477,8 +477,14 @@ e a criação do pedido no Bling ainda não existem.
   carrinho e checkout foram removidos de propósito (ficou excessivo).
   Na home a ordem é: cavalo correndo (intro) → portão de idade → entrada da
   Hero → aviso de cookies (`lib/introSignal`: a Hero só anima quando o intro
-  terminou E a idade foi confirmada; o portão fica abaixo do cursor
-  customizado, z 190 < 200). **Cookies:** `providers/CookieBanner`, flutuante embaixo à esquerda, só
+  terminou E a idade foi confirmada). O portão aparece quando a cortina do
+  cavalo COMEÇA a subir (`markIntroReveal` → `html[data-intro="reveal"]`),
+  fica por baixo dela (z 95 < 100) e o cartão sobe junto (`gate-rise`).
+  Cartão off-white com moldura tracejada, selo `KitSeal` carimbando no
+  topo e linhas em cascata (`gate-item`). "Sim": o cartão sobe e some
+  (`gate-leave`) enquanto a Hero entra. "Não": o texto troca por um recado
+  ("Então, até daqui a pouco.") e o site segue fechado, com "Enganei, tenho
+  18" pra voltar. Tudo desliga sob prefers-reduced-motion. **Cookies:** `providers/CookieBanner`, flutuante embaixo à esquerda, só
   depois do portão; só "Entendi" porque hoje não há cookies de análise.
 - **CTAs de compra** (`useGoToShop`: na home teletransporta pro
   `#comprar`, fora dela abre `/comprar`): "Comprar" no menu (no lugar do
