@@ -12,7 +12,7 @@ export default function CheckoutPage() {
   // Loja desligada (`STORE.enabled` em src/content/site.ts) → 404.
   if (!STORE.enabled) notFound();
   return (
-    <main className="bg-fernandito-off-white text-fernandito-verde-escuro min-h-screen [color-scheme:light]">
+    <main className="bg-fernandito-verde-escuro text-fernandito-off-white min-h-screen [color-scheme:light]">
       <div className="mx-auto max-w-6xl px-6 pt-[calc(8rem+var(--announcement-h))] pb-24 sm:px-10">
         <CheckoutClient />
       </div>

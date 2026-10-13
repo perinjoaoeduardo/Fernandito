@@ -431,6 +431,14 @@ e a criação do pedido no Bling ainda não existem.
   aparece quando o botão principal saiu por cima e some antes do rodapé.
   `/comprar`: `<main>` tem fundo off-white (corrigiu a faixa escura atrás do
   menu).
+- **Checkout (verde-escuro):** fundo da página `verde-escuro`, etapas e
+  resumo como cartões off-white flutuantes (`rounded-3xl`, sombra funda),
+  etapa bloqueada só com contorno; número da etapa em círculo (✓ quando
+  concluída); entrada em cascata (`data-enter`) e o formulário de cada
+  etapa aparece subindo (`DURATION.slow`). **Carrinho:** container
+  flutuante afastado das bordas, `rounded-3xl`, véu com blur; item em
+  cartão (nome em 2 linhas, quantidade e total na mesma linha), subtotal em
+  Rampart e o aviso +18 no rodapé.
 - **Menu no computador (md+):** uma pill só, com divisórias finas entre
   cavalo | Comprar | Instagram | carrinho (antes eram 4 peças soltas). No
   celular continuam as pills separadas.

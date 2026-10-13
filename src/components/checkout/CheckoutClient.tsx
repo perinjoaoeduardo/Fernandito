@@ -3,7 +3,9 @@
 import { clsx } from "clsx";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
+import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { gsap, DURATION, EASE, prefersReducedMotion } from "@/lib/gsap";
 import { maskCEP, maskCPF, maskPhone, onlyDigits } from "@/lib/br";
 import { formatBRL } from "@/lib/money";
 import { addressSchema, customerSchema, fieldErrors, orderSchema } from "@/lib/order";
@@ -14,6 +16,7 @@ import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { useCart } from "@/components/cart/CartProvider";
 import { Field } from "@/components/checkout/Field";
 import { Price } from "@/components/ui/Price";
+import { splitName } from "@/lib/catalog";
 
 /**
  * Checkout em 4 etapas, uma de cada vez (as anteriores ficam resumidas, com
@@ -234,6 +237,32 @@ export function CheckoutClient() {
     }
   }
 
+  // Entrada da tela: título, aviso, etapas e resumo sobem em cascata
+  // (mesma voz do resto do site: `DURATION.enter` + `EASE.outStandard`).
+  const ready = cart.ready && cart.lines.length > 0;
+  useEffect(() => {
+    const root = topRef.current;
+    if (!ready || !root || prefersReducedMotion()) return;
+    const items = gsap.utils.toArray<HTMLElement>("[data-enter]", root);
+    const tween = gsap.fromTo(
+      items,
+      { opacity: 0, y: 28 },
+      {
+        opacity: 1,
+        y: 0,
+        duration: DURATION.enter,
+        ease: EASE.outStandard,
+        stagger: 0.09,
+        delay: 0.1,
+        clearProps: "opacity,transform",
+      },
+    );
+    return () => {
+      tween.kill();
+      gsap.set(items, { clearProps: "opacity,transform" });
+    };
+  }, [ready]);
+
   // ── Telas especiais ──────────────────────────────────────────────────────
   if (cart.ready && cart.lines.length === 0) {
     return (
@@ -251,10 +280,10 @@ export function CheckoutClient() {
 
   return (
     <div ref={topRef} className="scroll-mt-32">
-      <h1 className="font-rampart text-[clamp(2rem,5vw,3.5rem)] leading-[1.05]">
+      <h1 data-enter className="font-rampart text-[clamp(2rem,5vw,3.5rem)] leading-[1.05]">
         Finalizar compra
       </h1>
-      <p className="text-label mt-3 font-sans tracking-[0.08em] uppercase opacity-70">
+      <p data-enter className="text-label mt-3 font-sans tracking-[0.08em] uppercase opacity-70">
         {STORE.ageNotice}
       </p>
 
@@ -564,23 +593,35 @@ function Step({
   summary: string;
   children: ReactNode;
 }) {
+  const reduceMotion = useReducedMotion();
   const state = index === current ? "open" : index < current ? "done" : "locked";
   return (
     <li
       id={`etapa-${index}`}
+      data-enter
       className={clsx(
-        "scroll-mt-32 rounded-2xl border p-5 sm:p-7",
-        state === "open"
-          ? "border-fernandito-verde-escuro/25 bg-white/40"
-          : "border-fernandito-verde-escuro/10",
-        state === "locked" && "opacity-50",
+        "duration-slow ease-out-standard scroll-mt-32 rounded-3xl p-5 transition-[background-color,box-shadow,opacity] sm:p-7",
+        state === "locked"
+          ? "border-fernandito-off-white/15 text-fernandito-off-white border bg-transparent opacity-60"
+          : "bg-fernandito-off-white text-fernandito-verde-escuro",
+        state === "open" && "shadow-[0_24px_60px_rgba(0,0,0,0.35)]",
+        state === "done" && "shadow-[0_8px_24px_rgba(0,0,0,0.2)]",
       )}
     >
       <div className="flex items-center justify-between gap-4">
-        <h2 className="flex items-baseline gap-3">
-          <span className="font-accent text-label tracking-[0.12em] opacity-70">
-            {String.fromCharCode(65 + index)}
+        <h2 className="flex items-center gap-3">
+          <span
+            aria-hidden="true"
+            className={clsx(
+              "duration-base ease-out-standard font-accent flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[0.8rem] transition-colors",
+              state === "open" && "bg-fernandito-verde-medio text-fernandito-off-white",
+              state === "done" && "bg-fernandito-verde-escuro text-fernandito-off-white",
+              state === "locked" && "border-fernandito-off-white/40 border",
+            )}
+          >
+            {state === "done" ? "✓" : index + 1}
           </span>
+          <span className="sr-only">Etapa {index + 1}: </span>
           <span className="font-rampart text-[1.5rem] leading-none">{STEPS[index]}</span>
         </h2>
         {state === "done" && (
@@ -594,9 +635,18 @@ function Step({
         )}
       </div>
       {state === "done" && summary && (
-        <p className="text-body mt-2 font-sans opacity-75">{summary}</p>
+        <p className="text-body mt-3 pl-11 font-sans opacity-75">{summary}</p>
       )}
-      {state === "open" && <div className="mt-6">{children}</div>}
+      {state === "open" && (
+        <motion.div
+          className="mt-6"
+          initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: DURATION.slow, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {children}
+        </motion.div>
+      )}
     </li>
   );
 }
@@ -636,7 +686,8 @@ function OrderSummary({
   return (
     <aside
       aria-label="Resumo do pedido"
-      className="border-fernandito-verde-escuro/15 rounded-2xl border bg-white/40 p-6 font-sans lg:sticky lg:top-32"
+      data-enter
+      className="bg-fernandito-off-white text-fernandito-verde-escuro rounded-3xl p-6 font-sans shadow-[0_24px_60px_rgba(0,0,0,0.35)] lg:sticky lg:top-32"
     >
       <div className="flex items-baseline justify-between gap-4">
         <h2 className="font-rampart text-[1.5rem] leading-none">Resumo</h2>
@@ -658,9 +709,13 @@ function OrderSummary({
                 placeholderClassName="bg-fernandito-verde-medio"
               />
             </div>
-            <p className="text-body min-w-0 flex-1 leading-snug">
-              {line.product.name} <span className="opacity-60">× {line.qty}</span>
-            </p>
+            <div className="text-body min-w-0 flex-1 leading-snug">
+              <p className="font-bold">{splitName(line.product.name).main}</p>
+              {splitName(line.product.name).sub && (
+                <p className="opacity-80">{splitName(line.product.name).sub}</p>
+              )}
+              <p className="text-label mt-0.5 opacity-60">× {line.qty}</p>
+            </div>
             <p className="text-body tabular-nums">{formatBRL(line.lineTotalCents)}</p>
           </li>
         ))}

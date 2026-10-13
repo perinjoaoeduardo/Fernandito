@@ -2,8 +2,9 @@
 
 import { clsx } from "clsx";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { FEATURED_PRODUCT, type ContentIcon } from "@/lib/catalog";
+import { FEATURED_PRODUCT, splitName, type ContentIcon } from "@/lib/catalog";
 import { Price } from "@/components/ui/Price";
+import { AgeNotice } from "@/components/ui/AgeNotice";
 import { STORE } from "@/content/site";
 import { Button } from "@/components/ui/Button";
 import { ProductGallery } from "@/components/sections/ProductGallery";
@@ -132,10 +133,7 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
   const Heading = headingLevel;
   const maxQty = remaining && remaining > 0 ? Math.min(product.maxQty, remaining) : product.maxQty;
   const showStock = remaining !== null && remaining > 0 && remaining <= STOCK_BADGE_MAX;
-  const nameWords = product.name.split(" ");
-  const subStart = nameWords.findIndex((word) => word.includes("-"));
-  const titleMain = (subStart > 0 ? nameWords.slice(0, subStart) : nameWords).join(" ");
-  const titleSub = subStart > 0 ? nameWords.slice(subStart).join(" ") : "";
+  const { main: titleMain, sub: titleSub } = splitName(product.name);
   const addToCart = () => {
     add(product.sku, qty);
     setQty(1);
@@ -243,18 +241,8 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
               {STORE.addToCart}
             </Button>
           </div>
-          <div
-            ref={endRef}
-            data-reveal
-            className="bg-fernandito-verde-medio text-fernandito-off-white mt-6 flex items-center gap-3 rounded-full py-1.5 pr-5 pl-1.5"
-          >
-            <span
-              aria-hidden="true"
-              className="border-fernandito-off-white/80 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 font-sans text-[0.8rem] leading-none font-bold"
-            >
-              +18
-            </span>
-            <p className="text-label tracking-[0.08em] uppercase">{STORE.ageNotice}</p>
+          <div ref={endRef} data-reveal className="mt-6">
+            <AgeNotice />
           </div>
 
           {WHATSAPP_HREF && (

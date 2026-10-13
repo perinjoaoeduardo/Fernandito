@@ -89,3 +89,12 @@ export function getProduct(sku: string) {
 
 /** O produto em destaque na seção/página de compra. */
 export const FEATURED_PRODUCT = ACTIVE_PRODUCTS[0];
+
+/** Divide o nome em título e subtítulo na palavra com hífen
+ * ("Kit Fernandito" + "Pré-Lançamento"). Sem hífen, só o título. */
+export function splitName(name: string) {
+  const words = name.split(" ");
+  const at = words.findIndex((word) => word.includes("-"));
+  if (at <= 0) return { main: name, sub: "" };
+  return { main: words.slice(0, at).join(" "), sub: words.slice(at).join(" ") };
+}

@@ -7,18 +7,22 @@ import { DURATION, EASE_BEZIER } from "@/lib/gsap";
 import { getLenis } from "@/lib/lenis";
 import { formatBRL } from "@/lib/money";
 import { Button } from "@/components/ui/Button";
+import { Price } from "@/components/ui/Price";
+import { AgeNotice } from "@/components/ui/AgeNotice";
+import { splitName } from "@/lib/catalog";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { CloseIcon } from "@/components/ui/icons";
 import { QtyStepper } from "@/components/cart/QtyStepper";
 import { useCart } from "@/components/cart/CartProvider";
 
 /**
- * Gaveta do carrinho: desliza da direita (off-white, texto verde-escuro),
- * com véu verde-escuro por trás. Abre sozinha ao adicionar um item. Fecha no
+ * Gaveta do carrinho: container flutuante (cantos arredondados, afastado das
+ * bordas) que desliza da direita (off-white, texto verde-escuro), com véu
+ * verde-escuro e blur por trás. Abre sozinha ao adicionar um item. Fecha no
  * ×, no véu ou com Esc; enquanto aberta, a rolagem da página para (Lenis).
  */
 export function CartDrawer() {
-  const { lines, subtotalCents, isOpen, close, setQty, remove } = useCart();
+  const { lines, count, subtotalCents, isOpen, close, setQty, remove } = useCart();
   const router = useRouter();
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -50,7 +54,7 @@ export function CartDrawer() {
         <div className="fixed inset-0 z-[80]">
           <motion.div
             aria-hidden="true"
-            className="bg-fernandito-verde-escuro/60 absolute inset-0"
+            className="bg-fernandito-verde-escuro/45 absolute inset-0 backdrop-blur-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -62,22 +66,29 @@ export function CartDrawer() {
             aria-modal="true"
             aria-label="Carrinho"
             data-lenis-prevent
-            className="bg-fernandito-off-white text-fernandito-verde-escuro absolute inset-y-0 right-0 flex w-full max-w-md flex-col shadow-[-24px_0_60px_rgba(36,48,34,0.35)]"
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
+            className="bg-fernandito-off-white text-fernandito-verde-escuro ring-fernandito-off-white/40 absolute top-3 right-3 bottom-3 flex w-[calc(100%-1.5rem)] max-w-md flex-col overflow-hidden rounded-3xl shadow-[0_24px_70px_rgba(24,32,22,0.45)] ring-1 sm:top-4 sm:right-4 sm:bottom-4"
+            initial={{ x: "calc(100% + 2rem)", opacity: 0.6 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "calc(100% + 2rem)", opacity: 0.6 }}
             transition={transition}
           >
-            <header className="border-fernandito-verde-escuro/15 flex items-center justify-between border-b px-6 pt-[calc(1.25rem+var(--announcement-h))] pb-5">
-              <h2 className="font-rampart text-[1.75rem] leading-none">Carrinho</h2>
+            <header className="border-fernandito-verde-escuro/15 flex h-[4.5rem] shrink-0 items-center justify-between border-b px-6">
+              <div className="flex items-baseline gap-3">
+                <h2 className="font-rampart text-[1.75rem] leading-none">Carrinho</h2>
+                {count > 0 && (
+                  <span className="text-label font-sans uppercase opacity-60">
+                    {count} {count === 1 ? "item" : "itens"}
+                  </span>
+                )}
+              </div>
               <button
                 ref={closeRef}
                 type="button"
                 onClick={close}
                 aria-label="Fechar carrinho"
-                className="duration-base ease-out-standard hover:bg-fernandito-verde-escuro/10 focus-visible:outline-fernandito-verde-medio flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2"
+                className="duration-base ease-out-standard hover:bg-fernandito-verde-escuro/10 border-fernandito-verde-escuro/20 focus-visible:outline-fernandito-verde-medio flex h-10 w-10 items-center justify-center rounded-full border transition-colors focus-visible:outline focus-visible:outline-2"
               >
-                <CloseIcon />
+                <CloseIcon className="h-4 w-4" />
               </button>
             </header>
 
@@ -90,58 +101,73 @@ export function CartDrawer() {
               </div>
             ) : (
               <>
-                <ul className="flex-1 overflow-y-auto px-6 py-2">
-                  {lines.map((line) => (
-                    <li
-                      key={line.sku}
-                      className="border-fernandito-verde-escuro/10 flex gap-4 border-b py-5 last:border-b-0"
-                    >
-                      <div className="bg-fernandito-verde-medio relative h-24 w-20 shrink-0 overflow-hidden rounded-lg">
-                        <PhotoSlot
-                          image={line.product.images[0]}
-                          sizes="80px"
-                          placeholderClassName="bg-fernandito-verde-medio"
-                        />
-                      </div>
-                      <div className="flex min-w-0 flex-1 flex-col gap-2 font-sans">
-                        <div className="flex items-start justify-between gap-3">
-                          <p className="text-body leading-snug font-bold">{line.product.name}</p>
-                          <p className="text-body whitespace-nowrap tabular-nums">
-                            {formatBRL(line.lineTotalCents)}
-                          </p>
-                        </div>
-                        <p className="text-label uppercase opacity-60">
-                          {formatBRL(line.product.priceCents)} cada
-                        </p>
-                        <div className="mt-auto flex items-center justify-between gap-3">
-                          <QtyStepper
-                            size="sm"
-                            value={line.qty}
-                            max={line.product.maxQty}
-                            onChange={(qty) => setQty(line.sku, qty)}
-                            label={`Quantidade de ${line.product.name}`}
+                <ul className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4 sm:px-5">
+                  {lines.map((line) => {
+                    const { main, sub } = splitName(line.product.name);
+                    return (
+                      <li
+                        key={line.sku}
+                        className="bg-fernandito-verde-escuro/[0.05] border-fernandito-verde-escuro/10 flex gap-4 rounded-2xl border p-3"
+                      >
+                        <div className="bg-fernandito-verde-medio relative h-28 w-24 shrink-0 overflow-hidden rounded-xl">
+                          <PhotoSlot
+                            image={line.product.images[0]}
+                            sizes="96px"
+                            placeholderClassName="bg-fernandito-verde-medio"
                           />
-                          <button
-                            type="button"
-                            onClick={() => remove(line.sku)}
-                            className="text-label duration-base ease-out-standard hover:text-fernandito-verde-medio uppercase underline underline-offset-4 opacity-70 transition-colors hover:opacity-100"
-                          >
-                            Remover
-                          </button>
                         </div>
-                      </div>
-                    </li>
-                  ))}
+                        <div className="flex min-w-0 flex-1 flex-col font-sans">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="font-rampart text-[1.15rem] leading-[1.1]">{main}</p>
+                              {sub && (
+                                <p className="font-rampart text-fernandito-verde-medio text-[1.15rem] leading-[1.1]">
+                                  {sub}
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => remove(line.sku)}
+                              aria-label={`Remover ${line.product.name}`}
+                              className="text-label duration-base ease-out-standard hover:text-fernandito-verde-medio shrink-0 uppercase underline underline-offset-4 opacity-60 transition-colors hover:opacity-100"
+                            >
+                              Remover
+                            </button>
+                          </div>
+                          <p className="text-label mt-1 uppercase opacity-60">
+                            {formatBRL(line.product.priceCents)} cada
+                          </p>
+                          <div className="mt-auto flex items-center justify-between gap-3 pt-3">
+                            <QtyStepper
+                              size="sm"
+                              value={line.qty}
+                              max={line.product.maxQty}
+                              onChange={(qty) => setQty(line.sku, qty)}
+                              label={`Quantidade de ${line.product.name}`}
+                            />
+                            <p className="text-body-lg font-bold whitespace-nowrap tabular-nums">
+                              {formatBRL(line.lineTotalCents)}
+                            </p>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
 
-                <footer className="border-fernandito-verde-escuro/15 flex flex-col gap-4 border-t px-6 pt-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] font-sans">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-body">Subtotal</span>
-                    <span className="text-body-lg font-bold tabular-nums">
-                      {formatBRL(subtotalCents)}
-                    </span>
+                <footer className="border-fernandito-verde-escuro/15 flex shrink-0 flex-col gap-4 border-t px-6 pt-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] font-sans">
+                  <div>
+                    <div className="flex items-end justify-between">
+                      <span className="text-label uppercase opacity-70">Subtotal</span>
+                      <span className="font-rampart text-[2rem] leading-none tabular-nums">
+                        <Price cents={subtotalCents} />
+                      </span>
+                    </div>
+                    <p className="text-label mt-1.5 text-right uppercase opacity-60">
+                      Frete calculado no checkout
+                    </p>
                   </div>
-                  <p className="text-label uppercase opacity-60">Frete calculado no checkout</p>
                   <Button
                     variant="primary"
                     className="w-full"
@@ -152,9 +178,7 @@ export function CartDrawer() {
                   >
                     Finalizar compra
                   </Button>
-                  <p className="text-label text-center uppercase opacity-60">
-                    Venda proibida para menores de 18 anos
-                  </p>
+                  <AgeNotice className="self-center" />
                 </footer>
               </>
             )}

@@ -28,7 +28,7 @@ export function Field({
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-erro` : hint ? `${id}-dica` : undefined}
         className={clsx(
-          "text-body duration-base ease-out-standard w-full rounded-lg border bg-white/50 px-4 py-3 transition-colors outline-none placeholder:opacity-40 focus:bg-white/80",
+          "text-body duration-base ease-out-standard w-full rounded-xl border bg-white/70 px-4 py-3.5 shadow-[inset_0_1px_2px_rgba(36,48,34,0.06)] transition-[background-color,border-color,box-shadow] outline-none placeholder:opacity-40 focus:bg-white focus:shadow-[0_0_0_4px_rgba(64,81,57,0.18)]",
           error
             ? "border-red-700/70 focus:border-red-700"
             : "border-fernandito-verde-escuro/25 focus:border-fernandito-verde-medio",
