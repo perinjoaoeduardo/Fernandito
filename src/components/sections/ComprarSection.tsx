@@ -6,19 +6,18 @@ import { FEATURED_PRODUCT, splitName, type ContentIcon } from "@/lib/catalog";
 import { Price } from "@/components/ui/Price";
 import { STORE } from "@/content/site";
 import { Button } from "@/components/ui/Button";
-import { KitSeal } from "@/components/ui/KitSeal";
 import { TypewriterText } from "@/components/ui/TypewriterText";
 import { ProductGallery } from "@/components/sections/ProductGallery";
 import { CanIcon, CupIcon, StickerIcon } from "@/components/ui/icons";
 import { QtyStepper } from "@/components/cart/QtyStepper";
 import { useCart } from "@/components/cart/CartProvider";
 import { WHATSAPP_HREF } from "@/components/ui/WhatsAppButton";
-import { gsap, ScrollTrigger, DURATION, EASE, prefersReducedMotion } from "@/lib/gsap";
+import { gsap, DURATION, EASE, prefersReducedMotion } from "@/lib/gsap";
 
 const CONTENT_ICONS: Record<ContentIcon, ReactNode> = {
-  can: <CanIcon className="h-7 w-7" />,
-  cup: <CupIcon className="h-7 w-7" />,
-  sticker: <StickerIcon className="h-7 w-7" />,
+  can: <CanIcon className="h-4 w-4" />,
+  cup: <CupIcon className="h-4 w-4" />,
+  sticker: <StickerIcon className="h-4 w-4" />,
 };
 
 /** Estoque real do kit (Bling) via /api/estoque; `null` = não mostrar. */
@@ -42,8 +41,9 @@ const STOCK_BADGE_MAX = 30;
 
 /**
  * Compra do produto em destaque (hoje o Kit Pré-Lançamento): galeria com
- * selo de carimbo, nome (digitado, como os títulos do site), o que vem no
- * kit, preço, quantidade e "Adicionar ao carrinho". Usada na home (âncora
+ * etiqueta "Pré-lançamento", nome (digitado, como os títulos do site), o
+ * que vem no kit em etiquetas pequenas, preço, quantidade e "Adicionar ao
+ * carrinho". A foto é a protagonista; o texto fica enxuto. Usada na home (âncora
  * #comprar) e na página /comprar (aí o nome vira o h1).
  */
 export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | "h2" }) {
@@ -81,62 +81,110 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
     };
   }, [product]);
 
-  // Entrada com as animações que o site já usa: a foto aparece desfazendo
-  // um zoom leve (como a do Contato), as miniaturas e os blocos de texto
-  // sobem em cascata (`DURATION.enter` + `EASE.outStandard`), o nome se
-  // digita (TypewriterText) e o selo "carimba" (`back.out(2.2)`, como os
-  // selos da Carta). Tudo uma vez, ao entrar na tela. Sem animação sob
+  // Animação de rolagem nos dois sentidos: os blocos sobem e aparecem ao
+  // entrar na tela (descendo OU subindo a página) e somem de leve ao sair,
+  // pra entrarem de novo na volta. A foto desfaz um zoom leve e o selo
+  // "carimba". Mesma voz do site (`DURATION.enter` + `EASE.outStandard`).
+  // O nome se digita uma vez só (TypewriterText). Sem animação sob
   // prefers-reduced-motion.
   useEffect(() => {
     const section = sectionRef.current;
     if (!section || prefersReducedMotion()) return;
     const image = section.querySelector<HTMLElement>("[data-gallery-image]");
     const thumbs = gsap.utils.toArray<HTMLElement>("[data-gallery-thumb]", section);
-    const seal = section.querySelector<HTMLElement>("[data-seal]");
+    const stamp = section.querySelector<HTMLElement>("[data-stamp]");
     const items = gsap.utils.toArray<HTMLElement>("[data-reveal]", section);
-    const all = [image, seal, ...thumbs, ...items].filter(Boolean) as HTMLElement[];
+    const all = [image, stamp, ...thumbs, ...items].filter(Boolean) as HTMLElement[];
+    const toggle = "play reverse play reverse";
+    const tweens: gsap.core.Tween[] = [];
 
-    if (image) gsap.set(image, { opacity: 0, scale: 1.06 });
-    if (seal) gsap.set(seal, { autoAlpha: 0, scale: 2.2, rotate: -30 });
-    gsap.set([...thumbs, ...items], { opacity: 0, y: 24 });
-
-    const tl = gsap.timeline({ paused: true });
-    if (image) tl.to(image, { opacity: 1, scale: 1, duration: 1.1, ease: EASE.outStandard }, 0);
-    tl.to(
-      thumbs,
-      { opacity: 1, y: 0, duration: DURATION.enter, ease: EASE.outStandard, stagger: 0.06 },
-      0.35,
+    if (image)
+      tweens.push(
+        gsap.fromTo(
+          image,
+          { opacity: 0, scale: 1.06 },
+          {
+            opacity: 1,
+            scale: 1,
+            duration: 1.1,
+            ease: EASE.outStandard,
+            scrollTrigger: {
+              trigger: image,
+              start: "top 85%",
+              end: "bottom 10%",
+              toggleActions: toggle,
+            },
+          },
+        ),
+      );
+    if (thumbs.length)
+      tweens.push(
+        gsap.fromTo(
+          thumbs,
+          { opacity: 0, y: 20 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: DURATION.enter,
+            ease: EASE.outStandard,
+            stagger: 0.06,
+            scrollTrigger: {
+              trigger: thumbs[0],
+              start: "top 95%",
+              end: "bottom 5%",
+              toggleActions: toggle,
+            },
+          },
+        ),
+      );
+    if (stamp)
+      tweens.push(
+        gsap.fromTo(
+          stamp,
+          { autoAlpha: 0, scale: 1.5, rotate: -14 },
+          {
+            autoAlpha: 1,
+            scale: 1,
+            rotate: -4,
+            duration: 0.6,
+            delay: 0.4,
+            ease: "back.out(2.2)",
+            scrollTrigger: {
+              trigger: image ?? stamp,
+              start: "top 85%",
+              end: "bottom 10%",
+              toggleActions: toggle,
+            },
+          },
+        ),
+      );
+    items.forEach((item, i) =>
+      tweens.push(
+        gsap.fromTo(
+          item,
+          { opacity: 0, y: 28 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: DURATION.enter,
+            ease: EASE.outStandard,
+            delay: Math.min(i, 3) * 0.06,
+            scrollTrigger: {
+              trigger: item,
+              start: "top 92%",
+              end: "bottom 8%",
+              toggleActions: toggle,
+            },
+          },
+        ),
+      ),
     );
-    if (seal)
-      tl.to(seal, { autoAlpha: 1, scale: 1, rotate: 0, duration: 0.6, ease: "back.out(2.2)" }, 0.7);
-
-    const trigger = ScrollTrigger.create({
-      trigger: section,
-      start: "top 75%",
-      once: true,
-      onEnter: () => tl.play(),
-    });
-    // Os blocos de texto entram conforme chegam na tela (no celular eles
-    // ficam abaixo da foto).
-    const batch = ScrollTrigger.batch(items, {
-      start: "top 92%",
-      once: true,
-      interval: 0.1,
-      onEnter: (els) =>
-        gsap.to(els, {
-          opacity: 1,
-          y: 0,
-          duration: DURATION.enter,
-          ease: EASE.outStandard,
-          stagger: 0.08,
-          delay: 0.15,
-        }),
-    });
 
     return () => {
-      trigger.kill();
-      batch.forEach((t) => t.kill());
-      tl.kill();
+      tweens.forEach((t) => {
+        t.scrollTrigger?.kill();
+        t.kill();
+      });
       gsap.set(all, { clearProps: "opacity,visibility,transform" });
     };
   }, [product]);
@@ -157,28 +205,29 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
       aria-label={STORE.eyebrow}
       className="bg-fernandito-off-white text-fernandito-verde-escuro w-full px-6 py-20 sm:px-10 md:py-28 lg:px-16"
     >
-      <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-20 xl:gap-24">
+      <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-16 xl:gap-20">
         <div className="w-full max-w-xl lg:max-w-none">
           <ProductGallery
             images={product.images}
             seal={
-              <div
-                data-seal
-                className="absolute -top-4 -right-3 sm:-top-6 sm:-right-6 lg:-top-8 lg:-right-8"
+              <span
+                data-stamp
+                className="bg-fernandito-verde-escuro text-fernandito-off-white ring-fernandito-off-white/35 pointer-events-none absolute top-4 left-4 flex origin-top-left rotate-[-4deg] flex-col items-center gap-0.5 rounded-xl px-4 py-2.5 text-center uppercase shadow-[0_8px_20px_rgba(36,48,34,0.35)] ring-1 ring-inset sm:top-5 sm:left-5"
               >
-                <KitSeal text={STORE.badge} className="h-28 w-28 sm:h-36 sm:w-36" />
-              </div>
+                <span className="font-rampart-stamp text-[1rem] leading-none tracking-[0.1em] sm:text-[1.1rem]">
+                  {STORE.badge.split(" · ")[0]}
+                </span>
+                {STORE.badge.includes(" · ") && (
+                  <span className="font-accent text-[0.6rem] tracking-[0.2em] opacity-85">
+                    {STORE.badge.split(" · ")[1]}
+                  </span>
+                )}
+              </span>
             }
           />
         </div>
 
-        <div className="flex flex-col items-start font-sans">
-          <p
-            data-reveal
-            className="font-accent text-label text-fernandito-verde-medio tracking-[0.18em] uppercase"
-          >
-            {STORE.kitEyebrow}
-          </p>
+        <div className="flex max-w-md flex-col items-start font-sans">
           <TypewriterText
             as={headingLevel}
             text={title}
@@ -186,41 +235,38 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
             start="top 85%"
             charsPerSecond={20}
             delay={0.3}
-            className="font-rampart mt-3 text-[clamp(2.5rem,4.6vw,4rem)] leading-[0.98]"
+            className="font-rampart text-[clamp(2.1rem,3.4vw,2.9rem)] leading-[1]"
           />
-          <p data-reveal className="text-body-lg mt-5 max-w-md">
+          <p data-reveal className="text-body mt-4 max-w-sm opacity-85">
             {product.description}
           </p>
 
-          {/* O que vem no kit: ficha única, três colunas. */}
-          <div data-reveal className="mt-9 w-full max-w-md">
-            <p className="text-label tracking-[0.1em] uppercase opacity-70">
+          {/* O que vem no kit: lista curta, um detalhe — não compete com a foto. */}
+          <div data-reveal className="mt-7">
+            <p className="text-label tracking-[0.12em] uppercase opacity-60">
               {STORE.contentsTitle}
             </p>
-            <ul className="border-fernandito-verde-escuro/15 divide-fernandito-verde-escuro/15 mt-3 grid grid-cols-3 divide-x overflow-hidden rounded-2xl border bg-white/35">
+            <ul className="mt-3 flex flex-wrap gap-2">
               {product.contents.map((item) => (
                 <li
                   key={item.label}
-                  className="duration-base ease-out-standard flex flex-col items-center px-2 pt-5 pb-4 text-center transition-colors hover:bg-white/45"
+                  className="border-fernandito-verde-escuro/15 text-label inline-flex items-center gap-2 rounded-full border bg-white/30 py-1.5 pr-3.5 pl-2.5 tracking-[0.06em] uppercase"
                 >
                   <span className="text-fernandito-verde-medio">{CONTENT_ICONS[item.icon]}</span>
-                  <span className="font-rampart mt-2 text-[2.75rem] leading-none tabular-nums">
-                    {item.qty}
-                  </span>
-                  <span className="text-label mt-1.5 leading-snug tracking-[0.06em] uppercase opacity-75">
-                    {item.label}
+                  <span>
+                    <span className="font-bold tabular-nums">{item.qty}</span> {item.label}
                   </span>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div data-reveal className="mt-9 flex flex-wrap items-center gap-x-4 gap-y-2">
-            <p className="font-rampart text-[clamp(2.5rem,4vw,3.25rem)] leading-none tabular-nums">
+          <div data-reveal className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <p className="font-rampart text-[clamp(1.9rem,2.6vw,2.3rem)] leading-none tabular-nums">
               <Price cents={product.priceCents} />
             </p>
             {showStock && (
-              <span className="border-fernandito-verde-medio/30 bg-fernandito-verde-medio/10 text-label inline-flex items-center gap-2 rounded-full border px-3 py-1.5 tracking-[0.08em] uppercase">
+              <span className="border-fernandito-verde-medio/30 bg-fernandito-verde-medio/10 text-label inline-flex items-center gap-2 rounded-full border px-3 py-1 tracking-[0.08em] uppercase">
                 <span
                   aria-hidden="true"
                   className="bg-fernandito-verde-medio h-1.5 w-1.5 animate-pulse rounded-full"
@@ -235,7 +281,7 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
           <div
             ref={buyRef}
             data-reveal
-            className="mt-6 flex w-full max-w-md flex-col gap-3 sm:flex-row sm:items-center"
+            className="mt-5 flex w-full flex-col gap-3 sm:flex-row sm:items-center"
           >
             <div className="self-start">
               <QtyStepper
@@ -248,14 +294,14 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
             <Button
               variant="primary"
               onClick={addToCart}
-              className="w-full !py-3.5 whitespace-nowrap sm:w-auto sm:flex-1"
+              className="w-full !py-3 whitespace-nowrap sm:w-auto sm:flex-1"
             >
               {STORE.addToCart}
             </Button>
           </div>
 
           {WHATSAPP_HREF && (
-            <p data-reveal className="text-label mt-5 tracking-[0.04em] opacity-75">
+            <p data-reveal className="text-label mt-4 tracking-[0.04em] opacity-70">
               {STORE.helpPrefix}{" "}
               <a
                 href={WHATSAPP_HREF}

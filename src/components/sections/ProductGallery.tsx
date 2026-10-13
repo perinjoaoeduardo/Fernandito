@@ -28,8 +28,8 @@ function Chevron({ dir }: { dir: "left" | "right" }) {
 
 /**
  * Galeria do produto: foto grande + miniaturas clicáveis embaixo (somem se
- * só houver uma foto). As fotos passam sozinhas a cada 5 s (uma barrinha
- * embaixo da foto mostra o tempo) e têm setas de anterior/próxima que
+ * só houver uma foto). As fotos passam sozinhas a cada 5 s (sem marcador
+ * de tempo, só trocam) e têm setas de anterior/próxima que
  * aparecem ao passar o mouse (no toque ficam sempre visíveis). O passa-
  * sozinho pausa com o mouse em cima, fora da tela, com a aba escondida e sob
  * prefers-reduced-motion; clicar numa seta ou miniatura recomeça a contagem.
@@ -39,7 +39,7 @@ function Chevron({ dir }: { dir: "left" | "right" }) {
  */
 export function ProductGallery({ images, seal }: { images: ProductImage[]; seal?: ReactNode }) {
   const [active, setActive] = useState(0);
-  // Muda a cada troca manual: remonta a barrinha e recomeça os 5 s.
+  // Muda a cada troca manual: recomeça os 5 s.
   const [cycle, setCycle] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [inView, setInView] = useState(false);
@@ -73,9 +73,12 @@ export function ProductGallery({ images, seal }: { images: ProductImage[]; seal?
 
   const playing = many && canAutoplay && inView && !hovered;
 
-  // O tempo é contado pela própria barrinha (animationend), assim pausar o
-  // mouse em cima pausa a barra e a troca juntas.
-  const next = () => go(active + 1);
+  // Passa sozinho, sem marcador de tempo. Pausar e voltar recomeça os 5 s.
+  useEffect(() => {
+    if (!playing) return;
+    const id = window.setTimeout(() => go(active + 1), AUTOPLAY_MS);
+    return () => window.clearTimeout(id);
+  }, [playing, active, cycle, go]);
 
   return (
     <div>
@@ -88,7 +91,7 @@ export function ProductGallery({ images, seal }: { images: ProductImage[]; seal?
           className="group bg-fernandito-verde-medio relative aspect-[4/5] overflow-hidden rounded-[1.75rem] shadow-[0_30px_70px_rgba(36,48,34,0.28)]"
         >
           {/* A foto troca com um fade curto (a key remonta o PhotoSlot). */}
-          <div key={active} className="absolute inset-0 animate-[fadeIn_0.5s_ease-out_both]">
+          <div key={active} className="absolute inset-0 animate-[fadeIn_0.7s_ease-out_both]">
             <PhotoSlot
               image={current}
               sizes="(max-width: 767px) 90vw, 45vw"
@@ -118,24 +121,6 @@ export function ProductGallery({ images, seal }: { images: ProductImage[]; seal?
                   <Chevron dir={dir} />
                 </button>
               ))}
-
-              {/* Tempo até a próxima foto. */}
-              {canAutoplay && (
-                <div
-                  aria-hidden="true"
-                  className="bg-fernandito-off-white/25 absolute inset-x-5 bottom-5 h-[3px] overflow-hidden rounded-full"
-                >
-                  <div
-                    key={`${active}-${cycle}`}
-                    onAnimationEnd={next}
-                    className="bg-fernandito-off-white h-full origin-left rounded-full"
-                    style={{
-                      animation: `gallery-progress ${AUTOPLAY_MS}ms linear both`,
-                      animationPlayState: playing ? "running" : "paused",
-                    }}
-                  />
-                </div>
-              )}
             </>
           )}
         </div>

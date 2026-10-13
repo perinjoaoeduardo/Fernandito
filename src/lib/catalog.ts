@@ -37,7 +37,8 @@ export const PRODUCTS: Product[] = [
   {
     sku: "FERN-KIT-PRE",
     name: "Kit Fernandito Pré-Lançamento",
-    description: "A primeira leva do Fernandito, num kit pra quem quer provar antes de todo mundo.",
+    description:
+      "A primeira leva do Fernandito. Pra ti que é fã e quer provar antes de todo mundo.",
     contents: [
       { icon: "can", qty: "2", label: "latas 350ml" },
       { icon: "cup", qty: "1", label: "copo Fernandito" },

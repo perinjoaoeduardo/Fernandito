@@ -1,15 +1,14 @@
 "use client";
 
 import { clsx } from "clsx";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { backgroundAt } from "@/lib/background";
-import { DURATION, EASE_BEZIER, IS_TOUCH, prefersReducedMotion } from "@/lib/gsap";
+import { DURATION, EASE_BEZIER, IS_TOUCH } from "@/lib/gsap";
 import { teleportToTop } from "@/lib/lenis";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
-import { Gallop } from "@/components/ui/Gallop";
 import { CartIcon, InstagramIcon } from "@/components/ui/icons";
 import { useCart } from "@/components/cart/CartProvider";
 import { useGoToShop } from "@/components/cart/useGoToShop";
@@ -37,9 +36,6 @@ const probeY = () =>
 // Abaixo disso (px) a nav nunca se recolhe — na Hero ela é parte da capa.
 const TUCK_AFTER = 160;
 
-// Janela (ms) em que três toques no cavalo contam como "três toques".
-const TAP_WINDOW_MS = 900;
-
 export function FloatingNav() {
   const [visible, setVisible] = useState(false);
   // `scrolled`: saiu do topo (pill mais opaca). `tucked`: recolhida pra cima
@@ -49,10 +45,6 @@ export function FloatingNav() {
   const [overLight, setOverLight] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const lastScrollY = useRef(0);
-  // Segredo: três toques rápidos no cavalo fazem ele galopar pela tela.
-  const [galloping, setGalloping] = useState(false);
-  const horseTaps = useRef<number[]>([]);
-  const endGallop = useCallback(() => setGalloping(false), []);
   const cart = useCart();
   const goToShop = useGoToShop();
   // No checkout e nas telas do pedido a pessoa já está comprando: sem CTA.
@@ -67,12 +59,6 @@ export function FloatingNav() {
       return;
     }
     teleportToTop();
-    const now = performance.now();
-    horseTaps.current = [...horseTaps.current, now].filter((t) => now - t < TAP_WINDOW_MS);
-    if (horseTaps.current.length >= 3 && !galloping && !prefersReducedMotion()) {
-      horseTaps.current = [];
-      setGalloping(true);
-    }
   };
 
   useEffect(() => {
@@ -183,7 +169,7 @@ export function FloatingNav() {
         )}
         aria-label="Navegação principal"
       >
-        {/* Cavalo — volta ao topo (3 toques: galope escondido). */}
+        {/* Cavalo — volta ao topo. */}
         <button
           type="button"
           onClick={handleHorseClick}
@@ -367,8 +353,6 @@ export function FloatingNav() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {galloping && <Gallop onDone={endGallop} />}
     </>
   );
 }
