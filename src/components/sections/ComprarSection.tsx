@@ -199,6 +199,7 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
             as={headingLevel}
             text={title}
             mode="play"
+            caret={false}
             start="top 85%"
             charsPerSecond={20}
             delay={0.3}
