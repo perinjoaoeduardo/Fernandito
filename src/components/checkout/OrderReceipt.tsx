@@ -40,7 +40,10 @@ export function OrderReceipt({ order }: { order: PublicOrder }) {
           <div className="min-w-0">
             <p>Frete</p>
             <p className="text-label mt-1 tracking-[0.06em] uppercase opacity-60">
-              {order.shipping.service} · {formatDays(order.shipping.days)}
+              {order.shipping.carrier && !order.shipping.service.includes(order.shipping.carrier)
+                ? `${order.shipping.carrier} ${order.shipping.service}`
+                : order.shipping.service}{" "}
+              · {formatDays(order.shipping.days)}
             </p>
           </div>
           <span className="whitespace-nowrap tabular-nums">
