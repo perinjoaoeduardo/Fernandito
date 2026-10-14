@@ -21,12 +21,17 @@ domínio) continuam em `src/lib/site.ts`.
 
 ## Cores
 
-| Nome         | Hex       | Classe Tailwind                                               | Uso                                           |
-| ------------ | --------- | ------------------------------------------------------------- | --------------------------------------------- |
-| verde-escuro | `#243022` | `bg-fernandito-verde-escuro` / `text-fernandito-verde-escuro` | Fundo Hero, texto sobre off-white/verde-claro |
-| verde-medio  | `#405139` | `bg-fernandito-verde-medio` / `text-fernandito-verde-medio`   | **Cor principal da marca** — CTAs, destaques  |
-| verde-claro  | `#6C7D4F` | `bg-fernandito-verde-claro` / `text-fernandito-verde-claro`   | Fundos secundários, acentos                   |
-| off-white    | `#E6E6CB` | `bg-fernandito-off-white` / `text-fernandito-off-white`       | Texto sobre fundos escuros, fundo alternativo |
+| Nome         | Hex       | Classe Tailwind                                               | Uso                                                         |
+| ------------ | --------- | ------------------------------------------------------------- | ----------------------------------------------------------- |
+| verde-escuro | `#243022` | `bg-fernandito-verde-escuro` / `text-fernandito-verde-escuro` | Profundidade junto do verde: texto, botões, camadas escuras |
+| verde-medio  | `#405139` | `bg-fernandito-verde-medio` / `text-fernandito-verde-medio`   | **Cor principal da marca** — fundos de tela, CTAs           |
+| verde-claro  | `#6C7D4F` | `bg-fernandito-verde-claro` / `text-fernandito-verde-claro`   | Acento junto do verde: progresso, selecionado, selos        |
+| off-white    | `#E6E6CB` | `bg-fernandito-off-white` / `text-fernandito-off-white`       | **O oposto** — contraste: painéis, texto sobre verde        |
+
+**Regra de uso (do dono da marca):** o verde (médio) é a cor principal; o
+verde-escuro e o verde-claro trabalham **junto com ele** (escuro dá
+profundidade, claro marca o que está ativo/selecionado — sem enfiar em
+tudo); o bege (off-white) é o oposto, usado quando precisa de contraste.
 
 ## Tipografia
 
@@ -443,15 +448,22 @@ e a criação do pedido no Bling ainda não existem.
   preço unitário embaixo, lixeira, quantidade + total em Rampart); itens
   entram subindo; rodapé com subtotal em Rampart e "Finalizar compra →".
   Vazio: ícone, frase e "Ver o kit".
-- **Checkout (verde-escuro):** "← Voltar ao kit", título; etapas como
-  cartões off-white flutuantes (`rounded-3xl`, sombra funda), número em
-  círculo (✓ quando concluída), etapa bloqueada só contornada; o formulário
-  de cada etapa aparece subindo. Resumo: cartão fixo do lado no computador;
-  no celular, **resumo recolhível no topo** ("Ver resumo" + total). Item do
-  resumo com foto e quantidade em selinho. Frete em cartões com rádio
-  próprio e selo "Mais barato"; confirmação enxuta (2 linhas clicáveis +
-  "Pagar com Pix" largo). Campos sem o azul do autofill (`Field`).
-- **Pix e confirmação (verde-escuro):** cartão único: total e "expira em"
+- **Checkout (tela dividida, mais horizontal):** fundo **verde-medio**.
+  À esquerda (fixa no computador): "← Voltar ao kit", título, **progresso
+  horizontal** (trilho com preenchimento **verde-claro** + nomes das
+  etapas; as feitas têm ✓ e são clicáveis) e o **resumo** num cartão
+  verde-escuro translúcido: total grande, itens (selinho de quantidade
+  verde-claro), subtotal/frete e o que já foi preenchido (Contato, Entrega,
+  Frete) com "Editar". À direita, um **painel bege** com uma etapa por vez:
+  "Passo X de 4", uma pergunta em Rampart ("Quem tá levando?", "Pra onde
+  vai o tordilho?", "Como ele chega?", "Tudo pronto?") + linha de apoio, o
+  formulário e as ações ("← Voltar" + botão verde-escuro com →). Trocar de
+  etapa **desliza o conteúdo pro lado** (avançando ← / voltando →). Frete e
+  confirmações em cartões com borda verde-claro quando selecionados; frete
+  carregando com esqueletos pulsando. No celular empilha: título,
+  progresso, total ("Ver resumo" abre o resto) e o painel. Carrinho vazio
+  no checkout: o tordilho sem carga.
+- **Pix e confirmação (verde-medio, como o checkout):** cartão único: total e "expira em"
   no topo com barra de tempo; QR (no celular escondido em "Mostrar QR
   code") + copia e cola + "Copiar código Pix"; 3 passos curtos embaixo;
   faixa de modo teste no rodapé do cartão. Resumo "Teu pedido" (#id em

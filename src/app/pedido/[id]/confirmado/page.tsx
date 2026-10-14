@@ -30,7 +30,7 @@ export default async function ConfirmadoPage(props: PageProps<"/pedido/[id]/conf
   if (order.status !== "paid") redirect(`/pedido/${order.id}`);
 
   return (
-    <main className="bg-fernandito-verde-escuro text-fernandito-off-white min-h-screen [color-scheme:light]">
+    <main className="bg-fernandito-verde-medio text-fernandito-off-white min-h-screen [color-scheme:light]">
       <ClearCart />
       <EnterStagger className="mx-auto flex max-w-2xl flex-col items-start gap-8 px-6 pt-[calc(8rem+var(--announcement-h))] pb-24 sm:px-10">
         <div data-enter>
