@@ -81,58 +81,39 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
     };
   }, [product]);
 
-  // Animação de rolagem nos dois sentidos: os blocos sobem e aparecem ao
-  // entrar na tela (descendo OU subindo a página) e somem de leve ao sair,
-  // pra entrarem de novo na volta. A foto desfaz um zoom leve e o selo
-  // "carimba". Mesma voz do site (`DURATION.enter` + `EASE.outStandard`).
-  // O nome se digita uma vez só (TypewriterText). Sem animação sob
-  // prefers-reduced-motion.
+  // Parallax ligado à rolagem (scrub), nos dois sentidos: a etiqueta e os
+  // blocos de texto deslizam em velocidades um pouco diferentes da foto ao
+  // entrar e ao sair da tela — nada "carimba" nem some no meio da leitura.
+  // Ao entrar eles também clareiam (só na faixa de baixo da tela). A foto
+  // desfaz um zoom leve conforme sobe. Sem animação sob reduced-motion.
   useEffect(() => {
     const section = sectionRef.current;
     if (!section || prefersReducedMotion()) return;
     const image = section.querySelector<HTMLElement>("[data-gallery-image]");
-    const thumbs = gsap.utils.toArray<HTMLElement>("[data-gallery-thumb]", section);
     const stamp = section.querySelector<HTMLElement>("[data-stamp]");
     const items = gsap.utils.toArray<HTMLElement>("[data-reveal]", section);
-    const all = [image, stamp, ...thumbs, ...items].filter(Boolean) as HTMLElement[];
-    const toggle = "play reverse play reverse";
+    const all = [image, stamp, ...items].filter(Boolean) as HTMLElement[];
     const tweens: gsap.core.Tween[] = [];
+    const through = (trigger: Element) => ({
+      trigger,
+      start: "top bottom",
+      end: "bottom top",
+      scrub: 0.6,
+    });
 
     if (image)
       tweens.push(
         gsap.fromTo(
           image,
-          { opacity: 0, scale: 1.06 },
+          { scale: 1.06 },
           {
-            opacity: 1,
             scale: 1,
-            duration: 1.1,
-            ease: EASE.outStandard,
+            ease: "none",
             scrollTrigger: {
               trigger: image,
-              start: "top 85%",
-              end: "bottom 10%",
-              toggleActions: toggle,
-            },
-          },
-        ),
-      );
-    if (thumbs.length)
-      tweens.push(
-        gsap.fromTo(
-          thumbs,
-          { opacity: 0, y: 20 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: DURATION.enter,
-            ease: EASE.outStandard,
-            stagger: 0.06,
-            scrollTrigger: {
-              trigger: thumbs[0],
-              start: "top 95%",
-              end: "bottom 5%",
-              toggleActions: toggle,
+              start: "top bottom",
+              end: "center center",
+              scrub: 0.6,
             },
           },
         ),
@@ -141,51 +122,37 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
       tweens.push(
         gsap.fromTo(
           stamp,
-          { autoAlpha: 0, scale: 1.5, rotate: -14 },
-          {
-            autoAlpha: 1,
-            scale: 1,
-            rotate: -4,
-            duration: 0.6,
-            delay: 0.4,
-            ease: "back.out(2.2)",
-            scrollTrigger: {
-              trigger: image ?? stamp,
-              start: "top 85%",
-              end: "bottom 10%",
-              toggleActions: toggle,
-            },
-          },
+          { y: 70 },
+          { y: -70, ease: "none", scrollTrigger: through(image ?? stamp) },
         ),
       );
-    items.forEach((item, i) =>
+    items.forEach((item, i) => {
+      // Cada bloco um tiquinho mais rápido que o anterior: dá profundidade.
+      const distance = 36 + i * 8;
       tweens.push(
         gsap.fromTo(
           item,
-          { opacity: 0, y: 28 },
+          { y: distance },
+          { y: -distance * 0.6, ease: "none", scrollTrigger: through(item) },
+        ),
+        gsap.fromTo(
+          item,
+          { opacity: 0 },
           {
             opacity: 1,
-            y: 0,
-            duration: DURATION.enter,
-            ease: EASE.outStandard,
-            delay: Math.min(i, 3) * 0.06,
-            scrollTrigger: {
-              trigger: item,
-              start: "top 92%",
-              end: "bottom 8%",
-              toggleActions: toggle,
-            },
+            ease: "none",
+            scrollTrigger: { trigger: item, start: "top bottom", end: "top 78%", scrub: 0.4 },
           },
         ),
-      ),
-    );
+      );
+    });
 
     return () => {
       tweens.forEach((t) => {
         t.scrollTrigger?.kill();
         t.kill();
       });
-      gsap.set(all, { clearProps: "opacity,visibility,transform" });
+      gsap.set(all, { clearProps: "opacity,transform" });
     };
   }, [product]);
 

@@ -423,10 +423,11 @@ e a criação do pedido no Bling ainda não existem.
   de base; lado a lado no computador, quebram no celular), um detalhe que não compete com
   a foto; preço em Rampart (tamanho contido) + "Restam X" (estoque real, só
   1–30); quantidade + botão (no celular empilhados, botão inteiro).
-  **Animação de rolagem nos dois sentidos** (`toggleActions: "play reverse
-play reverse"`): cada bloco sobe e aparece ao entrar na tela, descendo ou
-  subindo, e some de leve ao sair; a foto desfaz um zoom leve e a etiqueta
-  "carimba" (`back.out(2.2)`). Sem bloco de Pix/frete e sem aviso de +18.
+  **Parallax ligado à rolagem** (scrub, nos dois sentidos): a
+  etiqueta-adesivo e cada bloco de texto deslizam em velocidades um pouco
+  diferentes da foto ao entrar e ao sair da tela; os textos só clareiam na
+  faixa de baixo da tela (nunca somem no meio da leitura); a foto desfaz um
+  zoom leve conforme sobe. Sem bloco de Pix/frete e sem aviso de +18.
   **Barra de compra do celular**: flutuante, escura e redonda como o menu;
   aparece enquanto o botão de verdade está ABAIXO da tela e some quando ele
   aparece. **O kit só existe dentro da home** (`#comprar`): `/comprar`
