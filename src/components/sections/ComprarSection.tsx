@@ -212,7 +212,7 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
             seal={
               <span
                 data-stamp
-                className="bg-fernandito-verde-escuro text-fernandito-off-white ring-fernandito-off-white/35 pointer-events-none absolute top-4 left-4 flex origin-top-left rotate-[-4deg] flex-col items-center gap-0.5 rounded-xl px-4 py-2.5 text-center uppercase shadow-[0_8px_20px_rgba(36,48,34,0.35)] ring-1 ring-inset sm:top-5 sm:left-5"
+                className="bg-fernandito-verde-escuro text-fernandito-off-white ring-fernandito-off-white pointer-events-none absolute -top-4 -left-3 z-10 flex origin-top-left rotate-[-6deg] flex-col items-center gap-0.5 rounded-xl px-4 py-2.5 text-center uppercase shadow-[0_10px_24px_rgba(36,48,34,0.35)] ring-[3px] sm:-top-5 sm:-left-5"
               >
                 <span className="font-rampart-stamp text-[1rem] leading-none tracking-[0.1em] sm:text-[1.1rem]">
                   {STORE.badge.split(" · ")[0]}
@@ -227,7 +227,7 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
           />
         </div>
 
-        <div className="flex max-w-md flex-col items-start font-sans">
+        <div className="flex max-w-lg flex-col items-start font-sans">
           <TypewriterText
             as={headingLevel}
             text={title}
@@ -237,7 +237,7 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
             delay={0.3}
             className="font-rampart text-[clamp(2.1rem,3.4vw,2.9rem)] leading-[1]"
           />
-          <p data-reveal className="text-body mt-4 max-w-sm opacity-85">
+          <p data-reveal className="text-body mt-4 max-w-[33rem] opacity-85">
             {product.description}
           </p>
 
@@ -246,15 +246,16 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
             <p className="text-label tracking-[0.12em] uppercase opacity-60">
               {STORE.contentsTitle}
             </p>
-            <ul className="mt-3 flex flex-wrap gap-2">
+            <ul className="mt-3 flex flex-wrap gap-2 xl:flex-nowrap">
               {product.contents.map((item) => (
                 <li
                   key={item.label}
-                  className="border-fernandito-verde-escuro/15 text-label inline-flex items-center gap-2 rounded-full border bg-white/30 py-1.5 pr-3.5 pl-2.5 tracking-[0.06em] uppercase"
+                  className="border-fernandito-verde-escuro/15 text-label inline-flex items-center gap-2 rounded-full border bg-white/30 py-1.5 pr-3.5 pl-2.5 leading-none tracking-[0.06em] whitespace-nowrap uppercase"
                 >
                   <span className="text-fernandito-verde-medio">{CONTENT_ICONS[item.icon]}</span>
-                  <span>
-                    <span className="font-bold tabular-nums">{item.qty}</span> {item.label}
+                  <span className="flex items-baseline gap-1.5 leading-none">
+                    <span className="font-bold">{item.qty}</span>
+                    <span>{item.label}</span>
                   </span>
                 </li>
               ))}

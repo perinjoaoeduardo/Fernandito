@@ -324,3 +324,61 @@ html[data-age="ask"]:is([data-intro="reveal"], [data-intro="done"]):has(#age-gat
     opacity: 1;
   }
 }
+
+/* Aviso de cookies: sobe e aparece; o cookie dá uma balançada. */
+@keyframes cookie-in {
+  from {
+    opacity: 0;
+    transform: translateY(120%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cookie-wiggle {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-18deg);
+  }
+  55% {
+    transform: rotate(12deg);
+  }
+  80% {
+    transform: rotate(-5deg);
+  }
+}
+.cookie-in {
+  animation: cookie-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.cookie-icon svg {
+  animation: cookie-wiggle 0.8s ease-in-out 0.6s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cookie-in,
+  .cookie-icon svg {
+    animation: none;
+  }
+}
+
+/* Carrinho vazio: o cavalinho do selo balança devagar, esperando carga. */
+@keyframes cart-empty-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  50% {
+    transform: translateY(-4px) rotate(3deg);
+  }
+}
+.cart-empty-horse {
+  animation: cart-empty-bob 3.2s ease-in-out 0.8s infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cart-empty-horse {
+    animation: none;
+  }
+}

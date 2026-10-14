@@ -414,11 +414,13 @@ e a criação do pedido no Bling ainda não existem.
   placeholders; **passa sozinha a cada 5 s, sem marcador de tempo**; **setas**
   anterior/próxima no hover, sempre visíveis no toque; pausa com o mouse em
   cima, fora da tela e sob reduced-motion; clicar em seta/miniatura recomeça
-  a contagem). **Etiqueta simples** "Pré-lançamento / Edição limitada" no
-  canto da foto (retângulo escuro inclinado -4°, `font-rampart-stamp`).
+  a contagem). **Etiqueta-adesivo** "Pré-lançamento / Edição limitada"
+  colada por fora do canto da foto (retângulo escuro inclinado -6° com
+  borda off-white de adesivo, `font-rampart-stamp`).
   Nome "Kit Fernandito" **digitado** (`TypewriterText` modo play), sem
   linha acima; descrição curta; "O que vem no kit" em **etiquetas
-  pequenas** (ícone + "2 latas 350ml" etc.), um detalhe que não compete com
+  pequenas** (ícone + "2 latas 350ml" etc., número e texto na mesma linha
+  de base; lado a lado no computador, quebram no celular), um detalhe que não compete com
   a foto; preço em Rampart (tamanho contido) + "Restam X" (estoque real, só
   1–30); quantidade + botão (no celular empilhados, botão inteiro).
   **Animação de rolagem nos dois sentidos** (`toggleActions: "play reverse
@@ -431,6 +433,9 @@ play reverse"`): cada bloco sobe e aparece ao entrar na tela, descendo ou
   redireciona pra `/#comprar`, e todo "Comprar"/"Voltar ao kit" fora da home
   volta pra home já na seção (`providers/HashScroll` espera o intro e a
   idade e pula direto). Fora da home o cavalo do menu volta pro início.
+- **Carrinho vazio:** o selo do cavalo balançando devagar, "O tordilho tá
+  sem carga" (Rampart), "Que tal levar umas latas de fernet y cola?" e "Ver o
+  kit".
 - **Carrinho:** container flutuante (afastado 12–16px das bordas,
   `rounded-3xl`, véu verde com blur). Cabeçalho de altura fixa (72px) com
   contador; item em cartão claro (foto, nome em Rampart, "Pré-lançamento" e
@@ -481,8 +486,12 @@ play reverse"`): cada bloco sobe e aparece ao entrar na tela, descendo ou
   (`gate-leave`) enquanto a Hero entra. "Não": o texto troca por um recado
   ("Então, até daqui a pouco.") e o site segue fechado, com um "← Voltar"
   (botão contornado) pra refazer a pergunta. Sem "Beba com moderação" no
-  cartão. Tudo desliga sob prefers-reduced-motion. **Cookies:** `providers/CookieBanner`, flutuante embaixo à esquerda, só
-  depois do portão; só "Entendi" porque hoje não há cookies de análise.
+  cartão. Tudo desliga sob prefers-reduced-motion. **Cookies:** `providers/CookieBanner`, cartão pequeno flutuante
+  embaixo à esquerda (largura toda no celular): ícone de cookie, "Política
+  de cookies", uma linha de texto + "Saiba mais" e "Entendi". Aparece **5 s
+  depois da primeira interação** (rolar, tocar, clicar, tecla) feita depois
+  do portão e do intro; entra subindo e o cookie balança. Só "Entendi"
+  porque hoje não há cookies de análise.
 - **CTAs de compra** (`useGoToShop`: na home teletransporta pro
   `#comprar`, fora dela abre `/comprar`): "Comprar" no menu (no lugar do
   WhatsApp), "Comprar o kit" na Hero e no bloco final (botão claro, com

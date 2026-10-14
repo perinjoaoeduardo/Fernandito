@@ -114,3 +114,15 @@ export function ArrowRightIcon({ className = "h-4 w-4" }: IconProps) {
     </svg>
   );
 }
+
+export function CookieIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...strokeProps} className={className}>
+      <path d="M12 3a9 9 0 1 0 9 9 3 3 0 0 1-3.5-3A3 3 0 0 1 14 5.5 3 3 0 0 1 12 3Z" />
+      <circle cx="8.5" cy="10" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="10.5" cy="15.5" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="14.5" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="13" cy="11" r="0.6" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}

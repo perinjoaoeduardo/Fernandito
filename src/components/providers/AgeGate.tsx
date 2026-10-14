@@ -80,8 +80,8 @@ export function AgeGate() {
             <img
               src="/logo/fernandito-selo.webp"
               alt=""
-              width={480}
-              height={490}
+              width={640}
+              height={653}
               decoding="async"
               className="h-auto w-32 rotate-[-6deg] drop-shadow-[0_14px_24px_rgba(20,28,18,0.35)]"
             />

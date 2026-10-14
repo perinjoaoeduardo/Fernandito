@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Price } from "@/components/ui/Price";
 import { splitName } from "@/lib/catalog";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
-import { ArrowRightIcon, CartIcon, CloseIcon, TrashIcon } from "@/components/ui/icons";
+import { ArrowRightIcon, CloseIcon, TrashIcon } from "@/components/ui/icons";
 import { QtyStepper } from "@/components/cart/QtyStepper";
 import { useCart } from "@/components/cart/CartProvider";
 
@@ -94,20 +94,45 @@ export function CartDrawer() {
             </header>
 
             {lines.length === 0 ? (
-              <div className="flex flex-1 flex-col items-center justify-center gap-5 px-8 text-center">
-                <span className="bg-fernandito-verde-escuro/[0.06] text-fernandito-verde-medio flex h-16 w-16 items-center justify-center rounded-full">
-                  <CartIcon className="h-7 w-7" />
-                </span>
-                <p className="font-rampart text-[1.5rem] leading-tight">Teu carrinho está vazio</p>
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    close();
-                    router.push("/#comprar", { scroll: false });
-                  }}
+              <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
+                <motion.div
+                  initial={{ opacity: 0, y: 16, rotate: -14 }}
+                  animate={{ opacity: 1, y: 0, rotate: -6 }}
+                  transition={{ ...transition, delay: 0.15 }}
                 >
-                  Ver o kit
-                </Button>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- raster pequeno de tamanho fixo */}
+                  <img
+                    src="/logo/fernandito-selo.webp"
+                    alt=""
+                    width={640}
+                    height={653}
+                    decoding="async"
+                    className="cart-empty-horse h-auto w-24 drop-shadow-[0_10px_18px_rgba(20,28,18,0.25)]"
+                  />
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ ...transition, delay: 0.25 }}
+                  className="mt-6 flex flex-col items-center"
+                >
+                  <p className="font-rampart text-[1.6rem] leading-[1.05] text-balance">
+                    O tordilho tá sem carga
+                  </p>
+                  <p className="text-body mt-2 max-w-[17rem] font-sans opacity-75">
+                    Que tal levar umas latas de fernet y cola?
+                  </p>
+                  <Button
+                    variant="primary"
+                    className="mt-6"
+                    onClick={() => {
+                      close();
+                      router.push("/#comprar", { scroll: false });
+                    }}
+                  >
+                    Ver o kit
+                  </Button>
+                </motion.div>
               </div>
             ) : (
               <>
