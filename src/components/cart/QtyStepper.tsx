@@ -25,7 +25,7 @@ export function QtyStepper({
 }) {
   const button = clsx(
     "duration-base ease-out-standard flex items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
-    size === "sm" ? "h-8 w-8" : "h-10 w-10",
+    size === "sm" ? "h-7 w-7 [&_svg]:h-3.5 [&_svg]:w-3.5" : "h-10 w-10",
     tone === "light"
       ? "hover:bg-fernandito-verde-escuro/10 focus-visible:outline-fernandito-verde-medio"
       : "hover:bg-fernandito-off-white/10 focus-visible:outline-fernandito-off-white",
@@ -35,8 +35,9 @@ export function QtyStepper({
       role="group"
       aria-label={label}
       className={clsx(
-        "inline-flex items-center gap-1 rounded-full border p-1 font-sans",
-        tone === "light" ? "border-fernandito-verde-escuro/25" : "border-fernandito-off-white/25",
+        "inline-flex items-center rounded-full border font-sans",
+        size === "sm" ? "gap-0.5 p-0.5" : "gap-1 p-1",
+        tone === "light" ? "border-fernandito-verde-escuro/20" : "border-fernandito-off-white/25",
       )}
     >
       <button
@@ -52,7 +53,7 @@ export function QtyStepper({
         aria-live="polite"
         className={clsx(
           "text-center tabular-nums",
-          size === "sm" ? "text-body w-6" : "text-body-lg w-8",
+          size === "sm" ? "w-6 text-[0.875rem]" : "text-body-lg w-8",
         )}
       >
         {value}

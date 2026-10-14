@@ -146,21 +146,21 @@ export function CartDrawer() {
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ ...transition, delay: 0.15 + i * 0.05 }}
-                        className="flex gap-4 rounded-2xl bg-white/45 p-3 shadow-[0_1px_0_rgba(36,48,34,0.06)]"
+                        className="ring-fernandito-verde-escuro/[0.07] flex gap-3.5 rounded-2xl bg-white/50 p-2.5 ring-1"
                       >
-                        <div className="bg-fernandito-verde-medio relative h-[6.5rem] w-[5.25rem] shrink-0 overflow-hidden rounded-xl">
+                        <div className="bg-fernandito-verde-medio relative h-[6.5rem] w-[5rem] shrink-0 overflow-hidden rounded-xl">
                           <PhotoSlot
                             image={line.product.images[0]}
-                            sizes="84px"
+                            sizes="80px"
                             placeholderClassName="bg-fernandito-verde-medio"
                           />
                         </div>
-                        <div className="flex min-w-0 flex-1 flex-col font-sans">
+                        <div className="flex min-w-0 flex-1 flex-col py-0.5 font-sans">
                           <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 pt-0.5">
-                              <p className="font-rampart text-[1.2rem] leading-[1.1]">{main}</p>
-                              <p className="text-label mt-1.5 flex flex-col gap-0.5 tracking-[0.06em] uppercase opacity-60">
-                                {sub && <span>{sub}</span>}
+                            <div className="min-w-0">
+                              <p className="font-rampart text-[1.15rem] leading-none">{main}</p>
+                              <p className="mt-1.5 flex flex-col gap-0.5 text-[0.7rem] leading-tight tracking-[0.04em] opacity-60">
+                                {sub && <span className="uppercase">{sub}</span>}
                                 <span>{formatBRL(line.product.priceCents)} cada</span>
                               </p>
                             </div>
@@ -168,12 +168,12 @@ export function CartDrawer() {
                               type="button"
                               onClick={() => remove(line.sku)}
                               aria-label={`Remover ${line.product.name}`}
-                              className="hover:bg-fernandito-verde-escuro/10 duration-base ease-out-standard -mt-1 -mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full opacity-60 transition-[background-color,opacity] hover:opacity-100"
+                              className="hover:bg-fernandito-verde-escuro/10 duration-base ease-out-standard -mt-1 -mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full opacity-50 transition-[background-color,opacity] hover:opacity-100"
                             >
                               <TrashIcon />
                             </button>
                           </div>
-                          <div className="mt-auto flex items-end justify-between gap-3 pt-3">
+                          <div className="mt-auto flex items-center justify-between gap-3 pt-2.5">
                             <QtyStepper
                               size="sm"
                               value={line.qty}
@@ -181,7 +181,7 @@ export function CartDrawer() {
                               onChange={(qty) => setQty(line.sku, qty)}
                               label={`Quantidade de ${line.product.name}`}
                             />
-                            <p className="font-rampart text-[1.35rem] leading-none whitespace-nowrap tabular-nums">
+                            <p className="font-rampart text-[1.3rem] leading-none whitespace-nowrap tabular-nums">
                               <Price cents={line.lineTotalCents} />
                             </p>
                           </div>
