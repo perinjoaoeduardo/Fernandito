@@ -147,7 +147,7 @@ export function FooterSection() {
               <ul className="flex flex-col gap-3">
                 {FOOTER.legalLinks.map((link) => (
                   <li key={link.href}>
-                    <Link href={link.href} variant="underline-swap" className={FOOTER_LINK_CLASSES}>
+                    <Link href={link.href} variant="underline-grow" className={FOOTER_LINK_CLASSES}>
                       {link.label}
                     </Link>
                   </li>
