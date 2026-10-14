@@ -138,13 +138,7 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
     const stamp = section.querySelector<HTMLElement>("[data-stamp]");
     const items = gsap.utils.toArray<HTMLElement>("[data-reveal]", section);
     const all = [image, stamp, ...items].filter(Boolean) as HTMLElement[];
-    const tweens: gsap.core.Tween[] = [];
-    const through = (trigger: Element) => ({
-      trigger,
-      start: "top bottom",
-      end: "bottom top",
-      scrub: 0.6,
-    });
+    const tweens: gsap.core.Animation[] = [];
 
     if (image)
       tweens.push(
@@ -163,23 +157,26 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
           },
         ),
       );
-    if (stamp)
+    // Etiqueta e textos: um parallax só, ligado à seção, em duas fases —
+    // entrando (do pé da tela até a seção encaixar no topo) eles sobem até a
+    // posição certa (y = 0) e, saindo, continuam subindo. Assim, com o kit
+    // encaixado na tela, tudo fica exatamente alinhado (texto no meio da
+    // foto). Cada bloco anda um tiquinho mais que o anterior: profundidade.
+    const enter = window.innerHeight;
+    const leave = section.offsetHeight;
+    const drift = gsap.timeline({
+      scrollTrigger: { trigger: section, start: "top bottom", end: "bottom top", scrub: 0.6 },
+    });
+    const moving = [stamp, ...items].filter(Boolean) as HTMLElement[];
+    moving.forEach((el, i) => {
+      const distance = el === stamp ? 36 : 36 + (i - 1) * 8;
+      drift
+        .fromTo(el, { y: distance }, { y: 0, ease: "none", duration: enter }, 0)
+        .to(el, { y: -distance * 0.6, ease: "none", duration: leave }, enter);
+    });
+    tweens.push(drift);
+    items.forEach((item) => {
       tweens.push(
-        gsap.fromTo(
-          stamp,
-          { y: 36 },
-          { y: -36, ease: "none", scrollTrigger: through(image ?? stamp) },
-        ),
-      );
-    items.forEach((item, i) => {
-      // Cada bloco um tiquinho mais rápido que o anterior: dá profundidade.
-      const distance = 36 + i * 8;
-      tweens.push(
-        gsap.fromTo(
-          item,
-          { y: distance },
-          { y: -distance * 0.6, ease: "none", scrollTrigger: through(item) },
-        ),
         gsap.fromTo(
           item,
           { opacity: 0 },
@@ -239,7 +236,7 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
           />
         </div>
 
-        <div className="flex max-w-lg flex-col items-start font-sans">
+        <div className="flex max-w-lg flex-col items-start font-sans lg:pb-24">
           <TypewriterText
             as={headingLevel}
             text={title}
