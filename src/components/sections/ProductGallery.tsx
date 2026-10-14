@@ -88,7 +88,7 @@ export function ProductGallery({ images, seal }: { images: ProductImage[]; seal?
           data-gallery-image
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
-          className="group bg-fernandito-verde-medio relative aspect-[4/5] overflow-hidden lg:aspect-auto lg:h-[clamp(22rem,calc(100svh-17rem),42rem)] rounded-[1.75rem] shadow-[0_30px_70px_rgba(36,48,34,0.28)]"
+          className="group bg-fernandito-verde-medio relative aspect-[4/5] overflow-hidden lg:aspect-auto lg:h-[clamp(20rem,calc(100svh-var(--announcement-h)-16rem),40rem)] rounded-[1.75rem] shadow-[0_30px_70px_rgba(36,48,34,0.28)]"
         >
           {/* A foto troca com um fade curto (a key remonta o PhotoSlot). */}
           <div key={active} className="absolute inset-0 animate-[fadeIn_0.7s_ease-out_both]">

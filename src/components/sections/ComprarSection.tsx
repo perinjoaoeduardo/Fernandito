@@ -12,6 +12,7 @@ import { CanIcon, CupIcon, StickerIcon } from "@/components/ui/icons";
 import { QtyStepper } from "@/components/cart/QtyStepper";
 import { useCart } from "@/components/cart/CartProvider";
 import { WHATSAPP_HREF } from "@/components/ui/WhatsAppButton";
+import { getLenis } from "@/lib/lenis";
 import { gsap, DURATION, EASE, prefersReducedMotion } from "@/lib/gsap";
 
 const CONTENT_ICONS: Record<ContentIcon, ReactNode> = {
@@ -80,6 +81,50 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
       buyObserver.disconnect();
     };
   }, [product]);
+
+  // Encaixe no computador: a seção ocupa exatamente a tela (abaixo da faixa
+  // do topo). Quando a rolagem PARA com o kit quase encaixado (a menos de
+  // 30% da tela), a página desliza até ele ficar inteiro e centralizado —
+  // só fundo bege, foto e informações. Longe disso, não mexe em nada.
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const desktop = window.matchMedia("(min-width: 1024px) and (pointer: fine)");
+    let timer: number | undefined;
+    let snapping = false;
+    const barHeight = () =>
+      parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--announcement-h")) ||
+      0;
+    const settle = () => {
+      if (!desktop.matches || snapping) return;
+      const distance = section.getBoundingClientRect().top - barHeight();
+      if (Math.abs(distance) < 2 || Math.abs(distance) > window.innerHeight * 0.3) return;
+      snapping = true;
+      const target = window.scrollY + distance;
+      const release = window.setTimeout(() => (snapping = false), 1000);
+      const lenis = getLenis();
+      if (lenis) {
+        lenis.scrollTo(target, {
+          duration: 0.8,
+          onComplete: () => {
+            window.clearTimeout(release);
+            snapping = false;
+          },
+        });
+      } else {
+        window.scrollTo({ top: target, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+      }
+    };
+    const onScroll = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(settle, 180);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   // Parallax ligado à rolagem (scrub), nos dois sentidos: a etiqueta e os
   // blocos de texto deslizam em velocidades um pouco diferentes da foto ao
@@ -170,9 +215,9 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
       ref={sectionRef}
       id="comprar"
       aria-label={STORE.eyebrow}
-      className="bg-fernandito-off-white text-fernandito-verde-escuro w-full px-6 py-20 sm:px-10 md:py-28 lg:px-16 lg:py-16"
+      className="bg-fernandito-off-white text-fernandito-verde-escuro w-full px-6 py-20 sm:px-10 md:py-28 lg:flex lg:min-h-[calc(100svh-var(--announcement-h))] lg:items-center lg:px-16 lg:pt-24 lg:pb-12"
     >
-      <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-16 xl:gap-20">
+      <div className="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-16 xl:gap-20">
         <div className="w-full max-w-xl lg:max-w-none">
           <ProductGallery
             images={product.images}

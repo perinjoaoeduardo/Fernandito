@@ -428,6 +428,12 @@ e a criação do pedido no Bling ainda não existem.
   de base; lado a lado no computador, quebram no celular), um detalhe que não compete com
   a foto; preço em Rampart (tamanho contido) + "Restam X" (estoque real, só
   1–30); quantidade + botão (no celular empilhados, botão inteiro).
+  **No computador a seção ocupa exatamente a tela** (abaixo da faixa do
+  topo, conteúdo centralizado; a altura da foto acompanha a altura da
+  tela) e tem **encaixe**: quando a rolagem para com o kit a menos de 30%
+  da tela de encaixar, a página desliza (Lenis, 0,8s) até ele ficar inteiro
+  — só fundo bege, foto e informações. Longe disso não interfere; no
+  celular não existe.
   **Parallax ligado à rolagem** (scrub, nos dois sentidos): a
   etiqueta-adesivo e cada bloco de texto deslizam em velocidades um pouco
   diferentes da foto ao entrar e ao sair da tela; os textos só clareiam na
