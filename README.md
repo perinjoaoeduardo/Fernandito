@@ -43,7 +43,7 @@ Copie `.env.example` para `.env.local` e preencha o que for necessário. Veja
   na Vercel; qualquer prefixo `<PREFIXO>_REST_API_URL/TOKEN` também vale.
   Reserva: `KV_REDIS_URL` (Redis por TCP). O REST tem preferência.
 - **Bling** — `BLING_CLIENT_ID`, `BLING_CLIENT_SECRET`, `BLING_ADMIN_KEY`
-  (+ opcionais `BLING_FORMA_PAGAMENTO_ID`, `BLING_LOJA_ID`,
+  (+ opcionais `BLING_FORMA_PAGAMENTO_ID`, `BLING_LOJA_ID`, `BLING_NATUREZA_ID`,
   `BLING_SYNC_PREVIEW`) e `CRON_SECRET`. Conectar uma vez em
   `https://fernandito.com.br/api/bling/connect?key=<BLING_ADMIN_KEY>`.
   Detalhes em `src/lib/bling/client.ts`.

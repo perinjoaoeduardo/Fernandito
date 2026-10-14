@@ -37,6 +37,12 @@ const LOJA_ID = Number(process.env.BLING_LOJA_ID) || 0;
 // Pix pago, então já está em preparação). Trocar com BLING_SITUACAO_ID
 // (6 = Em aberto).
 const SITUACAO_ID = Number(process.env.BLING_SITUACAO_ID) || 15;
+// Natureza de operação da venda ao consumidor final (definida pela
+// contadora: "Venda de produção a não contribuinte - Consumidor final",
+// CFOP 5101 no RS e 6107 fora, CSOSN 102). Fixa com BLING_NATUREZA_ID;
+// sem ela, o site procura pelo nome no Bling.
+const NATUREZA_ID = Number(process.env.BLING_NATUREZA_ID) || 0;
+const NATUREZA_NOME = /n[ãa]o contribuinte.*consumidor final/i;
 
 type Page<T> = { data: T[] };
 type Created = { data: { id: number; numero?: number } };
@@ -207,6 +213,30 @@ async function pixPaymentMethodId() {
   return pix.id;
 }
 
+/**
+ * Natureza "Venda de produção a não contribuinte - Consumidor final"
+ * (variável ou procurada pelo nome; cache de 1 dia). Não achou → null e o
+ * pedido vai sem natureza, aí o Bling usa a padrão de venda — que hoje é
+ * essa mesma.
+ */
+async function salesNatureId(): Promise<number | null> {
+  if (NATUREZA_ID) return NATUREZA_ID;
+  const cached = await kvGet("bling:natureza-venda");
+  if (cached) return Number(cached);
+  try {
+    const page = await bling<Page<{ id: number; descricao: string; situacao?: number }>>(
+      "/naturezas-operacoes?limite=100",
+    );
+    const found = page.data.find((n) => NATUREZA_NOME.test(n.descricao) && n.situacao !== 0);
+    if (!found) return null;
+    await kvSet("bling:natureza-venda", String(found.id), 60 * 60 * 24);
+    return found.id;
+  } catch (error) {
+    console.error("[bling] natureza de operação:", (error as Error).message);
+    return null;
+  }
+}
+
 async function createSalesOrder(order: StoredOrder) {
   // Já existe (reenvio, webhook repetido)? Usa o que está lá.
   const existing = await bling<Page<{ id: number; numero: number }>>(
@@ -215,7 +245,7 @@ async function createSalesOrder(order: StoredOrder) {
   if (existing.data[0]) return existing.data[0];
 
   const local = order.shipping.id === LOCAL_DELIVERY.id;
-  const [contactId, ids, formaPagamento, servicoPoa] = await Promise.all([
+  const [contactId, ids, formaPagamento, servicoPoa, natureza] = await Promise.all([
     findOrCreateContact(order),
     productIds(order.items.map((i) => i.sku)),
     pixPaymentMethodId(),
@@ -225,6 +255,7 @@ async function createSalesOrder(order: StoredOrder) {
           return null;
         })
       : null,
+    salesNatureId(),
   ]);
   const { address, shipping } = order;
   const date = today();
@@ -239,6 +270,7 @@ async function createSalesOrder(order: StoredOrder) {
       contato: { id: contactId },
       situacao: { id: SITUACAO_ID },
       ...(LOJA_ID ? { loja: { id: LOJA_ID } } : {}),
+      ...(natureza ? { naturezaOperacao: { id: natureza } } : {}),
       itens: order.items.map((item) => ({
         produto: { id: ids.get(item.sku) },
         codigo: item.sku,
