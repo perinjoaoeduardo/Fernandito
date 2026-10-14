@@ -122,8 +122,8 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
       tweens.push(
         gsap.fromTo(
           stamp,
-          { y: 70 },
-          { y: -70, ease: "none", scrollTrigger: through(image ?? stamp) },
+          { y: 36 },
+          { y: -36, ease: "none", scrollTrigger: through(image ?? stamp) },
         ),
       );
     items.forEach((item, i) => {
@@ -170,7 +170,7 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
       ref={sectionRef}
       id="comprar"
       aria-label={STORE.eyebrow}
-      className="bg-fernandito-off-white text-fernandito-verde-escuro w-full px-6 py-20 sm:px-10 md:py-28 lg:px-16"
+      className="bg-fernandito-off-white text-fernandito-verde-escuro w-full px-6 py-20 sm:px-10 md:py-28 lg:px-16 lg:py-16"
     >
       <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-16 xl:gap-20">
         <div className="w-full max-w-xl lg:max-w-none">
