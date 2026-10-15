@@ -47,7 +47,7 @@ export const STORE = {
    * seção Comprar, botões de compra (menu, Hero, bloco final), carrinho e as
    * páginas /comprar e /checkout (viram 404) — o site volta ao que era antes
    * da loja. O código continua aqui; pra religar é só `true`. */
-  enabled: false,
+  enabled: true,
   eyebrow: "Comprar",
   badge: "Pré-lançamento · edição limitada",
   contentsTitle: "O que vem no kit",
