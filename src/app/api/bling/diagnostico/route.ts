@@ -26,6 +26,18 @@ export async function GET(request: NextRequest) {
     leituraProduto = `falhou: ${(error as Error).message}`;
   }
 
+  let formasPagamento: string;
+  try {
+    const page = await bling<{ data: { id: number; descricao: string; tipoPagamento: number }[] }>(
+      "/formas-pagamentos?limite=100",
+    );
+    formasPagamento = page.data
+      .map((f) => `${f.id} · ${f.descricao}${f.tipoPagamento === 17 ? " (Pix)" : ""}`)
+      .join(" | ");
+  } catch (error) {
+    formasPagamento = `falhou: ${(error as Error).message}`;
+  }
+
   return Response.json(
     {
       ambiente: IS_PRODUCTION ? "produção" : "preview",
@@ -38,6 +50,7 @@ export async function GET(request: NextRequest) {
       naturezaOk: env("BLING_NATUREZA_ID") === "15111699956",
       lojaId: env("BLING_LOJA_ID"),
       formaPagamentoId: env("BLING_FORMA_PAGAMENTO_ID"),
+      formasPagamento,
       situacaoId: env("BLING_SITUACAO_ID") ?? "15 (padrão: Em andamento)",
     },
     { headers: { "Cache-Control": "no-store" } },
