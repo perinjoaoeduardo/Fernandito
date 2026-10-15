@@ -12,7 +12,7 @@ const ROUTES: {
   { path: "/", changeFrequency: "monthly", priority: 1 },
   ...(PRELAUNCH.enabled
     ? []
-    : ["/manifesto", "/eventos", "/revenda", "/contato"].map((path) => ({
+    : ["/sobre", "/contato"].map((path) => ({
         path,
         changeFrequency: "monthly" as const,
         priority: 0.7,

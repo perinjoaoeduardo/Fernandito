@@ -7,9 +7,6 @@ import { ComprarSection } from "@/components/sections/ComprarSection";
 import { SocialGallerySection } from "@/components/sections/SocialGallerySection";
 import { FichaTecnicaSection } from "@/components/sections/FichaTecnicaSection";
 import { FooterSection } from "@/components/sections/FooterSection";
-import { PortasSection } from "@/components/sections/PortasSection";
-import { ManifestoCurtoSection } from "@/components/sections/ManifestoCurtoSection";
-import { PerguntasSection } from "@/components/sections/PerguntasSection";
 import { Fragment, type ReactNode } from "react";
 import { PRELAUNCH, SECTIONS, STORE, sectionOn, type SectionKey } from "@/content/site";
 import { HashScroll } from "@/components/providers/HashScroll";
@@ -50,14 +47,11 @@ export default function Home() {
   // Site completo: as seções seguem a ordem e as chaves de `SECTIONS`
   // (src/content/site.ts) — dá pra ligar/desligar cada uma pro lançamento.
   const blocks: Record<SectionKey, ReactNode> = {
-    portas: <PortasSection />,
-    manifestoCurto: <ManifestoCurtoSection />,
     kit: <ComprarSection />,
     oQueE: <OQueESection />,
     galeria: <GaleriaSection />,
     manifesto: <CartaSection />,
-    perguntas: <PerguntasSection />,
-    contato: <ContatoSection shopCta={shop ? STORE.cta : undefined} />,
+    contato: <ContatoSection contactHref="/contato" />,
     social: <SocialGallerySection />,
     fichaTecnica: <FichaTecnicaSection />,
   };

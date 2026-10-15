@@ -81,11 +81,12 @@ página, do menu e do rodapé. A faixa "Estamos chegando" é `ANNOUNCEMENT`.
 
 - [ ] Decidir seção por seção o que vai pro ar.
 
-Portas e leads (15/10): "O que tu procura?" logo depois da Hero (casa →
-kit; evento e negócio → formulário curto → WhatsApp com mensagem pronta).
-Cada envio fica salvo; exportar a planilha em
-`/api/leads?key=<BLING_ADMIN_KEY>`. Textos em `PORTAS` e `PERGUNTAS`
-(`src/content/site.ts`).
+Arquitetura (15/10): Início (uma página: kit, fotos, manifesto) · Sobre ·
+Contato (motivos; evento e revenda com perguntas curtas → lead + WhatsApp).
+Leads: planilha em `/api/leads?key=<BLING_ADMIN_KEY>`. Ver "Arquitetura e
+navegação" no DESIGN_SYSTEM.md.
+
+- [ ] Texto da página Sobre: história e quem faz (sócios).
 
 - [ ] Razão social e endereço completo da empresa no rodapé (`FOOTER.company`).
 - [ ] Página de Trocas e devoluções (com o advogado).

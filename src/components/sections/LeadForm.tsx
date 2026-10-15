@@ -12,8 +12,8 @@ function pretty(value: string) {
 }
 
 /**
- * Formulário curtíssimo das páginas Eventos e Revenda (campos em
- * `PORTAS.forms`). Ao enviar: guarda o lead (/api/leads, sendBeacon — não
+ * Formulário curtíssimo dos motivos Evento e Revenda do Contato (campos em
+ * `LEAD_FORMS`). Ao enviar: guarda o lead (/api/leads, sendBeacon — não
  * espera) e abre o WhatsApp com a mensagem já escrita, no mesmo clique (senão
  * o navegador bloqueia a janela nova). Cartão bege sobre o verde.
  */

@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { gsap, EASE, SCRUB, prefersReducedMotion } from "@/lib/gsap";
 import { Parallax } from "@/components/ui/Parallax";
 import { TypewriterText } from "@/components/ui/TypewriterText";
+import NextLink from "next/link";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { InstagramIcon } from "@/components/ui/icons";
@@ -31,6 +32,9 @@ type ContatoSectionProps = {
   joinHero?: boolean;
   /** Texto de um link pro Instagram ao lado do WhatsApp (pré-lançamento). */
   instagram?: string;
+  /** Com isso, o botão principal leva pra essa página (ex.: /contato, onde
+   * a pessoa escolhe o motivo) em vez de abrir um WhatsApp genérico. */
+  contactHref?: string;
 };
 
 export function ContatoSection({
@@ -38,6 +42,7 @@ export function ContatoSection({
   text = CONTATO.text,
   cta = CONTATO.cta,
   instagram,
+  contactHref,
   joinHero = false,
   shopCta,
   titleClassName = "max-w-[13ch] text-[clamp(2.5rem,5vw,5rem)] leading-[1]",
@@ -149,7 +154,16 @@ export function ContatoSection({
                 {shopCta}
               </button>
             )}
-            <WhatsAppButton background="verde-escuro">{cta}</WhatsAppButton>
+            {contactHref ? (
+              <NextLink
+                href={contactHref}
+                className="border-fernandito-off-white/40 text-fernandito-off-white text-body duration-base ease-out-standard hover:bg-fernandito-off-white hover:text-fernandito-verde-escuro inline-flex items-center justify-center gap-2 rounded-full border px-6 py-3 font-sans font-medium tracking-[0.01em] transition-colors active:scale-[0.96]"
+              >
+                {cta}
+              </NextLink>
+            ) : (
+              <WhatsAppButton background="verde-escuro">{cta}</WhatsAppButton>
+            )}
             {instagram && (
               <a
                 href={LINKS.instagramUrl}
