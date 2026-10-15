@@ -12,15 +12,17 @@ import { Link } from "@/components/ui/Link";
 import { CartIcon, InstagramIcon } from "@/components/ui/icons";
 import { useCart } from "@/components/cart/CartProvider";
 import { useGoToShop } from "@/components/cart/useGoToShop";
-import { LINKS as SITE_LINKS, NAV, PRELAUNCH, STORE } from "@/content/site";
+import { LINKS as SITE_LINKS, NAV, PRELAUNCH, STORE, sectionOn } from "@/content/site";
 
 // Site de página única: a nav é navegação por âncora pros "andares" da
 // página. O contato não entra como link na pill — o botão de WhatsApp ao
 // lado já é esse atalho (no menu mobile ele aparece).
 // No pré-lançamento as seções não existem: o menu fica só com o WhatsApp
 // e o Instagram.
-const LINKS = PRELAUNCH.enabled ? [] : NAV.links;
-const MENU_LINKS = PRELAUNCH.enabled ? [] : [...NAV.links, NAV.contactLink];
+const LINKS = PRELAUNCH.enabled ? [] : NAV.links.filter((l) => sectionOn(l.section));
+const MENU_LINKS = PRELAUNCH.enabled
+  ? []
+  : [...NAV.links, NAV.contactLink].filter((l) => sectionOn(l.section));
 
 // Ponto de amostragem fixo (canto esquerdo, fora da pill que fica centrada)
 // — assim a amostra sempre pega o fundo da SEÇÃO por trás do nav, nunca o

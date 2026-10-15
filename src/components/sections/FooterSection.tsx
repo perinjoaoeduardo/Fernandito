@@ -6,14 +6,14 @@ import { TypewriterText } from "@/components/ui/TypewriterText";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 import { InstagramIcon } from "@/components/ui/icons";
-import { FOOTER, LINKS, NAV, PRELAUNCH, STORE } from "@/content/site";
+import { FOOTER, LINKS, NAV, PRELAUNCH, STORE, sectionOn } from "@/content/site";
 
 // Ritmo da frase de fechamento, que se escreve sozinha quando o rodapé
 // aparece (não acompanha a rolagem): devagar, como máquina de escrever.
 const FOOTER_CPS = 13;
 
 // Mesmos "andares" da FloatingNav + o bloco de contato (ContatoSection).
-const NAV_LINKS = [...NAV.links, NAV.contactLink];
+const NAV_LINKS = [...NAV.links, NAV.contactLink].filter((l) => sectionOn(l.section));
 
 // Footer é fundo escuro (verde-escuro) — outline de foco precisa contrastar
 // com isso, não com o verde-medio padrão do Link (pensado pra fundos claros).

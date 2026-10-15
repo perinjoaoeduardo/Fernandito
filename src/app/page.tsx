@@ -7,7 +7,8 @@ import { ComprarSection } from "@/components/sections/ComprarSection";
 import { SocialGallerySection } from "@/components/sections/SocialGallerySection";
 import { FichaTecnicaSection } from "@/components/sections/FichaTecnicaSection";
 import { FooterSection } from "@/components/sections/FooterSection";
-import { PRELAUNCH, STORE } from "@/content/site";
+import { Fragment, type ReactNode } from "react";
+import { PRELAUNCH, SECTIONS, STORE, sectionOn, type SectionKey } from "@/content/site";
 import { HashScroll } from "@/components/providers/HashScroll";
 
 // ManifestoSection e ProdutoSection saíram da página por enquanto (pedido
@@ -43,17 +44,24 @@ export default function Home() {
     );
   }
 
+  // Site completo: as seções seguem a ordem e as chaves de `SECTIONS`
+  // (src/content/site.ts) — dá pra ligar/desligar cada uma pro lançamento.
+  const blocks: Record<SectionKey, ReactNode> = {
+    kit: <ComprarSection />,
+    oQueE: <OQueESection />,
+    galeria: <GaleriaSection />,
+    manifesto: <CartaSection />,
+    contato: <ContatoSection shopCta={shop ? STORE.cta : undefined} />,
+    social: <SocialGallerySection />,
+    fichaTecnica: <FichaTecnicaSection />,
+  };
   return (
     <main>
       <HashScroll />
       <HeroSection />
-      <OQueESection />
-      <GaleriaSection />
-      <CartaSection />
-      {shop && <ComprarSection />}
-      <ContatoSection shopCta={shop ? STORE.cta : undefined} />
-      <SocialGallerySection />
-      <FichaTecnicaSection />
+      {SECTIONS.filter((s) => sectionOn(s.key)).map((s) => (
+        <Fragment key={s.key}>{blocks[s.key]}</Fragment>
+      ))}
       <FooterSection />
     </main>
   );

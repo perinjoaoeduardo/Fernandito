@@ -70,7 +70,7 @@ export const STORE = {
  * com o WhatsApp e o rodapé — sem as seções que ainda não têm conteúdo.
  * Pra lançar o site completo: `enabled: false` (nada mais muda). */
 export const PRELAUNCH = {
-  enabled: true,
+  enabled: false,
   title: "O Fernandito está chegando.",
   text: "Nós estamos arrumando tudo por aqui, mas tu já pode falar com a gente.",
   cta: "Chamar no WhatsApp",
@@ -84,15 +84,47 @@ export const ANNOUNCEMENT = {
   text: "Estamos chegando",
 };
 
+/**
+ * Seções do site completo (com `PRELAUNCH.enabled: false`), NA ORDEM em que
+ * aparecem na home. Pra tirar uma seção do lançamento: `on: false` — some da
+ * página, do menu e do rodapé. A Hero e o rodapé estão sempre lá. O kit
+ * ainda depende de `STORE.enabled`.
+ */
+export const SECTIONS = [
+  { key: "kit", on: true, id: "comprar", label: "Comprar" },
+  { key: "oQueE", on: true, id: "o-que-e", label: "O que é" },
+  { key: "galeria", on: true, id: "galeria", label: "Galeria" },
+  { key: "manifesto", on: true, id: "manifesto", label: "Manifesto" },
+  { key: "contato", on: true, id: "contato", label: "Contato" },
+  { key: "social", on: true, id: "social", label: "Social" },
+  { key: "fichaTecnica", on: true, id: "ficha-tecnica", label: "Ficha técnica" },
+] as const;
+
+export type SectionKey = (typeof SECTIONS)[number]["key"];
+
+/** A seção aparece? (kit também precisa da loja ligada) */
+export function sectionOn(key: SectionKey) {
+  const section = SECTIONS.find((s) => s.key === key);
+  if (!section?.on) return false;
+  return key === "kit" ? STORE.enabled : true;
+}
+
+/** Âncora da primeira seção depois da Hero (seta "scroll" da Hero). */
+export function firstSectionHref() {
+  if (PRELAUNCH.enabled) return STORE.enabled ? "#comprar" : "#contato";
+  const first = SECTIONS.find((s) => sectionOn(s.key));
+  return first ? `#${first.id}` : "#contato";
+}
+
 export const NAV = {
   /** Links da pílula do topo (desktop) e do menu do celular. */
   links: [
-    { label: "O que é", href: "#o-que-e" },
-    { label: "Galeria", href: "#galeria" },
-    { label: "Manifesto", href: "#manifesto" },
-  ],
+    { label: "O que é", href: "#o-que-e", section: "oQueE" },
+    { label: "Galeria", href: "#galeria", section: "galeria" },
+    { label: "Manifesto", href: "#manifesto", section: "manifesto" },
+  ] as { label: string; href: string; section: SectionKey }[],
   /** Só no menu do celular e no rodapé (no desktop o botão do WhatsApp faz esse papel). */
-  contactLink: { label: "Contato", href: "#contato" },
+  contactLink: { label: "Contato", href: "#contato", section: "contato" as SectionKey },
   whatsappLabel: "Fale no WhatsApp",
 };
 

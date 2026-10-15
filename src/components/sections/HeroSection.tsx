@@ -15,7 +15,7 @@ import { scrollToTarget } from "@/lib/lenis";
 import { Logo } from "@/components/ui/Logo";
 import { RotatingWord } from "@/components/ui/RotatingWord";
 import { HeroSlideshow } from "@/components/ui/HeroSlideshow";
-import { HERO, PRELAUNCH, STORE } from "@/content/site";
+import { HERO, PRELAUNCH, STORE, firstSectionHref } from "@/content/site";
 import { Button } from "@/components/ui/Button";
 import { useGoToShop } from "@/components/cart/useGoToShop";
 
@@ -233,11 +233,7 @@ export function HeroSection() {
           <button
             ref={indicatorRef}
             type="button"
-            onClick={() =>
-              scrollToTarget(
-                PRELAUNCH.enabled ? (STORE.enabled ? "#comprar" : "#contato") : "#o-que-e",
-              )
-            }
+            onClick={() => scrollToTarget(firstSectionHref())}
             aria-label="Rolar até a próxima seção"
             className="text-fernandito-off-white/70 duration-base ease-out-standard focus-visible:outline-fernandito-off-white text-body hover:text-fernandito-off-white focus-visible:text-fernandito-off-white flex items-center gap-1 bg-transparent font-sans transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
           >

@@ -71,6 +71,16 @@ Pendente:
 - Mercado Pago no Preview: token removido (o modo teste dava "500
   internal_error" no Pix) → Pix simulado, que nunca vai pro Bling.
 
+## O que entra no lançamento (decidir no teste)
+
+No `teste` o site completo está ligado (`PRELAUNCH.enabled: false`) com o
+kit logo depois da Hero. Cada seção liga/desliga em `SECTIONS`
+(`src/content/site.ts`), na ordem em que aparecem: kit, O que é, Galeria,
+Manifesto, Contato, Social, Ficha técnica. Desligada, a seção some da
+página, do menu e do rodapé. A faixa "Estamos chegando" é `ANNOUNCEMENT`.
+
+- [ ] Decidir seção por seção o que vai pro ar.
+
 ## Deploy (atenção)
 
 - O Vercel publica **produção** a partir do branch
