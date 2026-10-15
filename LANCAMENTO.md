@@ -51,16 +51,13 @@ Como ficou:
 
 Pendente:
 
-- [ ] Confirmar com o suporte do Melhor Envio/Jadlog que aceitam bebida
-      alcoólica em lata (Correios só aceitam com contrato comercial).
-- [ ] Estudo de preço/prazo na Calculadora (caixa do kit 19×19×6,5 cm,
-      1,2 kg, R$ 100) pra Caxias, Floripa, SP, RJ, BH, Brasília, Recife.
+- [x] Jadlog aceita bebida alcoólica em lata (confirmado em 14/10).
 - [ ] Renovação automática do token (guardar o refresh token no Redis e
       renovar antes de vencer) — hoje é manual a cada ~30 dias.
 - [ ] Webhook do Melhor Envio (`/api/melhorenvio/webhook`, ainda não existe):
       gravar o rastreio no pedido do Bling. Só cadastrar quando a rota existir.
 - [ ] E-mails: "pedido confirmado" pro cliente e "compra nova" pra equipe.
-- [ ] Tributação/CEST dos produtos confirmada com o contador antes da 1ª NF.
+- [x] Tributação/CEST: a contadora já configurou.
 
 ## Bling (configurado em 14/10)
 
