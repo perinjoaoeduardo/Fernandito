@@ -15,7 +15,7 @@ import { scrollToTarget } from "@/lib/lenis";
 import { Logo } from "@/components/ui/Logo";
 import { RotatingWord } from "@/components/ui/RotatingWord";
 import { HeroSlideshow } from "@/components/ui/HeroSlideshow";
-import { HERO, PRELAUNCH, STORE, firstSectionHref } from "@/content/site";
+import { HERO, PRELAUNCH, STORE, firstSectionHref, sectionOn } from "@/content/site";
 import { Button } from "@/components/ui/Button";
 import { useGoToShop } from "@/components/cart/useGoToShop";
 
@@ -189,7 +189,7 @@ export function HeroSection() {
       // é mais alta que a tela pro cartão ficar preso enquanto fecha. Toque
       // (pointer-coarse, o mesmo critério do IS_TOUCH): 140vh no celular,
       // 160vh do md pra cima. Mouse (pointer-fine): 150vh.
-      className={`${PRELAUNCH.enabled && !STORE.enabled ? "bg-fernandito-verde-medio" : "bg-fernandito-off-white"} relative h-screen motion-safe:pointer-coarse:h-[140vh] md:motion-safe:pointer-coarse:h-[160vh] motion-safe:pointer-fine:h-[150vh]`}
+      className={`${(PRELAUNCH.enabled && !STORE.enabled) || (!PRELAUNCH.enabled && sectionOn("portas")) ? "bg-fernandito-verde-medio" : "bg-fernandito-off-white"} relative h-screen motion-safe:pointer-coarse:h-[140vh] md:motion-safe:pointer-coarse:h-[160vh] motion-safe:pointer-fine:h-[150vh]`}
     >
       <div
         ref={boxRef}

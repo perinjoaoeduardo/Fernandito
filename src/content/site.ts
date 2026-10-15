@@ -81,7 +81,7 @@ export const PRELAUNCH = {
  * site: `enabled: false` — some a faixa e o menu volta pro lugar sozinho. */
 export const ANNOUNCEMENT = {
   enabled: true,
-  text: "Estamos chegando",
+  text: "Lançamento · primeiro lote em pré-venda",
 };
 
 /**
@@ -91,10 +91,12 @@ export const ANNOUNCEMENT = {
  * ainda depende de `STORE.enabled`.
  */
 export const SECTIONS = [
+  { key: "portas", on: true, id: "portas", label: "O que tu procura" },
   { key: "kit", on: true, id: "comprar", label: "Comprar" },
   { key: "oQueE", on: true, id: "o-que-e", label: "O que é" },
   { key: "galeria", on: true, id: "galeria", label: "Galeria" },
   { key: "manifesto", on: true, id: "manifesto", label: "Manifesto" },
+  { key: "perguntas", on: true, id: "perguntas", label: "Perguntas" },
   { key: "contato", on: true, id: "contato", label: "Contato" },
   { key: "social", on: true, id: "social", label: "Social" },
   { key: "fichaTecnica", on: true, id: "ficha-tecnica", label: "Ficha técnica" },
@@ -115,6 +117,117 @@ export function firstSectionHref() {
   const first = SECTIONS.find((s) => sectionOn(s.key));
   return first ? `#${first.id}` : "#contato";
 }
+
+/**
+ * "As três portas": cada visitante acha o seu caminho. Casa = comprar o kit;
+ * evento e negócio abrem um formulário curtíssimo que vira lead (guardado no
+ * site) e abre o WhatsApp com a mensagem já escrita. Em `message`, `{campo}`
+ * vira a resposta do campo de mesmo nome.
+ */
+export const PORTAS = {
+  eyebrow: "Por onde tu chega",
+  title: "O que tu procura?",
+  casa: {
+    title: "Fernandito na tua casa",
+    text: "O kit de pré-lançamento, com entrega pro Brasil todo.",
+    cta: "Comprar",
+  },
+  forms: [
+    {
+      key: "evento",
+      title: "Fernandito no teu evento",
+      text: "Festa, formatura, casamento ou evento da empresa. Conta o básico que a gente responde no WhatsApp.",
+      cta: "Pedir orçamento",
+      formTitle: "Conta da tua festa",
+      submit: "Chamar no WhatsApp",
+      fields: [
+        {
+          name: "tipo",
+          label: "Que evento?",
+          options: ["Aniversário", "Casamento", "Formatura", "Empresa", "Festa ou show", "Outro"],
+        },
+        { name: "data", label: "Quando?", type: "date" },
+        { name: "cidade", label: "Cidade", placeholder: "Porto Alegre" },
+        {
+          name: "pessoas",
+          label: "Quantas pessoas?",
+          options: ["Até 50", "50 a 100", "100 a 200", "Mais de 200"],
+        },
+      ],
+      message:
+        "Oi! Quero o Fernandito no meu evento.\nEvento: {tipo}\nData: {data}\nCidade: {cidade}\nPessoas: {pessoas}",
+    },
+    {
+      key: "negocio",
+      title: "Fernandito no teu negócio",
+      text: "Bar, restaurante, mercado ou empório: se tem geladeira e gente com sede, tem lugar pro Fernandito.",
+      cta: "Quero revender",
+      formTitle: "Conta do teu lugar",
+      submit: "Chamar no WhatsApp",
+      fields: [
+        { name: "lugar", label: "Nome do lugar", placeholder: "Bar do Seu Zé" },
+        {
+          name: "tipo",
+          label: "Tipo",
+          options: ["Bar", "Restaurante", "Mercado ou empório", "Distribuidora", "Outro"],
+        },
+        { name: "cidade", label: "Cidade", placeholder: "Porto Alegre" },
+      ],
+      message: "Oi! Quero revender o Fernandito.\nLugar: {lugar} ({tipo})\nCidade: {cidade}",
+    },
+  ] as LeadForm[],
+};
+
+export type LeadField = {
+  name: string;
+  label: string;
+  type?: "text" | "date";
+  placeholder?: string;
+  /** Com opções vira uma lista de escolha. */
+  options?: string[];
+};
+export type LeadForm = {
+  key: "evento" | "negocio";
+  title: string;
+  text: string;
+  cta: string;
+  formTitle: string;
+  submit: string;
+  fields: LeadField[];
+  message: string;
+};
+
+/** Perguntas frequentes — onde moram os fatos do produto. */
+export const PERGUNTAS = {
+  eyebrow: "Perguntas",
+  title: "Perguntas que a gente sempre ouve.",
+  items: [
+    {
+      q: "O que é o Fernandito?",
+      a: "Fernet com cola na medida, pronto, numa lata de 350 ml. 8% de teor alcoólico. Feito em Porto Alegre.",
+    },
+    {
+      q: "Como é melhor tomar?",
+      a: "Bem gelado. Direto da lata ou num copo com bastante gelo.",
+    },
+    {
+      q: "Vocês entregam onde?",
+      a: "No Brasil todo, pela Jadlog. Em Porto Alegre a entrega é nossa. O valor e o prazo aparecem no checkout, com o teu CEP.",
+    },
+    {
+      q: "Quais as formas de pagamento?",
+      a: "Pix. O pedido é confirmado na hora em que o pagamento cai.",
+    },
+    {
+      q: "Como acompanho a entrega?",
+      a: "Quando o pedido sai, o código de rastreio chega no teu e-mail.",
+    },
+    {
+      q: "Menor de idade pode comprar?",
+      a: "Não. A venda é proibida para menores de 18 anos, e quem recebe precisa mostrar documento com foto.",
+    },
+  ],
+};
 
 export const NAV = {
   /** Links da pílula do topo (desktop) e do menu do celular. */
@@ -301,5 +414,10 @@ export const FOOTER = {
   ],
   backToTop: "Voltar ao topo",
   copyright: "© 2026 Fernandito. Todos os direitos reservados.",
+  /** Aviso obrigatório de bebida alcoólica (sempre visível no rodapé). */
+  alcoholNotice: "Beba com moderação. Venda proibida para menores de 18 anos.",
+  /** Dados da empresa (a lei do e-commerce pede CNPJ e endereço visíveis).
+   * Falta a razão social e o endereço completo. */
+  company: "CNPJ 69.252.946/0001-41",
   madeIn: "Feito com brio. Porto Alegre, RS.",
 };

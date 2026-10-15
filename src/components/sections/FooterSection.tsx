@@ -177,9 +177,13 @@ export function FooterSection() {
             decoding="async"
             className="h-10 w-10 shrink-0 opacity-90"
           />
-          <div className="font-sans text-[13px] opacity-70">
-            <p>{FOOTER.copyright}</p>
-            <p>{FOOTER.madeIn}</p>
+          <div className="font-sans text-[13px]">
+            {/* Aviso de bebida alcoólica: obrigatório e em destaque. */}
+            <p className="font-bold tracking-[0.02em]">{FOOTER.alcoholNotice}</p>
+            <p className="mt-1 opacity-70">
+              {FOOTER.copyright} {FOOTER.company}
+            </p>
+            <p className="opacity-70">{FOOTER.madeIn}</p>
           </div>
         </div>
 

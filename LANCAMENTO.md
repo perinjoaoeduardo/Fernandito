@@ -81,6 +81,17 @@ página, do menu e do rodapé. A faixa "Estamos chegando" é `ANNOUNCEMENT`.
 
 - [ ] Decidir seção por seção o que vai pro ar.
 
+Portas e leads (15/10): "O que tu procura?" logo depois da Hero (casa →
+kit; evento e negócio → formulário curto → WhatsApp com mensagem pronta).
+Cada envio fica salvo; exportar a planilha em
+`/api/leads?key=<BLING_ADMIN_KEY>`. Textos em `PORTAS` e `PERGUNTAS`
+(`src/content/site.ts`).
+
+- [ ] Razão social e endereço completo da empresa no rodapé (`FOOTER.company`).
+- [ ] Página de Trocas e devoluções (com o advogado).
+- [ ] Preço/produto do lançamento (kit atual × pack de 6) — em aberto.
+- [ ] Torneira em eventos — em aberto (a porta de evento não promete torneira).
+
 ## Deploy (atenção)
 
 - O Vercel publica **produção** a partir do branch
