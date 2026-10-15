@@ -22,7 +22,7 @@ export const ME_USER_AGENT = "Fernandito (toma.fernandito@gmail.com)";
 export const ME_SCOPES = ["shipping-calculate"];
 
 /** Transportadoras que aparecem no checkout (nome da empresa no Melhor Envio).
- * Só Jadlog: postagem num ponto só (Gráfica Uirapuru, Av. Protásio Alves). */
+ * Só Jadlog: postagem num ponto só (agência escolhida no painel do Melhor Envio). */
 export const ALLOWED_CARRIERS = ["Jadlog"];
 
 export const ORIGIN_CEP = process.env.MELHOR_ENVIO_CEP_ORIGEM?.trim() || "90430131";
