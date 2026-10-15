@@ -1,17 +1,17 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { teleportTo } from "@/lib/lenis";
+import { SHOP_HREF } from "@/content/site";
 
-/** CTA "Comprar": na home vai pra seção #comprar (teletransporte, igual aos
- * links do menu); em qualquer outra página, volta pra home já na seção
- * (`HashScroll` faz o pulo). O kit não tem página solta. */
+/** CTA "Comprar": vai pra onde mora o kit (`SHOP_HREF`) — a página /comprar
+ * no site completo, a seção #comprar da home no pré-lançamento. Já estando
+ * com o kit na tela, só teletransporta até a seção. */
 export function useGoToShop() {
-  const pathname = usePathname();
   const router = useRouter();
   return useCallback(() => {
-    if (pathname === "/" && document.getElementById("comprar")) teleportTo("#comprar");
-    else router.push("/#comprar", { scroll: false });
-  }, [pathname, router]);
+    if (document.getElementById("comprar")) teleportTo("#comprar");
+    else router.push(SHOP_HREF, { scroll: !SHOP_HREF.includes("#") });
+  }, [router]);
 }

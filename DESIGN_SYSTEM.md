@@ -1191,33 +1191,34 @@ Regras aplicadas na revisão mobile (390px e 360px, com emulação de toque):
 
 ## Arquitetura e navegação (15/10, revisada)
 
-**Regra-mãe:** a home é **uma página só**, onde mora o principal (kit,
-fotos, manifesto). Fora dela, só o que precisa de página própria: **Sobre**
-e **Contato**. Cada intenção tem um lugar só.
+**Regra-mãe:** o **Início é uma página só** com tudo sobre a marca. Fora
+dela, só o que precisa de tela própria: **Comprar** (o kit) e **Contato**.
+Cada intenção tem um lugar só.
 
 | Página       | Conteúdo                                                                                                                                                                                                                                                                                                 |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/` (Início) | Hero → Kit (comprar) → Fotos (Galeria) → Manifesto (Carta) → "Quer Fernandito no teu rolê?" (leva pro Contato) → Instagram → rodapé                                                                                                                                                                      |
-| `/sobre`     | O que é (produto em detalhe) + faixa da ficha técnica + "Bora?". Quem faz (história, sócios) entra aqui quando houver texto.                                                                                                                                                                             |
+| `/` (Início) | Hero → chamada do kit (foto, nome, preço, "Ver o kit" → /comprar) → O que é → Fotos → Manifesto → "Quer Fernandito no teu rolê?" (→ Contato) → Instagram → faixa da ficha técnica → rodapé                                                                                                               |
+| `/comprar`   | A compra do kit (galeria, o que vem, preço, quantidade, carrinho), com "← Início".                                                                                                                                                                                                                       |
 | `/contato`   | Escolhe o motivo (Dúvida sobre o kit · Meu pedido · Evento · Revenda · Parceria ou imprensa). Evento e Revenda abrem perguntas curtas (`LEAD_FORMS`) que viram lead e abrem o WhatsApp com a mensagem pronta; os outros vão direto pro WhatsApp com a mensagem do motivo. Embaixo, perguntas frequentes. |
 
-Seções da home: `SECTIONS` (`src/content/site.ts`) — ordem e liga/desliga.
-Textos: `PAGES`, `LEAD_FORMS`, `PERGUNTAS`, `CONTATO`. No pré-lançamento,
-Sobre e Contato dão 404 e o menu some.
+No pré-lançamento a compra fica dentro da home (`#comprar`) e /comprar
+redireciona pra lá — `SHOP_HREF` decide pra onde todo "Comprar" aponta.
+Seções do Início: `SECTIONS` (ordem e liga/desliga). Textos: `PAGES`,
+`LEAD_FORMS`, `PERGUNTAS`, `CONTATO`.
 
 **Regras:**
 
-1. Menu: Início · Sobre · Contato (máx. 4 itens) + Comprar + Instagram +
+1. Menu: Início · Contato (máx. 4 itens) + botão Comprar + Instagram +
    sacola. A página atual fica marcada.
-2. "Comprar" sempre leva pra seção do kit na home (de qualquer página).
+2. Todo "Comprar"/"Ver o kit" (menu, chamada da home, carrinho vazio,
+   "Voltar ao kit" do checkout) leva pra /comprar.
 3. O cavalo mora fora da barra, no canto, e sempre volta pro início.
-   Páginas internas têm "← Início" no topo.
-4. Contato é um lugar só: a pessoa diz o motivo lá dentro — sem páginas
-   separadas por público. Nenhum WhatsApp sai sem a mensagem do motivo
-   (o rodapé mantém o atalho geral "Fale no WhatsApp").
-5. Toda página interna termina com "Bora?" (comprar / Contato) e o rodapé.
+   Páginas internas têm "← Início".
+4. Contato é um lugar só: o motivo é escolhido lá dentro. Nenhum WhatsApp
+   sai sem a mensagem do motivo (o rodapé mantém o atalho geral).
+5. Toda página termina com uma saída clara e o mesmo rodapé.
 
-**Trade-offs:** a home fica mais longa (kit, fotos e manifesto juntos), em
-troca de ninguém precisar caçar a marca em outra página. Contato único com
-motivos é um passo a mais que um WhatsApp direto, mas a conversa já chega
-qualificada e evento/revenda viram lead mesmo se a pessoa desistir.
+**Trade-offs:** Início longo (tudo da marca junto) em troca de ninguém
+precisar caçar a marca em outra página; compra numa tela própria, sem
+distração, a um clique da chamada. Contato com motivos é um passo a mais
+que um WhatsApp direto, mas a conversa chega qualificada.

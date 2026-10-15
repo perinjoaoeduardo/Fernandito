@@ -1,6 +1,7 @@
 "use client";
 
 import { clsx } from "clsx";
+import NextLink from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FEATURED_PRODUCT, splitName, type ContentIcon } from "@/lib/catalog";
 import { Price } from "@/components/ui/Price";
@@ -45,9 +46,17 @@ const STOCK_BADGE_MAX = 30;
  * etiqueta "Pré-lançamento", nome (digitado, como os títulos do site), o
  * que vem no kit em etiquetas pequenas, preço, quantidade e "Adicionar ao
  * carrinho". A foto é a protagonista; o texto fica enxuto. Usada na home (âncora
- * #comprar) e na página /comprar (aí o nome vira o h1).
+ * #comprar, pré-lançamento) e na página /comprar (site completo; aí o
+ * nome vira o h1).
  */
-export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | "h2" }) {
+export function ComprarSection({
+  headingLevel = "h2",
+  standalone = false,
+}: {
+  headingLevel?: "h1" | "h2";
+  /** Página /comprar: mais espaço no topo (menu flutuante) e "← Início". */
+  standalone?: boolean;
+}) {
   const product = FEATURED_PRODUCT;
   const { add } = useCart();
   const [qty, setQty] = useState(1);
@@ -212,8 +221,23 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
       ref={sectionRef}
       id="comprar"
       aria-label={STORE.eyebrow}
-      className="bg-fernandito-off-white text-fernandito-verde-escuro w-full px-6 py-20 sm:px-10 md:py-28 lg:flex lg:min-h-[calc(100svh-var(--announcement-h))] lg:items-center lg:px-16 lg:pt-24 lg:pb-12"
+      className={clsx(
+        "bg-fernandito-off-white text-fernandito-verde-escuro w-full px-6 sm:px-10 lg:flex lg:min-h-[calc(100svh-var(--announcement-h))] lg:items-center lg:px-16 lg:pb-12",
+        standalone
+          ? "pt-[calc(8rem+var(--announcement-h))] pb-20 md:pb-28 lg:flex-col lg:justify-center lg:pt-28"
+          : "py-20 md:py-28 lg:pt-24",
+      )}
     >
+      {standalone && (
+        <div className="mx-auto mb-8 w-full max-w-6xl lg:mb-6">
+          <NextLink
+            href="/"
+            className="text-label duration-base ease-out-standard inline-flex items-center gap-2 font-sans tracking-[0.1em] uppercase opacity-60 transition-opacity hover:opacity-100"
+          >
+            <span aria-hidden="true">←</span> Início
+          </NextLink>
+        </div>
+      )}
       <div className="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-16 xl:gap-20">
         <div className="w-full max-w-xl lg:max-w-none">
           <ProductGallery
@@ -260,10 +284,15 @@ export function ComprarSection({ headingLevel = "h2" }: { headingLevel?: "h1" | 
               {product.contents.map((item) => (
                 <li
                   key={item.label}
-                  className="border-fernandito-verde-escuro/15 text-label inline-flex items-center gap-2 rounded-full border bg-white/30 py-1.5 pr-3.5 pl-2.5 leading-none tracking-[0.06em] whitespace-nowrap uppercase"
+                  className="border-fernandito-verde-escuro/15 text-label inline-flex h-8 items-center gap-2 rounded-full border bg-white/30 pr-3.5 pl-2.5 leading-none tracking-[0.06em] whitespace-nowrap uppercase"
                 >
-                  <span className="text-fernandito-verde-medio">{CONTENT_ICONS[item.icon]}</span>
-                  <span className="flex items-baseline gap-1.5 leading-none">
+                  {/* Ícone como bloco (sem a sobra de linha de um span
+                      inline) e o texto descido um tico: as maiúsculas da
+                      Courier ficam acima do centro da caixa da fonte. */}
+                  <span className="text-fernandito-verde-medio flex shrink-0 items-center">
+                    {CONTENT_ICONS[item.icon]}
+                  </span>
+                  <span className="flex translate-y-[0.08em] items-baseline gap-1.5 leading-none">
                     <span className="font-bold">{item.qty}</span>
                     <span>{item.label}</span>
                   </span>

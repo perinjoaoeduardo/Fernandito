@@ -10,7 +10,7 @@ import { maskCEP, maskCPF, maskPhone, onlyDigits } from "@/lib/br";
 import { formatBRL } from "@/lib/money";
 import { addressSchema, customerSchema, fieldErrors, orderSchema } from "@/lib/order";
 import { formatDays, getShippingOptions, type ShippingOption } from "@/lib/shipping";
-import { STORE } from "@/content/site";
+import { SHOP_HREF, STORE } from "@/content/site";
 import { Button } from "@/components/ui/Button";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { useCart } from "@/components/cart/CartProvider";
@@ -298,7 +298,7 @@ export function CheckoutClient() {
         </p>
         <Button
           as="a"
-          href="/#comprar"
+          href={SHOP_HREF}
           variant="primary"
           className="!bg-fernandito-off-white !text-fernandito-verde-escuro hover:!bg-fernandito-verde-claro hover:!text-fernandito-off-white mt-2"
         >
@@ -330,7 +330,7 @@ export function CheckoutClient() {
       <div className="flex min-w-0 flex-col gap-7 lg:sticky lg:top-[calc(7rem+var(--announcement-h))]">
         <div data-enter>
           <NextLink
-            href="/#comprar"
+            href={SHOP_HREF}
             scroll={false}
             className="text-label duration-base ease-out-standard inline-flex items-center gap-2 font-sans tracking-[0.1em] uppercase opacity-70 transition-opacity hover:opacity-100"
           >

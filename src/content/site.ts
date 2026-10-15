@@ -91,15 +91,20 @@ export const ANNOUNCEMENT = {
  * ainda depende de `STORE.enabled`.
  */
 export const SECTIONS = [
-  { key: "kit", on: true, id: "comprar", label: "Comprar" },
+  // No site completo o "kit" da home é a chamada pra página /comprar (no
+  // pré-lançamento é a compra inteira, aqui mesmo).
+  { key: "kit", on: true, id: "kit", label: "Kit" },
+  { key: "oQueE", on: true, id: "o-que-e", label: "O que é" },
   { key: "galeria", on: true, id: "galeria", label: "Fotos" },
   { key: "manifesto", on: true, id: "manifesto", label: "Manifesto" },
   { key: "contato", on: true, id: "contato", label: "Contato" },
   { key: "social", on: true, id: "social", label: "Instagram" },
-  // Moram na página Sobre (/sobre). Dá pra trazer de volta pra home com `on: true`.
-  { key: "oQueE", on: false, id: "o-que-e", label: "O que é" },
-  { key: "fichaTecnica", on: false, id: "ficha-tecnica", label: "Ficha técnica" },
+  { key: "fichaTecnica", on: true, id: "ficha-tecnica", label: "Ficha técnica" },
 ] as const;
+
+/** Onde mora a compra do kit: página própria no site completo; seção da
+ * home no pré-lançamento. Usado por todo "Comprar" / "Ver o kit". */
+export const SHOP_HREF = PRELAUNCH.enabled ? "/#comprar" : "/comprar";
 
 export type SectionKey = (typeof SECTIONS)[number]["key"];
 
@@ -113,6 +118,7 @@ export function sectionOn(key: SectionKey) {
 /** Âncora da primeira seção depois da Hero (seta "scroll" da Hero). */
 export function firstSectionHref() {
   if (PRELAUNCH.enabled) return STORE.enabled ? "#comprar" : "#contato";
+  // No site completo o kit da home é a chamada (#kit).
   const first = SECTIONS.find((s) => sectionOn(s.key));
   return first ? `#${first.id}` : "#contato";
 }
@@ -222,10 +228,10 @@ export const PERGUNTAS = {
 
 /** Cabeçalhos e textos das páginas internas. */
 export const PAGES = {
-  sobre: {
-    eyebrow: "Sobre",
-    title: "Quem faz o Fernandito.",
-    intro: "O que tem na lata, de onde vem e quem está por trás.",
+  /** Chamada do kit na home (leva pra /comprar). */
+  kitTeaser: {
+    eyebrow: "Pré-lançamento · edição limitada",
+    cta: "Ver o kit",
   },
   contato: {
     eyebrow: "Contato",
@@ -273,12 +279,11 @@ export const PAGES = {
 };
 
 export const NAV = {
-  /** Menu (máx. 4 itens — regra da navegação): a home é uma página só (kit,
-   * fotos, manifesto); Sobre e Contato são páginas. Ficam no menu de cima,
-   * no menu do celular e no rodapé. Somem no pré-lançamento. */
+  /** Menu (máx. 4 itens — regra da navegação): a home é uma página só (tudo
+   * sobre a marca); Comprar (botão da barra) e Contato são páginas. Ficam no
+   * menu de cima, no menu do celular e no rodapé. Somem no pré-lançamento. */
   links: [
     { label: "Início", href: "/" },
-    { label: "Sobre", href: "/sobre" },
     { label: "Contato", href: "/contato" },
   ],
   whatsappLabel: "Fale no WhatsApp",

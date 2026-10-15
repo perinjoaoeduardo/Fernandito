@@ -9,6 +9,7 @@ import { formatBRL } from "@/lib/money";
 import { Button } from "@/components/ui/Button";
 import { Price } from "@/components/ui/Price";
 import { splitName } from "@/lib/catalog";
+import { SHOP_HREF } from "@/content/site";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { ArrowRightIcon, CloseIcon, TrashIcon } from "@/components/ui/icons";
 import { QtyStepper } from "@/components/cart/QtyStepper";
@@ -127,7 +128,7 @@ export function CartDrawer() {
                     className="mt-6"
                     onClick={() => {
                       close();
-                      router.push("/#comprar", { scroll: false });
+                      router.push(SHOP_HREF, { scroll: !SHOP_HREF.includes("#") });
                     }}
                   >
                     Ver o kit
