@@ -35,6 +35,9 @@ export const ORIGIN_CEP = (process.env.MELHOR_ENVIO_CEP_ORIGEM?.trim() || "90430
   "",
 );
 const CACHE_SECONDS = 60 * 60;
+/** Transportadoras que aparecem no checkout (nome da empresa no Melhor Envio).
+ * Só Jadlog: postagem num ponto só (agência escolhida no painel do Melhor Envio). */
+export const ALLOWED_CARRIERS = ["Jadlog"];
 // Mostra no máximo as N opções mais baratas.
 const MAX_OPTIONS = 4;
 
@@ -108,6 +111,9 @@ async function quoteReal(cep: string, items: ShippingItem[]): Promise<ShippingOp
   const services = (await response.json()) as MeService[];
   return services
     .filter((s) => !s.error && (s.custom_price ?? s.price))
+    .filter((s) =>
+      ALLOWED_CARRIERS.some((c) => c.toLowerCase() === s.company?.name?.trim().toLowerCase()),
+    )
     .map((s) => {
       const days = s.custom_delivery_range ?? s.delivery_range ?? { min: 0, max: 0 };
       return {
@@ -149,4 +155,45 @@ function quoteMock(cep: string, items: ShippingItem[]): ShippingOption[] {
       source: "melhor-envio",
     },
   ];
+}
+
+// ── Autorização (OAuth) — gera o MELHOR_ENVIO_TOKEN pelo app da Área Dev ──
+// Abrir /api/melhorenvio/connect → autorizar → /callback mostra o token.
+
+export const ME_BASE_URL = "https://melhorenvio.com.br";
+export const ME_USER_AGENT = USER_AGENT;
+export const ME_SCOPES = ["shipping-calculate"];
+
+/** URL de callback — tem que ser IGUAL à cadastrada no app do Melhor Envio. */
+export const REDIRECT_URI =
+  process.env.MELHOR_ENVIO_REDIRECT_URI?.trim() ||
+  "https://fernandito.com.br/api/melhorenvio/callback";
+
+/** Troca o `code` da autorização pelo token de acesso (vale ~30 dias). */
+export async function exchangeCode(code: string) {
+  const clientId = process.env.MELHOR_ENVIO_CLIENT_ID?.trim();
+  const secret = process.env.MELHOR_ENVIO_SECRET?.trim();
+  if (!clientId || !secret) throw new Error("Client ID/Secret não configurados");
+  const response = await fetch(`${ME_BASE_URL}/oauth/token`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "User-Agent": ME_USER_AGENT,
+    },
+    body: JSON.stringify({
+      grant_type: "authorization_code",
+      client_id: clientId,
+      client_secret: secret,
+      redirect_uri: REDIRECT_URI,
+      code,
+    }),
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`Melhor Envio ${response.status}: ${await response.text()}`);
+  return (await response.json()) as {
+    access_token: string;
+    refresh_token?: string;
+    expires_in?: number;
+  };
 }
