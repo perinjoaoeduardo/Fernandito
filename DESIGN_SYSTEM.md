@@ -1188,3 +1188,48 @@ Regras aplicadas na revisão mobile (390px e 360px, com emulação de toque):
   borda de baixo.
 - O leque do Instagram e a trilha com hover são do desktop; no celular
   viram fileira com snap e trilha pinada sem hover.
+
+## Arquitetura e navegação (15/10)
+
+**Regra-mãe:** a home responde, numa rolagem só, "o que é isso e como eu
+compro". O que pede leitura longa ou tem outro objetivo ganha página
+própria. Cada intenção tem **um lugar só**.
+
+| Página       | Conteúdo                                                                               | Intenção           |
+| ------------ | -------------------------------------------------------------------------------------- | ------------------ |
+| `/`          | Hero → Kit → "O que tu procura?" (portas) → manifesto em 3 frases → Instagram → rodapé | Entender e comprar |
+| `/manifesto` | O que é, Galeria, Carta, faixa da ficha técnica                                        | Conhecer a marca   |
+| `/eventos`   | 3 passos + formulário curto → lead + WhatsApp                                          | Evento             |
+| `/revenda`   | Motivos + formulário curto → lead + WhatsApp                                           | Revender           |
+| `/contato`   | Um cartão por motivo (WhatsApp com a mensagem do motivo) + perguntas frequentes        | Falar com a gente  |
+
+As seções da home ligam/desligam e mudam de ordem em `SECTIONS`
+(`src/content/site.ts`); textos das páginas em `PAGES`, `PORTAS`,
+`PERGUNTAS`, `MANIFESTO_CURTO`. No pré-lançamento as páginas internas dão 404.
+
+**Regras:**
+
+1. Menu com no máximo 4 páginas (Manifesto · Eventos · Revenda · Contato);
+   coisa nova entra numa página que já existe. A página atual fica marcada.
+2. "Comprar" e a sacola sempre visíveis (menos no checkout/pedido).
+3. O cavalo mora **fora** da barra, no canto esquerdo, e sempre volta pro
+   início (na home, pro topo). Páginas internas têm "← Início" no topo.
+4. Nenhum WhatsApp genérico onde há um motivo: cada porta/motivo abre com a
+   sua mensagem. Evento e revenda passam por um formulário curtíssimo que
+   vira lead (`/api/leads`, planilha em `/api/leads?key=<BLING_ADMIN_KEY>`).
+5. Toda página interna termina com "Bora?" (comprar o kit / ir pro Contato)
+   e o mesmo rodapé.
+6. Mesma transição entre páginas (`app/template.tsx`).
+
+**Trade-offs assumidos:**
+
+- Páginas separadas deixam a home curta e rápida, mas quem quer conhecer a
+  marca precisa de um clique a mais (por isso o manifesto em 3 frases com
+  "Ler o manifesto" na home).
+- Formulário antes do WhatsApp custa uns segundos pro visitante, mas chega
+  qualificado pra quem atende e o contato não se perde se a pessoa desistir.
+- Perguntas frequentes só no Contato: some da home (menos ruído), mas quem
+  tem dúvida de compra precisa achar o Contato — o kit tem "Dúvidas? Fala
+  com a gente" logo abaixo do botão.
+- O kit fica na home (e não numa página /loja): comprar está a uma rolagem,
+  mas se um dia houver muitos produtos isso vira uma página própria.

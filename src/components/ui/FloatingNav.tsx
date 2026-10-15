@@ -12,17 +12,13 @@ import { Link } from "@/components/ui/Link";
 import { CartIcon, InstagramIcon } from "@/components/ui/icons";
 import { useCart } from "@/components/cart/CartProvider";
 import { useGoToShop } from "@/components/cart/useGoToShop";
-import { LINKS as SITE_LINKS, NAV, PRELAUNCH, STORE, sectionOn } from "@/content/site";
+import { LINKS as SITE_LINKS, NAV, PRELAUNCH, STORE } from "@/content/site";
 
-// Site de página única: a nav é navegação por âncora pros "andares" da
-// página. O contato não entra como link na pill — o botão de WhatsApp ao
-// lado já é esse atalho (no menu mobile ele aparece).
-// No pré-lançamento as seções não existem: o menu fica só com o WhatsApp
-// e o Instagram.
-const LINKS = PRELAUNCH.enabled ? [] : NAV.links.filter((l) => sectionOn(l.section));
-const MENU_LINKS = PRELAUNCH.enabled
-  ? []
-  : [...NAV.links, NAV.contactLink].filter((l) => sectionOn(l.section));
+// Menu das PÁGINAS (Manifesto · Eventos · Revenda · Contato — máx. 4, regra
+// da navegação). O cavalo (início) mora fora da barra, no canto. No
+// pré-lançamento as páginas não existem: o menu fica só com o essencial.
+const LINKS = PRELAUNCH.enabled ? [] : NAV.links;
+const MENU_LINKS = LINKS;
 
 // Ponto de amostragem fixo (canto esquerdo, fora da pill que fica centrada)
 // — assim a amostra sempre pega o fundo da SEÇÃO por trás do nav, nunca o
@@ -144,6 +140,28 @@ export function FloatingNav() {
 
   return (
     <>
+      {/* Cavalo — fora da barra, no canto: sempre volta pro início (na home,
+          pro topo). Sobe e desce junto com a barra. */}
+      <motion.button
+        type="button"
+        onClick={handleHorseClick}
+        aria-label={pathname === "/" ? "Voltar ao topo" : "Voltar pro início"}
+        initial={{ opacity: 0, y: -16 }}
+        animate={!visible ? {} : hidden ? { opacity: 0, y: "-160%" } : { opacity: 1, y: 0 }}
+        transition={{ duration: DURATION.slow, ease: EASE_BEZIER.outStandard }}
+        className="focus-visible:outline-fernandito-verde-medio fixed top-[calc(1rem+var(--announcement-h))] left-4 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-[0_12px_32px_rgba(20,28,18,0.32)] transition-[scale] duration-200 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:top-[calc(1.5rem+var(--announcement-h))] sm:left-6 md:h-[3.75rem] md:w-[3.75rem]"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- raster estático de tamanho fixo, next/image não traz benefício */}
+        <img
+          src="/logo/fernandito-horse.webp"
+          alt=""
+          width={128}
+          height={129}
+          decoding="async"
+          className="h-full w-full rounded-full"
+        />
+      </motion.button>
+
       {/* Barra única (computador e celular): cavalo · CTA · Instagram ·
           carrinho (· menu no celular), tudo num container só — antes eram
           peças soltas. */}
@@ -171,34 +189,21 @@ export function FloatingNav() {
         )}
         aria-label="Navegação principal"
       >
-        {/* Cavalo — volta ao topo. */}
-        <button
-          type="button"
-          onClick={handleHorseClick}
-          aria-label={pathname === "/" ? "Voltar ao topo" : "Voltar pro início"}
-          className="duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element -- raster estático de tamanho fixo, next/image não traz benefício */}
-          <img
-            src="/logo/fernandito-horse.webp"
-            alt=""
-            width={128}
-            height={129}
-            decoding="async"
-            className="h-full w-full rounded-full"
-          />
-        </button>
-
-        {/* Links das seções (site completo, md+). */}
+        {/* Páginas (site completo, md+). */}
         {LINKS.length > 0 && (
-          <div className="hidden items-center md:flex">
+          <div className="hidden items-center pl-1 md:flex">
             {LINKS.map((link) => (
               <Link
                 key={link.label}
                 href={link.href}
+                aria-current={pathname === link.href ? "page" : undefined}
                 className={clsx(
                   "text-label duration-base ease-out-standard rounded-full px-3 py-2 font-sans tracking-[0.08em] whitespace-nowrap uppercase transition-colors lg:px-4",
                   ink,
+                  pathname === link.href &&
+                    (overLight
+                      ? "bg-fernandito-off-white/12 font-bold"
+                      : "bg-fernandito-verde-escuro/10 font-bold"),
                 )}
               >
                 {link.label}

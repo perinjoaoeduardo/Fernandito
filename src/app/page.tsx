@@ -8,6 +8,7 @@ import { SocialGallerySection } from "@/components/sections/SocialGallerySection
 import { FichaTecnicaSection } from "@/components/sections/FichaTecnicaSection";
 import { FooterSection } from "@/components/sections/FooterSection";
 import { PortasSection } from "@/components/sections/PortasSection";
+import { ManifestoCurtoSection } from "@/components/sections/ManifestoCurtoSection";
 import { PerguntasSection } from "@/components/sections/PerguntasSection";
 import { Fragment, type ReactNode } from "react";
 import { PRELAUNCH, SECTIONS, STORE, sectionOn, type SectionKey } from "@/content/site";
@@ -50,6 +51,7 @@ export default function Home() {
   // (src/content/site.ts) — dá pra ligar/desligar cada uma pro lançamento.
   const blocks: Record<SectionKey, ReactNode> = {
     portas: <PortasSection />,
+    manifestoCurto: <ManifestoCurtoSection />,
     kit: <ComprarSection />,
     oQueE: <OQueESection />,
     galeria: <GaleriaSection />,

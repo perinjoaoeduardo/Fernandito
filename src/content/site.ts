@@ -91,15 +91,19 @@ export const ANNOUNCEMENT = {
  * ainda depende de `STORE.enabled`.
  */
 export const SECTIONS = [
-  { key: "portas", on: true, id: "portas", label: "O que tu procura" },
   { key: "kit", on: true, id: "comprar", label: "Comprar" },
-  { key: "oQueE", on: true, id: "o-que-e", label: "O que é" },
-  { key: "galeria", on: true, id: "galeria", label: "Galeria" },
-  { key: "manifesto", on: true, id: "manifesto", label: "Manifesto" },
-  { key: "perguntas", on: true, id: "perguntas", label: "Perguntas" },
-  { key: "contato", on: true, id: "contato", label: "Contato" },
+  { key: "portas", on: true, id: "portas", label: "O que tu procura" },
+  { key: "manifestoCurto", on: true, id: "manifesto-curto", label: "Manifesto" },
   { key: "social", on: true, id: "social", label: "Social" },
-  { key: "fichaTecnica", on: true, id: "ficha-tecnica", label: "Ficha técnica" },
+  // Moram nas páginas próprias (ver ARQUITETURA no DESIGN_SYSTEM.md):
+  // O que é, Galeria, Manifesto e Ficha técnica em /manifesto; Perguntas em
+  // /contato. Dá pra trazer qualquer uma de volta pra home com `on: true`.
+  { key: "oQueE", on: false, id: "o-que-e", label: "O que é" },
+  { key: "galeria", on: false, id: "galeria", label: "Galeria" },
+  { key: "manifesto", on: false, id: "manifesto", label: "Manifesto" },
+  { key: "perguntas", on: false, id: "perguntas", label: "Perguntas" },
+  { key: "contato", on: false, id: "contato", label: "Contato" },
+  { key: "fichaTecnica", on: false, id: "ficha-tecnica", label: "Ficha técnica" },
 ] as const;
 
 export type SectionKey = (typeof SECTIONS)[number]["key"];
@@ -135,6 +139,7 @@ export const PORTAS = {
   forms: [
     {
       key: "evento",
+      href: "/eventos",
       title: "Fernandito no teu evento",
       text: "Festa, formatura, casamento ou evento da empresa. Conta o básico que a gente responde no WhatsApp.",
       cta: "Pedir orçamento",
@@ -159,6 +164,7 @@ export const PORTAS = {
     },
     {
       key: "negocio",
+      href: "/revenda",
       title: "Fernandito no teu negócio",
       text: "Bar, restaurante, mercado ou empório: se tem geladeira e gente com sede, tem lugar pro Fernandito.",
       cta: "Quero revender",
@@ -188,6 +194,8 @@ export type LeadField = {
 };
 export type LeadForm = {
   key: "evento" | "negocio";
+  /** Página própria da porta. */
+  href: string;
   title: string;
   text: string;
   cta: string;
@@ -229,15 +237,98 @@ export const PERGUNTAS = {
   ],
 };
 
+/** Manifesto em 3 frases na home, com link pro inteiro (/manifesto). */
+export const MANIFESTO_CURTO = {
+  lines: [
+    "A gente acredita que encontro não se faz com fernet, gelo e coca.",
+    "Se faz com gente. E entre gente.",
+    "A bebida é o veículo. O encontro é o propósito.",
+  ],
+  cta: "Ler o manifesto",
+};
+
+/** Cabeçalhos e textos das páginas internas. */
+export const PAGES = {
+  manifesto: {
+    eyebrow: "Manifesto",
+    title: "Quem é o Fernandito.",
+    intro: "O que tem na lata, de onde vem e no que a gente acredita.",
+  },
+  eventos: {
+    eyebrow: "Eventos",
+    title: "Fernandito no teu evento.",
+    intro:
+      "Casamento, formatura, aniversário ou evento da empresa. Conta o básico que a gente monta uma proposta e responde no WhatsApp.",
+    steps: [
+      { title: "Conta da tua festa", text: "Que evento, quando, onde e quantas pessoas." },
+      {
+        title: "Recebe a proposta",
+        text: "A gente responde no WhatsApp com valores e o que vai junto.",
+      },
+      { title: "No dia, tá lá", text: "O Fernandito chega gelado e no ponto." },
+    ],
+  },
+  revenda: {
+    eyebrow: "Revenda",
+    title: "Fernandito no teu negócio.",
+    intro:
+      "Bar, restaurante, mercado, empório ou distribuidora. Se tem geladeira e gente com sede, tem lugar pro Fernandito.",
+    reasons: [
+      {
+        title: "Ninguém tem igual",
+        text: "Fernet com cola pronto, em lata. Teu cliente pede o que já toma, sem preparo.",
+      },
+      { title: "Sai rápido", text: "Gelou, vendeu. Não ocupa o balcão nem o barman." },
+      {
+        title: "A gente faz junto",
+        text: "Material pro ponto de venda e divulgação do teu lugar no nosso Instagram.",
+      },
+    ],
+  },
+  contato: {
+    eyebrow: "Contato",
+    title: "Fala com a gente.",
+    intro:
+      "Escolhe o motivo: o WhatsApp abre com a mensagem pronta e quem atende já sabe do que se trata.",
+    /** Cada motivo abre o WhatsApp com a sua mensagem (ou leva pra página). */
+    reasons: [
+      {
+        title: "Dúvida sobre o kit",
+        text: "Antes de comprar.",
+        message: "Oi! Tenho uma dúvida sobre o kit do Fernandito.",
+      },
+      {
+        title: "Meu pedido",
+        text: "Já comprei e quero saber da entrega.",
+        message: "Oi! Quero saber do meu pedido. Número do pedido: ",
+      },
+      { title: "Evento", text: "Festa, formatura, empresa.", href: "/eventos" },
+      { title: "Revenda", text: "Bar, mercado, empório.", href: "/revenda" },
+      {
+        title: "Parceria ou imprensa",
+        text: "Influenciadores, marcas, jornalistas.",
+        message: "Oi! Quero falar sobre uma parceria com o Fernandito.",
+      },
+    ] as { title: string; text: string; message?: string; href?: string }[],
+  },
+  /** Faixa de "próximo passo" no fim das páginas internas. */
+  next: {
+    title: "Bora?",
+    text: "O primeiro lote tá em pré-venda.",
+    buy: "Comprar o kit",
+    talk: "Falar com a gente",
+  },
+};
+
 export const NAV = {
-  /** Links da pílula do topo (desktop) e do menu do celular. */
+  /** Páginas do menu (máx. 4 — regra da navegação). Ficam no menu de cima,
+   * no menu do celular e no rodapé. Somem no pré-lançamento. */
   links: [
-    { label: "O que é", href: "#o-que-e", section: "oQueE" },
-    { label: "Galeria", href: "#galeria", section: "galeria" },
-    { label: "Manifesto", href: "#manifesto", section: "manifesto" },
-  ] as { label: string; href: string; section: SectionKey }[],
-  /** Só no menu do celular e no rodapé (no desktop o botão do WhatsApp faz esse papel). */
-  contactLink: { label: "Contato", href: "#contato", section: "contato" as SectionKey },
+    { label: "Manifesto", href: "/manifesto" },
+    { label: "Eventos", href: "/eventos" },
+    { label: "Revenda", href: "/revenda" },
+    { label: "Contato", href: "/contato" },
+  ],
   whatsappLabel: "Fale no WhatsApp",
 };
 
