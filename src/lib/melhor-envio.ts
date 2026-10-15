@@ -2,63 +2,120 @@ import "server-only";
 import type { ShippingItem, ShippingOption } from "@/lib/shipping";
 
 /**
- * Cotação de frete no Melhor Envio — SÓ NO SERVIDOR (o token não pode ir
- * pro navegador). Chamada pela rota `/api/frete`.
+ * Melhor Envio — SÓ NO SERVIDOR (token e secret não podem ir pro navegador).
  *
- * HOJE: retorno MOCKADO (opções fictícias), porque ainda não temos o token.
- * Quando tiver:
- *   1. Criar `MELHOR_ENVIO_TOKEN` (e `MELHOR_ENVIO_CEP_ORIGEM`) na Vercel.
- *   2. Trocar o corpo de `quoteMelhorEnvio` pela chamada real:
- *      POST https://www.melhorenvio.com.br/api/v2/me/shipment/calculate
- *      (sandbox: https://sandbox.melhorenvio.com.br/...)
- *      headers: Authorization: Bearer <token>, Accept/Content-Type JSON,
- *               User-Agent: "Fernandito (email de contato)"
- *      body: { from: { postal_code }, to: { postal_code },
- *              products: [{ id, width, height, length, weight,
- *                           insurance_value, quantity }] }
- *   3. Mapear cada serviço da resposta (sem `error`) pra `ShippingOption`:
- *      id ← `me-${id}`, service ← name, carrier ← company.name,
- *      priceCents ← round(price * 100), days ← delivery_range.
+ * Variáveis na Vercel:
+ *   MELHOR_ENVIO_CLIENT_ID   ID do app (Integrações → Área Dev.)
+ *   MELHOR_ENVIO_SECRET      Secret do app
+ *   MELHOR_ENVIO_TOKEN       Token de acesso. Pra gerar: abrir
+ *                            /api/melhorenvio/connect, autorizar e colar aqui
+ *                            o token que a página mostrar.
+ *   MELHOR_ENVIO_CEP_ORIGEM  (opcional) CEP de origem; padrão Castro Alves.
+ *
+ * Sem MELHOR_ENVIO_TOKEN a cotação lança erro e o checkout cai na tabela fixa
+ * por região (ver shipping.ts) — a venda nunca trava por causa do frete.
  */
 
+export const ME_BASE_URL = "https://melhorenvio.com.br";
+export const ME_USER_AGENT = "Fernandito (toma.fernandito@gmail.com)";
+/** Permissões pedidas na autorização. Só cotação por enquanto. */
+export const ME_SCOPES = ["shipping-calculate"];
+
 export const ORIGIN_CEP = process.env.MELHOR_ENVIO_CEP_ORIGEM?.trim() || "90430131";
+
+type MeService = {
+  id: number;
+  name: string;
+  price?: string;
+  custom_price?: string;
+  delivery_range?: { min: number; max: number };
+  custom_delivery_range?: { min: number; max: number };
+  company?: { name?: string };
+  error?: string;
+};
 
 export async function quoteMelhorEnvio(
   destinationCep: string,
   items: ShippingItem[],
 ): Promise<ShippingOption[]> {
-  const weight = items.reduce((sum, item) => sum + item.weightKg * item.qty, 0);
-  // MOCK: valores fictícios, crescem um pouco com o peso e com a distância
-  // "aproximada" pelo primeiro dígito do CEP (só pra variar na tela).
-  const distance = Math.min(
-    3,
-    Math.round(Math.abs(Number(destinationCep[0] ?? 9) - Number(ORIGIN_CEP[0])) / 3),
-  );
-  const base = 1800 + distance * 450 + Math.round(weight * 300);
-  return [
-    {
-      id: "me-mock-pac",
-      service: "PAC",
-      carrier: "Correios",
-      priceCents: base,
-      days: { min: 5 + distance, max: 8 + distance },
-      source: "melhor-envio",
+  const token = process.env.MELHOR_ENVIO_TOKEN?.trim();
+  if (!token) throw new Error("MELHOR_ENVIO_TOKEN não configurado");
+
+  const response = await fetch(`${ME_BASE_URL}/api/v2/me/shipment/calculate`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "User-Agent": ME_USER_AGENT,
     },
-    {
-      id: "me-mock-sedex",
-      service: "SEDEX",
-      carrier: "Correios",
-      priceCents: Math.round(base * 1.7),
-      days: { min: 2 + Math.ceil(distance / 2), max: 4 + Math.ceil(distance / 2) },
-      source: "melhor-envio",
+    body: JSON.stringify({
+      from: { postal_code: ORIGIN_CEP },
+      to: { postal_code: destinationCep },
+      products: items.map((item, index) => ({
+        id: String(index + 1),
+        width: item.widthCm,
+        height: item.heightCm,
+        length: item.lengthCm,
+        weight: item.weightKg,
+        insurance_value: item.priceCents / 100,
+        quantity: item.qty,
+      })),
+    }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) throw new Error(`Melhor Envio ${response.status}`);
+
+  const services = (await response.json()) as MeService[];
+  return services
+    .filter((service) => !service.error && (service.custom_price ?? service.price))
+    .map((service) => {
+      const range = service.custom_delivery_range ?? service.delivery_range ?? { min: 0, max: 0 };
+      return {
+        id: `me-${service.id}`,
+        service: service.name,
+        carrier: service.company?.name ?? "Transportadora",
+        priceCents: Math.round(Number(service.custom_price ?? service.price) * 100),
+        days: { min: range.min, max: range.max },
+        source: "melhor-envio" as const,
+      };
+    })
+    .filter((option) => Number.isFinite(option.priceCents) && option.priceCents > 0)
+    .sort((a, b) => a.priceCents - b.priceCents);
+}
+
+/** URL de callback — tem que ser IGUAL à cadastrada no app do Melhor Envio. */
+export const REDIRECT_URI =
+  process.env.MELHOR_ENVIO_REDIRECT_URI?.trim() ||
+  "https://fernandito.com.br/api/melhorenvio/callback";
+
+/** Troca o `code` da autorização pelo token de acesso. */
+export async function exchangeCode(code: string) {
+  const clientId = process.env.MELHOR_ENVIO_CLIENT_ID?.trim();
+  const secret = process.env.MELHOR_ENVIO_SECRET?.trim();
+  if (!clientId || !secret) throw new Error("Client ID/Secret não configurados");
+
+  const response = await fetch(`${ME_BASE_URL}/oauth/token`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "User-Agent": ME_USER_AGENT,
     },
-    {
-      id: "me-mock-jadlog",
-      service: ".Package",
-      carrier: "Jadlog",
-      priceCents: Math.round(base * 1.2),
-      days: { min: 4 + distance, max: 6 + distance },
-      source: "melhor-envio",
-    },
-  ];
+    body: JSON.stringify({
+      grant_type: "authorization_code",
+      client_id: clientId,
+      client_secret: secret,
+      redirect_uri: REDIRECT_URI,
+      code,
+    }),
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`Melhor Envio ${response.status}: ${await response.text()}`);
+  return (await response.json()) as {
+    access_token: string;
+    refresh_token?: string;
+    expires_in?: number;
+  };
 }

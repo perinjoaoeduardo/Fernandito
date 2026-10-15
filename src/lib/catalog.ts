@@ -25,7 +25,7 @@ export type Product = {
   /** Máximo por pedido. */
   maxQty: number;
   /** Peso e dimensões da embalagem pronta pra envio — usados na cotação de
-   * frete (Melhor Envio). PLACEHOLDER: medir a caixa real. */
+   * frete (Melhor Envio). Medidas reais da caixa, iguais às do Bling. */
   shipping: { weightKg: number; widthCm: number; heightCm: number; lengthCm: number };
   active: boolean;
 };
@@ -46,7 +46,7 @@ export const PRODUCTS: Product[] = [
       },
     ],
     maxQty: 5,
-    shipping: { weightKg: 1.2, widthCm: 20, heightCm: 15, lengthCm: 20 },
+    shipping: { weightKg: 1.2, widthCm: 19, heightCm: 6.5, lengthCm: 19 },
     active: true,
   },
   {
@@ -57,7 +57,7 @@ export const PRODUCTS: Product[] = [
     priceCents: 10000,
     images: [{ src: null, alt: "Pack com 6 latas de Fernandito", placeholder: "Pack 6 latas" }],
     maxQty: 5,
-    shipping: { weightKg: 2.4, widthCm: 25, heightCm: 13, lengthCm: 18 },
+    shipping: { weightKg: 2.5, widthCm: 24, heightCm: 16.5, lengthCm: 14 },
     // Liberado quando os kits de pré-lançamento acabarem.
     active: false,
   },

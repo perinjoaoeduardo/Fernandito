@@ -4,7 +4,7 @@
  * - Porto Alegre/RS: entrega própria, valor FIXO (`LOCAL_DELIVERY`).
  * - Demais CEPs: cotação real no Melhor Envio (por CEP de destino, peso e
  *   dimensões dos produtos) — ver `src/lib/melhor-envio.ts` e a rota
- *   `/api/frete`. HOJE A COTAÇÃO É MOCKADA (sem token ainda).
+ *   `/api/frete`. Precisa de MELHOR_ENVIO_TOKEN na Vercel.
  * - Se a cotação falhar, cai na tabela fixa por região (`REGION_TABLE`),
  *   pra não travar a venda.
  *

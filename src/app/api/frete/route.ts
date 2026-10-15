@@ -4,7 +4,7 @@ import { STORE } from "@/content/site";
 
 // Cotação de frete (fora de Porto Alegre). O navegador manda o CEP e os
 // itens (peso/dimensões); a cotação roda aqui, no servidor, onde vai ficar
-// o token do Melhor Envio. Hoje o retorno é mockado — ver melhor-envio.ts.
+// o token do Melhor Envio — ver melhor-envio.ts.
 // Qualquer erro → 4xx/5xx, e o checkout cai na tabela fixa da região.
 
 const bodySchema = z.object({
