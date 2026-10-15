@@ -29,6 +29,48 @@ O que precisa ser feito/conferido no dia em que a loja for pro ar
 - [ ] Depois: devolver o R$ 1 no Mercado Pago, cancelar a NF-e no Bling
       (até 24h) e voltar as credenciais de teste no Preview.
 
+## Frete (Melhor Envio + Jadlog) — decidido em 14/10
+
+Como ficou:
+
+- Frete fora de POA: cotação real no Melhor Envio (conta própria da
+  Fernandito). Etiqueta comprada no painel do Melhor Envio, com a chave da
+  NF emitida no Bling. **Bling Envios não é usado** (tem carteira separada).
+- Só **Jadlog** aparece no checkout (`ALLOWED_CARRIERS` em
+  `src/lib/melhor-envio.ts`), pra postar num ponto só: Ferragens Pesce –
+  Loja Floresta, Av. Cristóvão Colombo 1792 (trocar em Melhor Envio →
+  Integrações → Catálogo → Configurar). Só Jadlog também na conta.
+- POA: entrega própria, valor fixo. Se a cotação falhar: tabela por região.
+- Rastreio pro cliente: e-mail automático do Melhor Rastreio (ligado em
+  Melhor Envio → Configurações). WhatsApp descartado por ora.
+- Token: app "Fernandito" na Área Dev (Client ID 31382). Gerar/renovar em
+  `https://fernandito.com.br/api/melhorenvio/connect` → colar o token em
+  `MELHOR_ENVIO_TOKEN` (Production e Preview) → Redeploy. **Vence em ~30 dias.**
+- Dados fiscais no Melhor Envio: CNPJ 69.252.946/0001-41, IE 096/4146258,
+  CNAE 4723-7/00. Simples Nacional.
+
+Pendente:
+
+- [ ] Confirmar com o suporte do Melhor Envio/Jadlog que aceitam bebida
+      alcoólica em lata (Correios só aceitam com contrato comercial).
+- [ ] Estudo de preço/prazo na Calculadora (caixa do kit 19×19×6,5 cm,
+      1,2 kg, R$ 100) pra Caxias, Floripa, SP, RJ, BH, Brasília, Recife.
+- [ ] Renovação automática do token (guardar o refresh token no Redis e
+      renovar antes de vencer) — hoje é manual a cada ~30 dias.
+- [ ] Webhook do Melhor Envio (`/api/melhorenvio/webhook`, ainda não existe):
+      gravar o rastreio no pedido do Bling. Só cadastrar quando a rota existir.
+- [ ] E-mails: "pedido confirmado" pro cliente e "compra nova" pra equipe.
+- [ ] Tributação/CEST dos produtos confirmada com o contador antes da 1ª NF.
+
+## Deploy (atenção)
+
+- O Vercel publica **produção** a partir do branch
+  `claude/fernandito-repo-vercel-38jtie`, não do `main`. Hoje produção ainda
+  está na versão antiga (loja escondida). O trabalho atual está no `teste`;
+  no lançamento, é o `teste` que vai pra produção.
+- Branches `teste-loja` e `melhor-envio-cotacao` foram testes e podem ser
+  apagados no GitHub.
+
 ## Outros
 
 - [ ] Trocar a `BLING_ADMIN_KEY` (as senhas usadas até agora passaram pelo
