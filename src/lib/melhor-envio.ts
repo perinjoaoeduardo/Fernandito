@@ -21,6 +21,10 @@ export const ME_USER_AGENT = "Fernandito (toma.fernandito@gmail.com)";
 /** Permissões pedidas na autorização. Só cotação por enquanto. */
 export const ME_SCOPES = ["shipping-calculate"];
 
+/** Transportadoras que aparecem no checkout (nome da empresa no Melhor Envio).
+ * Só Jadlog: postagem num ponto só (Gráfica Uirapuru, Av. Protásio Alves). */
+export const ALLOWED_CARRIERS = ["Jadlog"];
+
 export const ORIGIN_CEP = process.env.MELHOR_ENVIO_CEP_ORIGEM?.trim() || "90430131";
 
 type MeService = {
@@ -70,6 +74,11 @@ export async function quoteMelhorEnvio(
   const services = (await response.json()) as MeService[];
   return services
     .filter((service) => !service.error && (service.custom_price ?? service.price))
+    .filter((service) =>
+      ALLOWED_CARRIERS.some(
+        (carrier) => carrier.toLowerCase() === service.company?.name?.trim().toLowerCase(),
+      ),
+    )
     .map((service) => {
       const range = service.custom_delivery_range ?? service.delivery_range ?? { min: 0, max: 0 };
       return {
