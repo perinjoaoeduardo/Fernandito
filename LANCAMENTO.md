@@ -62,6 +62,18 @@ Pendente:
 - [ ] E-mails: "pedido confirmado" pro cliente e "compra nova" pra equipe.
 - [ ] Tributação/CEST dos produtos confirmada com o contador antes da 1ª NF.
 
+## Bling (configurado em 14/10)
+
+- Vercel (Production e Preview): `BLING_NATUREZA_ID=15111699956` (Venda de
+  produção a não contribuinte – Consumidor final), `BLING_LOJA_ID=206326864`
+  (loja Site Fernandito), `BLING_FORMA_PAGAMENTO_ID=11331737` (Pix).
+- Natureza de brinde ("Saída em bonificação – Brinde"): 15111699949 — usada
+  só em pedidos de brinde criados à mão (ou pelo Claude), nunca pelo site.
+- O app do Bling não tem escopo de Naturezas de Operação; por isso o id fixo.
+- Conferir tudo em `/api/bling/diagnostico?key=<BLING_ADMIN_KEY>` (só leitura).
+- Mercado Pago no Preview: token removido (o modo teste dava "500
+  internal_error" no Pix) → Pix simulado, que nunca vai pro Bling.
+
 ## Deploy (atenção)
 
 - O Vercel publica **produção** a partir do branch
