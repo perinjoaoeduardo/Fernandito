@@ -14,8 +14,8 @@ export function OrderReceipt({ order }: { order: PublicOrder }) {
     >
       <div className="flex items-center justify-between gap-4">
         <h2 className="font-rampart translate-y-[0.06em] text-[1.5rem] leading-none">Teu pedido</h2>
-        <span className="bg-fernandito-verde-escuro/[0.07] text-label rounded-full px-3 py-1 tracking-[0.06em] uppercase">
-          #{order.id}
+        <span className="bg-fernandito-verde-escuro/[0.07] text-label rounded-full px-3 py-1 tracking-[0.06em] normal-case">
+          {/* Sem caixa alta: o número diferencia maiúscula de minúscula. */}#{order.id}
         </span>
       </div>
 

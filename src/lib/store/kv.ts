@@ -222,6 +222,17 @@ export async function kvDel(key: string) {
   await run([["DEL", key]]);
 }
 
+/** Script Lua atômico no Redis (sem banco → `null`: quem chama resolve na memória). */
+export async function kvEval(
+  script: string,
+  keys: string[],
+  args: (string | number)[],
+): Promise<unknown> {
+  if (inMemory()) return null;
+  const [result] = await run([["EVAL", script, keys.length, ...keys, ...args]]);
+  return result;
+}
+
 /** Solta uma trava só se ainda for nossa (mesmo valor) — atômico no Redis. */
 export async function kvReleaseLock(key: string, owner: string) {
   if (inMemory()) {

@@ -3,7 +3,13 @@ import { getProduct } from "@/lib/catalog";
 import { quoteMelhorEnvio } from "@/lib/melhor-envio";
 import { onlyDigits } from "@/lib/br";
 import type { Order } from "@/lib/order";
-import { LOCAL_DELIVERY, isPortoAlegre, tableShipping, type ShippingOption } from "@/lib/shipping";
+import {
+  LOCAL_DELIVERY,
+  isPoaCep,
+  isPortoAlegre,
+  tableShipping,
+  type ShippingOption,
+} from "@/lib/shipping";
 import { createPixPayment, getPayment } from "@/lib/mercadopago";
 import { kvDel, kvGet, kvSAdd, kvSMembers, kvSRem, kvSetNX } from "@/lib/store/kv";
 import {
@@ -20,6 +26,8 @@ import {
 import { onOrderPaid } from "@/lib/store/on-order-paid";
 import { blingStock, maybeRetryBling, queueForBling } from "@/lib/bling/orders";
 import { getLegalVersions } from "@/lib/legal";
+import { STORE } from "@/content/site";
+import { OutOfStockError, releaseStock, reserveStock } from "@/lib/store/stock";
 
 /** Erro "esperado" do checkout: vira resposta HTTP com mensagem pro cliente. */
 export class CheckoutError extends Error {
@@ -30,13 +38,6 @@ export class CheckoutError extends Error {
   ) {
     super(message);
   }
-}
-
-// CEPs de Porto Alegre: 90000-000 a 91999-999. A entrega própria só vale
-// com CEP de POA — não basta digitar "Porto Alegre" na cidade.
-function isPoaCep(cep: string) {
-  const n = Number(onlyDigits(cep));
-  return n >= 90000000 && n <= 91999999;
 }
 
 /**
@@ -128,6 +129,25 @@ export async function createPixOrder(input: Order, idempotencyKey: string): Prom
     );
   }
 
+  // Trava do próprio site (teto do catálogo, ex.: 150 kits): reserva as
+  // unidades agora; o Pix vencer devolve. Não passa do teto nunca.
+  try {
+    await reserveStock(id, priced.items);
+  } catch (error) {
+    await kvDel(idemKey).catch(() => {});
+    if (error instanceof OutOfStockError) {
+      const name = priced.items.find((i) => i.sku === error.sku)?.name ?? "O kit";
+      throw new CheckoutError(
+        error.remaining > 0
+          ? `Só temos ${error.remaining} unidade${error.remaining === 1 ? "" : "s"} de ${name} agora.`
+          : `${name} esgotou.`,
+        409,
+        "stock",
+      );
+    }
+    throw error;
+  }
+
   const now = new Date().toISOString();
   const order: StoredOrder = {
     id,
@@ -156,24 +176,46 @@ export async function createPixOrder(input: Order, idempotencyKey: string): Prom
   await kvSAdd(ALL_SET, id);
 
   try {
-    const pix = await createPixPayment({
+    const request = {
       orderId: id,
       amountCents: order.totalCents,
       email: order.customer.email,
       name: order.customer.name,
       cpf: order.customer.cpf,
+      // Mesma chave nas duas tentativas: o Mercado Pago nunca cria 2 Pix.
       idempotencyKey: `pix-${id}`,
+    };
+    // Uma segunda tentativa automática antes de desistir (falha passageira).
+    const pix = await createPixPayment(request).catch(async (first: Error) => {
+      console.warn(`[pedido ${id}] Pix falhou, tentando de novo:`, first.message);
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      return createPixPayment(request);
     });
     order.mpPaymentId = pix.id;
     order.simulated = pix.id.startsWith("sim-");
     order.pix = { qrCode: pix.qrCode, qrCodeBase64: pix.qrCodeBase64, expiresAt: pix.expiresAt };
     await saveOrder(order);
   } catch (error) {
+    // Plano B: Mercado Pago fora → Pix direto na chave da conta. O pedido
+    // fica "manual" (com as unidades reservadas) até a Fernandito conferir
+    // o comprovante e confirmar no painel.
+    if (STORE.manualPix.key) {
+      order.status = "manual";
+      order.manualPix = true;
+      await saveOrder(order);
+      await kvSAdd(MANUAL_SET, id);
+      await raiseAlert(
+        id,
+        `Mercado Pago fora (${(error as Error).message}) — pedido virou Pix MANUAL, conferir o comprovante`,
+      );
+      return order;
+    }
     order.status = "cancelled";
     await saveOrder(order);
     // Solta a chave: a pessoa tenta de novo e gera um Pix novo (senão ficava
     // 1h em "teu Pix ainda está sendo gerado").
     await kvDel(idemKey).catch(() => {});
+    await releaseStock(id).catch(() => {});
     console.error(`[pedido ${id}] falha ao gerar Pix:`, (error as Error).message);
     throw error;
   }
@@ -194,6 +236,8 @@ export async function createPixOrder(input: Order, idempotencyKey: string): Prom
 const OPEN_SET = "orders:open";
 // Todos os pedidos já criados (pra planilha).
 export const ALL_SET = "orders:all";
+// Pedidos no plano B (Pix na chave da conta), esperando confirmação manual.
+export const MANUAL_SET = "orders:manual";
 
 /**
  * Marca como pago (idempotente). Chamado pelo webhook, pela checagem de
@@ -211,12 +255,22 @@ export async function markPaid(orderId: string) {
   if (!before) return null;
   const paidAt = before.paidAt ?? new Date().toISOString();
   const first = await setPaidMarker(orderId, paidAt);
-  if (first && before.status !== "paid" && before.status !== "pending")
+  if (
+    first &&
+    before.status !== "paid" &&
+    before.status !== "pending" &&
+    before.status !== "manual"
+  )
     await raiseAlert(
       orderId,
       `pago com o pedido em "${before.status}" — conferir se a pessoa não pagou também um Pix novo`,
     );
   if (!before.simulated) await queueForBling(orderId);
+  // Unidades continuam reservadas (se o Pix já tinha vencido e devolvido,
+  // reserva de novo — o dinheiro entrou, então passa do teto e avisa).
+  await reserveStock(orderId, before.items, true).catch((error: Error) =>
+    console.error(`[pedido ${orderId}] estoque ao pagar:`, error.message),
+  );
 
   const order = (await getOrder(orderId)) ?? before;
   if (first) {
@@ -224,6 +278,7 @@ export async function markPaid(orderId: string) {
     console.info(`[pedido ${order.id}] PAGO · ${order.totalCents} centavos`);
   }
   await kvSRem(OPEN_SET, orderId);
+  await kvSRem(MANUAL_SET, orderId);
   if (await kvSetNX(`paid-hook:${order.id}`, "1", 60 * 60 * 24 * 365)) {
     try {
       await onOrderPaid(order);
@@ -291,6 +346,11 @@ export async function refreshOrder(order: StoredOrder): Promise<StoredOrder> {
     order.status = "expired";
     console.info(`[pedido ${order.id}] Pix expirou`);
   }
+  if (expired && !(await getOrder(order.id).then((o) => o?.status === "paid"))) {
+    await saveOrder(order);
+    await releaseStock(order.id);
+    return (await getOrder(order.id)) ?? order;
+  }
   // Regrava sem desfazer um pagamento que chegou no meio tempo (getOrder
   // respeita a marca `paid:`, e quem lê depois vê pago).
   await saveOrder(order);
@@ -323,6 +383,7 @@ export async function reconcileOpenOrders() {
       if (synced.status !== "paid" && old) {
         await kvSRem(OPEN_SET, id);
         if (synced.status === "pending") await saveOrder({ ...synced, status: "expired" });
+        await releaseStock(id);
       }
       results.push({ id, status: synced.status });
     } catch (error) {

@@ -10,7 +10,9 @@ import { kvMGet, kvSAdd, kvSet, kvSetNX } from "@/lib/store/kv";
  * "paid". Dinheiro em centavos.
  */
 
-export type OrderStatus = "pending" | "paid" | "expired" | "cancelled";
+/** `manual`: Mercado Pago fora, pessoa paga na chave Pix da conta e a
+ * Fernandito confirma à mão no painel. */
+export type OrderStatus = "pending" | "paid" | "expired" | "cancelled" | "manual";
 
 export type StoredOrderItem = {
   sku: string;
@@ -41,6 +43,8 @@ export type StoredOrder = {
     qrCodeBase64: string;
     expiresAt: string;
   } | null;
+  /** Pago (ou a pagar) direto na chave Pix da conta — plano B. */
+  manualPix?: boolean;
   /** `true` = Pix simulado (sem Mercado Pago, só fora de produção). */
   simulated: boolean;
   createdAt: string;
@@ -112,6 +116,7 @@ export function publicOrder(order: StoredOrder) {
       uf: order.address.uf,
     },
     pix: order.pix,
+    manualPix: order.manualPix ?? false,
     createdAt: order.createdAt,
     paidAt: order.paidAt,
   };

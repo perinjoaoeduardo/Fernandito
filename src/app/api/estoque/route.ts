@@ -1,13 +1,15 @@
 import { STORE } from "@/content/site";
 import { FEATURED_PRODUCT } from "@/lib/catalog";
 import { blingStock } from "@/lib/bling/orders";
+import { stockRemaining } from "@/lib/store/stock";
 
-// Estoque público do kit (selo "Restam X unidades"). Só devolve um número,
-// nada além disso. Guarda o valor por 60 s em cada instância, então o Bling
-// não é chamado a cada visita. Bling fora do ar/desconectado → `remaining:
-// null` e o site simplesmente não mostra o selo.
+// Estoque público do kit: `remaining` (selo "Restam X", `null` = não
+// mostrar) e `soldOut` (site mostra "Esgotado" e trava a compra). Vale o
+// MENOR entre o teto do próprio site (catálogo, contado no Redis) e o saldo
+// do Bling. Guarda por 15 s em cada instância. Se nada responder, não
+// trava a venda — o servidor confere de novo na hora de gerar o Pix.
 
-const TTL_MS = 60_000;
+const TTL_MS = 15_000;
 const cache = globalThis as unknown as {
   __fernanditoStock?: { at: number; remaining: number | null };
 };
@@ -18,15 +20,20 @@ export async function GET() {
   const hit = cache.__fernanditoStock;
   if (hit && Date.now() - hit.at < TTL_MS) return respond(hit.remaining);
 
-  const stock = await blingStock([FEATURED_PRODUCT.sku]);
-  const remaining = stock ? Math.max(0, stock.get(FEATURED_PRODUCT.sku) ?? 0) : null;
+  const sku = FEATURED_PRODUCT.sku;
+  const [own, bling] = await Promise.all([
+    stockRemaining(sku).catch(() => null),
+    blingStock([sku]).then((stock) => (stock ? Math.max(0, stock.get(sku) ?? 0) : null)),
+  ]);
+  const known = [own, bling].filter((n): n is number => n !== null);
+  const remaining = known.length ? Math.min(...known) : null;
   cache.__fernanditoStock = { at: Date.now(), remaining };
   return respond(remaining);
 }
 
 function respond(remaining: number | null) {
   return Response.json(
-    { remaining },
-    { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } },
+    { remaining, soldOut: remaining === 0 },
+    { headers: { "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30" } },
   );
 }

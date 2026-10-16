@@ -1,5 +1,6 @@
 "use client";
 
+import { useStock } from "@/components/cart/useStock";
 import { clsx } from "clsx";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
@@ -80,6 +81,8 @@ export function CheckoutClient() {
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  // Esgotou enquanto a pessoa preenchia: avisa antes de ela chegar no Pix.
+  const { soldOut } = useStock();
   // Uma chave por tentativa: clique duplo/reenvio → o mesmo pedido e Pix.
   const idempotencyKey = useRef<string | null>(null);
   const router = useRouter();
@@ -130,7 +133,10 @@ export function CheckoutClient() {
     if (cep.length !== 8) return;
     setCepStatus("loading");
     try {
-      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      // ViaCEP lento/fora: em 5 s desiste e a pessoa preenche à mão.
+      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+        signal: AbortSignal.timeout(5000),
+      });
       const data = (await response.json()) as {
         erro?: boolean;
         logradouro?: string;
@@ -643,12 +649,21 @@ export function CheckoutClient() {
               {step === 3 && (
                 <NextButton
                   onClick={() => void pay()}
-                  disabled={!ageConfirmedAt || !shipping || paying}
+                  disabled={!ageConfirmedAt || !shipping || paying || soldOut}
                 >
-                  {paying ? "Gerando Pix…" : `Pagar ${formatBRL(totalCents)} no Pix`}
+                  {soldOut
+                    ? STORE.soldOut
+                    : paying
+                      ? "Gerando Pix…"
+                      : `Pagar ${formatBRL(totalCents)} no Pix`}
                 </NextButton>
               )}
             </div>
+            {soldOut && (
+              <p role="alert" className="text-body mt-4 font-sans">
+                {STORE.soldOutText}
+              </p>
+            )}
             {step === 3 && (
               <>
                 {payError && (

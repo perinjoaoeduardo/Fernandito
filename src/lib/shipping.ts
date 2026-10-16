@@ -47,6 +47,14 @@ export const LOCAL_DELIVERY: ShippingOption = {
   source: "local",
 };
 
+/** CEPs de Porto Alegre: 90000-000 a 91999-999. A entrega própria só vale
+ * com cidade E CEP de POA (mesma regra no navegador e no servidor — senão a
+ * pessoa ficava presa em "o frete mudou"). */
+export function isPoaCep(cep: string) {
+  const n = Number(cep.replace(/\D/g, ""));
+  return n >= 90000000 && n <= 91999999;
+}
+
 export function isPortoAlegre(city: string, uf: string) {
   const normalized = city.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
   return uf.toUpperCase() === "RS" && normalized === "porto alegre";
@@ -55,14 +63,19 @@ export function isPortoAlegre(city: string, uf: string) {
 // ── Fallback: tabela fixa por região (se a cotação falhar) ────────────────
 type Region = "rs" | "sul" | "sudeste" | "demais";
 
+/** Frete fixo de último recurso (centavos). */
+export const FALLBACK_PRICE_CENTS = 2000;
+
 const REGION_TABLE: Record<
   Region,
   { label: string; priceCents: number; days: { min: number; max: number } }
 > = {
-  rs: { label: "Envio RS", priceCents: 2000, days: { min: 2, max: 5 } }, // PLACEHOLDER: R$ 20,00
-  sul: { label: "Envio Sul", priceCents: 3000, days: { min: 3, max: 7 } }, // PLACEHOLDER: R$ 30,00 (SC, PR)
-  sudeste: { label: "Envio Sudeste", priceCents: 4000, days: { min: 4, max: 9 } }, // PLACEHOLDER: R$ 40,00 (SP, RJ, MG, ES)
-  demais: { label: "Envio Brasil", priceCents: 5500, days: { min: 6, max: 14 } }, // PLACEHOLDER: R$ 55,00 (demais UFs)
+  // Último recurso (Melhor Envio fora): R$ 20 em qualquer lugar — uma
+  // média; se num envio sair mais caro, a Fernandito absorve.
+  rs: { label: "Envio RS", priceCents: FALLBACK_PRICE_CENTS, days: { min: 2, max: 5 } },
+  sul: { label: "Envio Sul", priceCents: FALLBACK_PRICE_CENTS, days: { min: 3, max: 7 } },
+  sudeste: { label: "Envio Sudeste", priceCents: FALLBACK_PRICE_CENTS, days: { min: 4, max: 9 } },
+  demais: { label: "Envio Brasil", priceCents: FALLBACK_PRICE_CENTS, days: { min: 6, max: 14 } },
 };
 
 function regionOf(uf: string): Region {
@@ -96,13 +109,15 @@ export async function getShippingOptions(
   address: { cep: string; city: string; uf: string },
   items: ShippingItem[],
 ): Promise<{ options: ShippingOption[]; fallback: boolean }> {
-  if (isPortoAlegre(address.city, address.uf))
+  if (isPortoAlegre(address.city, address.uf) && isPoaCep(address.cep))
     return { options: [LOCAL_DELIVERY], fallback: false };
   try {
+    // Sem resposta em 12 s → tabela. A tela nunca fica presa no "calculando".
     const response = await fetch("/api/frete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cep: address.cep, items }),
+      signal: AbortSignal.timeout(12000),
     });
     if (!response.ok) throw new Error(`cotação ${response.status}`);
     const data = (await response.json()) as { options?: ShippingOption[] };

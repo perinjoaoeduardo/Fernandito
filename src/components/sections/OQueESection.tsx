@@ -2,6 +2,7 @@
 
 import NextLink from "next/link";
 import { useEffect, useRef } from "react";
+import { useStock } from "@/components/cart/useStock";
 import { gsap, ScrollTrigger, SplitText, SCRUB, prefersReducedMotion } from "@/lib/gsap";
 import Image from "next/image";
 import { O_QUE_E, PAGES, PRELAUNCH, SHOP_HREF, STORE } from "@/content/site";
@@ -20,6 +21,7 @@ const TYPE_STAGGER = 0.014;
 
 export function OQueESection() {
   const columnRef = useRef<HTMLDivElement>(null);
+  const { soldOut } = useStock();
   const p1Ref = useRef<HTMLParagraphElement>(null);
   const p2Ref = useRef<HTMLParagraphElement>(null);
   const statementRef = useRef<HTMLHeadingElement>(null);
@@ -124,13 +126,15 @@ export function OQueESection() {
               >
                 <span className="flex items-center gap-1.5 font-sans text-[0.6rem] tracking-[0.16em] opacity-85">
                   <span className="bg-fernandito-verde-claro h-1.5 w-1.5 rounded-full motion-safe:animate-pulse" />
-                  {PAGES.preVenda.tag}
+                  {soldOut ? PAGES.preVenda.soldOutTag : PAGES.preVenda.tag}
                 </span>
                 <span className="font-rampart-stamp flex items-center gap-1.5 text-[1rem] leading-none tracking-[0.08em]">
-                  {PAGES.preVenda.cta}
-                  <span className="duration-base ease-out-standard transition-transform group-hover:translate-x-0.5">
-                    →
-                  </span>
+                  {soldOut ? PAGES.preVenda.soldOutCta : PAGES.preVenda.cta}
+                  {!soldOut && (
+                    <span className="duration-base ease-out-standard transition-transform group-hover:translate-x-0.5">
+                      →
+                    </span>
+                  )}
                 </span>
               </NextLink>
             )}

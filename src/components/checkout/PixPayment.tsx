@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { OrderReceipt } from "@/components/checkout/OrderReceipt";
 import { Price } from "@/components/ui/Price";
 import { whatsappHref } from "@/components/ui/WhatsAppButton";
+import { STORE } from "@/content/site";
 
 /**
  * Tela do Pix: QR code, "copiar código", valor, contador de expiração e
@@ -51,9 +52,10 @@ export function PixPayment({
     return () => window.clearInterval(id);
   }, [status]);
 
-  // Polling do status (pausa com a aba escondida).
+  // Polling do status (pausa com a aba escondida). No Pix manual também:
+  // quando a Fernandito confirmar no painel, a tela vira "confirmado".
   useEffect(() => {
-    if (status !== "pending") return;
+    if (status !== "pending" && status !== "manual") return;
     let stopped = false;
     const tick = async () => {
       if (document.hidden) return;
@@ -118,8 +120,21 @@ export function PixPayment({
 
   const minutes = Math.floor(remaining / 60000);
   const seconds = Math.floor((remaining % 60000) / 1000);
+  const manual = status === "manual";
   const expired =
     status === "expired" || status === "cancelled" || (status === "pending" && remaining === 0);
+  const manualProof = whatsappHref(
+    `Oi! Paguei o pedido #${order.id} (R$ ${(order.totalCents / 100).toFixed(2).replace(".", ",")}) na chave Pix. Segue o comprovante:`,
+  );
+  async function copyKey() {
+    try {
+      await navigator.clipboard.writeText(STORE.manualPix.key);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // sem clipboard: a chave está visível pra copiar à mão
+    }
+  }
 
   // Entrada em cascata (mesma voz do resto do site).
   const rootRef = useRef<HTMLDivElement>(null);
@@ -174,14 +189,54 @@ export function PixPayment({
       <div className="flex flex-col gap-8">
         <div data-enter>
           <p className="font-accent text-label tracking-[0.18em] uppercase opacity-70">
-            {expired ? "Pix expirado" : "Falta pouco"}
+            {manual ? "Pix direto na conta" : expired ? "Pix expirado" : "Falta pouco"}
           </p>
           <h1 className="font-rampart mt-3 text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.02]">
-            {expired ? "Esse Pix expirou" : "Paga com Pix"}
+            {manual ? "Paga na nossa chave Pix" : expired ? "Esse Pix expirou" : "Paga com Pix"}
           </h1>
         </div>
 
-        {expired ? (
+        {manual ? (
+          // Plano B (Mercado Pago fora): chave Pix da conta + comprovante no
+          // WhatsApp. O pedido já está guardado e as unidades reservadas.
+          <div
+            data-enter
+            className="bg-fernandito-off-white text-fernandito-verde-escuro flex flex-col items-start gap-5 rounded-3xl p-7 font-sans shadow-[0_24px_60px_rgba(0,0,0,0.35)] sm:p-9"
+          >
+            <p className="text-body-lg max-w-xl">
+              O Pix automático deu problema, mas teu pedido já está guardado. Paga{" "}
+              <span className="font-bold">
+                <Price cents={order.totalCents} />
+              </span>{" "}
+              na chave abaixo e manda o comprovante no WhatsApp. A gente confere e confirma.
+            </p>
+            <div className="border-fernandito-verde-escuro/15 w-full rounded-2xl border bg-white/60 p-4">
+              <p className="text-label tracking-[0.1em] uppercase opacity-60">
+                {STORE.manualPix.keyLabel} · {STORE.manualPix.holder}
+              </p>
+              <p className="font-accent mt-1 text-[1.15rem] break-all">{STORE.manualPix.key}</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button variant="primary" onClick={() => void copyKey()}>
+                {copied ? "Chave copiada!" : "Copiar chave"}
+              </Button>
+              {manualProof && (
+                <Button
+                  as="a"
+                  href={manualProof}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  variant="secondary"
+                >
+                  Mandar comprovante
+                </Button>
+              )}
+            </div>
+            <p className="text-label opacity-60">
+              Pedido #{order.id} · esta tela atualiza sozinha quando a gente confirmar.
+            </p>
+          </div>
+        ) : expired ? (
           <div
             data-enter
             className="bg-fernandito-off-white text-fernandito-verde-escuro flex flex-col items-start gap-5 rounded-3xl p-7 font-sans shadow-[0_24px_60px_rgba(0,0,0,0.35)] sm:p-9"
@@ -296,7 +351,7 @@ export function PixPayment({
         )}
         {/* Saída pra qualquer problema: com o número do pedido, quem
             atende acha no painel da loja na hora. */}
-        {help && (
+        {help && !manual && (
           <p data-enter className="text-body mt-5 font-sans opacity-80">
             Pagou e a tela não mudou? Não paga de novo:{" "}
             <a

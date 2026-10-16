@@ -12,6 +12,7 @@ import { ProductGallery } from "@/components/sections/ProductGallery";
 import { CanIcon, CupIcon, StickerIcon } from "@/components/ui/icons";
 import { QtyStepper } from "@/components/cart/QtyStepper";
 import { useCart } from "@/components/cart/CartProvider";
+import { useStock } from "@/components/cart/useStock";
 import { WHATSAPP_HREF } from "@/components/ui/WhatsAppButton";
 import { getLenis } from "@/lib/lenis";
 import { gsap, DURATION, EASE, prefersReducedMotion } from "@/lib/gsap";
@@ -21,22 +22,6 @@ const CONTENT_ICONS: Record<ContentIcon, ReactNode> = {
   cup: <CupIcon className="h-4 w-4" />,
   sticker: <StickerIcon className="h-4 w-4" />,
 };
-
-/** Estoque real do kit (Bling) via /api/estoque; `null` = não mostrar. */
-function useStockLeft() {
-  const [remaining, setRemaining] = useState<number | null>(null);
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch("/api/estoque", { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { remaining?: number | null } | null) => {
-        if (typeof data?.remaining === "number") setRemaining(data.remaining);
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, []);
-  return remaining;
-}
 
 /** Só mostra o selo quando o estoque está baixo (acima disso não é urgência). */
 const STOCK_BADGE_MAX = 30;
@@ -60,7 +45,7 @@ export function ComprarSection({
   const product = FEATURED_PRODUCT;
   const { add } = useCart();
   const [qty, setQty] = useState(1);
-  const remaining = useStockLeft();
+  const { remaining, soldOut } = useStock();
   const sectionRef = useRef<HTMLElement>(null);
   const buyRef = useRef<HTMLDivElement>(null);
   const [showSticky, setShowSticky] = useState(false);
@@ -212,6 +197,7 @@ export function ComprarSection({
   const showStock = remaining !== null && remaining > 0 && remaining <= STOCK_BADGE_MAX;
   const { main: title } = splitName(product.name);
   const addToCart = () => {
+    if (soldOut) return;
     add(product.sku, qty);
     setQty(1);
   };
@@ -305,7 +291,12 @@ export function ComprarSection({
             <p className="font-rampart text-[clamp(1.9rem,2.6vw,2.3rem)] leading-none tabular-nums">
               <Price cents={product.priceCents} />
             </p>
-            {showStock && (
+            {soldOut && (
+              <span className="bg-fernandito-verde-escuro text-fernandito-off-white text-label inline-flex items-center rounded-full px-3 py-1 tracking-[0.12em] uppercase">
+                {STORE.soldOut}
+              </span>
+            )}
+            {showStock && !soldOut && (
               <span className="border-fernandito-verde-medio/30 bg-fernandito-verde-medio/10 text-label inline-flex items-center gap-2 rounded-full border px-3 py-1 tracking-[0.08em] uppercase">
                 <span
                   aria-hidden="true"
@@ -323,7 +314,7 @@ export function ComprarSection({
             data-reveal
             className="mt-5 flex w-full flex-col gap-3 sm:flex-row sm:items-center"
           >
-            <div className="self-start">
+            <div className={clsx("self-start", soldOut && "hidden")}>
               <QtyStepper
                 value={qty}
                 max={maxQty}
@@ -334,11 +325,21 @@ export function ComprarSection({
             <Button
               variant="primary"
               onClick={addToCart}
-              className="w-full !py-3 whitespace-nowrap sm:w-auto sm:flex-1"
+              disabled={soldOut}
+              aria-disabled={soldOut}
+              className={clsx(
+                "w-full !py-3 whitespace-nowrap sm:w-auto sm:flex-1",
+                soldOut && "pointer-events-none opacity-50",
+              )}
             >
-              {STORE.addToCart}
+              {soldOut ? STORE.soldOut : STORE.addToCart}
             </Button>
           </div>
+          {soldOut && (
+            <p data-reveal className="text-body mt-3 max-w-md opacity-80">
+              {STORE.soldOutText}
+            </p>
+          )}
 
           {WHATSAPP_HREF && (
             <p data-reveal className="text-label mt-4 tracking-[0.04em] opacity-70">
@@ -372,9 +373,10 @@ export function ComprarSection({
         <button
           type="button"
           onClick={addToCart}
-          className="bg-fernandito-off-white text-fernandito-verde-escuro duration-base ease-out-standard flex h-12 items-center rounded-full px-6 font-sans text-[0.8125rem] font-bold tracking-[0.06em] uppercase transition-transform active:scale-[0.97]"
+          disabled={soldOut}
+          className="bg-fernandito-off-white text-fernandito-verde-escuro duration-base ease-out-standard flex h-12 items-center rounded-full px-6 font-sans text-[0.8125rem] font-bold tracking-[0.06em] uppercase transition-transform active:scale-[0.97] disabled:opacity-50"
         >
-          {STORE.stickyCta}
+          {soldOut ? STORE.soldOut : STORE.stickyCta}
         </button>
       </div>
     </section>

@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
 
   const ids = await kvSMembers(ALL_SET);
   const orders = (await Promise.all(ids.map(getOrder)))
-    .filter((o): o is StoredOrder => Boolean(o) && (all || o!.status === "paid"))
+    .filter(
+      (o): o is StoredOrder =>
+        Boolean(o) && (all || o!.status === "paid" || o!.status === "manual"),
+    )
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   const br = (iso: string | null) =>
@@ -57,6 +60,7 @@ export async function GET(request: NextRequest) {
     pending: "aguardando Pix",
     expired: "Pix vencido",
     cancelled: "cancelado",
+    manual: "PIX MANUAL — conferir comprovante",
   };
   const rows = orders.map((o) =>
     [

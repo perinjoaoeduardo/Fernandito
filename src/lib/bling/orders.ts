@@ -301,12 +301,14 @@ async function createSalesOrder(order: StoredOrder) {
           dataVencimento: date,
           valor: reais(order.totalCents),
           formaPagamento: { id: formaPagamento },
-          observacoes: `Pix Mercado Pago ${order.mpPaymentId ?? ""}`.trim(),
+          observacoes: order.manualPix
+            ? "Pix MANUAL direto na conta (Mercado Pago fora)"
+            : `Pix Mercado Pago ${order.mpPaymentId ?? ""}`.trim(),
         },
       ],
       observacoes: `Pedido do site fernandito.com.br #${order.id}. Entrega: ${shipping.service} (${shipping.carrier}).`,
       observacoesInternas:
-        `Site #${order.id} · Pix MP ${order.mpPaymentId ?? "-"} · pago em ${order.paidAt ?? "-"} · ` +
+        `Site #${order.id} · ${order.manualPix ? "Pix MANUAL na conta" : `Pix MP ${order.mpPaymentId ?? "-"}`} · pago em ${order.paidAt ?? "-"} · ` +
         `frete ${shipping.id} (${shipping.source}) · maioridade declarada em ${order.ageConfirmedAt}` +
         (order.termsVersion
           ? ` · aceitou Termos v${order.termsVersion} e Privacidade v${order.privacyVersion}`

@@ -79,7 +79,7 @@ function webhook(dataId, { bad = false } = {}) {
   });
 }
 
-const SHIP = 4000;
+const SHIP = 2000; // frete de último recurso (tabela)
 const mk = (o = {}) => order({ ship: SHIP, ...o });
 const approve = async (orderId, extra = {}) =>
   ctl({ set: { id: await payIdOf(orderId), status: "approved", ...extra } });
@@ -161,14 +161,15 @@ const approve = async (orderId, extra = {}) =>
     JSON.stringify(d.alertas.find((a) => a.orderId === id)),
   );
 }
-// S6 MP fora na criação → mesma chave depois funciona
+// S6 MP falha uma vez → o site tenta de novo sozinho
 {
-  const key = randomUUID();
   await ctl({ flags: { failCreate: 1 } });
-  const a = await mk({ key });
-  check("S6 Mercado Pago fora → erro claro pro cliente", a.code === 502, JSON.stringify(a.data));
-  const b = await mk({ key });
-  check("S6 tentar de novo (mesma chave) gera o Pix", b.code === 201, JSON.stringify(b.data));
+  const a = await mk();
+  check(
+    "S6 Mercado Pago falha 1x → segunda tentativa automática gera o Pix",
+    a.code === 201 && a.data.order.status === "pending",
+    JSON.stringify(a.data).slice(0, 80),
+  );
 }
 // S7 idempotência
 {
@@ -308,6 +309,127 @@ const approve = async (orderId, extra = {}) =>
   check("S14 planilha mostra que não entrou no Bling", line.includes("NÃO ENTROU"));
   const noKey = await fetch(`${B}/api/loja/pedidos?key=errada`);
   check("S14 planilha sem a chave → 404", noKey.status === 404);
+}
+
+// S15 Mercado Pago fora de vez → plano B (Pix na chave da conta)
+{
+  await ctl({ flags: { failCreate: 2 } });
+  const a = await mk();
+  const id = a.data.order?.id;
+  check(
+    "S15 Mercado Pago fora → pedido guardado como Pix MANUAL",
+    a.code === 201 && a.data.order.status === "manual",
+    JSON.stringify(a.data).slice(0, 100),
+  );
+  const d = await diag();
+  check(
+    "S15 aparece no painel em pixManual",
+    d.pixManual.some((o) => o.id === id),
+  );
+  const csv = await fetch(`${B}/api/loja/pedidos?key=${KEY}`).then((x) => x.text());
+  check("S15 aparece na planilha como PIX MANUAL", csv.includes(`"${id}";"PIX MANUAL`));
+  const c = await fetch(`${B}/api/loja/confirmar?key=${KEY}&pedido=${id}&acao=pago`).then((x) =>
+    x.json(),
+  );
+  const s1 = await status(id);
+  const d2 = await diag();
+  check(
+    "S15 confirmar no painel → PAGO e vai pra fila do Bling",
+    c.ok && s1.status === "paid" && d2.filaBling.some((o) => o.id === id),
+    JSON.stringify(c),
+  );
+  const again = await fetch(`${B}/api/loja/confirmar?key=${KEY}&pedido=${id}&acao=pago`);
+  check("S15 confirmar 2x não faz nada de novo", again.status === 409);
+}
+// S16 Pix manual cancelado devolve o estoque
+{
+  await ctl({ flags: { failCreate: 2 } });
+  const a = await mk();
+  const id = a.data.order.id;
+  const before = (await diag()).estoque["FERN-KIT-PRE"].livres;
+  await fetch(`${B}/api/loja/confirmar?key=${KEY}&pedido=${id}&acao=cancelar`);
+  const after = (await diag()).estoque["FERN-KIT-PRE"].livres;
+  check("S16 cancelar Pix manual devolve a unidade", after === before + 1, `${before}→${after}`);
+}
+// S17 trava de estoque (teto do site): esgota, recusa, devolve quando o Pix vence
+{
+  const stockNow = async () => (await diag()).estoque["FERN-KIT-PRE"].livres;
+  let left = await stockNow();
+  let lastId = null;
+  let guard = 0;
+  while (left > 0 && guard++ < 200) {
+    const qty = Math.min(5, left);
+    if (left - qty === 0) await ctl({ flags: { expireSeconds: 3 } });
+    const b = body();
+    b.items[0].qty = qty;
+    b.subtotalCents = 10000 * qty;
+    b.shipping = {
+      id: "tabela-sudeste",
+      service: "x",
+      carrier: "y",
+      priceCents: SHIP,
+      days: { min: 1, max: 5 },
+      source: "tabela",
+    };
+    b.totalCents = b.subtotalCents + SHIP;
+    const r = await fetch(B + "/api/checkout/pix", {
+      method: "POST",
+      headers: { ...H(), "x-idempotency-key": randomUUID() },
+      body: JSON.stringify(b),
+    });
+    const j = await r.json();
+    if (r.status !== 201) {
+      console.log("parou:", r.status, j);
+      break;
+    }
+    lastId = j.order.id;
+    left = await stockNow();
+  }
+  await ctl({ flags: { expireSeconds: null } });
+  check("S17 chega a 0 livres sem passar do teto", left === 0, `livres=${left}`);
+  const over = await mk();
+  check(
+    "S17 depois de esgotar → recusa com 'esgotou'",
+    over.code === 409 && over.data.code === "stock",
+    JSON.stringify(over.data),
+  );
+  const est = await fetch(`${B}/api/estoque`).then((x) => x.json());
+  check(
+    "S17 /api/estoque avisa esgotado",
+    est.soldOut === true || est.remaining === 0,
+    JSON.stringify(est),
+  );
+  // duas pessoas ao mesmo tempo na última unidade
+  await sleep(3500);
+  await status(lastId);
+  const freed = await stockNow();
+  check("S17 Pix vencido devolve as unidades", freed > 0, `livres=${freed}`);
+  const racers = await Promise.all(
+    [...Array(6)].map(() => {
+      const b = body();
+      b.items[0].qty = freed;
+      b.subtotalCents = 10000 * freed;
+      b.shipping = {
+        id: "tabela-sudeste",
+        service: "x",
+        carrier: "y",
+        priceCents: SHIP,
+        days: { min: 1, max: 5 },
+        source: "tabela",
+      };
+      b.totalCents = b.subtotalCents + SHIP;
+      return fetch(B + "/api/checkout/pix", {
+        method: "POST",
+        headers: { ...H(), "x-idempotency-key": randomUUID() },
+        body: JSON.stringify(b),
+      }).then((r) => r.status);
+    }),
+  );
+  check(
+    "S17 6 pessoas na última leva ao mesmo tempo → só 1 consegue",
+    racers.filter((c) => c === 201).length === 1 && (await stockNow()) === 0,
+    JSON.stringify(racers),
+  );
 }
 
 console.log(`\n${results.filter((r) => r.ok).length}/${results.length} ok`);

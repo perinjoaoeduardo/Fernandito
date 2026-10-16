@@ -30,6 +30,9 @@ export type Product = {
   /** Peso e dimensões da embalagem pronta pra envio — usados na cotação de
    * frete (Melhor Envio). PLACEHOLDER: medir a caixa real. */
   shipping: { weightKg: number; widthCm: number; heightCm: number; lengthCm: number };
+  /** Teto de unidades à venda, contado pelo PRÓPRIO site (não depende do
+   * Bling): chegou nele, esgota. `null` = sem teto (só o estoque do Bling). */
+  stockCap: number | null;
   active: boolean;
 };
 
@@ -64,6 +67,8 @@ export const PRODUCTS: Product[] = [
     maxQty: 5,
     // Igual ao cadastro no Bling: caixa 19 × 19 × 6,5 cm, 1,2 kg.
     shipping: { weightKg: 1.2, widthCm: 19, heightCm: 6.5, lengthCm: 19 },
+    // Primeiro lote: no máximo 150 kits (ajustar quando contar o estoque real).
+    stockCap: 150,
     active: true,
   },
   {
@@ -76,6 +81,7 @@ export const PRODUCTS: Product[] = [
     maxQty: 5,
     // Igual ao cadastro no Bling: caixa 24 × 14 × 16,5 cm, 2,5 kg.
     shipping: { weightKg: 2.5, widthCm: 24, heightCm: 16.5, lengthCm: 14 },
+    stockCap: null,
     // Liberado quando os kits de pré-lançamento acabarem.
     active: false,
   },

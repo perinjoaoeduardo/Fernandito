@@ -55,6 +55,9 @@ export const STORE = {
   /** Selo de estoque real (Bling). `{n}` vira o número. */
   stockLeft: "Restam {n} unidades",
   stockLast: "Última unidade",
+  /** Esgotado (teto do site ou estoque do Bling zerado). */
+  soldOut: "Esgotado",
+  soldOutText: "O primeiro lote acabou. Chama a gente no WhatsApp pra saber do próximo.",
   /** Barra de compra fixa no celular. */
   stickyCta: "Adicionar",
   addToCart: "Adicionar ao carrinho",
@@ -64,6 +67,18 @@ export const STORE = {
   /** Contato secundário embaixo do botão de compra. */
   helpPrefix: "Dúvidas?",
   helpLink: "Fala com a gente no WhatsApp",
+  /**
+   * Plano B se o Mercado Pago cair na hora de gerar o Pix: a pessoa paga
+   * direto na chave Pix da conta da empresa e manda o comprovante; a
+   * Fernandito confere e confirma no painel (/api/loja/confirmar). VAZIO =
+   * desligado (mostra só o erro e o WhatsApp). PREENCHER com a chave real
+   * aqui ou na variável NEXT_PUBLIC_PIX_MANUAL_KEY da Vercel (+ redeploy).
+   */
+  manualPix: {
+    key: process.env.NEXT_PUBLIC_PIX_MANUAL_KEY?.trim() || "",
+    keyLabel: "Chave Pix (CNPJ)",
+    holder: "FERNANDITO BEBIDAS LTDA",
+  },
 };
 
 /** Modo pré-lançamento: o site mostra só a Hero, um bloco "estamos chegando"
@@ -82,6 +97,7 @@ export const PRELAUNCH = {
 export const ANNOUNCEMENT = {
   enabled: true,
   text: "Lançamento · primeiro lote em pré-venda",
+  soldOutText: "Primeiro lote esgotado · valeu, gurizada",
 };
 
 /**
@@ -194,6 +210,9 @@ export const PAGES = {
   preVenda: {
     tag: "Pré-venda no ar",
     cta: "Comprar",
+    /** Mesmo adesivo quando esgota. */
+    soldOutTag: "Primeiro lote",
+    soldOutCta: "Esgotado",
   },
   /** Página Contato: uma tela só. A pessoa escolhe um dos três caminhos e a
    * tela inteira muda (cor, foto, palavra do título); escreve o nome e o que

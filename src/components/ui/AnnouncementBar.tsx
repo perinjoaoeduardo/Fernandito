@@ -1,5 +1,8 @@
+"use client";
+
 import NextLink from "next/link";
 import { ANNOUNCEMENT, PRELAUNCH, SHOP_HREF, STORE } from "@/content/site";
+import { useStock } from "@/components/cart/useStock";
 
 /**
  * Faixa fina fixa no topo, do pré-lançamento: "Estamos chegando". Fica por
@@ -11,9 +14,12 @@ import { ANNOUNCEMENT, PRELAUNCH, SHOP_HREF, STORE } from "@/content/site";
  * flutuante pra baixo da faixa. Desligada, a variável vale 0.
  */
 export function AnnouncementBar() {
-  if (!ANNOUNCEMENT.enabled) return null;
-  // Com a loja no ar (site completo), a faixa inteira leva pra página do kit.
+  // Com a loja no ar (site completo), a faixa inteira leva pra página do kit;
+  // esgotado, ela avisa (e continua levando pro kit, que mostra "Esgotado").
   const shop = STORE.enabled && !PRELAUNCH.enabled;
+  const { soldOut } = useStock();
+  if (!ANNOUNCEMENT.enabled) return null;
+  const text = shop && soldOut ? ANNOUNCEMENT.soldOutText : ANNOUNCEMENT.text;
   const content = (
     <>
       <span
@@ -23,8 +29,8 @@ export function AnnouncementBar() {
       {/* A Special Elite reserva espaço de descendente embaixo — sem o
           deslocamento as maiúsculas ficam acima do centro da faixa. */}
       <p className="font-accent translate-y-[0.12em] text-[12px] tracking-[0.2em] uppercase sm:text-[13px]">
-        {ANNOUNCEMENT.text}
-        {shop && (
+        {text}
+        {shop && !soldOut && (
           <span aria-hidden="true" className="hidden sm:inline">
             {" "}
             →
@@ -39,7 +45,7 @@ export function AnnouncementBar() {
   return shop ? (
     <NextLink
       href={SHOP_HREF}
-      aria-label={`${ANNOUNCEMENT.text} — ver o kit`}
+      aria-label={`${text} — ver o kit`}
       className={`${bar} hover:bg-fernandito-verde-claro hover:text-fernandito-off-white duration-base ease-out-standard transition-colors`}
     >
       {content}

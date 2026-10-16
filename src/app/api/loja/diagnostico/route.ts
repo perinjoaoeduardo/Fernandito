@@ -6,6 +6,9 @@ import { MP_SIMULATED } from "@/lib/mercadopago";
 import { reconcileOpenOrders } from "@/lib/store/checkout";
 import { HAS_REDIS, IS_PRODUCTION, kvSMembers } from "@/lib/store/kv";
 import { getOrder } from "@/lib/store/orders";
+import { stockRemaining } from "@/lib/store/stock";
+import { ACTIVE_PRODUCTS } from "@/lib/catalog";
+import { STORE } from "@/content/site";
 
 /**
  * Painel da loja: /api/loja/diagnostico?key=<BLING_ADMIN_KEY>. Sem a chave
@@ -14,6 +17,7 @@ import { getOrder } from "@/lib/store/orders";
  * - `configuracao`: cada peça (banco, Mercado Pago, webhook, Bling, Melhor
  *   Envio, cron) — tudo tem que estar `true` em produção;
  * - `pixAbertos`: Pix gerados ainda sem pagamento confirmado;
+ * - `pixManual`: plano B (Mercado Pago fora) esperando conferir o comprovante;
  * - `filaBling`: pedidos PAGOS que ainda não entraram no Bling (com o erro);
  * - `alertas`: o que precisa de olho humano (ver LANCAMENTO.md → "Se der
  *   problema").
@@ -49,8 +53,9 @@ export async function GET(request: NextRequest) {
       erroBling: order.bling?.error ?? null,
     };
   };
-  const [abertos, fila, alertas] = await Promise.all([
+  const [abertos, manuais, fila, alertas] = await Promise.all([
     kvSMembers("orders:open"),
+    kvSMembers("orders:manual"),
     kvSMembers("bling:retry"),
     kvSMembers("loja:alertas"),
   ]);
@@ -76,9 +81,22 @@ export async function GET(request: NextRequest) {
         blingFormaPix: env("BLING_FORMA_PAGAMENTO_ID"),
         melhorEnvioToken: env("MELHOR_ENVIO_TOKEN"),
         cronSecret: env("CRON_SECRET"),
+        pixManualChave: Boolean(STORE.manualPix.key),
       },
+      // Unidades livres pelo teto do próprio site (Pix abertos contam como
+      // reservados até vencer).
+      estoque: Object.fromEntries(
+        await Promise.all(
+          ACTIVE_PRODUCTS.map(
+            async (p) =>
+              [p.sku, { teto: p.stockCap, livres: await stockRemaining(p.sku) }] as const,
+          ),
+        ),
+      ),
       conferencia,
       pixAbertos: await Promise.all(abertos.map(resumo)),
+      // Plano B: conferir o comprovante e confirmar em /api/loja/confirmar.
+      pixManual: await Promise.all(manuais.map(resumo)),
       filaBling: await Promise.all(fila.map(resumo)),
       alertas: alertas.map((a) => JSON.parse(a) as unknown),
     },
