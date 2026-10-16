@@ -139,12 +139,11 @@ export type ContatoField = {
   optional?: boolean;
 };
 export type ContatoReason = {
-  key: "duvida" | "pedido" | "evento" | "negocio" | "parceria";
+  key: "casa" | "evento" | "negocio";
   /** Botão do motivo. */
   chip: string;
-  /** Fim do título: "Quero falar sobre ___". */
+  /** Fim do título: "Quero o Fernandito ___". */
   word: string;
-  text: string;
   /** Cor da tela inteira com esse motivo. */
   theme: "verde-medio" | "verde-escuro" | "verde-claro" | "off-white";
   photo: ContentImage;
@@ -196,66 +195,39 @@ export const PAGES = {
     tag: "Pré-venda no ar",
     cta: "Comprar",
   },
-  /** Página Contato: uma tela só. A pessoa escolhe o motivo e a tela inteira
-   * muda (cor, foto, palavra do título); responde 2–3 perguntas quase só de
-   * tocar e a mensagem pro WhatsApp vai se montando na hora. Todo envio vira
+  /** Página Contato: uma tela só. A pessoa escolhe um dos três caminhos e a
+   * tela inteira muda (cor, foto, palavra do título); escreve o nome e o que
+   * quer, e a mensagem pro WhatsApp vai se montando na hora. Todo envio vira
    * lead (`/api/leads`). Na `message`, `{campo}` vira a resposta. */
   contato: {
     eyebrow: "Contato",
-    lead: "Quero falar sobre",
-    hint: "Leva uns 15 segundos. A mensagem vai pronta pro WhatsApp.",
+    lead: "Quero o Fernandito",
+    hint: "Leva 10 segundos. A mensagem vai pronta pro WhatsApp.",
     preview: "A mensagem vai assim",
     submit: "Mandar no WhatsApp",
     sent: "Abrimos o WhatsApp. É só enviar.",
-    missing: "Falta responder ali em cima.",
+    missing: "Falta preencher ali em cima.",
     reasons: [
       {
-        key: "duvida",
-        chip: "O kit",
-        word: "o kit.",
-        text: "Sabor, entrega, pagamento: pergunta o que quiser antes de comprar.",
+        key: "casa",
+        chip: "Pra mim",
+        word: "pra mim.",
         theme: "verde-medio",
-        photo: photo("Foto: o kit", "Campo de coxilhas", "/images/placeholder/coxilhas.jpg"),
+        photo: photo("Foto: pra mim", "Campo de coxilhas", "/images/placeholder/coxilhas.jpg"),
         fields: [
+          { name: "nome", label: "Teu nome", placeholder: "Como a gente te chama" },
           {
-            name: "assunto",
-            label: "Sobre o quê?",
-            options: ["Sabor", "Entrega", "Pagamento", "Outra coisa"],
+            name: "objetivo",
+            label: "O que tu quer?",
+            placeholder: "Comprar umas latas, tirar uma dúvida…",
           },
         ],
-        message: "Oi! Tenho uma dúvida sobre o kit do Fernandito ({assunto}).",
-      },
-      {
-        key: "pedido",
-        chip: "Meu pedido",
-        word: "meu pedido.",
-        text: "Já comprou? Manda o número do pedido que a gente vê onde ele tá.",
-        theme: "verde-escuro",
-        photo: photo(
-          "Foto: entrega",
-          "Caminhonetes na estrada de chão",
-          "/images/placeholder/caminhonetes.jpg",
-        ),
-        fields: [
-          {
-            name: "numero",
-            label: "Número do pedido",
-            placeholder: "Tá no e-mail",
-            optional: true,
-          },
-          {
-            name: "assunto",
-            label: "O que houve?",
-            options: ["Onde tá?", "Chegou com problema", "Trocar endereço", "Outra coisa"],
-          },
-        ],
-        message: "Oi! Quero falar do meu pedido {numero} ({assunto}).",
+        message: "Oi! Sou {nome}. Quero o Fernandito pra mim: {objetivo}",
       },
       {
         key: "evento",
-        chip: "Um evento",
-        word: "um evento.",
-        text: "Festa, formatura, casamento ou evento da empresa. Conta o básico.",
+        chip: "Pro meu evento",
+        word: "no meu evento.",
         theme: "verde-claro",
         photo: photo(
           "Foto: evento",
@@ -263,63 +235,30 @@ export const PAGES = {
           "/images/placeholder/troller.jpg",
         ),
         fields: [
+          { name: "nome", label: "Teu nome", placeholder: "Como a gente te chama" },
           {
-            name: "tipo",
-            label: "Que evento?",
-            options: ["Aniversário", "Casamento", "Formatura", "Empresa", "Festa ou show"],
+            name: "objetivo",
+            label: "O que tu quer?",
+            placeholder: "Uma festa em dezembro, umas 80 pessoas…",
           },
-          {
-            name: "pessoas",
-            label: "Quantas pessoas?",
-            options: ["Até 50", "50 a 100", "100 a 200", "Mais de 200"],
-          },
-          {
-            name: "quando",
-            label: "Quando?",
-            options: ["Este mês", "Mês que vem", "Mais pra frente", "Não sei ainda"],
-          },
-          { name: "cidade", label: "Cidade", placeholder: "Porto Alegre" },
         ],
-        message:
-          "Oi! Quero o Fernandito no meu evento.\nEvento: {tipo}\nPessoas: {pessoas}\nQuando: {quando}\nCidade: {cidade}",
+        message: "Oi! Sou {nome}. Quero o Fernandito no meu evento: {objetivo}",
       },
       {
         key: "negocio",
-        chip: "Revenda",
-        word: "revender.",
-        text: "Bar, restaurante, mercado ou empório: se tem geladeira e gente com sede, tem lugar.",
+        chip: "Pro meu negócio",
+        word: "no meu negócio.",
         theme: "off-white",
-        photo: photo("Foto: revenda", "Araucárias no campo", "/images/placeholder/araucarias.jpg"),
+        photo: photo("Foto: negócio", "Araucárias no campo", "/images/placeholder/araucarias.jpg"),
         fields: [
+          { name: "nome", label: "Teu nome", placeholder: "Como a gente te chama" },
           {
-            name: "tipo",
-            label: "Que lugar?",
-            options: ["Bar", "Restaurante", "Mercado ou empório", "Distribuidora"],
-          },
-          { name: "lugar", label: "Nome do lugar", placeholder: "Bar do Seu Zé" },
-          { name: "cidade", label: "Cidade", placeholder: "Porto Alegre" },
-        ],
-        message: "Oi! Quero revender o Fernandito.\nLugar: {lugar} ({tipo})\nCidade: {cidade}",
-      },
-      {
-        key: "parceria",
-        chip: "Parceria",
-        word: "uma parceria.",
-        text: "Criador de conteúdo, marca ou imprensa: bora fazer junto.",
-        theme: "verde-escuro",
-        photo: photo(
-          "Foto: parceria",
-          "Cavalo no capim alto",
-          "/images/placeholder/cavalo-capim.jpg",
-        ),
-        fields: [
-          {
-            name: "quem",
-            label: "Tu é…",
-            options: ["Criador de conteúdo", "Marca", "Imprensa", "Outro"],
+            name: "objetivo",
+            label: "O que tu quer?",
+            placeholder: "Vender no meu bar em Pelotas…",
           },
         ],
-        message: "Oi! Quero falar sobre uma parceria com o Fernandito ({quem}).",
+        message: "Oi! Sou {nome}. Quero o Fernandito no meu negócio: {objetivo}",
       },
     ] as ContatoReason[],
   },

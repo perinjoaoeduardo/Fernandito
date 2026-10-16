@@ -36,10 +36,11 @@ function compose(reason: ContatoReason, values: Values, blank = "___") {
 }
 
 /**
- * Página Contato numa tela só: "Quero falar sobre ___" + os motivos. Ao
- * escolher, a tela inteira troca de cor, a foto sobe por cima da anterior
- * (como a cortina das trocas de página) e a palavra do título desliza. As
- * perguntas são quase só de tocar, e a mensagem do WhatsApp se monta ao vivo
+ * Página Contato numa tela só: "Quero o Fernandito ___" + os três caminhos
+ * (pra mim, evento, negócio). Ao escolher, a tela inteira troca de cor, a
+ * foto sobe por cima da anterior (como a cortina das trocas de página) e a
+ * palavra do título desliza. Só nome e o que a pessoa quer — o mínimo de
+ * contexto —, e a mensagem do WhatsApp se monta ao vivo
  * (no computador, por cima da foto). Ao mandar: guarda o lead (sendBeacon,
  * não espera) e abre o WhatsApp no mesmo clique — senão o navegador bloqueia.
  * Textos em `PAGES.contato`.
@@ -153,7 +154,7 @@ export function ContatoTela() {
             <span className="block lg:whitespace-nowrap">{page.lead}</span>
             {/* A palavra final desliza: a nova sobe de baixo, a velha sai
                 por cima, cortadas pela máscara da linha. */}
-            <span className="relative block overflow-hidden pb-[0.08em]">
+            <span className="relative -mt-[0.18em] block overflow-hidden pt-[0.18em] pb-[0.08em]">
               <AnimatePresence mode="popLayout" initial={false}>
                 <motion.span
                   key={reason.key}
@@ -236,7 +237,7 @@ export function ContatoTela() {
           </div>
         </div>
 
-        {/* Perguntas: entram em cascata a cada troca de motivo. */}
+        {/* Nome e objetivo: entram em cascata a cada troca de caminho. */}
         <form id="contato-form" onSubmit={submit} noValidate className="lg:col-start-1">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
@@ -250,13 +251,6 @@ export function ContatoTela() {
               }}
               className="flex flex-col gap-6 lg:gap-5"
             >
-              <motion.p
-                variants={{ hide: { opacity: 0, y: 14 }, show: { opacity: 0.85, y: 0 } }}
-                transition={t(0.5)}
-                className="text-body-lg lg:text-body max-w-lg font-sans"
-              >
-                {reason.text}
-              </motion.p>
               {reason.fields.map((field) => {
                 const id = `contato-${reason.key}-${field.name}`;
                 const flagged = missing && isMissing(field.name);
@@ -313,7 +307,7 @@ export function ContatoTela() {
                         aria-labelledby={`${id}-label`}
                         value={current[field.name] ?? ""}
                         placeholder={field.placeholder}
-                        maxLength={80}
+                        maxLength={100}
                         onChange={(e) => set(field.name, e.target.value)}
                         className="text-body-lg mt-1.5 w-full max-w-md border-b-2 border-current/30 bg-transparent py-2 font-sans transition-colors outline-none placeholder:opacity-45 focus:border-current"
                       />

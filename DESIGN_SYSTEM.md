@@ -1195,16 +1195,16 @@ Regras aplicadas na revisão mobile (390px e 360px, com emulação de toque):
 dela, só o que precisa de tela própria: **Comprar** (o kit) e **Contato**.
 Cada intenção tem um lugar só.
 
-| Página       | Conteúdo                                                                                                                                                                                                                                                                                                               |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/` (Início) | Hero ("Comprar o kit") → O que é (lata + adesivo "Pré-venda no ar → Comprar") → Fotos → Manifesto (Carta) → "Se interessou pelo Fernandito?" (→ Contato) → Episódios → faixa da ficha técnica → rodapé                                                                                                                 |
-| `/comprar`   | A compra do kit (galeria, o que vem, preço, quantidade, carrinho), com "← Início".                                                                                                                                                                                                                                     |
-| `/contato`   | Uma tela só: "Quero falar sobre ___" + motivos (O kit · Meu pedido · Um evento · Revenda · Parceria). Escolher troca a cor da tela, a foto (sobe como a cortina) e a palavra do título; 1–4 perguntas quase só de tocar; a mensagem do WhatsApp se monta ao vivo. Todo envio vira lead. Embaixo, perguntas frequentes. |
+| Página       | Conteúdo                                                                                                                                                                                                                                                                                                        |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/` (Início) | Hero ("Comprar o kit") → O que é (lata + adesivo "Pré-venda no ar → Comprar") → Fotos → Manifesto (Carta) → "Se interessou pelo Fernandito?" (→ Contato) → Episódios → faixa da ficha técnica → rodapé                                                                                                          |
+| `/comprar`   | A compra do kit (galeria, o que vem, preço, quantidade, carrinho), com "← Início".                                                                                                                                                                                                                              |
+| `/contato`   | Uma tela só: "Quero o Fernandito ___" + três caminhos (Pra mim · Pro meu evento · Pro meu negócio). Escolher troca a cor da tela, a foto (sobe como a cortina) e a palavra do título. Só nome + "o que tu quer?"; a mensagem do WhatsApp se monta ao vivo. Todo envio vira lead. Embaixo, perguntas frequentes. |
 
 No pré-lançamento a compra fica dentro da home (`#comprar`) e /comprar
 redireciona pra lá — `SHOP_HREF` decide pra onde todo "Comprar" aponta.
 Seções do Início: `SECTIONS` (ordem e liga/desliga). Textos: `PAGES`
-(`PAGES.contato.reasons`: motivo, cor, foto, perguntas, mensagem),
+(`PAGES.contato.reasons`: caminho, cor, foto, campos, mensagem),
 `PERGUNTAS`, `CONTATO`.
 
 **Regras:**
@@ -1231,9 +1231,9 @@ Seções do Início: `SECTIONS` (ordem e liga/desliga). Textos: `PAGES`
    em pé (9:16). Com prévia em vídeo (mp4 curto, sem som), toca ao passar
    o mouse — no celular, quando o cartão está no meio da tela. Clique abre
    o episódio no Instagram. Novo episódio = mais um item na lista.
-9. **Contato em menos de 20 segundos:** no máximo 4 perguntas por
-   motivo, de preferência botões; texto só pra cidade, nome do lugar ou
-   número do pedido. A pessoa vê a mensagem antes de mandar.
+9. **Contato mínimo:** só o caminho (pra mim/evento/negócio), o nome e o
+   objetivo numa linha. Nada de perguntas de detalhe — o resto se conversa
+   no WhatsApp. A pessoa vê a mensagem antes de mandar.
 10. Computador e celular podem ter ajustes separados; mudar um não pode
     mexer no outro.
 

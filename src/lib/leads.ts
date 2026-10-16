@@ -5,14 +5,13 @@ import { BLING_ADMIN_KEY } from "@/lib/bling/client";
 import { kvGet, kvSAdd, kvSet, kvSMembers } from "@/lib/store/kv";
 
 /**
- * Leads da página Contato (todo motivo: dúvida, pedido, evento, revenda,
- * parceria): cada envio fica guardado no Redis (`lead:<id>`, conjunto `leads`) antes de
+ * Leads da página Contato (pra mim, evento, negócio): cada envio fica guardado no Redis (`lead:<id>`, conjunto `leads`) antes de
  * a pessoa cair no WhatsApp — assim nada se perde se ela desistir de mandar
  * a mensagem. Exportar: `/api/leads?key=<BLING_ADMIN_KEY>` (planilha CSV).
  */
 
 export const leadSchema = z.object({
-  form: z.enum(["duvida", "pedido", "evento", "negocio", "parceria"]),
+  form: z.enum(["casa", "evento", "negocio"]),
   fields: z
     .record(z.string().max(40), z.string().trim().max(120))
     .refine((f) => Object.keys(f).length <= 8, "Campos demais"),
