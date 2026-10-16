@@ -2,7 +2,7 @@ import { leadSchema, leadsCsv, listLeads, isAdmin, saveLead } from "@/lib/leads"
 import { clientIp, json } from "@/lib/store/http";
 import { rateLimit } from "@/lib/store/kv";
 
-// Lead das portas (evento/negócio). O navegador manda com sendBeacon, logo
+// Lead da página Contato (qualquer motivo). O navegador manda com sendBeacon, logo
 // antes de abrir o WhatsApp.
 export async function POST(request: Request) {
   try {

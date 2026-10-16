@@ -5,14 +5,14 @@ import { BLING_ADMIN_KEY } from "@/lib/bling/client";
 import { kvGet, kvSAdd, kvSet, kvSMembers } from "@/lib/store/kv";
 
 /**
- * Leads das portas "No teu evento" e "No teu negócio": cada envio do
- * formulário fica guardado no Redis (`lead:<id>`, conjunto `leads`) antes de
+ * Leads da página Contato (todo motivo: dúvida, pedido, evento, revenda,
+ * parceria): cada envio fica guardado no Redis (`lead:<id>`, conjunto `leads`) antes de
  * a pessoa cair no WhatsApp — assim nada se perde se ela desistir de mandar
  * a mensagem. Exportar: `/api/leads?key=<BLING_ADMIN_KEY>` (planilha CSV).
  */
 
 export const leadSchema = z.object({
-  form: z.enum(["evento", "negocio"]),
+  form: z.enum(["duvida", "pedido", "evento", "negocio", "parceria"]),
   fields: z
     .record(z.string().max(40), z.string().trim().max(120))
     .refine((f) => Object.keys(f).length <= 8, "Campos demais"),
@@ -49,7 +49,7 @@ export function leadsCsv(leads: Lead[]) {
   const columns = [...new Set(leads.flatMap((l) => Object.keys(l.fields)))];
   const cell = (value: string) => `"${value.replace(/"/g, '""')}"`;
   const rows = [
-    ["recebido em", "porta", ...columns].map(cell).join(";"),
+    ["recebido em", "motivo", ...columns].map(cell).join(";"),
     ...leads.map((l) =>
       [
         new Date(l.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }),

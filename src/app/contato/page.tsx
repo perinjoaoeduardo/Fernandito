@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PAGES, PRELAUNCH } from "@/content/site";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { ContatoPicker } from "@/components/sections/ContatoPicker";
+import { PRELAUNCH } from "@/content/site";
+import { ContatoTela } from "@/components/sections/ContatoTela";
 import { PerguntasSection } from "@/components/sections/PerguntasSection";
 import { FooterSection } from "@/components/sections/FooterSection";
 
@@ -11,15 +10,14 @@ export const metadata: Metadata = {
   description: "Fala com o Fernandito: dúvidas, pedidos, eventos, revenda e parcerias.",
 };
 
-// Um lugar só pra falar com a gente: escolhe o motivo (evento e revenda com
-// perguntas curtas; o resto direto no WhatsApp) e, embaixo, as perguntas frequentes.
+// Uma tela só pra falar com a gente (escolhe o motivo, responde 2–3
+// perguntas, a mensagem vai pronta pro WhatsApp) e, embaixo, as perguntas
+// frequentes.
 export default function ContatoPage() {
   if (PRELAUNCH.enabled) notFound();
-  const page = PAGES.contato;
   return (
     <main>
-      <PageHeader eyebrow={page.eyebrow} title={page.title} intro={page.intro} />
-      <ContatoPicker />
+      <ContatoTela />
       <PerguntasSection />
       <FooterSection />
     </main>

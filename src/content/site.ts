@@ -129,69 +129,26 @@ export function firstSectionHref() {
  * lead (guardado no site) e abrem o WhatsApp com a mensagem já escrita. Em
  * `message`, `{campo}` vira a resposta do campo de mesmo nome.
  */
-export const LEAD_FORMS = {
-  forms: [
-    {
-      key: "evento",
-      title: "Fernandito no teu evento",
-      text: "Festa, formatura, casamento ou evento da empresa. Conta o básico que a gente responde no WhatsApp.",
-      cta: "Pedir orçamento",
-      formTitle: "Conta da tua festa",
-      submit: "Chamar no WhatsApp",
-      fields: [
-        {
-          name: "tipo",
-          label: "Que evento?",
-          options: ["Aniversário", "Casamento", "Formatura", "Empresa", "Festa ou show", "Outro"],
-        },
-        { name: "data", label: "Quando?", type: "date" },
-        { name: "cidade", label: "Cidade", placeholder: "Porto Alegre" },
-        {
-          name: "pessoas",
-          label: "Quantas pessoas?",
-          options: ["Até 50", "50 a 100", "100 a 200", "Mais de 200"],
-        },
-      ],
-      message:
-        "Oi! Quero o Fernandito no meu evento.\nEvento: {tipo}\nData: {data}\nCidade: {cidade}\nPessoas: {pessoas}",
-    },
-    {
-      key: "negocio",
-      title: "Fernandito no teu negócio",
-      text: "Bar, restaurante, mercado ou empório: se tem geladeira e gente com sede, tem lugar pro Fernandito.",
-      cta: "Quero revender",
-      formTitle: "Conta do teu lugar",
-      submit: "Chamar no WhatsApp",
-      fields: [
-        { name: "lugar", label: "Nome do lugar", placeholder: "Bar do Seu Zé" },
-        {
-          name: "tipo",
-          label: "Tipo",
-          options: ["Bar", "Restaurante", "Mercado ou empório", "Distribuidora", "Outro"],
-        },
-        { name: "cidade", label: "Cidade", placeholder: "Porto Alegre" },
-      ],
-      message: "Oi! Quero revender o Fernandito.\nLugar: {lugar} ({tipo})\nCidade: {cidade}",
-    },
-  ] as LeadForm[],
-};
-
-export type LeadField = {
+export type ContatoField = {
   name: string;
   label: string;
-  type?: "text" | "date";
   placeholder?: string;
-  /** Com opções vira uma lista de escolha. */
+  /** Com opções vira uma fileira de botões (só tocar). */
   options?: string[];
+  /** Pode ficar em branco (some da mensagem). */
+  optional?: boolean;
 };
-export type LeadForm = {
-  key: "evento" | "negocio";
-  title: string;
+export type ContatoReason = {
+  key: "duvida" | "pedido" | "evento" | "negocio" | "parceria";
+  /** Botão do motivo. */
+  chip: string;
+  /** Fim do título: "Quero falar sobre ___". */
+  word: string;
   text: string;
-  cta: string;
-  formTitle: string;
-  submit: string;
-  fields: LeadField[];
+  /** Cor da tela inteira com esse motivo. */
+  theme: "verde-medio" | "verde-escuro" | "verde-claro" | "off-white";
+  photo: ContentImage;
+  fields: ContatoField[];
   message: string;
 };
 
@@ -239,41 +196,132 @@ export const PAGES = {
     tag: "Pré-venda no ar",
     cta: "Comprar",
   },
+  /** Página Contato: uma tela só. A pessoa escolhe o motivo e a tela inteira
+   * muda (cor, foto, palavra do título); responde 2–3 perguntas quase só de
+   * tocar e a mensagem pro WhatsApp vai se montando na hora. Todo envio vira
+   * lead (`/api/leads`). Na `message`, `{campo}` vira a resposta. */
   contato: {
     eyebrow: "Contato",
-    title: "Fala com a gente.",
-    intro:
-      "Escolhe o motivo e o WhatsApp abre com a mensagem pronta — quem atende já sabe do que se trata.",
-    /** Motivos. Com `form`, abre as perguntas curtas antes do WhatsApp;
-     * sem, vai direto com a `message`. */
+    lead: "Quero falar sobre",
+    hint: "Leva uns 15 segundos. A mensagem vai pronta pro WhatsApp.",
+    preview: "A mensagem vai assim",
+    submit: "Mandar no WhatsApp",
+    sent: "Abrimos o WhatsApp. É só enviar.",
+    missing: "Falta responder ali em cima.",
     reasons: [
       {
         key: "duvida",
-        title: "Dúvida sobre o kit",
-        text: "Antes de comprar.",
-        message: "Oi! Tenho uma dúvida sobre o kit do Fernandito.",
+        chip: "O kit",
+        word: "o kit.",
+        text: "Sabor, entrega, pagamento: pergunta o que quiser antes de comprar.",
+        theme: "verde-medio",
+        photo: photo("Foto: o kit", "Campo de coxilhas", "/images/placeholder/coxilhas.jpg"),
+        fields: [
+          {
+            name: "assunto",
+            label: "Sobre o quê?",
+            options: ["Sabor", "Entrega", "Pagamento", "Outra coisa"],
+          },
+        ],
+        message: "Oi! Tenho uma dúvida sobre o kit do Fernandito ({assunto}).",
       },
       {
         key: "pedido",
-        title: "Meu pedido",
-        text: "Já comprei e quero saber da entrega.",
-        message: "Oi! Quero saber do meu pedido. Número do pedido: ",
+        chip: "Meu pedido",
+        word: "meu pedido.",
+        text: "Já comprou? Manda o número do pedido que a gente vê onde ele tá.",
+        theme: "verde-escuro",
+        photo: photo(
+          "Foto: entrega",
+          "Caminhonetes na estrada de chão",
+          "/images/placeholder/caminhonetes.jpg",
+        ),
+        fields: [
+          {
+            name: "numero",
+            label: "Número do pedido",
+            placeholder: "Tá no e-mail",
+            optional: true,
+          },
+          {
+            name: "assunto",
+            label: "O que houve?",
+            options: ["Onde tá?", "Chegou com problema", "Trocar endereço", "Outra coisa"],
+          },
+        ],
+        message: "Oi! Quero falar do meu pedido {numero} ({assunto}).",
       },
-      { key: "evento", title: "Evento", text: "Festa, formatura, empresa.", form: "evento" },
-      { key: "revenda", title: "Revenda", text: "Bar, mercado, empório.", form: "negocio" },
+      {
+        key: "evento",
+        chip: "Um evento",
+        word: "um evento.",
+        text: "Festa, formatura, casamento ou evento da empresa. Conta o básico.",
+        theme: "verde-claro",
+        photo: photo(
+          "Foto: evento",
+          "Jipe com barraca no teto, no campo ao pôr do sol",
+          "/images/placeholder/troller.jpg",
+        ),
+        fields: [
+          {
+            name: "tipo",
+            label: "Que evento?",
+            options: ["Aniversário", "Casamento", "Formatura", "Empresa", "Festa ou show"],
+          },
+          {
+            name: "pessoas",
+            label: "Quantas pessoas?",
+            options: ["Até 50", "50 a 100", "100 a 200", "Mais de 200"],
+          },
+          {
+            name: "quando",
+            label: "Quando?",
+            options: ["Este mês", "Mês que vem", "Mais pra frente", "Não sei ainda"],
+          },
+          { name: "cidade", label: "Cidade", placeholder: "Porto Alegre" },
+        ],
+        message:
+          "Oi! Quero o Fernandito no meu evento.\nEvento: {tipo}\nPessoas: {pessoas}\nQuando: {quando}\nCidade: {cidade}",
+      },
+      {
+        key: "negocio",
+        chip: "Revenda",
+        word: "revender.",
+        text: "Bar, restaurante, mercado ou empório: se tem geladeira e gente com sede, tem lugar.",
+        theme: "off-white",
+        photo: photo("Foto: revenda", "Araucárias no campo", "/images/placeholder/araucarias.jpg"),
+        fields: [
+          {
+            name: "tipo",
+            label: "Que lugar?",
+            options: ["Bar", "Restaurante", "Mercado ou empório", "Distribuidora"],
+          },
+          { name: "lugar", label: "Nome do lugar", placeholder: "Bar do Seu Zé" },
+          { name: "cidade", label: "Cidade", placeholder: "Porto Alegre" },
+        ],
+        message: "Oi! Quero revender o Fernandito.\nLugar: {lugar} ({tipo})\nCidade: {cidade}",
+      },
       {
         key: "parceria",
-        title: "Parceria ou imprensa",
-        text: "Influenciadores, marcas, jornalistas.",
-        message: "Oi! Quero falar sobre uma parceria com o Fernandito.",
+        chip: "Parceria",
+        word: "uma parceria.",
+        text: "Criador de conteúdo, marca ou imprensa: bora fazer junto.",
+        theme: "verde-escuro",
+        photo: photo(
+          "Foto: parceria",
+          "Cavalo no capim alto",
+          "/images/placeholder/cavalo-capim.jpg",
+        ),
+        fields: [
+          {
+            name: "quem",
+            label: "Tu é…",
+            options: ["Criador de conteúdo", "Marca", "Imprensa", "Outro"],
+          },
+        ],
+        message: "Oi! Quero falar sobre uma parceria com o Fernandito ({quem}).",
       },
-    ] as {
-      key: string;
-      title: string;
-      text: string;
-      message?: string;
-      form?: "evento" | "negocio";
-    }[],
+    ] as ContatoReason[],
   },
   /** Faixa de "próximo passo" no fim das páginas internas. */
   next: {
