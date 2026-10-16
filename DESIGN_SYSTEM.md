@@ -1241,3 +1241,14 @@ Seções do Início: `SECTIONS` (ordem e liga/desliga). Textos: `PAGES`
 precisar caçar a marca em outra página; compra numa tela própria, sem
 distração, a um clique da chamada. Contato com motivos é um passo a mais
 que um WhatsApp direto, mas a conversa chega qualificada.
+
+## Páginas legais (Termos e Privacidade) — modelo (16/10)
+
+As duas seguem o mesmo modelo (`src/components/legal/LegalPage.tsx`):
+topo curto (troca Termos ⇄ Privacidade, título, uma frase do que é,
+data/versão) → cartão verde "Em resumo" com 6 pontos e ícones → texto
+completo em partes por assunto, cada seção num acordeão → índice fixo do
+lado no computador (marca a seção na tela) e atalhos das partes no celular →
+fim com WhatsApp, o outro documento e salvar em PDF (abre tudo antes de
+imprimir). Texto jurídico em `content/legal/*.md`; resumo e partes em
+`src/content/legal.ts` (os resumos também passam pelo advogado).

@@ -28,7 +28,11 @@ export type LegalDoc = {
   updatedAt: string;
   html: string;
   toc: { id: string; text: string }[];
+  /** O texto dividido por "## N." — cada seção renderizada à parte. */
+  sections: LegalSection[];
 };
+
+export type LegalSection = { id: string; number: number; title: string; html: string };
 
 const HIGHLIGHT_TODO = process.env.VERCEL_ENV !== "production";
 
@@ -90,6 +94,23 @@ export async function getLegalDoc(slug: LegalSlug): Promise<LegalDoc> {
   });
   const html = await marked.parse(body);
 
+  // Uma seção por "## N. Título" (o h2 vira o título do acordeão; o corpo
+  // é renderizado sem ele).
+  const sections: LegalSection[] = [];
+  for (const chunk of body.split(/^(?=## )/m)) {
+    const match = /^## (.+)\n([\s\S]*)$/.exec(chunk.trim() + "\n");
+    if (!match) continue;
+    const title = match[1].trim();
+    const number = Number(/^(\d+)\./.exec(title)?.[1] ?? 0);
+    sections.push({
+      id: `secao-${slugify(title)}`,
+      number,
+      title: title.replace(/^\d+\.\s*/, ""),
+      // Subtítulos descem um nível: o título da seção já é o h3.
+      html: highlightTodo((await marked.parse(match[2])).replace(/<(\/?)h3/g, "<$1h4")),
+    });
+  }
+
   return {
     title: data.title ?? slug,
     description: data.description ?? "",
@@ -97,6 +118,7 @@ export async function getLegalDoc(slug: LegalSlug): Promise<LegalDoc> {
     updatedAt: data.updatedAt ?? "",
     html: highlightTodo(html),
     toc,
+    sections,
   };
 }
 

@@ -17,5 +17,5 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function Page() {
   // Some junto com a loja (`STORE.enabled`).
   if (!STORE.enabled) notFound();
-  return <LegalPage doc={await getLegalDoc("privacidade")} />;
+  return <LegalPage slug="privacidade" doc={await getLegalDoc("privacidade")} />;
 }

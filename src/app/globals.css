@@ -115,7 +115,11 @@ body {
   margin-top: 3rem;
   scroll-margin-top: 8rem;
 }
-.legal-prose h3 {
+.legal-prose > :first-child {
+  margin-top: 0;
+}
+.legal-prose h3,
+.legal-prose h4 {
   font-weight: 700;
   font-size: 1rem;
   text-transform: uppercase;
