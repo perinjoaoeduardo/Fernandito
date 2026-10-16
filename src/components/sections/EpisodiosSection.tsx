@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react";
 import { EPISODIOS, LINKS } from "@/content/site";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
+import { Button } from "@/components/ui/Button";
+import { TypewriterText } from "@/components/ui/TypewriterText";
 import { InstagramIcon } from "@/components/ui/icons";
 import { IS_TOUCH, prefersReducedMotion } from "@/lib/gsap";
 
@@ -31,30 +33,17 @@ export function EpisodiosSection() {
   return (
     <section
       id="episodios"
-      aria-labelledby="episodios-titulo"
+      aria-label="Episódios"
       className="bg-fernandito-verde-escuro text-fernandito-off-white w-full overflow-hidden py-20 md:py-28"
     >
-      <div className="mx-auto max-w-6xl px-6 sm:px-10 lg:px-16">
-        <p className="font-accent text-label text-fernandito-off-white/60 tracking-[0.18em] uppercase">
-          {EPISODIOS.eyebrow}
-        </p>
-        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-          <h2
-            id="episodios-titulo"
-            className="font-rampart text-[clamp(2.1rem,4.4vw,3.4rem)] leading-[1] text-balance"
-          >
-            {EPISODIOS.title}
-          </h2>
-          <a
-            href={LINKS.instagramUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="border-fernandito-off-white/40 hover:bg-fernandito-off-white hover:text-fernandito-verde-escuro duration-base ease-out-standard inline-flex h-11 items-center gap-2 rounded-full border px-5 font-sans text-[0.9rem] font-bold transition-colors"
-          >
-            <InstagramIcon className="h-4 w-4" />
-            {EPISODIOS.follow}
-          </a>
-        </div>
+      {/* Título e botão do Instagram iguais aos do antigo "O que anda
+          rolando": título centralizado escrito à máquina e, depois dos
+          cartões, "Segue a gente no Instagram" + @ do perfil. */}
+      <div className="mx-auto flex max-w-5xl flex-col items-center px-6 text-center">
+        <TypewriterText
+          text={EPISODIOS.title}
+          className="font-rampart text-[min(6.8vw,1.75rem)] leading-[1.05] tracking-[0.02em] whitespace-nowrap sm:text-[clamp(1.75rem,4vw,3rem)] lg:text-[clamp(2.75rem,3.6vw,3.75rem)]"
+        />
       </div>
 
       <ul className="mx-auto mt-10 flex max-w-6xl snap-x snap-mandatory [scrollbar-width:none] gap-4 overflow-x-auto px-6 pb-2 sm:px-10 md:grid md:grid-cols-3 md:overflow-visible lg:gap-6 lg:px-16 [&::-webkit-scrollbar]:hidden">
@@ -64,6 +53,24 @@ export function EpisodiosSection() {
           </li>
         ))}
       </ul>
+
+      <div className="mx-auto mt-10 flex max-w-5xl flex-col items-center px-6 text-center md:mt-16">
+        <p className="text-body font-accent mb-2 tracking-[0.04em]">{EPISODIOS.follow}</p>
+        <Button
+          as="a"
+          href={LINKS.instagramUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          variant="ghost"
+          icon={<InstagramIcon />}
+          iconPosition="left"
+          // Fundo escuro: o ghost padrão é verde-escuro, aqui vira claro.
+          className="!text-fernandito-off-white hover:!text-fernandito-verde-claro"
+          aria-label={`${LINKS.instagramHandle} — seguir no Instagram, abre em nova aba`}
+        >
+          {LINKS.instagramHandle}
+        </Button>
+      </div>
     </section>
   );
 }

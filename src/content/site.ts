@@ -418,9 +418,8 @@ export const CONTATO = {
  * o ícone de play. `href`: o post/reel no Instagram.
  */
 export const EPISODIOS = {
-  eyebrow: "No Instagram",
-  title: "Os episódios do Fernandito.",
-  follow: "Ver todos no Instagram",
+  title: "O que anda rolando",
+  follow: "Segue a gente no Instagram",
   items: [
     {
       number: 1,
