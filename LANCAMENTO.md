@@ -32,7 +32,11 @@ quando o site tem movimento, e no cron diário), por 48 h.
 
 | Se falhar…                                       | O que acontece                                                                                                                          | O que fazer                                                                   |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Mercado Pago fora ao gerar o Pix                 | Cliente vê "Não deu pra gerar o Pix agora"; nada é cobrado; tentar de novo funciona.                                                    | Nada. Se durar, ver status do Mercado Pago.                                   |
+| Mercado Pago falha 1x ao gerar o Pix             | O site tenta de novo sozinho (mesma chave, nunca 2 Pix).                                                                                | Nada.                                                                         |
+| Mercado Pago fora de vez                         | **Plano B:** pedido guardado como "Pix manual"; a tela mostra a chave Pix da conta e "Mandar comprovante" (WhatsApp com nº e valor).    | Conferir o dinheiro na conta e confirmar (ver "Pix manual" abaixo).           |
+| Estoque chega no teto (150 kits)                 | Ninguém mais gera Pix; o site mostra "Esgotado" (botão, adesivo da lata, faixa do topo, checkout).                                      | Nada. Pra vender mais: subir `stockCap` em `src/lib/catalog.ts`.              |
+| Duas pessoas na última unidade ao mesmo tempo    | Só uma consegue (reserva atômica no Redis). Pix vencido devolve a unidade.                                                              | Nada.                                                                         |
+| CEP não encontrado / ViaCEP fora                 | Em 5 s libera pra preencher o endereço à mão.                                                                                           | Nada.                                                                         |
 | Pessoa paga e fecha a tela                       | Webhook confirma; se não vier, a conferência em segundo plano confirma.                                                                 | Nada.                                                                         |
 | Webhook não configurado / falhando               | A tela e a conferência confirmam do mesmo jeito (mais devagar).                                                                         | Configurar o webhook (seção Mercado Pago).                                    |
 | Webhook falso (sem assinatura certa)             | Recusado (401). O site sempre confirma direto na API do Mercado Pago.                                                                   | Nada.                                                                         |
@@ -41,7 +45,7 @@ quando o site tem movimento, e no cron diário), por 48 h.
 | Valor pago diferente do pedido                   | NÃO marca pago; gera alerta.                                                                                                            | Ver no Mercado Pago, devolver/ajustar à mão.                                  |
 | Dois avisos ao mesmo tempo (webhook + tela)      | Marca de "pago" separada que nunca volta atrás; uma entrada só no Bling.                                                                | Nada.                                                                         |
 | Bling fora / token vencido                       | Pedido pago fica na **fila do Bling** (com o erro) e é reenviado sozinho; o pedido entra na fila ANTES de tentar, então nunca se perde. | Ver `filaBling` no painel; reconectar em `/api/bling/connect` se for o token. |
-| Melhor Envio fora                                | Na cotação: tabela fixa por região. Na hora de pagar: pede pra escolher o frete de novo (cai na tabela).                                | Renovar `MELHOR_ENVIO_TOKEN` se venceu (~30 dias).                            |
+| Melhor Envio fora / lento (12 s)                 | Último recurso: **R$ 20 fixo** em qualquer lugar (`FALLBACK_PRICE_CENTS`). Na hora de pagar: pede pra escolher o frete de novo.         | Renovar `MELHOR_ENVIO_TOKEN` se venceu (~30 dias).                            |
 | Preço mexido no navegador                        | Recusado: o servidor recalcula tudo pelo catálogo.                                                                                      | Nada.                                                                         |
 | Cliente com problema                             | As telas do Pix e de confirmação mostram o número do pedido e um WhatsApp com ele já escrito.                                           | Procurar o número no painel.                                                  |
 
@@ -51,6 +55,23 @@ um CSV (abre no Excel/Sheets) com todo pedido PAGO: nome, CPF, e-mail,
 telefone, endereço, itens, frete, total, id do Mercado Pago e o número no
 Bling — ou "NÃO ENTROU" se não entrou. Se o Bling falhar de vez, lança à
 mão a partir daqui. `&todos=1` inclui Pix vencidos/cancelados.
+
+**Estoque (trava do próprio site):** `stockCap` por produto em
+`src/lib/catalog.ts` (kit: 150). Gerar o Pix reserva as unidades; Pix
+vencido/cancelado devolve; pago fica. Vale o MENOR entre esse teto e o
+saldo do Bling. O painel mostra `estoque` (teto e livres). Preview e
+produção contam separado.
+
+**Pix manual (plano B):** preencher a chave Pix da conta em
+`STORE.manualPix.key` (`src/content/site.ts`) ou na variável
+`NEXT_PUBLIC_PIX_MANUAL_KEY` da Vercel (+ redeploy). Sem chave, o plano B
+fica desligado (só aparece o erro e o WhatsApp). Pedido manual aparece em
+`pixManual` no painel e na planilha como "PIX MANUAL". Depois de ver o
+dinheiro NA CONTA (não só o print):
+`/api/loja/confirmar?key=<BLING_ADMIN_KEY>&pedido=<nº>&acao=pago` → vira
+pago e vai pro Bling. Não pagou: `&acao=cancelar` (devolve o estoque).
+
+- [ ] Chave Pix da conta pro plano B.
 
 **Painel da loja:** `https://fernandito.com.br/api/loja/diagnostico?key=<BLING_ADMIN_KEY>`
 — mostra `configuracao` (tudo tem que estar `true`/"produção" no dia),
@@ -64,10 +85,13 @@ limite do plano antes de anunciar forte.
 
 ### Testar a loja (bateria de cenários)
 
-24 cenários (pagamento normal, webhook falso, tela fechada, webhooks
+37 cenários (pagamento normal, webhook falso, tela fechada, webhooks
 repetidos, valor errado, Mercado Pago fora, clique duplo, Pix vencido,
 "pagou no último segundo", Melhor Envio fora, preço adulterado, painel sem
-chave). Rodou 6x seguidas, 144/144 em 16/10. Pra rodar de novo (local):
+chave, planilha, Pix manual, estoque esgotando, 6 pessoas na última leva).
+Em 16/10: 37/37 em 4 rodadas com banco na memória e 2 com Redis de verdade
+(contador terminou em exatamente 150), e o checkout inteiro no navegador
+(computador e celular): preencher → frete → Pix → confirmado sozinho. Pra rodar de novo (local):
 
 ```bash
 npm run build
