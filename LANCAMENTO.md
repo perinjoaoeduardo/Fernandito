@@ -74,9 +74,9 @@ Pendente:
 ## O que entra no lançamento (decidir no teste)
 
 No `teste` o site completo está ligado (`PRELAUNCH.enabled: false`) com o
-kit logo depois da Hero. Cada seção liga/desliga em `SECTIONS`
-(`src/content/site.ts`), na ordem em que aparecem: kit, O que é, Galeria,
-Manifesto, Contato, Social, Ficha técnica. Desligada, a seção some da
+compra em /comprar. Cada seção liga/desliga em `SECTIONS`
+(`src/content/site.ts`), na ordem em que aparecem: O que é, Galeria,
+Manifesto, Contato, Episódios, Ficha técnica (kit e Social desligados). Desligada, a seção some da
 página, do menu e do rodapé. A faixa "Estamos chegando" é `ANNOUNCEMENT`.
 
 - [ ] Decidir seção por seção o que vai pro ar.
@@ -87,6 +87,9 @@ curtas → lead + WhatsApp).
 Leads: planilha em `/api/leads?key=<BLING_ADMIN_KEY>`. Ver "Arquitetura e
 navegação" no DESIGN_SYSTEM.md.
 
+- [ ] Episódios: pra cada um, título, link do post no Instagram, capa e
+      uma prévia de 5–10 s em mp4 sem som (`EPISODIOS`).
+- [ ] Arte da lata no "O que é" (hoje é um espaço reservado).
 - [ ] Razão social e endereço completo da empresa no rodapé (`FOOTER.company`).
 - [ ] Página de Trocas e devoluções (com o advogado).
 - [ ] Preço/produto do lançamento (kit atual × pack de 6) — em aberto.

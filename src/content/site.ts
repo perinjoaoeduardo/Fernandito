@@ -91,15 +91,16 @@ export const ANNOUNCEMENT = {
  * ainda depende de `STORE.enabled`.
  */
 export const SECTIONS = [
-  // No site completo o "kit" da home é a chamada pra página /comprar (no
-  // pré-lançamento é a compra inteira, aqui mesmo).
-  { key: "kit", on: true, id: "kit", label: "Kit" },
   { key: "oQueE", on: true, id: "o-que-e", label: "O que é" },
   { key: "galeria", on: true, id: "galeria", label: "Fotos" },
   { key: "manifesto", on: true, id: "manifesto", label: "Manifesto" },
   { key: "contato", on: true, id: "contato", label: "Contato" },
-  { key: "social", on: true, id: "social", label: "Instagram" },
+  { key: "episodios", on: true, id: "episodios", label: "Episódios" },
   { key: "fichaTecnica", on: true, id: "ficha-tecnica", label: "Ficha técnica" },
+  // Fora do lançamento (código guardado): chamada grande do kit e a
+  // galeria do Instagram (deu lugar aos episódios).
+  { key: "kit", on: false, id: "kit", label: "Kit" },
+  { key: "social", on: false, id: "social", label: "Instagram" },
 ] as const;
 
 /** Onde mora a compra do kit: página própria no site completo; seção da
@@ -232,6 +233,11 @@ export const PAGES = {
   kitTeaser: {
     eyebrow: "Pré-lançamento · edição limitada",
     cta: "Ver o kit",
+  },
+  /** Adesivo "pré-venda no ar" colado na lata do "O que é" (→ /comprar). */
+  preVenda: {
+    tag: "Pré-venda no ar",
+    cta: "Comprar",
   },
   contato: {
     eyebrow: "Contato",
@@ -394,14 +400,50 @@ export const MANIFESTO = {
 };
 
 export const CONTATO = {
-  title: "Quer Fernandito no teu rolê?",
-  text: "Evento, bar, revenda ou só curiosidade? Fala com a gente.",
+  title: "Se interessou pelo Fernandito?",
+  text: "Quer ele na tua festa, no teu bar, no teu evento? Quer comprar ou saber mais? Fala com a gente.",
   cta: "Falar com a gente",
   photo: photo(
     "Foto contato",
     "Rascunho do cavalo do Fernandito em papel, com canetas e rótulos na mesa",
     "/images/contato-rascunhos.jpg",
   ),
+};
+
+/**
+ * Episódios do Fernandito (Instagram). Na ordem em que saíram; pra somar um
+ * novo é só acrescentar no fim. `cover`: capa (foto em `public/images/`).
+ * `preview`: trecho curto em vídeo, sem som (mp4 de 5–10 s em
+ * `public/videos/`) que toca no hover — sem ele, o cartão mostra a capa com
+ * o ícone de play. `href`: o post/reel no Instagram.
+ */
+export const EPISODIOS = {
+  eyebrow: "No Instagram",
+  title: "Os episódios do Fernandito.",
+  follow: "Ver todos no Instagram",
+  items: [
+    {
+      number: 1,
+      title: "Episódio 1",
+      href: "https://www.instagram.com/toma.fernandito/",
+      cover: photo("Capa ep. 1", "Capa do episódio 1 do Fernandito"),
+      preview: null as string | null,
+    },
+    {
+      number: 2,
+      title: "Episódio 2",
+      href: "https://www.instagram.com/toma.fernandito/",
+      cover: photo("Capa ep. 2", "Capa do episódio 2 do Fernandito"),
+      preview: null as string | null,
+    },
+    {
+      number: 3,
+      title: "Episódio 3",
+      href: "https://www.instagram.com/toma.fernandito/",
+      cover: photo("Capa ep. 3", "Capa do episódio 3 do Fernandito"),
+      preview: null as string | null,
+    },
+  ],
 };
 
 export const SOCIAL = {

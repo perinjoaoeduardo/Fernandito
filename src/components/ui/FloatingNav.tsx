@@ -140,173 +140,170 @@ export function FloatingNav() {
 
   return (
     <>
-      {/* Cavalo — fora da barra, no canto: sempre volta pro início (na home,
-          pro topo). Sobe e desce junto com a barra. */}
-      <motion.button
-        type="button"
-        onClick={handleHorseClick}
-        aria-label={pathname === "/" ? "Voltar ao topo" : "Voltar pro início"}
-        initial={{ opacity: 0, y: -16 }}
-        animate={!visible ? {} : hidden ? { opacity: 0, y: "-160%" } : { opacity: 1, y: 0 }}
-        transition={{ duration: DURATION.slow, ease: EASE_BEZIER.outStandard }}
-        className="focus-visible:outline-fernandito-verde-medio fixed top-[calc(1rem+var(--announcement-h))] left-4 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-[0_12px_32px_rgba(20,28,18,0.32)] transition-[scale] duration-200 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:top-[calc(1.5rem+var(--announcement-h))] sm:left-6 md:h-[3.75rem] md:w-[3.75rem]"
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element -- raster estático de tamanho fixo, next/image não traz benefício */}
-        <img
-          src="/logo/fernandito-horse.webp"
-          alt=""
-          width={128}
-          height={129}
-          decoding="async"
-          className="h-full w-full rounded-full"
-        />
-      </motion.button>
-
-      {/* Barra única (computador e celular): cavalo · CTA · Instagram ·
-          carrinho (· menu no celular), tudo num container só — antes eram
-          peças soltas. */}
-      <motion.div
-        initial={{ opacity: 0, y: -16 }}
-        animate={
-          !visible
-            ? {}
-            : hidden
-              ? { opacity: 0, y: "-160%", ...pillAnimation }
-              : { opacity: 1, y: 0, ...pillAnimation }
-        }
-        transition={{
-          duration: DURATION.slow,
-          ease: EASE_BEZIER.outStandard,
-          backgroundColor: pillTransition,
-        }}
-        // Foco de teclado entrando na nav traz ela de volta.
-        onFocus={() => setTucked(false)}
+      {/* Cavalo + barra lado a lado, centralizados: o cavalo é uma peça
+          própria (fora da barra), encostado nela. */}
+      <div
         className={clsx(
-          // `--announcement-h`: altura da faixa "Estamos chegando" (0 sem ela).
-          "fixed top-[calc(1rem+var(--announcement-h))] left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-full p-1.5 shadow-[0_12px_32px_rgba(20,28,18,0.28)] ring-1 sm:top-[calc(1.5rem+var(--announcement-h))] pointer-fine:backdrop-blur-md",
-          overLight ? "ring-fernandito-off-white/10" : "ring-fernandito-verde-escuro/10",
+          "fixed top-[calc(1rem+var(--announcement-h))] left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 sm:top-[calc(1.5rem+var(--announcement-h))]",
           hidden && "pointer-events-none",
         )}
-        aria-label="Navegação principal"
       >
-        {/* Páginas (site completo, md+). */}
-        {LINKS.length > 0 && (
-          <div className="hidden items-center pl-1 md:flex">
-            {LINKS.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                aria-current={pathname === link.href ? "page" : undefined}
-                className={clsx(
-                  "text-label duration-base ease-out-standard rounded-full px-3 py-2 font-sans tracking-[0.08em] whitespace-nowrap uppercase transition-colors lg:px-4",
-                  ink,
-                  pathname === link.href &&
-                    (overLight
-                      ? "bg-fernandito-off-white/12 font-bold"
-                      : "bg-fernandito-verde-escuro/10 font-bold"),
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-        )}
-
-        {/* CTA: compra (loja ligada) ou WhatsApp (loja desligada, md+). */}
-        {inPurchase ? null : STORE.enabled ? (
-          <button
-            type="button"
-            onClick={goToShop}
-            className={clsx(
-              "duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio ml-1 flex h-11 items-center rounded-full px-5 font-sans text-[0.8125rem] font-bold tracking-[0.06em] whitespace-nowrap uppercase transition-[background-color,color,transform] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]",
-              overLight
-                ? "bg-fernandito-off-white text-fernandito-verde-escuro hover:bg-fernandito-verde-claro hover:text-fernandito-off-white"
-                : "bg-fernandito-verde-escuro text-fernandito-off-white hover:bg-fernandito-verde-medio",
-            )}
-          >
-            {STORE.navCta}
-          </button>
-        ) : (
-          <WhatsAppButton
-            background={overLight ? "verde-medio" : "verde-escuro"}
-            className="!text-label ml-1 hidden !px-4 !py-2 whitespace-nowrap md:inline-flex"
-          >
-            {NAV.whatsappLabel}
-          </WhatsAppButton>
-        )}
-
-        <span
-          aria-hidden="true"
-          className={clsx(
-            "mx-1.5 h-6 w-px",
-            overLight ? "bg-fernandito-off-white/20" : "bg-fernandito-verde-escuro/20",
-          )}
-        />
-
-        {/* Instagram (md+; no celular ele está dentro do menu). */}
-        <motion.a
-          href={SITE_LINKS.instagramUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`Instagram ${SITE_LINKS.instagramHandle} — abre em nova aba`}
-          title={SITE_LINKS.instagramHandle}
-          className={clsx(iconButton, "!hidden md:!flex")}
-        >
-          <InstagramIcon className="h-[19px] w-[19px]" />
-        </motion.a>
-
-        {/* Carrinho, com contador. */}
-        {STORE.enabled && (
-          <button
-            type="button"
-            onClick={cart.open}
-            aria-label={
-              cart.count
-                ? `Abrir carrinho (${cart.count} ${cart.count === 1 ? "item" : "itens"})`
-                : "Abrir carrinho"
-            }
-            className={iconButton}
-          >
-            <CartIcon className="h-[20px] w-[20px]" />
-            {cart.count > 0 && (
-              <span
-                aria-hidden="true"
-                className={clsx(
-                  "bg-fernandito-verde-claro text-fernandito-off-white absolute top-0.5 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 font-sans text-[10px] leading-none font-bold ring-2",
-                  overLight ? "ring-fernandito-verde-escuro" : "ring-fernandito-off-white",
-                )}
-              >
-                {cart.count}
-              </span>
-            )}
-          </button>
-        )}
-
-        {/* Menu (celular): ícone que vira × com o overlay aberto. */}
-        <button
+        {/* Cavalo — sempre volta pro início (na home, pro topo). Sobe e desce
+          junto com a barra. */}
+        <motion.button
           type="button"
-          onClick={() => setMenuOpen((open) => !open)}
-          aria-expanded={menuOpen}
-          aria-controls="menu-mobile"
-          aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
-          className={clsx(iconButton, "md:hidden")}
+          onClick={handleHorseClick}
+          aria-label={pathname === "/" ? "Voltar ao topo" : "Voltar pro início"}
+          initial={{ opacity: 0, y: -16 }}
+          animate={!visible ? {} : hidden ? { opacity: 0, y: "-160%" } : { opacity: 1, y: 0 }}
+          transition={{ duration: DURATION.slow, ease: EASE_BEZIER.outStandard }}
+          className="focus-visible:outline-fernandito-verde-medio flex h-14 w-14 shrink-0 items-center justify-center rounded-full shadow-[0_12px_32px_rgba(20,28,18,0.32)] transition-[scale] duration-200 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
         >
-          <span aria-hidden="true" className="relative block h-3 w-5">
-            <span
+          {/* eslint-disable-next-line @next/next/no-img-element -- raster estático de tamanho fixo, next/image não traz benefício */}
+          <img
+            src="/logo/fernandito-horse.webp"
+            alt=""
+            width={128}
+            height={129}
+            decoding="async"
+            className="h-full w-full rounded-full"
+          />
+        </motion.button>
+
+        {/* Barra única (computador e celular): cavalo · CTA · Instagram ·
+          carrinho (· menu no celular), tudo num container só — antes eram
+          peças soltas. */}
+        <motion.div
+          initial={{ opacity: 0, y: -16 }}
+          animate={
+            !visible
+              ? {}
+              : hidden
+                ? { opacity: 0, y: "-160%", ...pillAnimation }
+                : { opacity: 1, y: 0, ...pillAnimation }
+          }
+          transition={{
+            duration: DURATION.slow,
+            ease: EASE_BEZIER.outStandard,
+            backgroundColor: pillTransition,
+          }}
+          // Foco de teclado entrando na nav traz ela de volta.
+          onFocus={() => setTucked(false)}
+          className={clsx(
+            // `--announcement-h`: altura da faixa "Estamos chegando" (0 sem ela).
+            "flex items-center gap-1 rounded-full p-1.5 shadow-[0_12px_32px_rgba(20,28,18,0.28)] ring-1 pointer-fine:backdrop-blur-md",
+            overLight ? "ring-fernandito-off-white/10" : "ring-fernandito-verde-escuro/10",
+            hidden && "pointer-events-none",
+          )}
+          aria-label="Navegação principal"
+        >
+          {/* Páginas (site completo, md+). */}
+          {LINKS.length > 0 && (
+            <div className="hidden items-center pl-1 md:flex">
+              {LINKS.map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  aria-current={pathname === link.href ? "page" : undefined}
+                  className={clsx(
+                    "text-label duration-base ease-out-standard rounded-full px-3 py-2 font-sans tracking-[0.08em] whitespace-nowrap uppercase transition-colors lg:px-4",
+                    ink,
+                    pathname === link.href &&
+                      (overLight
+                        ? "bg-fernandito-off-white/12 font-bold"
+                        : "bg-fernandito-verde-escuro/10 font-bold"),
+                  )}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {/* CTA: compra (loja ligada) ou WhatsApp (loja desligada, md+). */}
+          {inPurchase ? null : STORE.enabled ? (
+            <button
+              type="button"
+              onClick={goToShop}
               className={clsx(
-                "duration-base ease-out-standard absolute left-0 h-[1.5px] w-full bg-current transition-transform",
-                menuOpen ? "top-1/2 -translate-y-1/2 rotate-45" : "top-0",
+                "duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio ml-1 flex h-11 items-center rounded-full px-5 font-sans text-[0.8125rem] font-bold tracking-[0.06em] whitespace-nowrap uppercase transition-[background-color,color,transform] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]",
+                overLight
+                  ? "bg-fernandito-off-white text-fernandito-verde-escuro hover:bg-fernandito-verde-claro hover:text-fernandito-off-white"
+                  : "bg-fernandito-verde-escuro text-fernandito-off-white hover:bg-fernandito-verde-medio",
               )}
-            />
-            <span
-              className={clsx(
-                "duration-base ease-out-standard absolute left-0 h-[1.5px] w-full bg-current transition-transform",
-                menuOpen ? "top-1/2 -translate-y-1/2 -rotate-45" : "bottom-0",
+            >
+              {STORE.navCta}
+            </button>
+          ) : (
+            <WhatsAppButton
+              background={overLight ? "verde-medio" : "verde-escuro"}
+              className="!text-label ml-1 hidden !px-4 !py-2 whitespace-nowrap md:inline-flex"
+            >
+              {NAV.whatsappLabel}
+            </WhatsAppButton>
+          )}
+
+          <span
+            aria-hidden="true"
+            className={clsx(
+              "mx-1.5 h-6 w-px",
+              overLight ? "bg-fernandito-off-white/20" : "bg-fernandito-verde-escuro/20",
+            )}
+          />
+
+          {/* Carrinho, com contador. */}
+          {STORE.enabled && (
+            <button
+              type="button"
+              onClick={cart.open}
+              aria-label={
+                cart.count
+                  ? `Abrir carrinho (${cart.count} ${cart.count === 1 ? "item" : "itens"})`
+                  : "Abrir carrinho"
+              }
+              className={iconButton}
+            >
+              <CartIcon className="h-[20px] w-[20px]" />
+              {cart.count > 0 && (
+                <span
+                  aria-hidden="true"
+                  className={clsx(
+                    "bg-fernandito-verde-claro text-fernandito-off-white absolute top-0.5 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 font-sans text-[10px] leading-none font-bold ring-2",
+                    overLight ? "ring-fernandito-verde-escuro" : "ring-fernandito-off-white",
+                  )}
+                >
+                  {cart.count}
+                </span>
               )}
-            />
-          </span>
-        </button>
-      </motion.div>
+            </button>
+          )}
+
+          {/* Menu (celular): ícone que vira × com o overlay aberto. */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-expanded={menuOpen}
+            aria-controls="menu-mobile"
+            aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
+            className={clsx(iconButton, "md:hidden")}
+          >
+            <span aria-hidden="true" className="relative block h-3 w-5">
+              <span
+                className={clsx(
+                  "duration-base ease-out-standard absolute left-0 h-[1.5px] w-full bg-current transition-transform",
+                  menuOpen ? "top-1/2 -translate-y-1/2 rotate-45" : "top-0",
+                )}
+              />
+              <span
+                className={clsx(
+                  "duration-base ease-out-standard absolute left-0 h-[1.5px] w-full bg-current transition-transform",
+                  menuOpen ? "top-1/2 -translate-y-1/2 -rotate-45" : "bottom-0",
+                )}
+              />
+            </span>
+          </button>
+        </motion.div>
+      </div>
 
       {/* Overlay fullscreen (mobile) */}
       <AnimatePresence>

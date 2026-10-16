@@ -1197,7 +1197,7 @@ Cada intenção tem um lugar só.
 
 | Página       | Conteúdo                                                                                                                                                                                                                                                                                                 |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/` (Início) | Hero → chamada do kit (foto, nome, preço, "Ver o kit" → /comprar) → O que é → Fotos → Manifesto → "Quer Fernandito no teu rolê?" (→ Contato) → Instagram → faixa da ficha técnica → rodapé                                                                                                               |
+| `/` (Início) | Hero ("Comprar o kit") → O que é (lata + adesivo "Pré-venda no ar → Comprar") → Fotos → Manifesto (Carta) → "Se interessou pelo Fernandito?" (→ Contato) → Episódios → faixa da ficha técnica → rodapé                                                                                                   |
 | `/comprar`   | A compra do kit (galeria, o que vem, preço, quantidade, carrinho), com "← Início".                                                                                                                                                                                                                       |
 | `/contato`   | Escolhe o motivo (Dúvida sobre o kit · Meu pedido · Evento · Revenda · Parceria ou imprensa). Evento e Revenda abrem perguntas curtas (`LEAD_FORMS`) que viram lead e abrem o WhatsApp com a mensagem pronta; os outros vão direto pro WhatsApp com a mensagem do motivo. Embaixo, perguntas frequentes. |
 
@@ -1208,15 +1208,30 @@ Seções do Início: `SECTIONS` (ordem e liga/desliga). Textos: `PAGES`,
 
 **Regras:**
 
-1. Menu: Início · Contato (máx. 4 itens) + botão Comprar + Instagram +
-   sacola. A página atual fica marcada.
+1. Menu: Início · Contato (máx. 4 itens) + botão Comprar + sacola. A
+   página atual fica marcada. O Instagram saiu da barra (fica no menu do
+   celular, nos Episódios e no rodapé).
 2. Todo "Comprar"/"Ver o kit" (menu, chamada da home, carrinho vazio,
    "Voltar ao kit" do checkout) leva pra /comprar.
-3. O cavalo mora fora da barra, no canto, e sempre volta pro início.
-   Páginas internas têm "← Início".
+3. O cavalo fica colado ao lado da barra (mesmo grupo, centralizado) e
+   sempre volta pro início. Páginas internas têm "← Início".
 4. Contato é um lugar só: o motivo é escolhido lá dentro. Nenhum WhatsApp
    sai sem a mensagem do motivo (o rodapé mantém o atalho geral).
 5. Toda página termina com uma saída clara e o mesmo rodapé.
+6. **Troca de tela = cortina.** Toda navegação entre páginas mostra a tela
+   verde com o cavalinho correndo, que sobe e revela a página nova
+   (`PageCurtain`, chamado em `app/template.tsx`). Não aparece no primeiro
+   carregamento nem com "reduzir movimento". Nada de outra transição de
+   página.
+7. **Pré-venda sem seção própria** (seria gasto de rolagem): a faixa do
+   topo é um link pra /comprar, a Hero tem "Comprar o kit" e a lata do
+   "O que é" leva o adesivo "Pré-venda no ar → Comprar" (`PAGES.preVenda`).
+8. **Episódios** (`EPISODIOS`, no lugar da galeria do Instagram): cartões
+   em pé (9:16). Com prévia em vídeo (mp4 curto, sem som), toca ao passar
+   o mouse — no celular, quando o cartão está no meio da tela. Clique abre
+   o episódio no Instagram. Novo episódio = mais um item na lista.
+9. Computador e celular podem ter ajustes separados; mudar um não pode
+   mexer no outro.
 
 **Trade-offs:** Início longo (tudo da marca junto) em troca de ninguém
 precisar caçar a marca em outra página; compra numa tela própria, sem

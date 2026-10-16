@@ -5,6 +5,7 @@ import { CartaSection } from "@/components/sections/CartaSection";
 import { ContatoSection } from "@/components/sections/ContatoSection";
 import { ComprarSection } from "@/components/sections/ComprarSection";
 import { KitTeaserSection } from "@/components/sections/KitTeaserSection";
+import { EpisodiosSection } from "@/components/sections/EpisodiosSection";
 import { SocialGallerySection } from "@/components/sections/SocialGallerySection";
 import { FichaTecnicaSection } from "@/components/sections/FichaTecnicaSection";
 import { FooterSection } from "@/components/sections/FooterSection";
@@ -54,6 +55,7 @@ export default function Home() {
     manifesto: <CartaSection />,
     contato: <ContatoSection contactHref="/contato" />,
     social: <SocialGallerySection />,
+    episodios: <EpisodiosSection />,
     fichaTecnica: <FichaTecnicaSection />,
   };
   return (

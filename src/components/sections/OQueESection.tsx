@@ -1,9 +1,10 @@
 "use client";
 
+import NextLink from "next/link";
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger, SplitText, SCRUB, prefersReducedMotion } from "@/lib/gsap";
 import Image from "next/image";
-import { O_QUE_E } from "@/content/site";
+import { O_QUE_E, PAGES, PRELAUNCH, SHOP_HREF, STORE } from "@/content/site";
 import { Parallax } from "@/components/ui/Parallax";
 
 // Textos curtos ("o que somos") revelados letra a letra, tipo máquina de
@@ -92,25 +93,46 @@ export function OQueESection() {
             o texto só no computador; no celular ele fica parado (andando
             fora do ritmo do dedo parecia solto). */}
         <Parallax speed={-50}>
-          <div
-            className={
-              O_QUE_E.lata.src
-                ? "relative mx-auto aspect-[3/7] w-24 shrink-0 md:mx-0 md:w-full"
-                : "border-fernandito-verde-escuro/25 mx-auto flex aspect-[3/7] w-24 shrink-0 items-center justify-center rounded-[2rem] border-2 border-dashed md:mx-0 md:w-full"
-            }
-          >
-            {O_QUE_E.lata.src ? (
-              <Image
-                src={O_QUE_E.lata.src}
-                alt={O_QUE_E.lata.alt}
-                fill
-                sizes="(max-width: 767px) 96px, 200px"
-                className="object-contain"
-              />
-            ) : (
-              <span className="text-label font-accent px-3 text-center uppercase opacity-80">
-                {O_QUE_E.lata.placeholder}
-              </span>
+          <div className="relative mx-auto w-fit md:mx-0 md:w-full">
+            <div
+              className={
+                O_QUE_E.lata.src
+                  ? "relative mx-auto aspect-[3/7] w-24 shrink-0 md:mx-0 md:w-full"
+                  : "border-fernandito-verde-escuro/25 mx-auto flex aspect-[3/7] w-24 shrink-0 items-center justify-center rounded-[2rem] border-2 border-dashed md:mx-0 md:w-full"
+              }
+            >
+              {O_QUE_E.lata.src ? (
+                <Image
+                  src={O_QUE_E.lata.src}
+                  alt={O_QUE_E.lata.alt}
+                  fill
+                  sizes="(max-width: 767px) 96px, 200px"
+                  className="object-contain"
+                />
+              ) : (
+                <span className="text-label font-accent px-3 text-center uppercase opacity-80">
+                  {O_QUE_E.lata.placeholder}
+                </span>
+              )}
+            </div>
+            {/* Pré-venda: adesivo colado na lata, leva pra página do kit —
+              sem gastar uma seção só pra isso. */}
+            {STORE.enabled && !PRELAUNCH.enabled && (
+              <NextLink
+                href={SHOP_HREF}
+                className="group bg-fernandito-verde-escuro text-fernandito-off-white ring-fernandito-off-white duration-base ease-out-standard absolute -top-4 left-[calc(100%-1.5rem)] flex rotate-[-6deg] flex-col items-start gap-0.5 rounded-xl px-3.5 py-2 whitespace-nowrap uppercase shadow-[0_10px_24px_rgba(36,48,34,0.35)] ring-[3px] transition-transform hover:scale-105 hover:rotate-[-3deg] md:-top-6 md:left-[calc(100%-2.5rem)]"
+              >
+                <span className="flex items-center gap-1.5 font-sans text-[0.6rem] tracking-[0.16em] opacity-85">
+                  <span className="bg-fernandito-verde-claro h-1.5 w-1.5 rounded-full motion-safe:animate-pulse" />
+                  {PAGES.preVenda.tag}
+                </span>
+                <span className="font-rampart-stamp flex items-center gap-1.5 text-[1rem] leading-none tracking-[0.08em]">
+                  {PAGES.preVenda.cta}
+                  <span className="duration-base ease-out-standard transition-transform group-hover:translate-x-0.5">
+                    →
+                  </span>
+                </span>
+              </NextLink>
             )}
           </div>
         </Parallax>
