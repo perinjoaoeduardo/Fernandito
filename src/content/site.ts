@@ -494,6 +494,6 @@ export const FOOTER = {
   alcoholNotice: "Beba com moderação. Venda proibida para menores de 18 anos.",
   /** Dados da empresa (a lei do e-commerce pede CNPJ e endereço visíveis).
    * Falta a razão social e o endereço completo. */
-  company: "CNPJ 69.252.946/0001-41",
+  company: "Fernandito Bebidas Ltda · CNPJ 69.252.946/0001-41",
   madeIn: "Feito com brio. Porto Alegre, RS.",
 };

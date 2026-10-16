@@ -138,6 +138,13 @@ export async function kvGet(key: string): Promise<string | null> {
   return (value as string | null) ?? null;
 }
 
+/** Lê várias chaves numa viagem só. */
+export async function kvMGet(...keys: string[]): Promise<(string | null)[]> {
+  if (inMemory()) return keys.map(memGet);
+  const [values] = await run([["MGET", ...keys]]);
+  return ((values as (string | null)[] | null) ?? keys.map(() => null)).map((v) => v ?? null);
+}
+
 /** Grava (com validade opcional em segundos). */
 export async function kvSet(key: string, value: string, ttlSeconds?: number) {
   if (inMemory()) {

@@ -16,9 +16,11 @@ export const metadata: Metadata = {
 // Link do WhatsApp montado aqui (página do servidor): o WHATSAPP_HREF do
 // botão mora num módulo de cliente.
 const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.trim() || LINKS.whatsappNumber;
-const WHATSAPP_HREF = WA_NUMBER
-  ? `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(LINKS.whatsappMessage)}`
-  : null;
+// Já vai com o número do pedido: quem atende acha ele no painel na hora.
+const whatsappFor = (id: string) =>
+  WA_NUMBER
+    ? `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Oi! Sobre o meu pedido #${id}: `)}`
+    : null;
 
 export default async function ConfirmadoPage(props: PageProps<"/pedido/[id]/confirmado">) {
   if (!STORE.enabled) notFound();
@@ -63,9 +65,9 @@ export default async function ConfirmadoPage(props: PageProps<"/pedido/[id]/conf
           >
             Voltar pro site
           </Button>
-          {WHATSAPP_HREF && (
+          {whatsappFor(order.id) && (
             <a
-              href={WHATSAPP_HREF}
+              href={whatsappFor(order.id)!}
               target="_blank"
               rel="noopener noreferrer"
               className="text-label ml-5 tracking-[0.08em] uppercase underline underline-offset-4 opacity-75 hover:opacity-100"

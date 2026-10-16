@@ -1,7 +1,6 @@
 import { after, type NextRequest } from "next/server";
-import { maybeRetryBling } from "@/lib/bling/orders";
 import { verifyWebhookSignature } from "@/lib/mercadopago";
-import { syncPayment } from "@/lib/store/checkout";
+import { housekeeping, syncPayment } from "@/lib/store/checkout";
 import { json } from "@/lib/store/http";
 
 /**
@@ -26,8 +25,8 @@ export async function POST(request: NextRequest) {
     requestId: request.headers.get("x-request-id"),
     dataId,
   });
-  // Pedidos que falharam no Bling: tenta de novo depois da resposta.
-  after(maybeRetryBling);
+  // Depois da resposta: confere Pix abertos e reenvia o que falhou no Bling.
+  after(housekeeping);
 
   if (!valid) {
     console.warn("[webhook mp] assinatura inválida");

@@ -5,18 +5,20 @@ import { onlyDigits } from "@/lib/br";
 import type { Order } from "@/lib/order";
 import { LOCAL_DELIVERY, isPortoAlegre, tableShipping, type ShippingOption } from "@/lib/shipping";
 import { createPixPayment, getPayment } from "@/lib/mercadopago";
-import { kvGet, kvSetNX } from "@/lib/store/kv";
+import { kvDel, kvGet, kvSAdd, kvSMembers, kvSRem, kvSetNX } from "@/lib/store/kv";
 import {
   getOrder,
   maskCpf,
   maskEmail,
   newOrderId,
+  raiseAlert,
   saveOrder,
+  setPaidMarker,
   type StoredOrder,
   type StoredOrderItem,
 } from "@/lib/store/orders";
 import { onOrderPaid } from "@/lib/store/on-order-paid";
-import { blingStock } from "@/lib/bling/orders";
+import { blingStock, maybeRetryBling, queueForBling } from "@/lib/bling/orders";
 import { getLegalVersions } from "@/lib/legal";
 
 /** Erro "esperado" do checkout: vira resposta HTTP com mensagem pro cliente. */
@@ -71,7 +73,12 @@ export async function priceOrder(input: Order) {
       const product = getProduct(item.sku)!;
       return { qty: item.qty, priceCents: product.priceCents, ...product.shipping };
     });
-    const quotes = await quoteMelhorEnvio(cep, shippingItems);
+    // Melhor Envio fora do ar na hora de pagar: em vez de travar a compra,
+    // pede pra escolher o frete de novo (a tela cai na tabela fixa).
+    const quotes = await quoteMelhorEnvio(cep, shippingItems).catch((error: Error) => {
+      console.error("[frete] Melhor Envio falhou ao fechar o pedido:", error.message);
+      return [] as ShippingOption[];
+    });
     shipping = quotes.find((option) => option.id === wanted);
   }
   if (!shipping)
@@ -144,6 +151,9 @@ export async function createPixOrder(input: Order, idempotencyKey: string): Prom
     mpCheckedAt: null,
   };
   await saveOrder(order);
+  // Índice de todos os pedidos: é dele que sai a planilha de pedidos
+  // (/api/loja/pedidos), o registro que não depende do Bling.
+  await kvSAdd(ALL_SET, id);
 
   try {
     const pix = await createPixPayment({
@@ -161,9 +171,16 @@ export async function createPixOrder(input: Order, idempotencyKey: string): Prom
   } catch (error) {
     order.status = "cancelled";
     await saveOrder(order);
+    // Solta a chave: a pessoa tenta de novo e gera um Pix novo (senão ficava
+    // 1h em "teu Pix ainda está sendo gerado").
+    await kvDel(idemKey).catch(() => {});
     console.error(`[pedido ${id}] falha ao gerar Pix:`, (error as Error).message);
     throw error;
   }
+  // Pix de verdade: entra na lista de "abertos", conferida em segundo plano
+  // no Mercado Pago até pagar ou vencer — mesmo que a pessoa feche a tela e
+  // o webhook não chegue.
+  if (!order.simulated) await kvSAdd(OPEN_SET, id);
 
   console.info(
     `[pedido ${id}] criado · ${order.totalCents} centavos · ${order.shipping.id} · ` +
@@ -173,20 +190,40 @@ export async function createPixOrder(input: Order, idempotencyKey: string): Prom
   return order;
 }
 
+// Pedidos com Pix gerado e ainda sem confirmação de pagamento.
+const OPEN_SET = "orders:open";
+// Todos os pedidos já criados (pra planilha).
+export const ALL_SET = "orders:all";
+
 /**
- * Marca como pago (idempotente). Chamado pelo webhook e pela checagem de
- * status — os dois só chegam aqui depois de confirmar na API do Mercado
- * Pago (ou no "simular pagamento" de teste). `onOrderPaid` roda uma vez só.
+ * Marca como pago (idempotente). Chamado pelo webhook, pela checagem de
+ * status e pela conferência em segundo plano — todos só chegam aqui depois
+ * de confirmar na API do Mercado Pago (ou no "simular pagamento" de teste).
+ *
+ * Ordem importa (cada passo sobrevive à função cair no meio):
+ * 1. marca `paid:<id>` (fonte da verdade, nunca volta atrás);
+ * 2. põe na fila do Bling;
+ * 3. regrava o pedido e tira da lista de abertos;
+ * 4. tenta mandar pro Bling agora (falhou → a fila reenvia).
  */
 export async function markPaid(orderId: string) {
-  const order = await getOrder(orderId);
-  if (!order) return null;
-  if (order.status !== "paid") {
-    order.status = "paid";
-    order.paidAt = new Date().toISOString();
+  const before = await getOrder(orderId);
+  if (!before) return null;
+  const paidAt = before.paidAt ?? new Date().toISOString();
+  const first = await setPaidMarker(orderId, paidAt);
+  if (first && before.status !== "paid" && before.status !== "pending")
+    await raiseAlert(
+      orderId,
+      `pago com o pedido em "${before.status}" — conferir se a pessoa não pagou também um Pix novo`,
+    );
+  if (!before.simulated) await queueForBling(orderId);
+
+  const order = (await getOrder(orderId)) ?? before;
+  if (first) {
     await saveOrder(order);
     console.info(`[pedido ${order.id}] PAGO · ${order.totalCents} centavos`);
   }
+  await kvSRem(OPEN_SET, orderId);
   if (await kvSetNX(`paid-hook:${order.id}`, "1", 60 * 60 * 24 * 365)) {
     try {
       await onOrderPaid(order);
@@ -202,10 +239,20 @@ export async function syncPayment(paymentId: string) {
   const payment = await getPayment(paymentId);
   if (!payment) return null;
   const order = await getOrder(payment.externalReference);
-  if (!order || order.mpPaymentId !== payment.id) return null;
+  if (!order || order.mpPaymentId !== payment.id) {
+    if (payment.status === "approved")
+      await raiseAlert(
+        payment.externalReference || "?",
+        `pagamento ${payment.id} aprovado mas não bate com nenhum pedido do site`,
+      );
+    return null;
+  }
   if (payment.status === "approved") {
     if (Math.round(payment.amount * 100) !== order.totalCents) {
-      console.error(`[pedido ${order.id}] valor pago não confere (${payment.amount})`);
+      await raiseAlert(
+        order.id,
+        `valor pago (R$ ${payment.amount}) diferente do pedido (${order.totalCents} centavos) — não marcado como pago`,
+      );
       return order;
     }
     return markPaid(order.id);
@@ -230,17 +277,81 @@ export async function refreshOrder(order: StoredOrder): Promise<StoredOrder> {
       const updated = await syncPayment(order.mpPaymentId);
       if (updated?.status === "paid") return updated;
     } catch (error) {
+      // Não conseguiu conferir: NÃO marca como expirado (pode ter pago no
+      // último minuto). A próxima consulta tenta de novo.
       console.error(`[pedido ${order.id}] erro ao conferir pagamento:`, (error as Error).message);
-      if (!expired) return order;
+      return order;
     }
     order.mpCheckedAt = new Date().toISOString();
+  } else if (!expired) {
+    // Nada mudou: não regrava (economiza o banco a cada polling).
+    return order;
   }
   if (expired) {
     order.status = "expired";
     console.info(`[pedido ${order.id}] Pix expirou`);
   }
+  // Regrava sem desfazer um pagamento que chegou no meio tempo (getOrder
+  // respeita a marca `paid:`, e quem lê depois vê pago).
   await saveOrder(order);
-  return order;
+  return (await getOrder(order.id)) ?? order;
+}
+
+// Quanto tempo um Pix aberto continua sendo conferido depois de criado.
+// O Pix vence em 30 min; a folga cobre confirmação atrasada do banco.
+const OPEN_WATCH_MS = 48 * 60 * 60 * 1000;
+
+/**
+ * Conferência em segundo plano: pra cada Pix aberto, pergunta direto pro
+ * Mercado Pago se foi pago. É a rede de segurança se a pessoa fechou a tela
+ * e o webhook não chegou. Pago → segue o fluxo normal (Bling). Sai da lista
+ * quando pagar, ou 48h depois de criado.
+ */
+export async function reconcileOpenOrders() {
+  const ids = await kvSMembers(OPEN_SET);
+  const results: { id: string; status: string }[] = [];
+  for (const id of ids) {
+    try {
+      const order = await getOrder(id);
+      if (!order || order.status === "paid" || !order.mpPaymentId || order.simulated) {
+        await kvSRem(OPEN_SET, id);
+        results.push({ id, status: order?.status ?? "sumiu" });
+        continue;
+      }
+      const synced = (await syncPayment(order.mpPaymentId)) ?? order;
+      const old = Date.now() - new Date(order.createdAt).getTime() > OPEN_WATCH_MS;
+      if (synced.status !== "paid" && old) {
+        await kvSRem(OPEN_SET, id);
+        if (synced.status === "pending") await saveOrder({ ...synced, status: "expired" });
+      }
+      results.push({ id, status: synced.status });
+    } catch (error) {
+      console.error(`[conferência] pedido ${id}:`, (error as Error).message);
+      results.push({ id, status: "erro ao conferir" });
+    }
+  }
+  return results;
+}
+
+let lastReconcileCheck = 0;
+
+/** Conferência oportunista: no máximo a cada 5 min no site inteiro. */
+export async function maybeReconcileOrders() {
+  try {
+    if (Date.now() - lastReconcileCheck < 60_000) return;
+    lastReconcileCheck = Date.now();
+    if ((await kvSMembers(OPEN_SET)).length === 0) return;
+    if (!(await kvSetNX("orders:reconcile-tick", "1", 5 * 60))) return;
+    await reconcileOpenOrders();
+  } catch (error) {
+    console.error("[conferência] oportunista:", (error as Error).message);
+  }
+}
+
+/** Tudo que roda em segundo plano depois de uma resposta (`after`). */
+export async function housekeeping() {
+  await maybeReconcileOrders();
+  await maybeRetryBling();
 }
 
 /** Pix expirado → novo pedido com os mesmos dados (preços recalculados). */

@@ -1,6 +1,5 @@
 import { after } from "next/server";
-import { maybeRetryBling } from "@/lib/bling/orders";
-import { refreshOrder } from "@/lib/store/checkout";
+import { housekeeping, refreshOrder } from "@/lib/store/checkout";
 import { errorResponse, guard, json } from "@/lib/store/http";
 import { getOrder } from "@/lib/store/orders";
 
@@ -8,8 +7,8 @@ import { getOrder } from "@/lib/store/orders";
 export async function GET(request: Request, ctx: RouteContext<"/api/orders/[id]/status">) {
   const blocked = await guard(request, "status", 60, 60);
   if (blocked) return blocked;
-  // Pedidos que falharam no Bling: tenta de novo depois da resposta.
-  after(maybeRetryBling);
+  // Depois da resposta: confere Pix abertos e reenvia o que falhou no Bling.
+  after(housekeeping);
   try {
     const { id } = await ctx.params;
     const order = await getOrder(id);

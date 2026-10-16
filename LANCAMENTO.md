@@ -18,6 +18,73 @@ O que precisa ser feito/conferido no dia em que a loja for pro ar
       Orders antes do Mercado Pago desligar a atual
       (`src/lib/mercadopago.ts`).
 
+## Como a compra funciona e o que acontece se algo falhar (revisado em 16/10)
+
+Caminho normal: checkout → servidor recalcula preço e frete → pedido salvo
+(Redis) → Pix no Mercado Pago → pessoa paga → **confirmação** → pedido
+marcado PAGO → entra na fila do Bling → pedido de venda no Bling → NF e
+etiqueta (feitas no Bling/Melhor Envio, à mão).
+
+A confirmação do pagamento chega por **três caminhos independentes** (basta
+um funcionar): (1) webhook do Mercado Pago; (2) a tela do Pix perguntando a
+cada 4 s; (3) conferência em segundo plano dos "Pix abertos" (a cada ~5 min
+quando o site tem movimento, e no cron diário), por 48 h.
+
+| Se falhar…                                       | O que acontece                                                                                                                          | O que fazer                                                                   |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Mercado Pago fora ao gerar o Pix                 | Cliente vê "Não deu pra gerar o Pix agora"; nada é cobrado; tentar de novo funciona.                                                    | Nada. Se durar, ver status do Mercado Pago.                                   |
+| Pessoa paga e fecha a tela                       | Webhook confirma; se não vier, a conferência em segundo plano confirma.                                                                 | Nada.                                                                         |
+| Webhook não configurado / falhando               | A tela e a conferência confirmam do mesmo jeito (mais devagar).                                                                         | Configurar o webhook (seção Mercado Pago).                                    |
+| Webhook falso (sem assinatura certa)             | Recusado (401). O site sempre confirma direto na API do Mercado Pago.                                                                   | Nada.                                                                         |
+| Pix vence e o Mercado Pago estava fora           | Não marca "expirado" sem conseguir conferir; tenta de novo.                                                                             | Nada.                                                                         |
+| Pagou no último segundo e a tela disse "vencido" | "Gerar novo Pix" confere antes e mostra PAGO (não cobra 2x). Gera alerta.                                                               | Conferir o alerta no painel.                                                  |
+| Valor pago diferente do pedido                   | NÃO marca pago; gera alerta.                                                                                                            | Ver no Mercado Pago, devolver/ajustar à mão.                                  |
+| Dois avisos ao mesmo tempo (webhook + tela)      | Marca de "pago" separada que nunca volta atrás; uma entrada só no Bling.                                                                | Nada.                                                                         |
+| Bling fora / token vencido                       | Pedido pago fica na **fila do Bling** (com o erro) e é reenviado sozinho; o pedido entra na fila ANTES de tentar, então nunca se perde. | Ver `filaBling` no painel; reconectar em `/api/bling/connect` se for o token. |
+| Melhor Envio fora                                | Na cotação: tabela fixa por região. Na hora de pagar: pede pra escolher o frete de novo (cai na tabela).                                | Renovar `MELHOR_ENVIO_TOKEN` se venceu (~30 dias).                            |
+| Preço mexido no navegador                        | Recusado: o servidor recalcula tudo pelo catálogo.                                                                                      | Nada.                                                                         |
+| Cliente com problema                             | As telas do Pix e de confirmação mostram o número do pedido e um WhatsApp com ele já escrito.                                           | Procurar o número no painel.                                                  |
+
+**Planilha de pedidos (registro final, não depende do Bling):**
+`https://fernandito.com.br/api/loja/pedidos?key=<BLING_ADMIN_KEY>` → baixa
+um CSV (abre no Excel/Sheets) com todo pedido PAGO: nome, CPF, e-mail,
+telefone, endereço, itens, frete, total, id do Mercado Pago e o número no
+Bling — ou "NÃO ENTROU" se não entrou. Se o Bling falhar de vez, lança à
+mão a partir daqui. `&todos=1` inclui Pix vencidos/cancelados.
+
+**Painel da loja:** `https://fernandito.com.br/api/loja/diagnostico?key=<BLING_ADMIN_KEY>`
+— mostra `configuracao` (tudo tem que estar `true`/"produção" no dia),
+`pixAbertos`, `filaBling` (pagos que ainda não estão no Bling, com o erro) e
+`alertas`. Com `&conferir=1` confere tudo na hora antes de mostrar.
+Rotina sugerida: abrir o painel 1x por dia. `filaBling` e `alertas` vazios = tudo certo.
+
+**Banco (Redis/Upstash):** cada compra usa ~100–300 comandos (um Pix
+abandonado aberto 30 min, até ~1.300). Conferir no painel do Upstash o
+limite do plano antes de anunciar forte.
+
+### Testar a loja (bateria de cenários)
+
+24 cenários (pagamento normal, webhook falso, tela fechada, webhooks
+repetidos, valor errado, Mercado Pago fora, clique duplo, Pix vencido,
+"pagou no último segundo", Melhor Envio fora, preço adulterado, painel sem
+chave). Rodou 6x seguidas, 144/144 em 16/10. Pra rodar de novo (local):
+
+```bash
+npm run build
+node scripts/teste-loja/mercadopago-falso.mjs &
+MERCADOPAGO_API_URL=http://localhost:3999 MERCADOPAGO_ACCESS_TOKEN=TEST-falso \
+  MERCADOPAGO_WEBHOOK_SECRET=segredo-de-teste-local BLING_SYNC_PREVIEW=1 \
+  BLING_ADMIN_KEY=chave-admin-local-0123456789 npx next start -p 3160 &
+node scripts/teste-loja/cenarios.mjs
+```
+
+Isso testa o NOSSO sistema com um Mercado Pago de mentira. O teste de R$ 1
+(abaixo) continua obrigatório: é o único que prova o banco de verdade, o
+Bling de verdade e a etiqueta.
+
+- [ ] E-mails pro cliente ("Pix gerado", "pedido confirmado") — ainda não
+      existem; hoje o cliente só tem as telas do site.
+
 ## Teste completo de R$ 1 (antes de abrir pro público)
 
 - [ ] Produto de teste de R$ 1, frete grátis, visível só no teste.
@@ -26,6 +93,9 @@ O que precisa ser feito/conferido no dia em que a loja for pro ar
       produção a não contribuinte - Consumidor final", peso, volumes,
       transportadora, data prevista).
 - [ ] Nota fiscal emitida no Bling e etiqueta do Melhor Envio gerada.
+- [ ] Painel da loja: o pedido some de `pixAbertos`, não aparece em
+      `filaBling` (já entrou no Bling) e `alertas` está vazio.
+- [ ] Repetir fechando a tela logo depois de pagar (confirma sem a tela).
 - [ ] Depois: devolver o R$ 1 no Mercado Pago, cancelar a NF-e no Bling
       (até 24h) e voltar as credenciais de teste no Preview.
 
@@ -59,7 +129,16 @@ Pendente:
 - [ ] E-mails: "pedido confirmado" pro cliente e "compra nova" pra equipe.
 - [x] Tributação/CEST: a contadora já configurou.
 
-## Bling (configurado em 14/10)
+## Bling (configurado em 14/10, conferido em 16/10)
+
+Conferido direto na conta (só leitura, 16/10): empresa FERNANDITO BEBIDAS
+LTDA; produtos `FERN-KIT-PRE` (kit, R$ 100, estoque 150) e `FERN-350-6`
+(pack, R$ 100, estoque 166) ativos e com o mesmo SKU/preço do site;
+situação 15 "Em andamento" existe; logística "Entrega própria POA" ativa;
+depósito "Geral" padrão; nenhum pedido de venda ainda. **Falta provar só a
+criação do pedido** — acontece no teste de R$ 1; depois dele, conferir o
+pedido no Bling campo a campo (cliente, CPF, itens, frete, total, natureza,
+loja, parcela Pix, observação com o nº do site).
 
 - Vercel (Production e Preview): `BLING_NATUREZA_ID=15111699956` (Venda de
   produção a não contribuinte – Consumidor final), `BLING_LOJA_ID=206326864`
@@ -90,7 +169,8 @@ navegação" no DESIGN_SYSTEM.md.
 - [ ] Episódios: pra cada um, título, link do post no Instagram, capa e
       uma prévia de 5–10 s em mp4 sem som (`EPISODIOS`).
 - [ ] Arte da lata no "O que é" (hoje é um espaço reservado).
-- [ ] Razão social e endereço completo da empresa no rodapé (`FOOTER.company`).
+- [x] Razão social no rodapé (FERNANDITO BEBIDAS LTDA, conferida no Bling em 16/10).
+- [ ] Endereço completo da empresa no rodapé (`FOOTER.company`).
 - [ ] Página de Trocas e devoluções (com o advogado).
 - [ ] Preço/produto do lançamento (kit atual × pack de 6) — em aberto.
 - [ ] Torneira em eventos — em aberto (a porta de evento não promete torneira).

@@ -319,13 +319,27 @@ async function createSalesOrder(order: StoredOrder) {
 }
 
 /**
+ * Põe o pedido na fila do Bling ANTES de tentar enviar: se a função cair no
+ * meio (tempo esgotado, Bling travado), ele continua na fila e o reenvio
+ * pega. Só sai da fila quando o Bling confirmar.
+ */
+export async function queueForBling(orderId: string) {
+  await kvSAdd(RETRY_SET, orderId);
+}
+
+/**
  * Envia o pedido pago pro Bling. Nunca lança: erro vira `order.bling.error`
  * + fila de reenvio.
  */
 export async function syncOrderToBling(orderId: string) {
   const order = await getOrder(orderId);
-  if (!order || order.status !== "paid" || order.bling?.orderId) return order;
+  if (!order || order.status !== "paid" || order.bling?.orderId) {
+    // Já está no Bling (ou nem existe): nada a fazer, sai da fila.
+    if (!order || order.bling?.orderId) await kvSRem(RETRY_SET, orderId);
+    return order;
+  }
   if (order.simulated || !SYNC_ENABLED) {
+    await kvSRem(RETRY_SET, order.id);
     console.info(
       `[bling] pedido ${order.id} não enviado (${order.simulated ? "Pix simulado" : "preview"})`,
     );
@@ -361,9 +375,15 @@ export async function syncOrderToBling(orderId: string) {
  * da resposta (`after`), sem atrasar ninguém. Funciona em qualquer plano da
  * Vercel — o cron é só a rede de segurança.
  */
+// Freio por instância: não pergunta pro Redis a cada polling (economiza
+// comandos do banco); no máximo 1x por minuto em cada instância.
+let lastRetryCheck = 0;
+
 export async function maybeRetryBling() {
   try {
     if (!SYNC_ENABLED) return;
+    if (Date.now() - lastRetryCheck < 60_000) return;
+    lastRetryCheck = Date.now();
     // Fila vazia → nem gasta a vez (o próximo pedido que falhar não espera 10 min).
     if ((await kvSMembers(RETRY_SET)).length === 0) return;
     if (!(await kvSetNX("bling:retry-tick", "1", 10 * 60))) return;

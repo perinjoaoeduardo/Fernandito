@@ -8,6 +8,7 @@ import type { OrderStatus, PublicOrder } from "@/lib/store/orders";
 import { Button } from "@/components/ui/Button";
 import { OrderReceipt } from "@/components/checkout/OrderReceipt";
 import { Price } from "@/components/ui/Price";
+import { whatsappHref } from "@/components/ui/WhatsAppButton";
 
 /**
  * Tela do Pix: QR code, "copiar código", valor, contador de expiração e
@@ -110,6 +111,10 @@ export function PixPayment({
     if (response.ok) setStatus("paid");
     else setBusy(false);
   }
+
+  const help = whatsappHref(
+    `Oi! Paguei o Pix do pedido #${order.id} e a tela não confirmou. Pode conferir?`,
+  );
 
   const minutes = Math.floor(remaining / 60000);
   const seconds = Math.floor((remaining % 60000) / 1000);
@@ -288,6 +293,22 @@ export function PixPayment({
               </div>
             )}
           </div>
+        )}
+        {/* Saída pra qualquer problema: com o número do pedido, quem
+            atende acha no painel da loja na hora. */}
+        {help && (
+          <p data-enter className="text-body mt-5 font-sans opacity-80">
+            Pagou e a tela não mudou? Não paga de novo:{" "}
+            <a
+              href={help}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-4 hover:opacity-100"
+            >
+              chama a gente no WhatsApp
+            </a>{" "}
+            com o pedido <span className="font-bold">#{order.id}</span>.
+          </p>
         )}
       </div>
 

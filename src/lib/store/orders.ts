@@ -2,7 +2,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import type { Address, Customer } from "@/lib/order";
 import type { ShippingOption } from "@/lib/shipping";
-import { kvGet, kvSet } from "@/lib/store/kv";
+import { kvMGet, kvSAdd, kvSet, kvSetNX } from "@/lib/store/kv";
 
 /**
  * Pedido salvo no servidor (Redis, chave `order:<id>`). Nasce "pending"
@@ -67,8 +67,26 @@ export function newOrderId() {
 
 export async function getOrder(id: string): Promise<StoredOrder | null> {
   if (!/^[\w-]{6,40}$/.test(id)) return null;
-  const raw = await kvGet(`order:${id}`);
-  return raw ? (JSON.parse(raw) as StoredOrder) : null;
+  const [raw, paidAt] = await kvMGet(`order:${id}`, `paid:${id}`);
+  if (!raw) return null;
+  const order = JSON.parse(raw) as StoredOrder;
+  // A marca `paid:<id>` manda: se alguém regravou o pedido com um status
+  // velho (duas requisições ao mesmo tempo), ele continua pago.
+  if (paidAt && order.status !== "paid") {
+    order.status = "paid";
+    order.paidAt = paidAt;
+  }
+  return order;
+}
+
+/**
+ * Marca de "pago" separada do pedido, gravada uma vez só e nunca apagada.
+ * É ela que garante que um pagamento confirmado não se perde se o pedido
+ * for regravado ao mesmo tempo por outra requisição (o polling da tela do
+ * Pix e o webhook podem rodar juntos). `true` = foi esta chamada que marcou.
+ */
+export async function setPaidMarker(id: string, paidAt: string) {
+  return kvSetNX(`paid:${id}`, paidAt, ORDER_TTL);
 }
 
 export async function saveOrder(order: StoredOrder) {
@@ -100,6 +118,23 @@ export function publicOrder(order: StoredOrder) {
 }
 
 export type PublicOrder = ReturnType<typeof publicOrder>;
+
+/**
+ * Algo que precisa de olho humano (valor pago diferente, pago depois de
+ * expirar…). Fica no Redis (`loja:alertas`) e aparece no diagnóstico da
+ * loja (`/api/loja/diagnostico`). Nunca lança.
+ */
+export async function raiseAlert(orderId: string, problem: string) {
+  console.error(`[ALERTA pedido ${orderId}] ${problem}`);
+  try {
+    await kvSAdd(
+      "loja:alertas",
+      JSON.stringify({ at: new Date().toISOString(), orderId, problem }),
+    );
+  } catch (error) {
+    console.error("[alerta] não gravou:", (error as Error).message);
+  }
+}
 
 /** Pra log: CPF só com os 2 últimos dígitos, e-mail com o começo escondido. */
 export function maskCpf(cpf: string) {
