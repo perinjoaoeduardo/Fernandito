@@ -219,7 +219,7 @@ export const PAGES = {
    * vira lead (`/api/leads`). Na `message`, `{campo}` vira a resposta. */
   contato: {
     title: "Contato",
-    lead: "Curtiu o Fernandito? Quer ele no teu evento, no teu bar ou só trocar uma ideia? Chama a gente no WhatsApp.",
+    lead: "Curtiu o Fernandito? Chama a gente.",
     submit: "Chamar no WhatsApp",
     sent: "Abrimos o WhatsApp. É só enviar.",
     fallback: "Não abriu?",
@@ -244,11 +244,11 @@ export const PAGES = {
           "/images/placeholder/troller.jpg",
         ),
         fields: [
-          { name: "nome", label: "Teu nome", placeholder: "Ana Souza" },
-          { name: "cidade", label: "Cidade", placeholder: "Porto Alegre" },
+          { name: "nome", label: "Qual teu nome?", placeholder: "Ana Souza" },
+          { name: "cidade", label: "Em que cidade?", placeholder: "Porto Alegre" },
           {
             name: "pessoas",
-            label: "Quantas pessoas",
+            label: "Quantas pessoas?",
             options: ["Até 50", "50 a 150", "Mais de 150"],
           },
         ],
@@ -261,8 +261,8 @@ export const PAGES = {
         theme: "verde-escuro",
         photo: photo("Foto: revenda", "Araucárias no campo", "/images/placeholder/araucarias.jpg"),
         fields: [
-          { name: "nome", label: "Teu nome", placeholder: "Ana Souza" },
-          { name: "lugar", label: "Lugar e cidade", placeholder: "Bar do Zé, Pelotas" },
+          { name: "nome", label: "Qual teu nome?", placeholder: "Ana Souza" },
+          { name: "lugar", label: "Qual o lugar e a cidade?", placeholder: "Bar do Zé, Pelotas" },
         ],
         message:
           "Oi, Fernandito! Aqui é {nome}, do {lugar}.\nQuero revender o Fernandito.\n— enviado pelo site · Revenda",

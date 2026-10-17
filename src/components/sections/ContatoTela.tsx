@@ -45,8 +45,9 @@ function WhatsAppIcon({ className }: { className?: string }) {
  * Página Contato: "Contato", uma frase, os 3 motivos e o botão do WhatsApp.
  * "Conversar" vai direto; evento e revenda pedem o mínimo (2–3 campos) pra
  * mensagem chegar com contexto. Trocar o motivo muda a cor da tela e a foto.
- * Computador: tela dividida, a foto na metade direita. Celular: a foto embaixo
- * do botão. A mensagem pronta não aparece na tela. Ao mandar: guarda o lead (sendBeacon) e abre o WhatsApp no
+ * Evento e revenda abrem um cartão com as perguntas e o botão dentro.
+ * Computador: tela dividida, o bloco no centro da metade esquerda e a foto na
+ * direita. Celular: a foto embaixo do botão. A mensagem pronta não aparece na tela. Ao mandar: guarda o lead (sendBeacon) e abre o WhatsApp no
  * mesmo clique (app no celular, WhatsApp Web no computador). Se não abrir,
  * dá pra copiar a mensagem. Textos em `PAGES.contato`.
  */
@@ -108,10 +109,7 @@ export function ContatoTela() {
   };
 
   const t = (duration: number) => (reduce ? { duration: 0 } : { duration, ease: SMOOTH });
-  const onDark = theme.dark;
-  const chipOn = onDark
-    ? "bg-fernandito-off-white text-fernandito-verde-escuro"
-    : "bg-fernandito-verde-escuro text-fernandito-off-white";
+  const hasFields = reason.fields.length > 0;
 
   // Depois de mandar: confirmação + plano B se o WhatsApp não abriu.
   const after = sent && (
@@ -128,6 +126,23 @@ export function ContatoTela() {
     </p>
   );
 
+  // O único elemento cheio da tela: bege sobre o verde, verde-escuro dentro
+  // do cartão. O seletor de motivo fica discreto pra não competir com ele.
+  const button = (
+    <button
+      type="submit"
+      className={clsx(
+        "duration-base ease-out-standard flex h-13 w-full items-center justify-center gap-2.5 rounded-full px-8 font-sans text-[1rem] font-bold transition-[background-color,transform] active:scale-[0.98]",
+        hasFields
+          ? "bg-fernandito-verde-escuro text-fernandito-off-white hover:bg-fernandito-verde-medio"
+          : "bg-fernandito-off-white text-fernandito-verde-escuro shadow-[0_14px_34px_rgba(20,28,18,0.3)] hover:bg-white",
+      )}
+    >
+      <WhatsAppIcon className="h-5 w-5" />
+      {page.submit}
+    </button>
+  );
+
   return (
     <motion.section
       aria-label={page.title}
@@ -136,148 +151,157 @@ export function ContatoTela() {
       transition={t(0.7)}
       className="w-full lg:grid lg:min-h-svh lg:grid-cols-2"
     >
-      <div className="flex w-full flex-col px-6 pt-[calc(7.5rem+var(--announcement-h))] pb-10 sm:px-10 lg:max-w-xl lg:justify-self-end lg:px-16 lg:pb-12">
-        <NextLink
-          href="/"
-          className="text-label duration-base ease-out-standard inline-flex items-center gap-2 self-start font-sans tracking-[0.1em] uppercase opacity-70 transition-opacity hover:opacity-100"
+      {/* Metade do texto: o bloco fica no centro (nos dois sentidos) e
+          desliza quando cresce ou encolhe com a troca de motivo. */}
+      <div className="flex w-full justify-center px-6 pt-[calc(7.5rem+var(--announcement-h))] pb-10 sm:px-10 lg:items-center lg:px-12 lg:pt-[calc(6.5rem+var(--announcement-h))] lg:pb-12">
+        <motion.div
+          layout={reduce ? false : "position"}
+          transition={{ type: "spring", stiffness: 260, damping: 32 }}
+          className="flex w-full max-w-[26rem] flex-col"
         >
-          <span aria-hidden="true">←</span> Início
-        </NextLink>
-        <h1 className="font-rampart mt-5 text-[clamp(2.6rem,6vw,4.6rem)] leading-[0.95]">
-          {page.title}
-        </h1>
-        <p className="text-body mt-4 max-w-md font-sans opacity-80">{page.lead}</p>
+          <NextLink
+            href="/"
+            className="text-label duration-base ease-out-standard inline-flex items-center gap-2 self-start font-sans tracking-[0.1em] uppercase opacity-70 transition-opacity hover:opacity-100"
+          >
+            <span aria-hidden="true">←</span> Início
+          </NextLink>
+          <h1 className="font-rampart mt-5 text-[clamp(2.6rem,6vw,4.6rem)] leading-[0.95]">
+            {page.title}
+          </h1>
+          <p className="mt-3 font-sans text-[0.95rem] opacity-75">{page.lead}</p>
 
-        {/* Motivos (uma linha só, também no celular): o destaque desliza. */}
-        <div
-          role="radiogroup"
-          aria-label="Motivo do contato"
-          className="mt-7 flex flex-nowrap gap-2"
-        >
-          {page.reasons.map((r) => {
-            const on = r.key === reason.key;
-            return (
-              <button
-                key={r.key}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                onClick={() => choose(r.key)}
+          {/* Motivos: trilho discreto, o destaque desliza de um pro outro. */}
+          <div
+            role="radiogroup"
+            aria-label="Motivo do contato"
+            className="mt-7 flex gap-1 self-start rounded-full bg-black/15 p-1"
+          >
+            {page.reasons.map((r) => {
+              const on = r.key === reason.key;
+              return (
+                <button
+                  key={r.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => choose(r.key)}
+                  className={clsx(
+                    "relative h-9 rounded-full px-4 font-sans text-[0.875rem] font-bold whitespace-nowrap transition-opacity duration-300 lg:h-10 lg:px-5",
+                    on ? "opacity-100" : "opacity-60 hover:opacity-100",
+                  )}
+                >
+                  {on && (
+                    <motion.span
+                      layoutId="contato-motivo"
+                      transition={
+                        reduce ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 36 }
+                      }
+                      className="absolute inset-0 rounded-full bg-white/15 ring-1 ring-white/25"
+                    />
+                  )}
+                  <span className="relative">{r.chip}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* "Conversar": só o botão. Evento e revenda: um cartão com as
+              perguntas e o botão dentro. */}
+          <form onSubmit={submit} noValidate className="mt-7">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={reason.key}
+                initial={{ opacity: 0, y: 14, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                transition={t(0.35)}
                 className={clsx(
-                  "relative h-10 rounded-full px-4 font-sans text-[0.875rem] font-bold whitespace-nowrap ring-1 transition-colors duration-500 lg:h-11 lg:px-5 lg:text-[0.95rem]",
-                  on ? "ring-transparent" : "opacity-85 ring-current/30 hover:opacity-100",
-                  on && (onDark ? "text-fernandito-verde-escuro" : "text-fernandito-off-white"),
+                  hasFields &&
+                    "bg-fernandito-off-white text-fernandito-verde-escuro rounded-3xl p-5 shadow-[0_24px_60px_rgba(20,28,18,0.28)] sm:p-6",
                 )}
               >
-                {on && (
-                  <motion.span
-                    layoutId="contato-motivo"
-                    transition={
-                      reduce ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 36 }
-                    }
-                    className={clsx(
-                      "absolute inset-0 rounded-full transition-colors duration-700",
-                      onDark ? "bg-fernandito-off-white" : "bg-fernandito-verde-escuro",
-                    )}
-                  />
-                )}
-                <span className="relative">{r.chip}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Campos do motivo (nenhum no "Conversar": fica só o botão). */}
-        <form id="contato-form" onSubmit={submit} noValidate className="mt-8">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={reason.key}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={t(0.35)}
-              className="flex flex-col gap-6"
-            >
-              {reason.fields.map((field) => {
-                const id = `contato-${reason.key}-${field.name}`;
-                const flagged = missing && !current[field.name]?.trim();
-                return (
-                  <div key={field.name}>
-                    <label
-                      htmlFor={field.options ? undefined : id}
-                      id={`${id}-label`}
-                      className={clsx(
-                        "text-label block font-sans tracking-[0.12em] uppercase",
-                        flagged ? "font-bold opacity-100" : "opacity-70",
-                      )}
-                    >
-                      {field.label}
-                      {flagged && " · falta"}
-                    </label>
-                    {field.options ? (
-                      <div
-                        id={id}
-                        tabIndex={-1}
-                        role="radiogroup"
-                        aria-labelledby={`${id}-label`}
-                        className="mt-2.5 flex flex-wrap gap-2 outline-none"
-                      >
-                        {field.options.map((option) => {
-                          const on = current[field.name] === option;
-                          return (
-                            <button
-                              key={option}
-                              type="button"
-                              role="radio"
-                              aria-checked={on}
-                              onClick={() => set(field.name, option)}
-                              className={clsx(
-                                "duration-base ease-out-standard h-10 rounded-full px-4 font-sans text-[0.875rem] font-bold transition-[background-color,color,box-shadow,transform] active:scale-[0.96]",
-                                on ? chipOn : "ring-1 ring-current/30 hover:ring-current/70",
-                              )}
+                {hasFields && (
+                  <div className="mb-6 flex flex-col gap-5">
+                    {reason.fields.map((field) => {
+                      const id = `contato-${reason.key}-${field.name}`;
+                      const flagged = missing && !current[field.name]?.trim();
+                      return (
+                        <div key={field.name}>
+                          <label
+                            htmlFor={field.options ? undefined : id}
+                            id={`${id}-label`}
+                            className="block font-sans text-[0.9rem] font-bold"
+                          >
+                            {field.label}
+                            {flagged && <span className="font-normal opacity-70"> · falta</span>}
+                          </label>
+                          {field.options ? (
+                            <div
+                              id={id}
+                              tabIndex={-1}
+                              role="radiogroup"
+                              aria-labelledby={`${id}-label`}
+                              className="mt-2 flex flex-wrap gap-2 outline-none"
                             >
-                              {option}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <input
-                        id={id}
-                        value={current[field.name] ?? ""}
-                        placeholder={field.placeholder}
-                        maxLength={100}
-                        autoComplete={field.name === "nome" ? "name" : "off"}
-                        enterKeyHint="next"
-                        onChange={(e) => set(field.name, e.target.value)}
-                        className={clsx(
-                          "text-body-lg mt-1.5 w-full max-w-md border-b-2 bg-transparent py-2 font-sans transition-colors outline-none placeholder:opacity-40 focus:border-current",
-                          flagged ? "border-current" : "border-current/30",
-                        )}
-                      />
-                    )}
+                              {field.options.map((option) => {
+                                const on = current[field.name] === option;
+                                return (
+                                  <motion.button
+                                    key={option}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={on}
+                                    onClick={() => set(field.name, option)}
+                                    animate={
+                                      on
+                                        ? { backgroundColor: theme.bg, color: theme.fg }
+                                        : {
+                                            backgroundColor: "rgba(255,255,255,0.6)",
+                                            color: "#243022",
+                                          }
+                                    }
+                                    transition={t(0.25)}
+                                    className={clsx(
+                                      "duration-base ease-out-standard h-10 rounded-full px-4 font-sans text-[0.875rem] font-bold transition-[box-shadow,transform] active:scale-[0.96]",
+                                      on
+                                        ? "ring-0"
+                                        : clsx(
+                                            "ring-1 hover:ring-current/50",
+                                            flagged ? "ring-current" : "ring-current/15",
+                                          ),
+                                    )}
+                                  >
+                                    {option}
+                                  </motion.button>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <input
+                              id={id}
+                              value={current[field.name] ?? ""}
+                              placeholder={field.placeholder}
+                              maxLength={100}
+                              autoComplete={field.name === "nome" ? "name" : "off"}
+                              enterKeyHint="next"
+                              onChange={(e) => set(field.name, e.target.value)}
+                              className={clsx(
+                                "mt-2 h-12 w-full rounded-xl bg-white/60 px-4 font-sans text-[1rem] transition-shadow outline-none placeholder:text-current/35 focus:bg-white focus:ring-2 focus:ring-current",
+                                flagged ? "ring-2 ring-current" : "ring-1 ring-current/15",
+                              )}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </motion.div>
-          </AnimatePresence>
-
-          <div className={clsx(reason.fields.length ? "mt-10" : "mt-2")}>
-            <button
-              type="submit"
-              className={clsx(
-                "duration-base ease-out-standard flex h-13 w-full items-center justify-center gap-2.5 rounded-full px-8 font-sans text-[1rem] font-bold shadow-[0_14px_34px_rgba(20,28,18,0.3)] transition-[background-color,transform] active:scale-[0.98] sm:w-auto",
-                onDark
-                  ? "bg-fernandito-off-white text-fernandito-verde-escuro hover:bg-white"
-                  : "bg-fernandito-verde-escuro text-fernandito-off-white hover:bg-fernandito-verde-medio",
-              )}
-            >
-              <WhatsAppIcon className="h-5 w-5" />
-              {page.submit}
-            </button>
-            {after}
-          </div>
-        </form>
+                )}
+                {button}
+                {after}
+              </motion.div>
+            </AnimatePresence>
+          </form>
+        </motion.div>
       </div>
 
       {/* Foto: no computador, a metade direita inteira (presa enquanto rola);
