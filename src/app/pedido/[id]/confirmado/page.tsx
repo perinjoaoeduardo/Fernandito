@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { connection } from "next/server";
+import { after, connection } from "next/server";
 import { LINKS, STORE } from "@/content/site";
 import { getOrder, publicOrder } from "@/lib/store/orders";
 import { OrderReceipt } from "@/components/checkout/OrderReceipt";
 import { ClearCart } from "@/components/checkout/ClearCart";
 import { Button } from "@/components/ui/Button";
 import { EnterStagger } from "@/components/ui/EnterStagger";
+import { OrderTimeline } from "@/components/checkout/OrderTimeline";
+import { AutoRefresh } from "@/components/checkout/AutoRefresh";
+import { advanceFulfillment, getFulfillment, isStale } from "@/lib/store/fulfillment";
 
 export const metadata: Metadata = {
   title: "Pedido confirmado",
@@ -30,10 +33,16 @@ export default async function ConfirmadoPage(props: PageProps<"/pedido/[id]/conf
   if (!order) notFound();
   // Ainda não pago → volta pra tela do Pix.
   if (order.status !== "paid") redirect(`/pedido/${order.id}`);
+  const fulfillment = await getFulfillment(order.id);
+  const finished = ["delivered", "local-delivered"].includes(fulfillment?.stage ?? "");
+  // Página aberta = dá um empurrão no envio (no máximo a cada 2 min).
+  if (!finished && isStale(fulfillment))
+    after(() => advanceFulfillment(order.id).then(() => undefined));
 
   return (
     <main className="bg-fernandito-verde-medio text-fernandito-off-white min-h-screen [color-scheme:light]">
       <ClearCart />
+      {!finished && <AutoRefresh seconds={30} />}
       <EnterStagger className="mx-auto flex max-w-2xl flex-col items-start gap-8 px-6 pt-[calc(8rem+var(--announcement-h))] pb-24 sm:px-10">
         <div data-enter>
           <span
@@ -51,6 +60,16 @@ export default async function ConfirmadoPage(props: PageProps<"/pedido/[id]/conf
           <p className="text-body-lg mt-4 max-w-xl font-sans">
             Valeu, {order.customer.name.split(/\s+/)[0]}! O pagamento chegou e o teu kit já está na
             fila de envio.
+          </p>
+        </div>
+        <div data-enter className="w-full">
+          <OrderTimeline
+            paidAt={order.paidAt}
+            shippingId={order.shipping.id}
+            fulfillment={fulfillment}
+          />
+          <p className="text-label mt-3 tracking-[0.04em] opacity-70">
+            Guarda este link: é aqui que tu acompanha o pedido. Atualiza sozinho.
           </p>
         </div>
         <div data-enter className="w-full">

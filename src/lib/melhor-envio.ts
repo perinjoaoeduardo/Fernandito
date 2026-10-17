@@ -23,12 +23,14 @@ import { IS_PRODUCTION, kvGet, kvSet } from "@/lib/store/kv";
  * o preço que a pessoa viu na tela é o que o servidor confere depois.
  */
 
-const TOKEN = process.env.MELHOR_ENVIO_TOKEN?.trim() || "";
-const BASE =
-  process.env.MELHOR_ENVIO_SANDBOX === "1"
+export const TOKEN = process.env.MELHOR_ENVIO_TOKEN?.trim() || "";
+// `MELHOR_ENVIO_API_URL` só pra teste local (um Melhor Envio falso).
+export const BASE =
+  process.env.MELHOR_ENVIO_API_URL?.trim() ||
+  (process.env.MELHOR_ENVIO_SANDBOX === "1"
     ? "https://sandbox.melhorenvio.com.br"
-    : "https://www.melhorenvio.com.br";
-const USER_AGENT =
+    : "https://www.melhorenvio.com.br");
+export const USER_AGENT =
   process.env.MELHOR_ENVIO_USER_AGENT?.trim() || "Fernandito (https://fernandito.com.br)";
 export const ORIGIN_CEP = (process.env.MELHOR_ENVIO_CEP_ORIGEM?.trim() || "90430131").replace(
   /\D/g,
@@ -162,7 +164,19 @@ function quoteMock(cep: string, items: ShippingItem[]): ShippingOption[] {
 
 export const ME_BASE_URL = "https://melhorenvio.com.br";
 export const ME_USER_AGENT = USER_AGENT;
-export const ME_SCOPES = ["shipping-calculate"];
+// Cálculo + compra automática da etiqueta (carrinho → pagar com o saldo →
+// gerar → rastreio/impressão). Mudou a lista? Gerar o token de novo.
+export const ME_SCOPES = [
+  "shipping-calculate",
+  "cart-read",
+  "cart-write",
+  "orders-read",
+  "shipping-checkout",
+  "shipping-generate",
+  "shipping-print",
+  "shipping-tracking",
+  "shipping-cancel",
+];
 
 /** URL de callback — tem que ser IGUAL à cadastrada no app do Melhor Envio. */
 export const REDIRECT_URI =

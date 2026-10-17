@@ -4,6 +4,7 @@ import { retryPendingBlingOrders } from "@/lib/bling/orders";
 import { isAdmin } from "@/lib/leads";
 import { MP_SIMULATED } from "@/lib/mercadopago";
 import { reconcileOpenOrders } from "@/lib/store/checkout";
+import { advanceAllFulfillments, getFulfillment } from "@/lib/store/fulfillment";
 import { HAS_REDIS, IS_PRODUCTION, kvSMembers } from "@/lib/store/kv";
 import { getOrder } from "@/lib/store/orders";
 import { stockRemaining } from "@/lib/store/stock";
@@ -19,6 +20,7 @@ import { STORE } from "@/content/site";
  * - `pixAbertos`: Pix gerados ainda sem pagamento confirmado;
  * - `pixManual`: plano B (Mercado Pago fora) esperando conferir o comprovante;
  * - `filaBling`: pedidos PAGOS que ainda não entraram no Bling (com o erro);
+ * - `envios`: nota → etiqueta → rastreio de cada pedido (etapa, erro, PDF da etiqueta);
  * - `alertas`: o que precisa de olho humano (ver LANCAMENTO.md → "Se der
  *   problema").
  * Com `&conferir=1`, antes de mostrar, confere os Pix abertos no Mercado
@@ -36,6 +38,7 @@ export async function GET(request: NextRequest) {
     conferencia = {
       pix: await reconcileOpenOrders().catch((e: Error) => `falhou: ${e.message}`),
       bling: await retryPendingBlingOrders().catch((e: Error) => `falhou: ${e.message}`),
+      envio: await advanceAllFulfillments().catch((e: Error) => `falhou: ${e.message}`),
     };
   }
 
@@ -53,12 +56,24 @@ export async function GET(request: NextRequest) {
       erroBling: order.bling?.error ?? null,
     };
   };
-  const [abertos, manuais, fila, alertas] = await Promise.all([
+  const [abertos, manuais, fila, alertas, envios] = await Promise.all([
     kvSMembers("orders:open"),
     kvSMembers("orders:manual"),
     kvSMembers("bling:retry"),
     kvSMembers("loja:alertas"),
+    kvSMembers("fulfill:queue"),
   ]);
+  const envio = async (id: string) => {
+    const f = await getFulfillment(id);
+    return {
+      id,
+      etapa: f?.stage ?? "aguardando",
+      nota: f?.invoice.number ?? null,
+      rastreio: f?.label.tracking ?? null,
+      etiquetaPdf: f?.label.printUrl ?? null,
+      erro: f?.error ?? null,
+    };
+  };
 
   return Response.json(
     {
@@ -80,6 +95,8 @@ export async function GET(request: NextRequest) {
         blingLoja: env("BLING_LOJA_ID"),
         blingFormaPix: env("BLING_FORMA_PAGAMENTO_ID"),
         melhorEnvioToken: env("MELHOR_ENVIO_TOKEN"),
+        notaAutomatica: process.env.FULFILL_NFE !== "0",
+        etiquetaAutomatica: process.env.FULFILL_LABEL !== "0",
         cronSecret: env("CRON_SECRET"),
         pixManualChave: Boolean(STORE.manualPix.key),
       },
@@ -98,6 +115,8 @@ export async function GET(request: NextRequest) {
       // Plano B: conferir o comprovante e confirmar em /api/loja/confirmar.
       pixManual: await Promise.all(manuais.map(resumo)),
       filaBling: await Promise.all(fila.map(resumo)),
+      // Nota → etiqueta → rastreio de cada pedido pago (até entregar).
+      envios: await Promise.all(envios.map(envio)),
       alertas: alertas.map((a) => JSON.parse(a) as unknown),
     },
     { headers: { "Cache-Control": "no-store" } },

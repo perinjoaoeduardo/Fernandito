@@ -27,6 +27,7 @@ import { onOrderPaid } from "@/lib/store/on-order-paid";
 import { blingStock, maybeRetryBling, queueForBling } from "@/lib/bling/orders";
 import { getLegalVersions } from "@/lib/legal";
 import { STORE } from "@/content/site";
+import { maybeAdvanceFulfillments } from "@/lib/store/fulfillment";
 import { OutOfStockError, releaseStock, reserveStock } from "@/lib/store/stock";
 
 /** Erro "esperado" do checkout: vira resposta HTTP com mensagem pro cliente. */
@@ -413,6 +414,7 @@ export async function maybeReconcileOrders() {
 export async function housekeeping() {
   await maybeReconcileOrders();
   await maybeRetryBling();
+  await maybeAdvanceFulfillments();
 }
 
 /** Pix expirado → novo pedido com os mesmos dados (preços recalculados). */

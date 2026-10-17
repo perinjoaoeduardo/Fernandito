@@ -3,6 +3,7 @@ import { LOCAL_DELIVERY } from "@/lib/shipping";
 import { IS_PRODUCTION, kvGet, kvSAdd, kvSMembers, kvSRem, kvSet, kvSetNX } from "@/lib/store/kv";
 import { getOrder, saveOrder, type StoredOrder } from "@/lib/store/orders";
 import { bling, BlingNotConnectedError, isBlingConnected } from "@/lib/bling/client";
+import { queueFulfillment } from "@/lib/store/fulfillment";
 
 /**
  * Pedido pago → pedido de venda no Bling (Prompt Loja #3).
@@ -358,6 +359,8 @@ export async function syncOrderToBling(orderId: string) {
     };
     await saveOrder(order);
     await kvSRem(RETRY_SET, order.id);
+    // Próximo passo, automático: nota fiscal → etiqueta → rastreio.
+    await queueFulfillment(order.id);
     console.info(
       `[bling] pedido ${order.id} → venda Bling ${result.id} (nº ${result.numero ?? "?"})`,
     );

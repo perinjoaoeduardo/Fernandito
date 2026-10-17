@@ -127,6 +127,47 @@ Bling de verdade e a etiqueta.
 - [ ] Número total de kits à venda → `stockCap` em `src/lib/catalog.ts` (hoje 150).
 - [ ] Preço final do kit → `priceCents` no catálogo **e** no Bling (os dois iguais).
 
+## Depois do pago: nota, etiqueta e rastreio AUTOMÁTICOS (17/10)
+
+Fluxo (sem mão): Pix pago → pedido no Bling → **nota gerada e enviada à
+Sefaz** (o Bling manda o e-mail da nota pro cliente) → autorizada →
+**etiqueta no Melhor Envio** (com a chave da nota e o nº do pedido como tag)
+→ **paga com o saldo** → gerada → **rastreio** gravado no site, no painel e
+no pedido do Bling → aviso do Melhor Envio: postado → entregue. POA (entrega
+própria): nota → "saiu pra entrega" → entregue quando o pedido virar
+"Atendido" no Bling. O cliente acompanha em `/pedido/<nº>/confirmado`
+(linha do tempo, atualiza sozinha). O e-mail do Melhor Rastreio continua.
+
+Travas: só pedido pago e com nota autorizada compra etiqueta; antes de
+comprar, procura no Melhor Envio um envio com a tag do pedido (nunca paga
+2x, mesmo se o site perder o estado); nota rejeitada/denegada → para e
+alerta; sem saldo → para, alerta, e sai sozinha quando tiver saldo.
+Desligar: `FULFILL_NFE=0` (nota) e/ou `FULFILL_LABEL=0` (etiqueta) na Vercel.
+Painel: `envios` (etapa, nº da nota, rastreio, **PDF da etiqueta pra
+imprimir**, erro). Planilha também mostra.
+
+Testado com Bling e Melhor Envio falsos: 24 cenários (normal, repetir,
+postado/entregue, aviso falso, sem saldo, nota rejeitada, Sefaz demorando,
+POA, frete de último recurso, perdeu o estado), 24/24 em 3 rodadas.
+
+**Pra funcionar de verdade (fazer antes do teste de R$ 1):**
+
+- [ ] **Token novo do Melhor Envio** com as permissões de compra: abrir
+      `https://fernandito.com.br/api/melhorenvio/connect` → autorizar (agora pede
+      carrinho, compra, gerar, imprimir e rastreio) → colar em
+      `MELHOR_ENVIO_TOKEN` (Production) → Redeploy.
+- [ ] **Aviso do Melhor Envio:** Área Dev → app "Fernandito" → Webhook:
+      `https://fernandito.com.br/api/melhorenvio/webhook`.
+- [ ] **Bling: permissão de Notas Fiscais** no app do Bling (Central de
+      extensões → app → escopos: NF-e leitura e escrita). Se mudar, reconectar em
+      `/api/bling/connect`.
+- [ ] **Saldo** no Melhor Envio.
+- [ ] Contadora ok com a nota sair sozinha (natureza já é a dela).
+- [ ] No teste de R$ 1: conferir no painel `envios` a nota autorizada, a
+      etiqueta paga (débito no saldo), o rastreio no pedido do Bling e na
+      página do pedido; imprimir o PDF da etiqueta. Depois cancelar a etiqueta no
+      Melhor Envio (devolve o saldo) e a NF-e no Bling (até 24h).
+
 ## Teste completo de R$ 1 (antes de abrir pro público)
 
 - [ ] Produto de teste de R$ 1, frete grátis, visível só no teste.
@@ -134,7 +175,7 @@ Bling de verdade e a etiqueta.
 - [ ] Pedido chega no Bling (loja "Site Fernandito", natureza "Venda de
       produção a não contribuinte - Consumidor final", peso, volumes,
       transportadora, data prevista).
-- [ ] Nota fiscal emitida no Bling e etiqueta do Melhor Envio gerada.
+- [ ] Nota fiscal emitida SOZINHA e etiqueta do Melhor Envio comprada e gerada SOZINHA (ver seção acima).
 - [ ] Painel da loja: o pedido some de `pixAbertos`, não aparece em
       `filaBling` (já entrou no Bling) e `alertas` está vazio.
 - [ ] Repetir fechando a tela logo depois de pagar (confirma sem a tela).
@@ -166,8 +207,7 @@ Pendente:
 - [x] Jadlog aceita bebida alcoólica em lata (confirmado em 14/10).
 - [ ] Renovação automática do token (guardar o refresh token no Redis e
       renovar antes de vencer) — hoje é manual a cada ~30 dias.
-- [ ] Webhook do Melhor Envio (`/api/melhorenvio/webhook`, ainda não existe):
-      gravar o rastreio no pedido do Bling. Só cadastrar quando a rota existir.
+- [x] Webhook do Melhor Envio (`/api/melhorenvio/webhook`) — existe (17/10); cadastrar no app.
 - [ ] E-mails: "pedido confirmado" pro cliente e "compra nova" pra equipe.
 - [x] Tributação/CEST: a contadora já configurou.
 

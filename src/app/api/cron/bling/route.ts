@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { isBlingConnected, refreshTokens } from "@/lib/bling/client";
 import { retryPendingBlingOrders } from "@/lib/bling/orders";
 import { reconcileOpenOrders } from "@/lib/store/checkout";
+import { advanceAllFulfillments } from "@/lib/store/fulfillment";
 
 // Cron diário (vercel.json): confere no Mercado Pago os Pix abertos, renova
 // o token do Bling (o refresh token vence se ficar sem uso) e reenvia
@@ -28,5 +29,6 @@ export async function GET(request: Request) {
     console.error("[cron bling] renovação falhou:", (error as Error).message);
   }
   const retried = await retryPendingBlingOrders();
-  return Response.json({ connected: true, reconciled, retried });
+  const shipping = await advanceAllFulfillments().catch((error: Error) => error.message);
+  return Response.json({ connected: true, reconciled, retried, shipping });
 }

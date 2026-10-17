@@ -3,6 +3,7 @@ import { isAdmin } from "@/lib/leads";
 import { ALL_SET } from "@/lib/store/checkout";
 import { kvSMembers } from "@/lib/store/kv";
 import { getOrder, type StoredOrder } from "@/lib/store/orders";
+import { getFulfillment } from "@/lib/store/fulfillment";
 
 /**
  * Planilha de pedidos — o registro final, que NÃO depende do Bling:
@@ -52,6 +53,10 @@ export async function GET(request: NextRequest) {
     "Mercado Pago",
     "Bling (nº)",
     "erro no Bling",
+    "nota fiscal",
+    "etapa do envio",
+    "rastreio",
+    "etiqueta (PDF)",
     "aceita novidades",
     "declarou 18+ em",
   ];
@@ -62,6 +67,9 @@ export async function GET(request: NextRequest) {
     cancelled: "cancelado",
     manual: "PIX MANUAL — conferir comprovante",
   };
+  const shipping = new Map(
+    await Promise.all(orders.map(async (o) => [o.id, await getFulfillment(o.id)] as const)),
+  );
   const rows = orders.map((o) =>
     [
       o.id,
@@ -88,6 +96,12 @@ export async function GET(request: NextRequest) {
       o.mpPaymentId ?? "",
       o.bling?.number ?? o.bling?.orderId ?? (o.status === "paid" ? "NÃO ENTROU" : ""),
       o.bling?.error ?? "",
+      shipping.get(o.id)?.invoice.number ?? "",
+      shipping.get(o.id)?.error
+        ? `PARADO: ${shipping.get(o.id)?.error}`
+        : (shipping.get(o.id)?.stage ?? ""),
+      shipping.get(o.id)?.label.tracking ?? "",
+      shipping.get(o.id)?.label.printUrl ?? "",
       o.marketingOptIn ? "sim" : "não",
       br(o.ageConfirmedAt),
     ]
