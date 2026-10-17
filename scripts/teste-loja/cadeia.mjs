@@ -2,6 +2,18 @@
 // rastreio → postado → entregue. Ver LANCAMENTO.md → "Testar a loja".
 import { createHmac, randomUUID } from "node:crypto";
 import { execSync } from "node:child_process";
+import http from "node:http";
+// Serviço de e-mail de mentira (no lugar do Resend), porta 3996.
+const mails = [];
+http
+  .createServer(async (req, res) => {
+    let raw = "";
+    for await (const c of req) raw += c;
+    mails.push(JSON.parse(raw));
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end('{"id":"x"}');
+  })
+  .listen(3996);
 const B = "http://localhost:3160",
   MP = "http://localhost:3999",
   BL = "http://localhost:3998",
@@ -310,6 +322,23 @@ const c1 = await buy();
     JSON.stringify({ saved: saved.accessToken, auth: me.calls.lastAuth }),
   );
 }
+// C12 e-mails: cliente e equipe na compra; alerta pra equipe
+{
+  const toClient = mails.filter((m) => m.to.includes("b@example.com") && m.subject.includes(c1));
+  const toTeam = mails.filter(
+    (m) => m.to.includes("equipe@fernandito.test") && m.subject.includes(c1),
+  );
+  check(
+    "C12 cliente recebe 'Pedido confirmado' com o link do pedido (1 vez)",
+    toClient.length === 1 && toClient[0].html.includes(`/pedido/${c1}/confirmado`),
+    `${toClient.length}`,
+  );
+  check("C12 equipe recebe 'Compra nova' (1 vez)", toTeam.length === 1);
+  check(
+    "C12 equipe recebe e-mail de alerta (ex.: sem saldo)",
+    mails.some((m) => m.to.includes("equipe@fernandito.test") && /saldo/i.test(m.subject)),
+  );
+}
 // C9 planilha mostra nota e rastreio
 {
   const csv = await fetch(`${B}/api/loja/pedidos?key=${KEY}`).then((r) => r.text());
@@ -317,3 +346,4 @@ const c1 = await buy();
 }
 
 console.log(`\n${results.filter(Boolean).length}/${results.length} ok`);
+process.exit(0);

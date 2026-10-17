@@ -36,6 +36,12 @@ export type Product = {
   active: boolean;
 };
 
+/** Preço de teste (só pro teste de R$ 1). */
+export const TEST_PRICE =
+  Number(process.env.NEXT_PUBLIC_PRECO_TESTE_CENTAVOS) > 0
+    ? Number(process.env.NEXT_PUBLIC_PRECO_TESTE_CENTAVOS)
+    : null;
+
 export const PRODUCTS: Product[] = [
   {
     sku: "FERN-KIT-PRE",
@@ -47,8 +53,10 @@ export const PRODUCTS: Product[] = [
       { icon: "cup", qty: "1", label: "copo Fernandito" },
       { icon: "sticker", qty: "5", label: "adesivos" },
     ],
-    // R$ 89,90 (igual ao cadastro no Bling).
-    priceCents: 8990,
+    // R$ 89,90 (igual ao cadastro no Bling). Teste de R$ 1: a variável
+    // NEXT_PUBLIC_PRECO_TESTE_CENTAVOS=100 na Vercel troca o preço (+ redeploy).
+    // DESLIGAR depois do teste — o check-up (/api/loja/checkup) avisa.
+    priceCents: TEST_PRICE ?? 8990,
     images: [
       {
         // PLACEHOLDER: trocar pela foto do kit.

@@ -51,6 +51,8 @@ http
       });
       return send(res, 201, resp);
     }
+    if (req.method === "GET" && req.url === "/v1/payment_methods")
+      return send(res, 200, [{ id: "pix" }]);
     // API nova (Orders)
     if (req.method === "POST" && req.url === "/v1/orders") {
       if (flags.failCreate > 0) {

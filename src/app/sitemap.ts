@@ -21,6 +21,7 @@ const ROUTES: {
     ? [
         { path: "/termos", changeFrequency: "yearly" as const, priority: 0.3 },
         { path: "/privacidade", changeFrequency: "yearly" as const, priority: 0.3 },
+        { path: "/trocas", changeFrequency: "yearly" as const, priority: 0.3 },
       ]
     : []),
   { path: "/legal/avisos", changeFrequency: "yearly", priority: 0.3 },

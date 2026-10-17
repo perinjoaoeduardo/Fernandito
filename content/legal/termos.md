@@ -65,6 +65,8 @@ Toda venda é acompanhada de **nota fiscal eletrônica**, emitida em nome e CPF 
 
 ## 10. Direito de arrependimento (desistência)
 
+O passo a passo está em [Trocas e devoluções](/trocas).
+
 Nas compras feitas pela internet, você pode **desistir da compra em até 7 dias corridos** a contar do recebimento do produto, sem precisar justificar (Código de Defesa do Consumidor, art. 49).
 
 Para exercer:

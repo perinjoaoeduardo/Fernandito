@@ -506,6 +506,7 @@ export const FOOTER = {
   legalLinks: [
     { label: "Termos de uso", href: "/termos" },
     { label: "Política de privacidade", href: "/privacidade" },
+    { label: "Trocas e devoluções", href: "/trocas" },
   ],
   backToTop: "Voltar ao topo",
   copyright: "© 2026 Fernandito. Todos os direitos reservados.",

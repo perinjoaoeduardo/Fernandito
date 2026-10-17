@@ -27,6 +27,8 @@ import { onOrderPaid } from "@/lib/store/on-order-paid";
 import { blingStock, maybeRetryBling, queueForBling } from "@/lib/bling/orders";
 import { getLegalVersions } from "@/lib/legal";
 import { STORE } from "@/content/site";
+import { after } from "next/server";
+import { sendNewOrderToTeam, sendOrderConfirmed } from "@/lib/email";
 import { maybeAdvanceFulfillments } from "@/lib/store/fulfillment";
 import { OutOfStockError, releaseStock, reserveStock } from "@/lib/store/stock";
 
@@ -277,6 +279,16 @@ export async function markPaid(orderId: string) {
   if (first) {
     await saveOrder(order);
     console.info(`[pedido ${order.id}] PAGO · ${order.totalCents} centavos`);
+  }
+  // E-mails (uma vez por pedido; sem Resend configurado, não faz nada).
+  if (!order.simulated && (await kvSetNX(`email:paid:${order.id}`, "1", 60 * 60 * 24 * 400))) {
+    const mails = () =>
+      Promise.all([sendOrderConfirmed(order), sendNewOrderToTeam(order)]).then(() => undefined);
+    try {
+      after(mails);
+    } catch {
+      void mails();
+    }
   }
   await kvSRem(OPEN_SET, orderId);
   await kvSRem(MANUAL_SET, orderId);

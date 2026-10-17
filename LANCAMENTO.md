@@ -108,8 +108,12 @@ Isso testa o NOSSO sistema com um Mercado Pago de mentira. O teste de R$ 1
 (abaixo) continua obrigatório: é o único que prova o banco de verdade, o
 Bling de verdade e a etiqueta.
 
-- [ ] E-mails pro cliente ("Pix gerado", "pedido confirmado") — ainda não
-      existem; hoje o cliente só tem as telas do site.
+- [x] E-mails prontos (17/10): "Pedido confirmado" pro cliente (com o link
+      do pedido), "Compra nova" e alertas pra equipe. **Pra ligar:** criar conta
+      no Resend (resend.com), verificar o domínio fernandito.com.br (registros DNS
+      que ele mostra), e na Vercel: `RESEND_API_KEY`, `EMAIL_FROM` (ex.
+      `Fernandito <pedidos@fernandito.com.br>`) e `EMAIL_EQUIPE` (e-mails do time,
+      separados por vírgula).
 
 ## Press kits (brindes) — decidido em 17/10
 
@@ -122,6 +126,9 @@ Bling de verdade e a etiqueta.
 - Lançamento em lote pelo conector do Bling (Claude): mandar a lista (nome,
   CPF, endereço com CEP, contato, o que ganhou, motivo). Faz 1, confere no
   Bling, depois o resto. Código BRINDE-001… pra não duplicar.
+- [x] Produto "Press kit Fernandito (brinde)" criado no Bling (`FERN-PRESSKIT`,
+      mesmos dados fiscais do kit, estoque separado — 17/10). Falta lançar o
+      estoque dos press kits e os brindes.
 - [ ] Contadora: imposto na saída de brinde (Simples/ICMS-RS) e se emite nota de todos.
 
 ## Antes de abrir a venda
@@ -159,6 +166,9 @@ POA, frete de último recurso, perdeu o estado), 24/24 em 3 rodadas.
       o site salva e renova sozinho (não precisa colar nada na Vercel).
 - [ ] **Aviso do Melhor Envio:** Área Dev → app "Fernandito" → Webhook:
       `https://fernandito.com.br/api/melhorenvio/webhook`.
+- [ ] **Certificado digital A1** da empresa instalado no Bling
+      (Configurações → Certificado digital) e série da NF-e configurada. A
+      conta **nunca emitiu nota** (conferido em 17/10) — sem o A1 nenhuma nota sai.
 - [ ] **Bling: permissão de Notas Fiscais** no app do Bling (Central de
       extensões → app → escopos: NF-e leitura e escrita). Se mudar, reconectar em
       `/api/bling/connect`.
@@ -169,19 +179,37 @@ POA, frete de último recurso, perdeu o estado), 24/24 em 3 rodadas.
       página do pedido; imprimir o PDF da etiqueta. Depois cancelar a etiqueta no
       Melhor Envio (devolve o saldo) e a NF-e no Bling (até 24h).
 
-## Teste completo de R$ 1 (antes de abrir pro público)
+## Teste completo de R$ 1 — roteiro (antes de abrir pro público)
 
-- [ ] Produto de teste de R$ 1, frete grátis, visível só no teste.
-- [ ] Pix pago de verdade pelo app do banco → confirmação automática.
-- [ ] Pedido chega no Bling (loja "Site Fernandito", natureza "Venda de
-      produção a não contribuinte - Consumidor final", peso, volumes,
-      transportadora, data prevista).
-- [ ] Nota fiscal emitida SOZINHA e etiqueta do Melhor Envio comprada e gerada SOZINHA (ver seção acima).
-- [ ] Painel da loja: o pedido some de `pixAbertos`, não aparece em
-      `filaBling` (já entrou no Bling) e `alertas` está vazio.
-- [ ] Repetir fechando a tela logo depois de pagar (confirma sem a tela).
-- [ ] Depois: devolver o R$ 1 no Mercado Pago, cancelar a NF-e no Bling
-      (até 24h) e voltar as credenciais de teste no Preview.
+**Antes (uma vez):** abrir o check-up
+`https://fernandito.com.br/api/loja/checkup?key=<BLING_ADMIN_KEY>` — tudo
+✅ (os ⚠️ de certificado e webhook do Melhor Envio são conferidos à mão).
+
+1. **Ligar o preço de teste:** Vercel → Environment Variables (Production)
+   → `NEXT_PUBLIC_PRECO_TESTE_CENTAVOS` = `100` → Redeploy. O check-up passa a
+   mostrar ❌ "Preço de teste LIGADO" (é de propósito).
+2. **Comprar** no site no ar, com um CPF e endereço **reais** de alguém do
+   time **fora de POA** (pra testar etiqueta). Frete: o mais barato.
+3. **Pagar o Pix** pelo app do banco. A tela tem que ir sozinha pra
+   "Pedido confirmado" e chegar o e-mail de confirmação.
+4. **Conferir no painel** (`/api/loja/diagnostico?key=…`), em até ~1 min:
+   - `pixAbertos` sem o pedido; `filaBling` vazio; `alertas` vazio;
+   - `envios` com o pedido: etapa `ready`, **nº da nota**, **rastreio** e
+     **PDF da etiqueta**.
+5. **Conferir no Bling:** pedido de venda (loja Site Fernandito, natureza
+   da contadora, Pix, frete, rastreio no volume) e a **NF-e autorizada**.
+6. **Conferir no Melhor Envio:** etiqueta paga (débito no saldo), com a tag
+   do pedido. Abrir o PDF.
+7. **Página do pedido** (link do e-mail): linha do tempo com nota e rastreio.
+8. **Repetir** fechando a tela logo depois de pagar (tem que confirmar igual).
+9. **Desfazer:** cancelar a etiqueta no Melhor Envio (devolve o saldo),
+   cancelar a NF-e no Bling (até 24h), devolver o R$ 1 no Mercado Pago.
+10. **Desligar o preço de teste** (apagar a variável → Redeploy) e ver o
+    check-up voltar a ✅.
+11. (Opcional, mesma coisa) Repetir com `MERCADOPAGO_API=orders`; se ok,
+    deixar ligado (API nova).
+
+Eu (Claude) acompanho cada passo pelo conector do Bling.
 
 ## Frete (Melhor Envio + Jadlog) — decidido em 14/10
 
@@ -255,7 +283,7 @@ navegação" no DESIGN_SYSTEM.md.
       uma prévia de 5–10 s em mp4 sem som (`EPISODIOS`).
 - [ ] Arte da lata no "O que é" (hoje é um espaço reservado).
 - [x] Razão social, CNPJ e endereço no rodapé (exigência do Decreto 7.962/2013).
-- [ ] Página de Trocas e devoluções (com o advogado).
+- [x] Página de Trocas e devoluções (`/trocas`, 17/10) — rascunho; advogado revisa.
 - [ ] Preço/produto do lançamento (kit atual × pack de 6) — em aberto.
 - [ ] Torneira em eventos — em aberto (a porta de evento não promete torneira).
 

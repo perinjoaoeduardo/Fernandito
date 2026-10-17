@@ -34,6 +34,11 @@ const PILL =
 export function LegalPage({ doc, slug }: { doc: LegalDoc; slug: LegalSlug }) {
   const frame = LEGAL[slug];
   const other: LegalSlug = slug === "termos" ? "privacidade" : "termos";
+  const OTHER_LABEL: Record<LegalSlug, string> = {
+    termos: "os Termos",
+    privacidade: "a Privacidade",
+    trocas: "Trocas e devoluções",
+  };
   const grouped = new Set(frame.groups.flatMap((g) => g.sections));
   const leftovers = doc.sections.filter((s) => !grouped.has(s.number));
   const groups = [
@@ -65,7 +70,7 @@ export function LegalPage({ doc, slug }: { doc: LegalDoc; slug: LegalSlug }) {
                 aria-label="Documentos"
                 className="bg-fernandito-verde-escuro/[0.06] inline-flex rounded-full p-1"
               >
-                {(["termos", "privacidade"] as const).map((s) => (
+                {(["termos", "privacidade", "trocas"] as const).map((s) => (
                   <NextLink
                     key={s}
                     href={`/${s}`}
@@ -246,7 +251,7 @@ export function LegalPage({ doc, slug }: { doc: LegalDoc; slug: LegalSlug }) {
                     href={`/${other}`}
                     className={`${PILL} ring-fernandito-verde-escuro/30 hover:bg-fernandito-verde-escuro/10 ring-1`}
                   >
-                    Ler {other === "termos" ? "os Termos" : "a Privacidade"} →
+                    Ler {OTHER_LABEL[other]} →
                   </NextLink>
                   <PrintButton
                     className={`${PILL} ring-fernandito-verde-escuro/30 hover:bg-fernandito-verde-escuro/10 ring-1`}

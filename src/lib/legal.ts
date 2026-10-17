@@ -19,7 +19,7 @@ import { Marked, type Tokens } from "marked";
  * que falta preencher — ficam destacados em amarelo FORA de produção.
  */
 
-export type LegalSlug = "termos" | "privacidade";
+export type LegalSlug = "termos" | "privacidade" | "trocas";
 
 export type LegalDoc = {
   title: string;

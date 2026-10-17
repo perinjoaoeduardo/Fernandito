@@ -17,6 +17,11 @@ http
     const url = new URL(req.url, "http://x");
     const p = url.pathname.replace(/^\/api\/v2\/me/, "");
     if (req.headers.authorization) calls.lastAuth = req.headers.authorization;
+    if (req.method === "GET" && p === "")
+      return send(res, 200, { firstname: "Fernandito", email: "toma.fernandito@gmail.com" });
+    if (req.method === "GET" && p === "/balance")
+      return send(res, 200, { balance: flags.noBalance ? 0 : 150.5 });
+    if (req.method === "GET" && p === "/cart") return send(res, 200, { data: [] });
     if (p === "/oauth/token") {
       calls.refresh = (calls.refresh ?? 0) + 1;
       return send(res, 200, {

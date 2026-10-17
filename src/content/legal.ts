@@ -18,7 +18,7 @@ export type LegalFrame = {
   groups: { title: string; text: string; sections: number[] }[];
 };
 
-export const LEGAL: Record<"termos" | "privacidade", LegalFrame> = {
+export const LEGAL: Record<"termos" | "privacidade" | "trocas", LegalFrame> = {
   termos: {
     short: "Termos",
     intro: "As regras de quem compra no site: o que a gente garante e o que pede de ti.",
@@ -53,6 +53,36 @@ export const LEGAL: Record<"termos" | "privacidade", LegalFrame> = {
         title: "O resto das regras",
         text: "Uso do site, marca, responsabilidade, atendimento e a lei que vale.",
         sections: [13, 14, 15, 16, 17, 18],
+      },
+    ],
+  },
+  trocas: {
+    short: "Trocas",
+    intro:
+      "Desistiu, chegou com problema ou quer o dinheiro de volta: como resolve, sem enrolação.",
+    summary: [
+      {
+        icon: "back",
+        text: "Desistiu? 7 dias depois de receber, sem explicar. A volta é por nossa conta.",
+      },
+      {
+        icon: "receipt",
+        text: "Chegou com defeito ou avariado? 30 dias pra trocar ou receber de volta.",
+      },
+      { icon: "truck", text: "Caixa danificada na entrega: recusa ou tira fotos e avisa a gente." },
+      { icon: "pix", text: "Reembolso integral por Pix, em até 5 dias úteis." },
+      {
+        icon: "chat",
+        text: "Pede no WhatsApp ou e-mail com o nº do pedido. Resposta em 1 dia útil.",
+      },
+      { icon: "shield", text: "Nada aqui limita teus direitos do Código de Defesa do Consumidor." },
+    ],
+    groups: [
+      { title: "Quando dá pra devolver", text: "Desistência e defeito.", sections: [1, 2] },
+      {
+        title: "Como pedir e receber",
+        text: "O passo a passo e o reembolso.",
+        sections: [3, 4, 5],
       },
     ],
   },
