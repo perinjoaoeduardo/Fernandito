@@ -109,6 +109,24 @@ Bling de verdade e a etiqueta.
 - [ ] E-mails pro cliente ("Pix gerado", "pedido confirmado") — ainda não
       existem; hoje o cliente só tem as telas do site.
 
+## Press kits (brindes) — decidido em 17/10
+
+- ~50 press kits, **separados dos kits de venda** (não saem do teto do site).
+  Cadastrar como produto próprio no Bling ("Press kit") pra não baixar o
+  estoque do kit de venda.
+- Nota de bonificação ("Saída em bonificação – Brinde", natureza 15111699949) pra cada um: precisa de nome, CPF e endereço completo. Os
+  enviados por transportadora precisam de nota pra viajar; os entregues em
+  mãos também terão endereço (alguns poucos sem endereço: tudo bem).
+- Lançamento em lote pelo conector do Bling (Claude): mandar a lista (nome,
+  CPF, endereço com CEP, contato, o que ganhou, motivo). Faz 1, confere no
+  Bling, depois o resto. Código BRINDE-001… pra não duplicar.
+- [ ] Contadora: imposto na saída de brinde (Simples/ICMS-RS) e se emite nota de todos.
+
+## Antes de abrir a venda
+
+- [ ] Número total de kits à venda → `stockCap` em `src/lib/catalog.ts` (hoje 150).
+- [ ] Preço final do kit → `priceCents` no catálogo **e** no Bling (os dois iguais).
+
 ## Teste completo de R$ 1 (antes de abrir pro público)
 
 - [ ] Produto de teste de R$ 1, frete grátis, visível só no teste.
