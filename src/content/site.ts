@@ -155,11 +155,9 @@ export type ContatoField = {
   optional?: boolean;
 };
 export type ContatoReason = {
-  key: "casa" | "evento" | "negocio";
+  key: "geral" | "evento" | "negocio";
   /** Botão do motivo. */
   chip: string;
-  /** Fim do título: "Quero o Fernandito ___". */
-  word: string;
   /** Cor da tela inteira com esse motivo. */
   theme: "verde-medio" | "verde-escuro" | "verde-claro" | "off-white";
   photo: ContentImage;
@@ -214,39 +212,30 @@ export const PAGES = {
     soldOutTag: "Primeiro lote",
     soldOutCta: "Esgotado",
   },
-  /** Página Contato: uma tela só. A pessoa escolhe um dos três caminhos e a
-   * tela inteira muda (cor, foto, palavra do título); escreve o nome e o que
-   * quer, e a mensagem pro WhatsApp vai se montando na hora. Todo envio vira
-   * lead (`/api/leads`). Na `message`, `{campo}` vira a resposta. */
+  /** Página Contato: título, 3 motivos e o botão do WhatsApp. "Falar com a
+   * gente" não pede nada; evento e revenda pedem o mínimo pra mensagem já
+   * chegar com contexto. Cada motivo tem um verde (médio, claro, escuro) e
+   * a sua foto; o bege fica pros botões e destaques. Todo envio
+   * vira lead (`/api/leads`). Na `message`, `{campo}` vira a resposta. */
   contato: {
-    eyebrow: "Contato",
-    lead: "Quero o Fernandito",
-    hint: "Leva 10 segundos. A mensagem vai pronta pro WhatsApp.",
-    preview: "A mensagem vai assim",
-    submit: "Mandar no WhatsApp",
+    title: "Contato",
+    submit: "Chamar no WhatsApp",
     sent: "Abrimos o WhatsApp. É só enviar.",
-    missing: "Falta preencher ali em cima.",
+    fallback: "Não abriu?",
+    copy: "Copiar mensagem",
+    copied: "Copiada!",
     reasons: [
       {
-        key: "casa",
-        chip: "Pra mim",
-        word: "pra mim.",
+        key: "geral",
+        chip: "Falar com a gente",
         theme: "verde-medio",
-        photo: photo("Foto: pra mim", "Campo de coxilhas", "/images/placeholder/coxilhas.jpg"),
-        fields: [
-          { name: "nome", label: "Teu nome", placeholder: "Como a gente te chama" },
-          {
-            name: "objetivo",
-            label: "O que tu quer?",
-            placeholder: "Comprar umas latas, tirar uma dúvida…",
-          },
-        ],
-        message: "Oi! Sou {nome}. Quero o Fernandito pra mim: {objetivo}",
+        photo: photo("Foto: contato", "Campo de coxilhas", "/images/placeholder/coxilhas.jpg"),
+        fields: [],
+        message: "Oi, Fernandito! Vim pelo site.\n— enviado pelo site · Contato",
       },
       {
         key: "evento",
-        chip: "Pro meu evento",
-        word: "no meu evento.",
+        chip: "Evento",
         theme: "verde-claro",
         photo: photo(
           "Foto: evento",
@@ -254,30 +243,28 @@ export const PAGES = {
           "/images/placeholder/troller.jpg",
         ),
         fields: [
-          { name: "nome", label: "Teu nome", placeholder: "Como a gente te chama" },
+          { name: "nome", label: "Teu nome", placeholder: "Ana Souza" },
+          { name: "cidade", label: "Cidade", placeholder: "Porto Alegre" },
           {
-            name: "objetivo",
-            label: "O que tu quer?",
-            placeholder: "Uma festa em dezembro, umas 80 pessoas…",
+            name: "pessoas",
+            label: "Quantas pessoas",
+            options: ["Até 50", "50 a 150", "Mais de 150"],
           },
         ],
-        message: "Oi! Sou {nome}. Quero o Fernandito no meu evento: {objetivo}",
+        message:
+          "Oi, Fernandito! Aqui é {nome}.\nTenho um evento em {cidade}, {pessoas} pessoas.\n— enviado pelo site · Evento",
       },
       {
         key: "negocio",
-        chip: "Pro meu negócio",
-        word: "no meu negócio.",
-        theme: "off-white",
-        photo: photo("Foto: negócio", "Araucárias no campo", "/images/placeholder/araucarias.jpg"),
+        chip: "Revenda",
+        theme: "verde-escuro",
+        photo: photo("Foto: revenda", "Araucárias no campo", "/images/placeholder/araucarias.jpg"),
         fields: [
-          { name: "nome", label: "Teu nome", placeholder: "Como a gente te chama" },
-          {
-            name: "objetivo",
-            label: "O que tu quer?",
-            placeholder: "Vender no meu bar em Pelotas…",
-          },
+          { name: "nome", label: "Teu nome", placeholder: "Ana Souza" },
+          { name: "lugar", label: "Lugar e cidade", placeholder: "Bar do Zé, Pelotas" },
         ],
-        message: "Oi! Sou {nome}. Quero o Fernandito no meu negócio: {objetivo}",
+        message:
+          "Oi, Fernandito! Aqui é {nome}, do {lugar}.\nQuero revender o Fernandito.\n— enviado pelo site · Revenda",
       },
     ] as ContatoReason[],
   },

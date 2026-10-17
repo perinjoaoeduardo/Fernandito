@@ -1195,11 +1195,11 @@ Regras aplicadas na revisão mobile (390px e 360px, com emulação de toque):
 dela, só o que precisa de tela própria: **Comprar** (o kit) e **Contato**.
 Cada intenção tem um lugar só.
 
-| Página       | Conteúdo                                                                                                                                                                                                                                                                                                        |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/` (Início) | Hero ("Comprar o kit") → O que é (lata + adesivo "Pré-venda no ar → Comprar") → Fotos → Manifesto (Carta) → "Se interessou pelo Fernandito?" (→ Contato) → Episódios → faixa da ficha técnica → rodapé                                                                                                          |
-| `/comprar`   | A compra do kit (galeria, o que vem, preço, quantidade, carrinho), com "← Início".                                                                                                                                                                                                                              |
-| `/contato`   | Uma tela só: "Quero o Fernandito ___" + três caminhos (Pra mim · Pro meu evento · Pro meu negócio). Escolher troca a cor da tela, a foto (sobe como a cortina) e a palavra do título. Só nome + "o que tu quer?"; a mensagem do WhatsApp se monta ao vivo. Todo envio vira lead. Embaixo, perguntas frequentes. |
+| Página       | Conteúdo                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/` (Início) | Hero ("Comprar o kit") → O que é (lata + adesivo "Pré-venda no ar → Comprar") → Fotos → Manifesto (Carta) → "Se interessou pelo Fernandito?" (→ Contato) → Episódios → faixa da ficha técnica → rodapé                                                                                                                                                                                  |
+| `/comprar`   | A compra do kit (galeria, o que vem, preço, quantidade, carrinho), com "← Início".                                                                                                                                                                                                                                                                                                      |
+| `/contato`   | "Contato" + 3 motivos: Falar com a gente (sem campos, direto pro WhatsApp) · Evento (nome, cidade, pessoas) · Revenda (nome, lugar e cidade). Cada motivo um verde (médio, claro, escuro) e uma foto; bege só nos botões. Celular: botão preso embaixo; computador: mensagem pronta sobre a foto. WhatsApp: app no celular, WhatsApp Web no computador; "copiar mensagem" se não abrir. |
 
 No pré-lançamento a compra fica dentro da home (`#comprar`) e /comprar
 redireciona pra lá — `SHOP_HREF` decide pra onde todo "Comprar" aponta.
@@ -1231,9 +1231,9 @@ Seções do Início: `SECTIONS` (ordem e liga/desliga). Textos: `PAGES`
    em pé (9:16). Com prévia em vídeo (mp4 curto, sem som), toca ao passar
    o mouse — no celular, quando o cartão está no meio da tela. Clique abre
    o episódio no Instagram. Novo episódio = mais um item na lista.
-9. **Contato mínimo:** só o caminho (pra mim/evento/negócio), o nome e o
-   objetivo numa linha. Nada de perguntas de detalhe — o resto se conversa
-   no WhatsApp. A pessoa vê a mensagem antes de mandar.
+9. **Contato mínimo:** nenhum texto sem função. O genérico não pede nada;
+   evento e revenda pedem 2–3 campos. Toda mensagem termina com
+   "— enviado pelo site · <motivo>" pra equipe saber de onde veio.
 10. Computador e celular podem ter ajustes separados; mudar um não pode
     mexer no outro.
 

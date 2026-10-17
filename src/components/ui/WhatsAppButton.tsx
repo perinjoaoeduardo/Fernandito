@@ -35,6 +35,27 @@ export function whatsappHref(message: string) {
     : null;
 }
 
+/**
+ * Link pra abrir a conversa já escrita, do jeito certo pra cada aparelho:
+ * celular → wa.me (abre o app direto); computador → WhatsApp Web direto
+ * (sem a página "Continuar para a conversa"). Rodar só no navegador.
+ */
+export function whatsappOpenHref(message: string) {
+  if (!WHATSAPP_NUMBER) return null;
+  const mobile =
+    window.matchMedia("(pointer: coarse)").matches ||
+    /Android|iPhone|iPad/i.test(navigator.userAgent);
+  const text = encodeURIComponent(message);
+  return mobile
+    ? `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`
+    : `https://web.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${text}`;
+}
+
+/** Número formatado pra mostrar ("(51) 9338-3764"). */
+export const WHATSAPP_DISPLAY = WHATSAPP_NUMBER
+  ? WHATSAPP_NUMBER.replace(/^55(\d{2})(\d{4,5})(\d{4})$/, "($1) $2-$3")
+  : "";
+
 /** Link do WhatsApp com a mensagem pronta (pra quem precisa só do href). */
 export const WHATSAPP_HREF = WHATSAPP_NUMBER
   ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`
