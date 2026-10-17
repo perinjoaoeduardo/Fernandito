@@ -219,6 +219,7 @@ export const PAGES = {
    * vira lead (`/api/leads`). Na `message`, `{campo}` vira a resposta. */
   contato: {
     title: "Contato",
+    lead: "Curtiu o Fernandito? Quer ele no teu evento, no teu bar ou só trocar uma ideia? Chama a gente no WhatsApp.",
     submit: "Chamar no WhatsApp",
     sent: "Abrimos o WhatsApp. É só enviar.",
     fallback: "Não abriu?",
@@ -227,7 +228,7 @@ export const PAGES = {
     reasons: [
       {
         key: "geral",
-        chip: "Falar com a gente",
+        chip: "Conversar",
         theme: "verde-medio",
         photo: photo("Foto: contato", "Campo de coxilhas", "/images/placeholder/coxilhas.jpg"),
         fields: [],

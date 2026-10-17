@@ -1,9 +1,15 @@
 "use client";
 
 import { clsx } from "clsx";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  useMotionValue,
+  useReducedMotion,
+  useSpring,
+} from "framer-motion";
 import NextLink from "next/link";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type PointerEvent } from "react";
 import { PAGES, type ContatoReason } from "@/content/site";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { WHATSAPP_DISPLAY, whatsappOpenHref } from "@/components/ui/WhatsAppButton";
@@ -36,11 +42,11 @@ function WhatsAppIcon({ className }: { className?: string }) {
 }
 
 /**
- * Página Contato: "Contato", os 3 motivos e o botão do WhatsApp. "Falar com a
- * gente" vai direto; evento e revenda pedem o mínimo (2–3 campos) pra
+ * Página Contato: "Contato", uma frase, os 3 motivos e o botão do WhatsApp.
+ * "Conversar" vai direto; evento e revenda pedem o mínimo (2–3 campos) pra
  * mensagem chegar com contexto. Trocar o motivo muda a cor da tela e a foto.
- * No celular o botão fica preso embaixo; no computador vai com a mensagem por
- * cima da foto. Ao mandar: guarda o lead (sendBeacon) e abre o WhatsApp no
+ * Computador: tela dividida, a foto na metade direita. Celular: a foto embaixo
+ * do botão. A mensagem pronta não aparece na tela. Ao mandar: guarda o lead (sendBeacon) e abre o WhatsApp no
  * mesmo clique (app no celular, WhatsApp Web no computador). Se não abrir,
  * dá pra copiar a mensagem. Textos em `PAGES.contato`.
  */
@@ -107,25 +113,9 @@ export function ContatoTela() {
     ? "bg-fernandito-off-white text-fernandito-verde-escuro"
     : "bg-fernandito-verde-escuro text-fernandito-off-white";
 
-  const button = (
-    <button
-      type="submit"
-      form="contato-form"
-      className={clsx(
-        "duration-base ease-out-standard flex h-14 w-full items-center justify-center gap-2.5 rounded-full font-sans text-[1rem] font-bold shadow-[0_14px_34px_rgba(20,28,18,0.3)] transition-[background-color,transform] active:scale-[0.98]",
-        onDark
-          ? "bg-fernandito-off-white text-fernandito-verde-escuro hover:bg-white"
-          : "bg-fernandito-verde-escuro text-fernandito-off-white hover:bg-fernandito-verde-medio",
-      )}
-    >
-      <WhatsAppIcon className="h-5 w-5" />
-      {page.submit}
-    </button>
-  );
-
   // Depois de mandar: confirmação + plano B se o WhatsApp não abriu.
   const after = sent && (
-    <p aria-live="polite" className="text-label mt-3 text-center font-sans tracking-[0.04em]">
+    <p aria-live="polite" className="text-label mt-3 font-sans tracking-[0.04em]">
       {page.sent} {page.fallback}{" "}
       <button
         type="button"
@@ -144,202 +134,213 @@ export function ContatoTela() {
       initial={false}
       animate={{ backgroundColor: theme.bg, color: theme.fg }}
       transition={t(0.7)}
-      className="w-full px-6 pt-[calc(7.5rem+var(--announcement-h))] pb-10 sm:px-10 lg:min-h-svh lg:px-16 lg:pb-12"
+      className="w-full lg:grid lg:min-h-svh lg:grid-cols-2"
     >
-      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-x-14 gap-y-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="flex flex-col">
-          <NextLink
-            href="/"
-            className="text-label duration-base ease-out-standard inline-flex items-center gap-2 self-start font-sans tracking-[0.1em] uppercase opacity-70 transition-opacity hover:opacity-100"
-          >
-            <span aria-hidden="true">←</span> Início
-          </NextLink>
-          <h1 className="font-rampart mt-5 text-[clamp(2.6rem,6vw,4.6rem)] leading-[0.95]">
-            {page.title}
-          </h1>
+      <div className="flex w-full flex-col px-6 pt-[calc(7.5rem+var(--announcement-h))] pb-10 sm:px-10 lg:max-w-xl lg:justify-self-end lg:px-16 lg:pb-12">
+        <NextLink
+          href="/"
+          className="text-label duration-base ease-out-standard inline-flex items-center gap-2 self-start font-sans tracking-[0.1em] uppercase opacity-70 transition-opacity hover:opacity-100"
+        >
+          <span aria-hidden="true">←</span> Início
+        </NextLink>
+        <h1 className="font-rampart mt-5 text-[clamp(2.6rem,6vw,4.6rem)] leading-[0.95]">
+          {page.title}
+        </h1>
+        <p className="text-body mt-4 max-w-md font-sans opacity-80">{page.lead}</p>
 
-          {/* Motivos: o destaque desliza de um pro outro. */}
-          <div
-            role="radiogroup"
-            aria-label="Motivo do contato"
-            className="mt-7 flex flex-wrap gap-2"
-          >
-            {page.reasons.map((r) => {
-              const on = r.key === reason.key;
-              return (
-                <button
-                  key={r.key}
-                  type="button"
-                  role="radio"
-                  aria-checked={on}
-                  onClick={() => choose(r.key)}
-                  className={clsx(
-                    "relative h-12 rounded-full px-5 font-sans text-[0.95rem] font-bold ring-1 transition-colors duration-500",
-                    on ? "ring-transparent" : "opacity-85 ring-current/30 hover:opacity-100",
-                    on && (onDark ? "text-fernandito-verde-escuro" : "text-fernandito-off-white"),
-                  )}
-                >
-                  {on && (
-                    <motion.span
-                      layoutId="contato-motivo"
-                      transition={
-                        reduce ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 36 }
-                      }
-                      className={clsx(
-                        "absolute inset-0 rounded-full transition-colors duration-700",
-                        onDark ? "bg-fernandito-off-white" : "bg-fernandito-verde-escuro",
-                      )}
-                    />
-                  )}
-                  <span className="relative">{r.chip}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Campos do motivo (nenhum no "Falar com a gente"). */}
-          <form id="contato-form" onSubmit={submit} noValidate className="mt-8">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={reason.key}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={t(0.35)}
-                className="flex flex-col gap-6"
-              >
-                {reason.fields.map((field) => {
-                  const id = `contato-${reason.key}-${field.name}`;
-                  const flagged = missing && !current[field.name]?.trim();
-                  return (
-                    <div key={field.name}>
-                      <label
-                        htmlFor={field.options ? undefined : id}
-                        id={`${id}-label`}
-                        className={clsx(
-                          "text-label block font-sans tracking-[0.12em] uppercase",
-                          flagged ? "font-bold opacity-100" : "opacity-70",
-                        )}
-                      >
-                        {field.label}
-                        {flagged && " · falta"}
-                      </label>
-                      {field.options ? (
-                        <div
-                          id={id}
-                          tabIndex={-1}
-                          role="radiogroup"
-                          aria-labelledby={`${id}-label`}
-                          className="mt-2.5 flex flex-wrap gap-2 outline-none"
-                        >
-                          {field.options.map((option) => {
-                            const on = current[field.name] === option;
-                            return (
-                              <button
-                                key={option}
-                                type="button"
-                                role="radio"
-                                aria-checked={on}
-                                onClick={() => set(field.name, option)}
-                                className={clsx(
-                                  "duration-base ease-out-standard h-11 rounded-full px-4 font-sans text-[0.9rem] font-bold transition-[background-color,color,box-shadow,transform] active:scale-[0.96]",
-                                  on ? chipOn : "ring-1 ring-current/30 hover:ring-current/70",
-                                )}
-                              >
-                                {option}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <input
-                          id={id}
-                          value={current[field.name] ?? ""}
-                          placeholder={field.placeholder}
-                          maxLength={100}
-                          autoComplete={field.name === "nome" ? "name" : "off"}
-                          enterKeyHint="next"
-                          onChange={(e) => set(field.name, e.target.value)}
-                          className={clsx(
-                            "text-body-lg mt-1.5 w-full max-w-md border-b-2 bg-transparent py-2 font-sans transition-colors outline-none placeholder:opacity-40 focus:border-current",
-                            flagged ? "border-current" : "border-current/30",
-                          )}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </motion.div>
-            </AnimatePresence>
-
-            {/* Celular: botão preso embaixo da tela enquanto a pessoa está no
-                contato (sticky: some quando ela rola pras perguntas). */}
-            <div className="sticky bottom-0 z-40 -mx-2 mt-10 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
-              {button}
-              {after}
-            </div>
-          </form>
-        </div>
-
-        {/* Foto (troca subindo por cima da anterior) + mensagem e botão
-            (computador). No celular, uma faixa entre os motivos e os campos
-            ocupa espaço demais: fica só no computador. */}
-        <div className="relative hidden lg:block">
-          <div className="sticky top-[calc(7.5rem+var(--announcement-h))] h-[calc(100svh-10rem-var(--announcement-h))] min-h-[32rem] overflow-hidden rounded-3xl">
-            <AnimatePresence initial={false}>
-              <motion.div
-                key={reason.key}
-                className="absolute inset-0"
-                initial={{ clipPath: "inset(100% 0% 0% 0%)", scale: 1.15 }}
-                animate={{ clipPath: "inset(0% 0% 0% 0%)", scale: 1 }}
-                exit={{ scale: 1.06, transition: t(0.9) }}
-                transition={t(0.9)}
-              >
-                <PhotoSlot
-                  image={reason.photo}
-                  sizes="45vw"
-                  placeholderClassName="bg-fernandito-verde-escuro"
-                />
-              </motion.div>
-            </AnimatePresence>
-            <div className="grain-overlay pointer-events-none absolute inset-0 opacity-[0.06] mix-blend-overlay" />
-            <div className="absolute inset-x-5 bottom-5">
-              <div
+        {/* Motivos (uma linha só, também no celular): o destaque desliza. */}
+        <div
+          role="radiogroup"
+          aria-label="Motivo do contato"
+          className="mt-7 flex flex-nowrap gap-2"
+        >
+          {page.reasons.map((r) => {
+            const on = r.key === reason.key;
+            return (
+              <button
+                key={r.key}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => choose(r.key)}
                 className={clsx(
-                  "rounded-3xl p-5 font-sans shadow-[0_30px_70px_rgba(20,28,18,0.35)] transition-colors duration-700",
-                  onDark
-                    ? "bg-fernandito-off-white text-fernandito-verde-escuro"
-                    : "bg-fernandito-verde-escuro text-fernandito-off-white",
+                  "relative h-10 rounded-full px-4 font-sans text-[0.875rem] font-bold whitespace-nowrap ring-1 transition-colors duration-500 lg:h-11 lg:px-5 lg:text-[0.95rem]",
+                  on ? "ring-transparent" : "opacity-85 ring-current/30 hover:opacity-100",
+                  on && (onDark ? "text-fernandito-verde-escuro" : "text-fernandito-off-white"),
                 )}
               >
-                <p
-                  aria-live="polite"
-                  className="font-accent text-[0.95rem] leading-relaxed whitespace-pre-line"
-                >
-                  {message}
-                </p>
-                <div className="mt-4">
-                  <button
-                    type="submit"
-                    form="contato-form"
+                {on && (
+                  <motion.span
+                    layoutId="contato-motivo"
+                    transition={
+                      reduce ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 36 }
+                    }
                     className={clsx(
-                      "duration-base ease-out-standard flex h-12 w-full items-center justify-center gap-2.5 rounded-full text-[0.95rem] font-bold transition-[background-color,transform] active:scale-[0.98]",
-                      onDark
-                        ? "bg-fernandito-verde-escuro text-fernandito-off-white hover:bg-fernandito-verde-medio"
-                        : "bg-fernandito-off-white text-fernandito-verde-escuro hover:bg-white",
+                      "absolute inset-0 rounded-full transition-colors duration-700",
+                      onDark ? "bg-fernandito-off-white" : "bg-fernandito-verde-escuro",
                     )}
-                  >
-                    <WhatsAppIcon className="h-5 w-5" />
-                    {page.submit}
-                  </button>
-                  {after}
-                </div>
-              </div>
-            </div>
+                  />
+                )}
+                <span className="relative">{r.chip}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Campos do motivo (nenhum no "Conversar": fica só o botão). */}
+        <form id="contato-form" onSubmit={submit} noValidate className="mt-8">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={reason.key}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={t(0.35)}
+              className="flex flex-col gap-6"
+            >
+              {reason.fields.map((field) => {
+                const id = `contato-${reason.key}-${field.name}`;
+                const flagged = missing && !current[field.name]?.trim();
+                return (
+                  <div key={field.name}>
+                    <label
+                      htmlFor={field.options ? undefined : id}
+                      id={`${id}-label`}
+                      className={clsx(
+                        "text-label block font-sans tracking-[0.12em] uppercase",
+                        flagged ? "font-bold opacity-100" : "opacity-70",
+                      )}
+                    >
+                      {field.label}
+                      {flagged && " · falta"}
+                    </label>
+                    {field.options ? (
+                      <div
+                        id={id}
+                        tabIndex={-1}
+                        role="radiogroup"
+                        aria-labelledby={`${id}-label`}
+                        className="mt-2.5 flex flex-wrap gap-2 outline-none"
+                      >
+                        {field.options.map((option) => {
+                          const on = current[field.name] === option;
+                          return (
+                            <button
+                              key={option}
+                              type="button"
+                              role="radio"
+                              aria-checked={on}
+                              onClick={() => set(field.name, option)}
+                              className={clsx(
+                                "duration-base ease-out-standard h-10 rounded-full px-4 font-sans text-[0.875rem] font-bold transition-[background-color,color,box-shadow,transform] active:scale-[0.96]",
+                                on ? chipOn : "ring-1 ring-current/30 hover:ring-current/70",
+                              )}
+                            >
+                              {option}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <input
+                        id={id}
+                        value={current[field.name] ?? ""}
+                        placeholder={field.placeholder}
+                        maxLength={100}
+                        autoComplete={field.name === "nome" ? "name" : "off"}
+                        enterKeyHint="next"
+                        onChange={(e) => set(field.name, e.target.value)}
+                        className={clsx(
+                          "text-body-lg mt-1.5 w-full max-w-md border-b-2 bg-transparent py-2 font-sans transition-colors outline-none placeholder:opacity-40 focus:border-current",
+                          flagged ? "border-current" : "border-current/30",
+                        )}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </motion.div>
+          </AnimatePresence>
+
+          <div className={clsx(reason.fields.length ? "mt-10" : "mt-2")}>
+            <button
+              type="submit"
+              className={clsx(
+                "duration-base ease-out-standard flex h-13 w-full items-center justify-center gap-2.5 rounded-full px-8 font-sans text-[1rem] font-bold shadow-[0_14px_34px_rgba(20,28,18,0.3)] transition-[background-color,transform] active:scale-[0.98] sm:w-auto",
+                onDark
+                  ? "bg-fernandito-off-white text-fernandito-verde-escuro hover:bg-white"
+                  : "bg-fernandito-verde-escuro text-fernandito-off-white hover:bg-fernandito-verde-medio",
+              )}
+            >
+              <WhatsAppIcon className="h-5 w-5" />
+              {page.submit}
+            </button>
+            {after}
           </div>
+        </form>
+      </div>
+
+      {/* Foto: no computador, a metade direita inteira (presa enquanto rola);
+          no celular, de ponta a ponta embaixo do botão. */}
+      <div className="relative h-[46svh] min-h-[18rem] lg:h-auto">
+        <div className="lg:sticky lg:top-0 lg:h-svh">
+          <ContatoFoto reason={reason} reduce={!!reduce} />
         </div>
       </div>
     </motion.section>
+  );
+}
+
+/**
+ * Foto do motivo, sem moldura. Troca subindo por cima da anterior (cortina);
+ * com mouse: zoom no hover e um parallax leve seguindo o ponteiro.
+ */
+function ContatoFoto({ reason, reduce }: { reason: ContatoReason; reduce: boolean }) {
+  const px = useMotionValue(0);
+  const py = useMotionValue(0);
+  const x = useSpring(px, { stiffness: 120, damping: 20, mass: 0.6 });
+  const y = useSpring(py, { stiffness: 120, damping: 20, mass: 0.6 });
+  const t = (duration: number) => (reduce ? { duration: 0 } : { duration, ease: SMOOTH });
+
+  const move = (event: PointerEvent<HTMLDivElement>) => {
+    if (reduce || event.pointerType !== "mouse") return;
+    const box = event.currentTarget.getBoundingClientRect();
+    px.set(((event.clientX - box.left) / box.width - 0.5) * -24);
+    py.set(((event.clientY - box.top) / box.height - 0.5) * -24);
+  };
+  const leave = () => {
+    px.set(0);
+    py.set(0);
+  };
+
+  return (
+    <div
+      onPointerMove={move}
+      onPointerLeave={leave}
+      className="group absolute inset-0 overflow-hidden lg:relative lg:h-full"
+    >
+      <AnimatePresence initial={false}>
+        <motion.div
+          key={reason.key}
+          className="absolute inset-0"
+          initial={{ clipPath: "inset(100% 0% 0% 0%)", scale: 1.15 }}
+          animate={{ clipPath: "inset(0% 0% 0% 0%)", scale: 1 }}
+          exit={{ scale: 1.06, transition: t(0.9) }}
+          transition={t(0.9)}
+        >
+          <div className="duration-slow ease-out-standard absolute inset-0 transition-transform [@media(hover:hover)]:group-hover:scale-[1.06]">
+            <motion.div style={{ x, y }} className="absolute -inset-4">
+              <PhotoSlot
+                image={reason.photo}
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                placeholderClassName="bg-fernandito-verde-escuro"
+              />
+            </motion.div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+      <div className="grain-overlay pointer-events-none absolute inset-0 opacity-[0.06] mix-blend-overlay" />
+    </div>
   );
 }
 
