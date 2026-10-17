@@ -47,7 +47,8 @@ export const PRODUCTS: Product[] = [
       { icon: "cup", qty: "1", label: "copo Fernandito" },
       { icon: "sticker", qty: "5", label: "adesivos" },
     ],
-    priceCents: 10000,
+    // R$ 89,90 (igual ao cadastro no Bling).
+    priceCents: 8990,
     images: [
       {
         // PLACEHOLDER: trocar pela foto do kit.
@@ -67,8 +68,8 @@ export const PRODUCTS: Product[] = [
     maxQty: 5,
     // Igual ao cadastro no Bling: caixa 19 × 19 × 6,5 cm, 1,2 kg.
     shipping: { weightKg: 1.2, widthCm: 19, heightCm: 6.5, lengthCm: 19 },
-    // Primeiro lote: no máximo 150 kits (ajustar quando contar o estoque real).
-    stockCap: 150,
+    // Primeiro lote: no máximo 200 kits (confirmar quando contar o estoque real).
+    stockCap: 200,
     active: true,
   },
   {

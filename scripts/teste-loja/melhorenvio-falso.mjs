@@ -16,6 +16,15 @@ http
     const body = raw ? JSON.parse(raw) : {};
     const url = new URL(req.url, "http://x");
     const p = url.pathname.replace(/^\/api\/v2\/me/, "");
+    if (req.headers.authorization) calls.lastAuth = req.headers.authorization;
+    if (p === "/oauth/token") {
+      calls.refresh = (calls.refresh ?? 0) + 1;
+      return send(res, 200, {
+        access_token: "novo-" + calls.refresh,
+        refresh_token: "r-novo",
+        expires_in: 2592000,
+      });
+    }
     if (p === "/_ctl") {
       Object.assign(flags, body.flags ?? {});
       if (body.set) Object.assign(orders.get(body.set.id), body.set);

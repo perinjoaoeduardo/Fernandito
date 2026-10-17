@@ -1,5 +1,5 @@
 import "server-only";
-import { BASE, TOKEN, USER_AGENT, ALLOWED_CARRIERS, ORIGIN_CEP } from "@/lib/melhor-envio";
+import { BASE, meToken, USER_AGENT, ALLOWED_CARRIERS, ORIGIN_CEP } from "@/lib/melhor-envio";
 
 /**
  * Compra automática da etiqueta no Melhor Envio (API v2), paga com o SALDO
@@ -37,11 +37,12 @@ export class MeError extends Error {
 }
 
 async function me<T>(path: string, body?: unknown): Promise<T> {
-  if (!TOKEN) throw new MeError("Melhor Envio sem token (MELHOR_ENVIO_TOKEN)");
+  const token = await meToken();
+  if (!token) throw new MeError("Melhor Envio sem token (autorizar em /api/melhorenvio/connect)");
   const response = await fetch(`${BASE}/api/v2/me${path}`, {
     method: body === undefined ? "GET" : "POST",
     headers: {
-      Authorization: `Bearer ${TOKEN}`,
+      Authorization: `Bearer ${token}`,
       Accept: "application/json",
       "Content-Type": "application/json",
       "User-Agent": USER_AGENT,

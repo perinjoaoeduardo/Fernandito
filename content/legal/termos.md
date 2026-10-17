@@ -1,8 +1,8 @@
 ---
 title: Termos de Uso e Condições de Venda
 description: Termos de uso do site fernandito.com.br e condições de venda do Fernandito — venda proibida para menores de 18 anos.
-version: "1.0"
-updatedAt: "12/10/2026"
+version: "1.1"
+updatedAt: "17/10/2026"
 ---
 
 ## 1. Quem somos
@@ -43,12 +43,13 @@ Beba com moderação. Não dirija após consumir bebidas alcoólicas. O consumo 
 - Os preços estão em **reais (R$)** e incluem os tributos aplicáveis. O frete é informado separadamente, antes da finalização
 - Podemos alterar preços a qualquer momento, sem afetar pedidos já pagos
 - Erros evidentes de preço ou de informação poderão ser corrigidos. Se o pedido já tiver sido pago, você poderá escolher entre manter a compra pelo valor correto ou cancelar com reembolso integral
-- O pagamento é feito **exclusivamente por Pix**, processado pelo **Mercado Pago**. O código Pix tem validade limitada. Se não for pago dentro do prazo, o pedido é cancelado automaticamente
+- O pagamento é feito **exclusivamente por Pix**, normalmente processado pelo **Mercado Pago**. O código Pix tem validade limitada. Se não for pago dentro do prazo, o pedido é cancelado automaticamente
+- Se o Pix automático estiver indisponível no momento da compra, poderemos oferecer o pagamento por **Pix direto na conta da FERNANDITO BEBIDAS LTDA** (CNPJ 69.252.946/0001-41). Nesse caso, o pedido é confirmado depois que conferirmos o recebimento
 - O pedido só é confirmado após a **confirmação do pagamento**
 
 ## 7. Estoque
 
-O estoque é verificado antes da geração do Pix. Em caso raro de indisponibilidade após o pagamento, você será avisado e terá **reembolso integral** em até **5 dias úteis**, ou poderá aceitar outro produto, se oferecido.
+O estoque é verificado e reservado na geração do Pix (e liberado se o Pix não for pago no prazo). Em caso raro de indisponibilidade após o pagamento, você será avisado e terá **reembolso integral** em até **5 dias úteis**, ou poderá aceitar outro produto, se oferecido.
 
 ## 8. Entrega
 

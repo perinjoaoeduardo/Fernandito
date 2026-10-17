@@ -3,6 +3,7 @@ import { isBlingConnected, refreshTokens } from "@/lib/bling/client";
 import { retryPendingBlingOrders } from "@/lib/bling/orders";
 import { reconcileOpenOrders } from "@/lib/store/checkout";
 import { advanceAllFulfillments } from "@/lib/store/fulfillment";
+import { meToken } from "@/lib/melhor-envio";
 
 // Cron diário (vercel.json): confere no Mercado Pago os Pix abertos, renova
 // o token do Bling (o refresh token vence se ficar sem uso) e reenvia
@@ -18,6 +19,8 @@ function authorized(header: string | null, secret: string | undefined) {
 export async function GET(request: Request) {
   if (!authorized(request.headers.get("authorization"), process.env.CRON_SECRET))
     return new Response("Não autorizado", { status: 401 });
+  // Renova o token do Melhor Envio se estiver perto de vencer.
+  await meToken().catch(() => "");
   const reconciled = await reconcileOpenOrders().catch((error: Error) => {
     console.error("[cron] conferência de Pix falhou:", error.message);
     return [];

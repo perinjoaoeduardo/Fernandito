@@ -1,8 +1,8 @@
 ---
 title: Política de Privacidade
 description: Como a Fernandito coleta, usa, compartilha e protege seus dados pessoais, conforme a LGPD.
-version: "1.0"
-updatedAt: "12/10/2026"
+version: "1.1"
+updatedAt: "17/10/2026"
 ---
 
 ## 1. Quem é responsável pelos seus dados
@@ -29,7 +29,7 @@ updatedAt: "12/10/2026"
 
 ### Dados de pagamento
 
-O pagamento por Pix é processado pelo **Mercado Pago**. Não temos acesso aos dados da sua conta bancária, apenas à confirmação do pagamento e ao identificador da transação.
+O pagamento por Pix é processado pelo **Mercado Pago**. Não temos acesso aos dados da sua conta bancária, apenas à confirmação do pagamento e ao identificador da transação. Se o pagamento for feito por Pix direto na nossa conta (quando o Pix automático estiver indisponível), recebemos o comprovante que você enviar, apenas para confirmar o pedido.
 
 ## 3. Para que usamos e com qual base legal
 

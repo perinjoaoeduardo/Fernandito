@@ -1,9 +1,9 @@
 import type { NextRequest } from "next/server";
-import { exchangeCode } from "@/lib/melhor-envio";
+import { exchangeCode, saveMeTokens } from "@/lib/melhor-envio";
 
 // Volta da autorização do Melhor Envio. Confere o `state`, troca o `code`
-// pelo token e mostra o token UMA vez, pra colar na Vercel como
-// MELHOR_ENVIO_TOKEN. Nada é salvo no servidor.
+// pelo token e SALVA no Redis (com o token de renovação): daí em diante o
+// site renova sozinho antes de vencer — não precisa colar nada na Vercel.
 
 const escape = (value: string) => value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -37,13 +37,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const token = await exchangeCode(code);
-    const days = token.expires_in ? Math.round(token.expires_in / 86400) : null;
+    await saveMeTokens(token);
     return page(
       "Melhor Envio conectado",
-      `<p>Copie o token abaixo e cole na Vercel como <b>MELHOR_ENVIO_TOKEN</b> (Production e Preview). Depois faça um redeploy.</p>
-<textarea rows="8" readonly onclick="this.select()">${escape(token.access_token)}</textarea>
-${days ? `<p>Validade: cerca de ${days} dias. Depois disso, repita este processo.</p>` : ""}
-<p>Esta página não salva nada. Feche depois de copiar.</p>`,
+      `<p><b>Pronto.</b> O token foi salvo no site e vai se <b>renovar sozinho</b> antes de vencer. Não precisa colar nada na Vercel nem fazer redeploy.</p>
+<p>Pode fechar esta página.</p>`,
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "erro desconhecido";

@@ -22,6 +22,15 @@ const WEBHOOK_SECRET = process.env.MERCADOPAGO_WEBHOOK_SECRET?.trim() || "";
 
 export const PIX_EXPIRATION_MINUTES = 30;
 
+/**
+ * Qual API do Mercado Pago gera o Pix: `payments` (a atual, /v1/payments) ou
+ * `orders` (a nova, /v1/orders — o Mercado Pago vai desligar a de payments).
+ * Trocar = mudar `MERCADOPAGO_API=orders` na Vercel (+ redeploy). As duas
+ * convivem: pedidos antigos continuam sendo conferidos pela API que os criou
+ * (id `ORD…` = orders; número = payments).
+ */
+export const MP_API = process.env.MERCADOPAGO_API?.trim() === "orders" ? "orders" : "payments";
+
 /** Sem token fora de produção → simula. */
 export const MP_SIMULATED = !TOKEN && !IS_PRODUCTION;
 
@@ -73,6 +82,7 @@ export async function createPixPayment(input: {
   }
 
   const [firstName, ...rest] = input.name.trim().split(/\s+/);
+  if (MP_API === "orders") return createPixOrder(input, expiresAt, firstName, rest.join(" "));
   const response = await fetch(`${API}/v1/payments`, {
     method: "POST",
     headers: {
@@ -124,9 +134,104 @@ type MpPaymentResponse = {
   };
 };
 
+// ── API nova: Orders ───────────────────────────────────────────────────────
+type MpOrderResponse = {
+  id?: string;
+  status?: string;
+  status_detail?: string;
+  external_reference?: string;
+  total_amount?: string;
+  total_paid_amount?: string;
+  message?: string;
+  transactions?: {
+    payments?: {
+      id?: string;
+      status?: string;
+      amount?: string;
+      paid_amount?: string;
+      date_of_expiration?: string;
+      payment_method?: { qr_code?: string; qr_code_base64?: string; ticket_url?: string };
+    }[];
+  };
+};
+
+async function createPixOrder(
+  input: Parameters<typeof createPixPayment>[0],
+  expiresAt: Date,
+  firstName: string,
+  lastName: string,
+): Promise<PixPayment> {
+  const amount = (input.amountCents / 100).toFixed(2);
+  const response = await fetch(`${API}/v1/orders`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${TOKEN}`,
+      "Content-Type": "application/json",
+      "X-Idempotency-Key": input.idempotencyKey,
+    },
+    body: JSON.stringify({
+      type: "online",
+      processing_mode: "automatic",
+      external_reference: input.orderId,
+      description: `Fernandito — pedido #${input.orderId}`,
+      total_amount: amount,
+      payer: {
+        email: input.email,
+        first_name: firstName,
+        last_name: lastName,
+        identification: { type: "CPF", number: input.cpf },
+      },
+      transactions: {
+        payments: [
+          {
+            amount,
+            payment_method: { id: "pix", type: "bank_transfer" },
+            expiration_time: `PT${PIX_EXPIRATION_MINUTES}M`,
+          },
+        ],
+      },
+    }),
+    cache: "no-store",
+  });
+  const data = (await response.json().catch(() => null)) as MpOrderResponse | null;
+  if (!response.ok || !data?.id)
+    throw new Error(`Mercado Pago ${response.status}: ${data?.message ?? "sem detalhes"}`);
+  const payment = data.transactions?.payments?.[0];
+  return {
+    id: data.id,
+    status: data.status ?? "action_required",
+    qrCode: payment?.payment_method?.qr_code ?? "",
+    qrCodeBase64: payment?.payment_method?.qr_code_base64 ?? "",
+    expiresAt: payment?.date_of_expiration
+      ? new Date(payment.date_of_expiration).toISOString()
+      : expiresAt.toISOString(),
+  };
+}
+
+async function getOrderPayment(orderId: string) {
+  const response = await fetch(`${API}/v1/orders/${encodeURIComponent(orderId)}`, {
+    headers: { Authorization: `Bearer ${TOKEN}` },
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`Mercado Pago ${response.status} ao buscar a order`);
+  const data = (await response.json()) as MpOrderResponse;
+  // "processed" = pago e creditado. O resto (action_required, expired,
+  // canceled…) não conta como pago.
+  const paid = data.status === "processed";
+  const payment = data.transactions?.payments?.[0];
+  return {
+    id: String(data.id),
+    status: paid ? "approved" : (data.status ?? ""),
+    amount: Number(data.total_paid_amount ?? payment?.paid_amount ?? data.total_amount ?? 0),
+    externalReference: data.external_reference ?? "",
+  };
+}
+
 /** Busca o pagamento direto na API (a fonte da verdade, não o webhook). */
 export async function getPayment(paymentId: string) {
   if (!TOKEN) return null;
+  // Id da API nova ("ORD…"; o aviso pode chegar em minúsculas).
+  if (/^ord/i.test(paymentId)) return getOrderPayment(paymentId.toUpperCase());
   const response = await fetch(`${API}/v1/payments/${encodeURIComponent(paymentId)}`, {
     headers: { Authorization: `Bearer ${TOKEN}` },
     cache: "no-store",

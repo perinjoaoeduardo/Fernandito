@@ -1,5 +1,6 @@
 // Bateria de cenários da compra (ver LANCAMENTO.md → "Testar a loja").
 import { createHmac, randomUUID } from "node:crypto";
+const PRICE = 8990; // preço do kit (src/lib/catalog.ts)
 const B = "http://localhost:3160",
   MP = "http://localhost:3999",
   KEY = "chave-admin-local-0123456789",
@@ -15,7 +16,7 @@ const check = (name, ok, extra = "") => {
   console.log(`${ok ? "✅" : "❌"} ${name} ${extra}`);
 };
 const body = () => ({
-  items: [{ sku: "FERN-KIT-PRE", qty: 1, unitPriceCents: 10000 }],
+  items: [{ sku: "FERN-KIT-PRE", qty: 1, unitPriceCents: PRICE }],
   customer: {
     name: "Teste Silva",
     email: "teste@example.com",
@@ -32,7 +33,7 @@ const body = () => ({
     uf: "SP",
   },
   shipping: null,
-  subtotalCents: 10000,
+  subtotalCents: PRICE,
   totalCents: 0,
   ageConfirmed: true,
   ageConfirmedAt: new Date().toISOString(),
@@ -66,17 +67,22 @@ function webhook(dataId, { bad = false } = {}) {
   const ts = String(Date.now()),
     rid = randomUUID();
   const v1 = createHmac("sha256", bad ? "errada" : SECRET)
-    .update(`id:${dataId};request-id:${rid};ts:${ts};`)
+    .update(
+      `id:${/^[a-z0-9]+$/i.test(String(dataId)) ? String(dataId).toLowerCase() : dataId};request-id:${rid};ts:${ts};`,
+    )
     .digest("hex");
-  return fetch(`${B}/api/webhooks/mercadopago?data.id=${dataId}&type=payment`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-signature": `ts=${ts},v1=${v1}`,
-      "x-request-id": rid,
+  return fetch(
+    `${B}/api/webhooks/mercadopago?data.id=${dataId}&type=${String(dataId).startsWith("ORD") ? "order" : "payment"}`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-signature": `ts=${ts},v1=${v1}`,
+        "x-request-id": rid,
+      },
+      body: JSON.stringify({ type: "payment", data: { id: dataId } }),
     },
-    body: JSON.stringify({ type: "payment", data: { id: dataId } }),
-  });
+  );
 }
 
 const SHIP = 2000; // frete de último recurso (tabela)
@@ -362,7 +368,7 @@ const approve = async (orderId, extra = {}) =>
     if (left - qty === 0) await ctl({ flags: { expireSeconds: 3 } });
     const b = body();
     b.items[0].qty = qty;
-    b.subtotalCents = 10000 * qty;
+    b.subtotalCents = PRICE * qty;
     b.shipping = {
       id: "tabela-sudeste",
       service: "x",
@@ -408,7 +414,7 @@ const approve = async (orderId, extra = {}) =>
     [...Array(6)].map(() => {
       const b = body();
       b.items[0].qty = freed;
-      b.subtotalCents = 10000 * freed;
+      b.subtotalCents = PRICE * freed;
       b.shipping = {
         id: "tabela-sudeste",
         service: "x",

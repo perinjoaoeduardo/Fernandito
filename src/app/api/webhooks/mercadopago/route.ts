@@ -33,8 +33,9 @@ export async function POST(request: NextRequest) {
     return json({ error: "assinatura inválida" }, 401);
   }
 
-  // Só interessa pagamento; o resto (merchant_order etc.) é ignorado com 200.
-  if (type !== "payment" || !dataId) return json({ ok: true });
+  // Só interessa pagamento (API atual) ou order (API nova); o resto
+  // (merchant_order etc.) é ignorado com 200.
+  if ((type !== "payment" && type !== "order") || !dataId) return json({ ok: true });
 
   try {
     const order = await syncPayment(dataId);

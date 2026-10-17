@@ -3,6 +3,7 @@ import { BLING_CONFIGURED, isBlingConnected } from "@/lib/bling/client";
 import { retryPendingBlingOrders } from "@/lib/bling/orders";
 import { isAdmin } from "@/lib/leads";
 import { MP_SIMULATED } from "@/lib/mercadopago";
+import { meTokenStatus } from "@/lib/melhor-envio";
 import { reconcileOpenOrders } from "@/lib/store/checkout";
 import { advanceAllFulfillments, getFulfillment } from "@/lib/store/fulfillment";
 import { HAS_REDIS, IS_PRODUCTION, kvSMembers } from "@/lib/store/kv";
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
         blingNatureza: env("BLING_NATUREZA_ID"),
         blingLoja: env("BLING_LOJA_ID"),
         blingFormaPix: env("BLING_FORMA_PAGAMENTO_ID"),
-        melhorEnvioToken: env("MELHOR_ENVIO_TOKEN"),
+        melhorEnvioToken: await meTokenStatus(),
         notaAutomatica: process.env.FULFILL_NFE !== "0",
         etiquetaAutomatica: process.env.FULFILL_LABEL !== "0",
         cronSecret: env("CRON_SECRET"),

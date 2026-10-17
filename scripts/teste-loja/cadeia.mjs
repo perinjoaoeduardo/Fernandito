@@ -28,7 +28,7 @@ async function buy({
   ship = { id: "me-3", priceCents: 2590, source: "melhor-envio" },
 } = {}) {
   const b = {
-    items: [{ sku: "FERN-KIT-PRE", qty: 1, unitPriceCents: 10000 }],
+    items: [{ sku: "FERN-KIT-PRE", qty: 1, unitPriceCents: 8990 }],
     customer: {
       name: "Bruna Lima",
       email: "b@example.com",
@@ -64,13 +64,13 @@ async function buy({
           source: "local",
         }
       : { service: "x", carrier: "Jadlog", days: { min: 1, max: 5 }, ...ship },
-    subtotalCents: 10000,
+    subtotalCents: 8990,
     totalCents: 0,
     ageConfirmed: true,
     ageConfirmedAt: new Date().toISOString(),
     marketingOptIn: false,
   };
-  b.totalCents = 10000 + b.shipping.priceCents;
+  b.totalCents = 8990 + b.shipping.priceCents;
   const r = await fetch(B + "/api/checkout/pix", {
     method: "POST",
     headers: { ...H(), "x-idempotency-key": randomUUID() },
@@ -84,17 +84,20 @@ async function buy({
   const ts = String(Date.now()),
     rid = randomUUID();
   const v1 = createHmac("sha256", SECRET)
-    .update(`id:${pay.id};request-id:${rid};ts:${ts};`)
+    .update(`id:${String(pay.id).toLowerCase()};request-id:${rid};ts:${ts};`)
     .digest("hex");
-  await fetch(`${B}/api/webhooks/mercadopago?data.id=${pay.id}&type=payment`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-signature": `ts=${ts},v1=${v1}`,
-      "x-request-id": rid,
+  await fetch(
+    `${B}/api/webhooks/mercadopago?data.id=${pay.id}&type=${String(pay.id).startsWith("ORD") ? "order" : "payment"}`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-signature": `ts=${ts},v1=${v1}`,
+        "x-request-id": rid,
+      },
+      body: "{}",
     },
-    body: "{}",
-  });
+  );
   return id;
 }
 async function until(id, stages, ms = 30000) {
@@ -278,6 +281,33 @@ const c1 = await buy();
     "C10 perdeu o estado → reencontra a etiqueta pela tag, sem pagar de novo",
     e?.etapa === "ready" && after.cart === before.cart && after.checkout === before.checkout,
     `${JSON.stringify(before)}→${JSON.stringify(after)} ${JSON.stringify(e)}`,
+  );
+}
+// C11 token do Melhor Envio perto de vencer → renova sozinho e passa a usar o novo
+{
+  execSync(
+    `redis-cli -p ${process.env.REDIS_PORT ?? 6390} set me:tokens '${JSON.stringify({ accessToken: "velho", refreshToken: "r1", expiresAt: Date.now() + 86400000 })}'`,
+  );
+  await fetch(`${B}/api/frete`, {
+    method: "POST",
+    headers: H(),
+    body: JSON.stringify({
+      cep: "01001-000",
+      items: [
+        { qty: 1, weightKg: 1.3, widthCm: 19, heightCm: 6.5, lengthCm: 19, priceCents: 8990 },
+      ],
+    }),
+  });
+  const saved = JSON.parse(
+    execSync(`redis-cli -p ${process.env.REDIS_PORT ?? 6390} get me:tokens`).toString(),
+  );
+  const me = await ctl(ME);
+  check(
+    "C11 token perto de vencer → renovado sozinho e já usado",
+    saved.accessToken.startsWith("novo-") &&
+      saved.expiresAt > Date.now() + 20 * 86400000 &&
+      me.calls.lastAuth === `Bearer ${saved.accessToken}`,
+    JSON.stringify({ saved: saved.accessToken, auth: me.calls.lastAuth }),
   );
 }
 // C9 planilha mostra nota e rastreio

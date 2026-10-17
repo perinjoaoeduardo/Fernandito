@@ -14,9 +14,11 @@ O que precisa ser feito/conferido no dia em que a loja for pro ar
       `https://fernandito.com.br/api/webhooks/mercadopago`, evento
       "Pagamentos". Copiar a assinatura secreta para
       `MERCADOPAGO_WEBHOOK_SECRET` (Production).
-- [ ] Trocar o código da API de Payments (`/v1/payments`) para a API de
-      Orders antes do Mercado Pago desligar a atual
-      (`src/lib/mercadopago.ts`).
+- [x] API nova (Orders) pronta e testada (17/10), atrás da variável
+      `MERCADOPAGO_API=orders`. Hoje vale a atual (Payments). Plano: fazer o
+      teste de R$ 1 com a atual; depois um segundo teste de R$ 1 com
+      `MERCADOPAGO_API=orders` (Production + Redeploy) e, se ok, deixar a nova
+      ligada de vez. Pedidos antigos continuam conferidos pela API que os criou.
 
 ## Como a compra funciona e o que acontece se algo falhar (revisado em 16/10)
 
@@ -124,8 +126,8 @@ Bling de verdade e a etiqueta.
 
 ## Antes de abrir a venda
 
-- [ ] Número total de kits à venda → `stockCap` em `src/lib/catalog.ts` (hoje 150).
-- [ ] Preço final do kit → `priceCents` no catálogo **e** no Bling (os dois iguais).
+- [x] Total de kits: **200** (`stockCap` no catálogo e balanço de 200 no Bling, 17/10). Confirmar com a contagem real.
+- [x] Preço do kit: **R$ 89,90** no site e no Bling (17/10).
 
 ## Depois do pago: nota, etiqueta e rastreio AUTOMÁTICOS (17/10)
 
@@ -152,10 +154,9 @@ POA, frete de último recurso, perdeu o estado), 24/24 em 3 rodadas.
 
 **Pra funcionar de verdade (fazer antes do teste de R$ 1):**
 
-- [ ] **Token novo do Melhor Envio** com as permissões de compra: abrir
-      `https://fernandito.com.br/api/melhorenvio/connect` → autorizar (agora pede
-      carrinho, compra, gerar, imprimir e rastreio) → colar em
-      `MELHOR_ENVIO_TOKEN` (Production) → Redeploy.
+- [ ] **Autorizar o Melhor Envio de novo** (permissões de compra): abrir
+      `https://fernandito.com.br/api/melhorenvio/connect` → autorizar. Pronto —
+      o site salva e renova sozinho (não precisa colar nada na Vercel).
 - [ ] **Aviso do Melhor Envio:** Área Dev → app "Fernandito" → Webhook:
       `https://fernandito.com.br/api/melhorenvio/webhook`.
 - [ ] **Bling: permissão de Notas Fiscais** no app do Bling (Central de
@@ -205,8 +206,10 @@ Como ficou:
 Pendente:
 
 - [x] Jadlog aceita bebida alcoólica em lata (confirmado em 14/10).
-- [ ] Renovação automática do token (guardar o refresh token no Redis e
-      renovar antes de vencer) — hoje é manual a cada ~30 dias.
+- [x] Renovação automática do token (17/10): a autorização em
+      `/api/melhorenvio/connect` salva o token no Redis e o site renova sozinho
+      7 dias antes de vencer (e no cron diário). Não precisa mais colar na Vercel.
+      Painel mostra de onde vem o token e quando vence.
 - [x] Webhook do Melhor Envio (`/api/melhorenvio/webhook`) — existe (17/10); cadastrar no app.
 - [ ] E-mails: "pedido confirmado" pro cliente e "compra nova" pra equipe.
 - [x] Tributação/CEST: a contadora já configurou.
@@ -251,8 +254,7 @@ navegação" no DESIGN_SYSTEM.md.
 - [ ] Episódios: pra cada um, título, link do post no Instagram, capa e
       uma prévia de 5–10 s em mp4 sem som (`EPISODIOS`).
 - [ ] Arte da lata no "O que é" (hoje é um espaço reservado).
-- [x] Razão social no rodapé (FERNANDITO BEBIDAS LTDA, conferida no Bling em 16/10).
-- [ ] Endereço completo da empresa no rodapé (`FOOTER.company`).
+- [x] Razão social, CNPJ e endereço no rodapé (exigência do Decreto 7.962/2013).
 - [ ] Página de Trocas e devoluções (com o advogado).
 - [ ] Preço/produto do lançamento (kit atual × pack de 6) — em aberto.
 - [ ] Torneira em eventos — em aberto (a porta de evento não promete torneira).

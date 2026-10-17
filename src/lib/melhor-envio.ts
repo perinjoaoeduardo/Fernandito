@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import type { ShippingItem, ShippingOption } from "@/lib/shipping";
-import { IS_PRODUCTION, kvGet, kvSet } from "@/lib/store/kv";
+import { IS_PRODUCTION, kvGet, kvReleaseLock, kvSet, kvSetNX } from "@/lib/store/kv";
 
 /**
  * Cotação de frete no Melhor Envio — SÓ NO SERVIDOR (o token não pode ir
@@ -23,7 +23,102 @@ import { IS_PRODUCTION, kvGet, kvSet } from "@/lib/store/kv";
  * o preço que a pessoa viu na tela é o que o servidor confere depois.
  */
 
-export const TOKEN = process.env.MELHOR_ENVIO_TOKEN?.trim() || "";
+// Token de reserva (variável da Vercel). O principal é o salvo no Redis pela
+// autorização (/api/melhorenvio/connect), que se RENOVA SOZINHO — ver `meToken`.
+const ENV_TOKEN = process.env.MELHOR_ENVIO_TOKEN?.trim() || "";
+
+const TOKENS_KEY = "me:tokens";
+type MeTokens = { accessToken: string; refreshToken: string | null; expiresAt: number };
+// Renova quando faltar menos que isso pra vencer (o token vale ~30 dias; o
+// cron diário e as próprias chamadas garantem que nunca chega a vencer).
+const RENEW_BEFORE_MS = 7 * 24 * 60 * 60 * 1000;
+
+async function readMeTokens(): Promise<MeTokens | null> {
+  try {
+    const raw = await kvGet(TOKENS_KEY);
+    return raw ? (JSON.parse(raw) as MeTokens) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveMeTokens(t: {
+  access_token: string;
+  refresh_token?: string;
+  expires_in?: number;
+}) {
+  const tokens: MeTokens = {
+    accessToken: t.access_token,
+    refreshToken: t.refresh_token ?? null,
+    expiresAt: Date.now() + (t.expires_in ?? 30 * 86400) * 1000,
+  };
+  await kvSet(TOKENS_KEY, JSON.stringify(tokens));
+  return tokens;
+}
+
+async function refreshMeTokens(current: MeTokens): Promise<MeTokens> {
+  if (!current.refreshToken) return current;
+  const owner = crypto.randomUUID();
+  if (!(await kvSetNX("me:refresh-lock", owner, 30))) return current; // outra instância renovando
+  try {
+    const latest = (await readMeTokens()) ?? current;
+    if (latest.expiresAt - Date.now() > RENEW_BEFORE_MS) return latest;
+    const clientId = process.env.MELHOR_ENVIO_CLIENT_ID?.trim();
+    const secret = process.env.MELHOR_ENVIO_SECRET?.trim();
+    if (!clientId || !secret) throw new Error("Client ID/Secret do Melhor Envio não configurados");
+    const response = await fetch(`${OAUTH_BASE}/oauth/token`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": USER_AGENT,
+      },
+      body: JSON.stringify({
+        grant_type: "refresh_token",
+        refresh_token: latest.refreshToken,
+        client_id: clientId,
+        client_secret: secret,
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) throw new Error(`Melhor Envio ${response.status} ao renovar o token`);
+    const saved = await saveMeTokens(await response.json());
+    console.info("[melhor envio] token renovado sozinho");
+    return saved;
+  } finally {
+    await kvReleaseLock("me:refresh-lock", owner).catch(() => {});
+  }
+}
+
+/** Token pra usar agora: o do Redis (renovado sozinho perto de vencer) ou, sem ele, o da variável. */
+export async function meToken(): Promise<string> {
+  let tokens = await readMeTokens();
+  if (tokens && tokens.expiresAt - Date.now() < RENEW_BEFORE_MS) {
+    tokens = await refreshMeTokens(tokens).catch((error: Error) => {
+      console.error("[melhor envio] renovação falhou:", error.message);
+      return tokens;
+    });
+  }
+  if (tokens && tokens.expiresAt > Date.now()) return tokens.accessToken;
+  return ENV_TOKEN;
+}
+
+/** Pro painel: de onde vem o token e quando vence. */
+export async function meTokenStatus() {
+  const tokens = await readMeTokens();
+  if (tokens)
+    return {
+      origem: "autorização (renova sozinho)",
+      venceEm: new Date(tokens.expiresAt).toISOString(),
+      renovavel: Boolean(tokens.refreshToken),
+    };
+  return {
+    origem: ENV_TOKEN ? "variável MELHOR_ENVIO_TOKEN (NÃO renova)" : "nenhum",
+    venceEm: null,
+    renovavel: false,
+  };
+}
 // `MELHOR_ENVIO_API_URL` só pra teste local (um Melhor Envio falso).
 export const BASE =
   process.env.MELHOR_ENVIO_API_URL?.trim() ||
@@ -59,8 +154,9 @@ export async function quoteMelhorEnvio(
   items: ShippingItem[],
 ): Promise<ShippingOption[]> {
   const cep = destinationCep.replace(/\D/g, "");
+  const token = await meToken();
   const cacheKey = `frete:${createHash("sha1")
-    .update(JSON.stringify({ cep, items, origin: ORIGIN_CEP, real: Boolean(TOKEN) }))
+    .update(JSON.stringify({ cep, items, origin: ORIGIN_CEP, real: Boolean(token) }))
     .digest("hex")}`;
   try {
     const cached = await kvGet(cacheKey);
@@ -70,7 +166,7 @@ export async function quoteMelhorEnvio(
   }
 
   let options: ShippingOption[];
-  if (TOKEN) options = await quoteReal(cep, items);
+  if (token) options = await quoteReal(cep, items, token);
   else if (!IS_PRODUCTION) options = quoteMock(cep, items);
   else throw new Error("Melhor Envio não configurado (MELHOR_ENVIO_TOKEN)");
 
@@ -83,11 +179,15 @@ export async function quoteMelhorEnvio(
   return options;
 }
 
-async function quoteReal(cep: string, items: ShippingItem[]): Promise<ShippingOption[]> {
+async function quoteReal(
+  cep: string,
+  items: ShippingItem[],
+  token: string,
+): Promise<ShippingOption[]> {
   const response = await fetch(`${BASE}/api/v2/me/shipment/calculate`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${TOKEN}`,
+      Authorization: `Bearer ${token}`,
       Accept: "application/json",
       "Content-Type": "application/json",
       "User-Agent": USER_AGENT,
@@ -163,6 +263,8 @@ function quoteMock(cep: string, items: ShippingItem[]): ShippingOption[] {
 // Abrir /api/melhorenvio/connect → autorizar → /callback mostra o token.
 
 export const ME_BASE_URL = "https://melhorenvio.com.br";
+// Teste local: o Melhor Envio falso também responde o /oauth/token.
+const OAUTH_BASE = process.env.MELHOR_ENVIO_API_URL?.trim() || ME_BASE_URL;
 export const ME_USER_AGENT = USER_AGENT;
 // Cálculo + compra automática da etiqueta (carrinho → pagar com o saldo →
 // gerar → rastreio/impressão). Mudou a lista? Gerar o token de novo.
