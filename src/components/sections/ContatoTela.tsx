@@ -126,16 +126,14 @@ export function ContatoTela() {
     </p>
   );
 
-  // O único elemento cheio da tela: bege sobre o verde, verde-escuro dentro
-  // do cartão. O seletor de motivo fica discreto pra não competir com ele.
+  // O único elemento cheio da tela (bege). Seletor, cartão e campos ficam
+  // translúcidos, no tom do fundo, pra não competir com ele.
   const button = (
     <button
       type="submit"
       className={clsx(
         "duration-base ease-out-standard flex h-13 w-full items-center justify-center gap-2.5 rounded-full px-8 font-sans text-[1rem] font-bold transition-[background-color,transform] active:scale-[0.98]",
-        hasFields
-          ? "bg-fernandito-verde-escuro text-fernandito-off-white hover:bg-fernandito-verde-medio"
-          : "bg-fernandito-off-white text-fernandito-verde-escuro shadow-[0_14px_34px_rgba(20,28,18,0.3)] hover:bg-white",
+        "bg-fernandito-off-white text-fernandito-verde-escuro hover:bg-white",
       )}
     >
       <WhatsAppIcon className="h-5 w-5" />
@@ -216,8 +214,7 @@ export function ContatoTela() {
                 exit={{ opacity: 0, y: -10, scale: 0.98 }}
                 transition={t(0.35)}
                 className={clsx(
-                  hasFields &&
-                    "bg-fernandito-off-white text-fernandito-verde-escuro rounded-3xl p-5 shadow-[0_24px_60px_rgba(20,28,18,0.28)] sm:p-6",
+                  hasFields && "rounded-3xl bg-black/12 p-5 ring-1 ring-white/10 sm:p-6",
                 )}
               >
                 {hasFields && (
@@ -246,33 +243,24 @@ export function ContatoTela() {
                               {field.options.map((option) => {
                                 const on = current[field.name] === option;
                                 return (
-                                  <motion.button
+                                  <button
                                     key={option}
                                     type="button"
                                     role="radio"
                                     aria-checked={on}
                                     onClick={() => set(field.name, option)}
-                                    animate={
-                                      on
-                                        ? { backgroundColor: theme.bg, color: theme.fg }
-                                        : {
-                                            backgroundColor: "rgba(255,255,255,0.6)",
-                                            color: "#243022",
-                                          }
-                                    }
-                                    transition={t(0.25)}
                                     className={clsx(
-                                      "duration-base ease-out-standard h-10 rounded-full px-4 font-sans text-[0.875rem] font-bold transition-[box-shadow,transform] active:scale-[0.96]",
+                                      "duration-base ease-out-standard h-10 rounded-full px-4 font-sans text-[0.875rem] font-bold ring-1 transition-[background-color,box-shadow,transform] active:scale-[0.96]",
                                       on
-                                        ? "ring-0"
+                                        ? "bg-white/20 ring-white/40"
                                         : clsx(
-                                            "ring-1 hover:ring-current/50",
-                                            flagged ? "ring-current" : "ring-current/15",
+                                            "opacity-80 hover:opacity-100 hover:ring-white/40",
+                                            flagged ? "ring-white/70" : "ring-white/15",
                                           ),
                                     )}
                                   >
                                     {option}
-                                  </motion.button>
+                                  </button>
                                 );
                               })}
                             </div>
@@ -286,8 +274,8 @@ export function ContatoTela() {
                               enterKeyHint="next"
                               onChange={(e) => set(field.name, e.target.value)}
                               className={clsx(
-                                "mt-2 h-12 w-full rounded-xl bg-white/60 px-4 font-sans text-[1rem] transition-shadow outline-none placeholder:text-current/35 focus:bg-white focus:ring-2 focus:ring-current",
-                                flagged ? "ring-2 ring-current" : "ring-1 ring-current/15",
+                                "mt-2 h-12 w-full rounded-xl bg-white/8 px-4 font-sans text-[1rem] ring-1 transition-[background-color,box-shadow] outline-none placeholder:text-current/40 focus:bg-white/12 focus:ring-white/50",
+                                flagged ? "ring-white/70" : "ring-white/15",
                               )}
                             />
                           )}
