@@ -249,7 +249,7 @@ export const PAGES = {
           {
             name: "pessoas",
             label: "Quantas pessoas?",
-            options: ["Até 50", "50 a 150", "Mais de 150"],
+            options: ["Até 50", "50 a 150", "150+"],
           },
         ],
         message:

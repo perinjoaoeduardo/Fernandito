@@ -8,8 +8,7 @@ import {
   useReducedMotion,
   useSpring,
 } from "framer-motion";
-import NextLink from "next/link";
-import { useState, type FormEvent, type PointerEvent } from "react";
+import { useState, type FormEvent, type KeyboardEvent, type PointerEvent } from "react";
 import { PAGES, type ContatoReason } from "@/content/site";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { WHATSAPP_DISPLAY, whatsappOpenHref } from "@/components/ui/WhatsAppButton";
@@ -31,6 +30,25 @@ type Values = Record<string, string>;
 /** Mensagem com as respostas (o que falta some). */
 function compose(reason: ContatoReason, values: Values) {
   return reason.message.replace(/\{(\w+)\}/g, (_, name: string) => values[name]?.trim() || "…");
+}
+
+/** Setas trocam a opção marcada (padrão de radiogroup) e levam o foco junto;
+ * no Tab, só a marcada entra (as outras têm tabIndex −1). */
+function radioKeys<T>(items: readonly T[], index: number, pick: (item: T) => void) {
+  return (event: KeyboardEvent<HTMLElement>) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+    if (!step) return;
+    event.preventDefault();
+    const next = (Math.max(index, 0) + step + items.length) % items.length;
+    pick(items[next]);
+    event.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')[next]?.focus();
+  };
+}
+
+/** Foca um campo pelo id; num grupo de opções, a primeira opção. */
+function focusField(id: string) {
+  const el = document.getElementById(id);
+  (el?.querySelector<HTMLElement>('[role="radio"]') ?? el)?.focus();
 }
 
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -80,7 +98,7 @@ export function ContatoTela() {
     event.preventDefault();
     if (empty.length) {
       setMissing(true);
-      document.getElementById(`contato-${reason.key}-${empty[0].name}`)?.focus();
+      focusField(`contato-${reason.key}-${empty[0].name}`);
       return;
     }
     setMissing(false);
@@ -113,7 +131,8 @@ export function ContatoTela() {
 
   // Depois de mandar: confirmação + plano B se o WhatsApp não abriu.
   const after = sent && (
-    <p aria-live="polite" className="text-label mt-3 font-sans tracking-[0.04em]">
+    <p aria-live="polite" className="mt-3 text-center font-sans text-[0.8rem] opacity-85">
+      <span aria-hidden="true">✓ </span>
       {page.sent} {page.fallback}{" "}
       <button
         type="button"
@@ -132,7 +151,7 @@ export function ContatoTela() {
     <button
       type="submit"
       className={clsx(
-        "duration-base ease-out-standard flex h-13 w-full items-center justify-center gap-2.5 rounded-full px-8 font-sans text-[1rem] font-bold transition-[background-color,transform] active:scale-[0.98]",
+        "duration-base ease-out-standard flex h-13 w-full items-center justify-center gap-2.5 rounded-full px-5 font-sans text-[1rem] font-bold whitespace-nowrap transition-[background-color,transform] active:scale-[0.98] sm:px-8",
         "bg-fernandito-off-white text-fernandito-verde-escuro hover:bg-white",
       )}
     >
@@ -157,13 +176,7 @@ export function ContatoTela() {
           transition={{ type: "spring", stiffness: 260, damping: 32 }}
           className="flex w-full max-w-[26rem] flex-col"
         >
-          <NextLink
-            href="/"
-            className="text-label duration-base ease-out-standard inline-flex items-center gap-2 self-start font-sans tracking-[0.1em] uppercase opacity-70 transition-opacity hover:opacity-100"
-          >
-            <span aria-hidden="true">←</span> Início
-          </NextLink>
-          <h1 className="font-rampart mt-5 text-[clamp(2.6rem,6vw,4.6rem)] leading-[0.95]">
+          <h1 className="font-rampart text-[clamp(2.6rem,min(6vw,9svh),4.6rem)] leading-[0.95]">
             {page.title}
           </h1>
           <p className="mt-3 font-sans text-[0.95rem] opacity-75">{page.lead}</p>
@@ -172,7 +185,8 @@ export function ContatoTela() {
           <div
             role="radiogroup"
             aria-label="Motivo do contato"
-            className="mt-7 flex gap-1 self-start rounded-full bg-black/15 p-1"
+            onKeyDown={radioKeys(page.reasons, page.reasons.indexOf(reason), (r) => choose(r.key))}
+            className="mt-6 flex gap-1 self-start rounded-full bg-black/15 p-1"
           >
             {page.reasons.map((r) => {
               const on = r.key === reason.key;
@@ -182,6 +196,7 @@ export function ContatoTela() {
                   type="button"
                   role="radio"
                   aria-checked={on}
+                  tabIndex={on ? 0 : -1}
                   onClick={() => choose(r.key)}
                   className={clsx(
                     "relative h-9 rounded-full px-4 font-sans text-[0.875rem] font-bold whitespace-nowrap transition-opacity duration-300 lg:h-10 lg:px-5",
@@ -205,7 +220,7 @@ export function ContatoTela() {
 
           {/* "Conversar": só o botão. Evento e revenda: um cartão com as
               perguntas e o botão dentro. */}
-          <form onSubmit={submit} noValidate className="mt-7">
+          <form onSubmit={submit} noValidate className="mt-6">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={reason.key}
@@ -218,9 +233,10 @@ export function ContatoTela() {
                 )}
               >
                 {hasFields && (
-                  <div className="mb-6 flex flex-col gap-5">
-                    {reason.fields.map((field) => {
+                  <div className="mb-5 flex flex-col gap-4">
+                    {reason.fields.map((field, index) => {
                       const id = `contato-${reason.key}-${field.name}`;
+                      const nextField = reason.fields[index + 1];
                       const flagged = missing && !current[field.name]?.trim();
                       return (
                         <div key={field.name}>
@@ -238,19 +254,26 @@ export function ContatoTela() {
                               tabIndex={-1}
                               role="radiogroup"
                               aria-labelledby={`${id}-label`}
-                              className="mt-2 flex flex-wrap gap-2 outline-none"
+                              onKeyDown={radioKeys(
+                                field.options,
+                                field.options.indexOf(current[field.name]),
+                                (option) => set(field.name, option),
+                              )}
+                              className="mt-2 grid grid-cols-3 gap-2 outline-none"
                             >
-                              {field.options.map((option) => {
+                              {field.options.map((option, i) => {
                                 const on = current[field.name] === option;
+                                const picked = field.options?.includes(current[field.name]);
                                 return (
                                   <button
                                     key={option}
                                     type="button"
                                     role="radio"
                                     aria-checked={on}
+                                    tabIndex={on || (!picked && i === 0) ? 0 : -1}
                                     onClick={() => set(field.name, option)}
                                     className={clsx(
-                                      "duration-base ease-out-standard h-10 rounded-full px-4 font-sans text-[0.875rem] font-bold ring-1 transition-[background-color,box-shadow,transform] active:scale-[0.96]",
+                                      "duration-base ease-out-standard h-10 rounded-full px-2 font-sans text-[0.875rem] font-bold whitespace-nowrap ring-1 transition-[background-color,box-shadow,transform] active:scale-[0.96]",
                                       on
                                         ? "bg-white/20 ring-white/40"
                                         : clsx(
@@ -270,11 +293,24 @@ export function ContatoTela() {
                               value={current[field.name] ?? ""}
                               placeholder={field.placeholder}
                               maxLength={100}
-                              autoComplete={field.name === "nome" ? "name" : "off"}
-                              enterKeyHint="next"
+                              autoComplete={
+                                field.name === "nome"
+                                  ? "name"
+                                  : field.name === "cidade"
+                                    ? "address-level2"
+                                    : "off"
+                              }
+                              autoCapitalize="words"
+                              enterKeyHint={nextField ? "next" : "send"}
+                              onKeyDown={(e) => {
+                                // Enter vai pro próximo campo; no último, manda.
+                                if (e.key !== "Enter" || !nextField) return;
+                                e.preventDefault();
+                                focusField(`contato-${reason.key}-${nextField.name}`);
+                              }}
                               onChange={(e) => set(field.name, e.target.value)}
                               className={clsx(
-                                "mt-2 h-12 w-full rounded-xl bg-white/8 px-4 font-sans text-[1rem] ring-1 transition-[background-color,box-shadow] outline-none placeholder:text-current/40 focus:bg-white/12 focus:ring-white/50",
+                                "mt-2 h-12 w-full rounded-xl bg-white/8 px-4 font-sans text-[1rem] ring-1 transition-[background-color,box-shadow] outline-none placeholder:text-current/40 focus:bg-white/12 focus:ring-white/50 lg:h-11",
                                 flagged ? "ring-white/70" : "ring-white/15",
                               )}
                             />
