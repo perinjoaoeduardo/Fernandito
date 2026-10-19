@@ -324,7 +324,13 @@ const c1 = await buy();
 }
 // C12 e-mails: cliente e equipe na compra; alerta pra equipe
 {
-  const toClient = mails.filter((m) => m.to.includes("b@example.com") && m.subject.includes(c1));
+  const toClient = mails.filter(
+    (m) =>
+      m.to.includes("b@example.com") && m.subject.includes(c1) && /confirmado/i.test(m.subject),
+  );
+  const posted = mails.filter(
+    (m) => m.to.includes("b@example.com") && m.subject.includes(c1) && /postado/i.test(m.subject),
+  );
   const toTeam = mails.filter(
     (m) => m.to.includes("equipe@fernandito.test") && m.subject.includes(c1),
   );
@@ -332,6 +338,11 @@ const c1 = await buy();
     "C12 cliente recebe 'Pedido confirmado' com o link do pedido (1 vez)",
     toClient.length === 1 && toClient[0].html.includes(`/pedido/${c1}/confirmado`),
     `${toClient.length}`,
+  );
+  check(
+    "C12 cliente recebe 'Teu pedido foi postado' com o rastreio (1 vez)",
+    posted.length === 1 && /JAD\d+/.test(posted[0].html),
+    `${posted.length}`,
   );
   check("C12 equipe recebe 'Compra nova' (1 vez)", toTeam.length === 1);
   check(

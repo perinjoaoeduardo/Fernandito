@@ -108,9 +108,52 @@ export function sendOrderConfirmed(order: StoredOrder) {
       `<p style="font-size:15px;line-height:1.6">Valeu, ${first}! O pagamento chegou e o teu pedido <b>#${esc(order.id)}</b> já está na fila de envio.</p>
 ${itemsTable(order)}
 <p style="margin:24px 0"><a href="${link}" style="background:#243022;color:#E6E6CB;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:bold">Acompanhar o pedido</a></p>
-<p style="font-size:13px;line-height:1.6;opacity:.85">A nota fiscal chega por e-mail assim que for emitida, e o código de rastreio quando a etiqueta sair. Qualquer coisa, responde este e-mail ou chama no WhatsApp com o número do pedido.</p>`,
+<p style="font-size:13px;line-height:1.6;opacity:.85">A nota fiscal chega por e-mail assim que for emitida. O rastreio aparece na página do pedido, e a gente te avisa por e-mail quando ele for postado. Qualquer coisa, responde este e-mail ou chama no WhatsApp com o número do pedido.</p>`,
     ),
   );
+}
+
+/** Pro cliente, uma vez, quando o pacote é postado (com o rastreio). */
+export function sendOrderShipped(order: StoredOrder, tracking: string, trackingUrl: string | null) {
+  const link = `${SITE}/pedido/${order.id}/confirmado`;
+  const first = esc(order.customer.name.split(/\s+/)[0] ?? "");
+  const button = (href: string, label: string) =>
+    `<a href="${href}" style="display:inline-block;margin:0 8px 8px 0;background:#243022;color:#E6E6CB;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:bold">${label}</a>`;
+  return send(
+    [order.customer.email],
+    `Teu pedido foi postado! #${order.id}`,
+    layout(
+      "Teu pedido foi postado.",
+      `<p style="font-size:15px;line-height:1.6">${first}, o teu Fernandito já está com a Jadlog, a caminho de ${esc(order.address.city)}/${esc(order.address.uf)}.</p>
+<p style="font-size:14px;line-height:1.6">Código de rastreio: <b>${esc(tracking)}</b></p>
+<p style="margin:24px 0">${trackingUrl ? button(trackingUrl, "Rastrear o pacote") : ""}${button(link, "Ver o pedido")}</p>
+<p style="font-size:13px;line-height:1.6;opacity:.85">Na entrega, quem receber precisa ter 18 anos ou mais e mostrar um documento com foto. Qualquer coisa, responde este e-mail ou chama no WhatsApp com o número do pedido.</p>`,
+    ),
+  );
+}
+
+/** Exemplos dos e-mails (check-up `&email=exemplos`), todos pro contato@,
+ * com um pedido de mentira, pra conferir o visual. */
+export async function sendSampleEmails() {
+  const to = TEAM[0];
+  if (!KEY || !to) return { ok: false, detail: "sem RESEND_API_KEY" };
+  const order = {
+    id: "EXEMPLO123",
+    customer: { name: "Ana Souza", email: to },
+    address: { city: "Pelotas", uf: "RS" },
+    items: [{ name: "Kit Fernandito (pré-venda)", qty: 1, unitPriceCents: 8990 }],
+    shipping: { service: "Jadlog .Package", priceCents: 2590 },
+    totalCents: 11580,
+    manualPix: null,
+  } as unknown as StoredOrder;
+  const results = await Promise.all([
+    sendOrderConfirmed(order),
+    sendOrderShipped(order, "JD123456789BR", "https://www.jadlog.com.br/"),
+    sendNewOrderToTeam(order),
+    sendAlertToTeam(order.id, "exemplo de alerta (sem saldo pra etiqueta)"),
+  ]);
+  const sent = results.filter(Boolean).length;
+  return { ok: sent === 4, detail: `${sent} de 4 exemplos enviados pra ${to}` };
 }
 
 /** Pra equipe, a cada compra paga. */

@@ -12,7 +12,7 @@ import {
 import { MP_API } from "@/lib/mercadopago";
 import { HAS_REDIS, IS_PRODUCTION, kvDel, kvGet, kvSet } from "@/lib/store/kv";
 import { STORE } from "@/content/site";
-import { EMAIL_ENABLED, sendTestEmail } from "@/lib/email";
+import { EMAIL_ENABLED, sendSampleEmails, sendTestEmail } from "@/lib/email";
 
 /**
  * Check-up da loja, em português, pra abrir no navegador:
@@ -260,10 +260,15 @@ export async function GET(request: NextRequest) {
 
   // ── E-mail ───────────────────────────────────────────────────────────
   // Só manda de verdade com `&email=1` (o resto do check-up só lê).
-  const emailTest =
-    EMAIL_ENABLED && request.nextUrl.searchParams.get("email") === "1"
+  // `&email=exemplos` manda os 4 e-mails (pedido de mentira) pro contato@.
+  const emailParam = request.nextUrl.searchParams.get("email");
+  const emailTest = !EMAIL_ENABLED
+    ? null
+    : emailParam === "1"
       ? await sendTestEmail()
-      : null;
+      : emailParam === "exemplos"
+        ? await sendSampleEmails()
+        : null;
   add({
     area: "E-mail",
     item: "Resend (pedido confirmado, avisos)",
