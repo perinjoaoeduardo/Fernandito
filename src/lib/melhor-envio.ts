@@ -280,10 +280,15 @@ export const ME_SCOPES = [
   "shipping-cancel",
 ];
 
-/** URL de callback — tem que ser IGUAL à cadastrada no app do Melhor Envio. */
+/** URL de callback — tem que ser IGUAL à cadastrada no app do Melhor Envio.
+ * No preview, o endereço fixo da branch (VERCEL_BRANCH_URL, não muda a cada
+ * deploy): a autorização começa e termina no mesmo site, senão o `state`
+ * (cookie) não confere. O check-up mostra qual é. */
 export const REDIRECT_URI =
   process.env.MELHOR_ENVIO_REDIRECT_URI?.trim() ||
-  "https://fernandito.com.br/api/melhorenvio/callback";
+  (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_BRANCH_URL
+    ? `https://${process.env.VERCEL_BRANCH_URL}/api/melhorenvio/callback`
+    : "https://fernandito.com.br/api/melhorenvio/callback");
 
 /** Troca o `code` da autorização pelo token de acesso (vale ~30 dias). */
 export async function exchangeCode(code: string) {

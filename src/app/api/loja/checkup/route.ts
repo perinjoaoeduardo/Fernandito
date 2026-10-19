@@ -2,7 +2,13 @@ import type { NextRequest } from "next/server";
 import { bling, BLING_CONFIGURED, isBlingConnected } from "@/lib/bling/client";
 import { FEATURED_PRODUCT, TEST_PRICE } from "@/lib/catalog";
 import { isAdmin } from "@/lib/leads";
-import { BASE as ME_BASE, meToken, meTokenStatus, USER_AGENT } from "@/lib/melhor-envio";
+import {
+  BASE as ME_BASE,
+  meToken,
+  meTokenStatus,
+  REDIRECT_URI as ME_REDIRECT,
+  USER_AGENT,
+} from "@/lib/melhor-envio";
 import { MP_API } from "@/lib/mercadopago";
 import { HAS_REDIS, IS_PRODUCTION, kvDel, kvGet, kvSet } from "@/lib/store/kv";
 import { STORE } from "@/content/site";
@@ -204,7 +210,7 @@ export async function GET(request: NextRequest) {
     item: "Token",
     status: tokenInfo.renovavel ? "ok" : tokenInfo.origem === "nenhum" ? "fail" : "warn",
     detail: `${tokenInfo.origem}${tokenInfo.venceEm ? ` · vence ${tokenInfo.venceEm.slice(0, 10)}` : ""}`,
-    fix: "Abrir /api/melhorenvio/connect e autorizar (salva e renova sozinho).",
+    fix: `No app do Melhor Envio, "URL de redirecionamento" = ${ME_REDIRECT} . Depois abrir /api/melhorenvio/connect NESTE site e autorizar (salva e renova sozinho).`,
   });
   const meUser = await safe(() => meGet(""));
   add({
