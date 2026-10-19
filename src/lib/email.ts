@@ -115,7 +115,7 @@ type LayoutOptions = { preheader?: string };
 
 /** Moldura: faixa verde com o logo, (foto), título, conteúdo e rodapé da marca. */
 function layout(title: string, body: string, { preheader = "" }: LayoutOptions = {}) {
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light"><title>${esc(title)}</title></head>
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light"><style>a[x-apple-data-detectors],u + #body a{color:inherit!important;text-decoration:none!important}</style><title>${esc(title)}</title></head>
 <body style="margin:0;padding:0;background:${C.bege}">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(preheader)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bege}"><tr><td align="center" style="padding:24px 12px">
@@ -130,7 +130,7 @@ function layout(title: string, body: string, { preheader = "" }: LayoutOptions =
 <tr><td style="background:${C.medio};border-radius:0 0 20px 20px;padding:22px 26px;font-family:${MONO};color:${C.bege}">
 <p style="margin:0 0 10px;font-family:${SERIF};font-size:16px;font-style:italic">Feito com brio. Porto Alegre, RS.</p>
 <p style="margin:0 0 14px;font-size:13px"><a href="${INSTAGRAM}" style="color:${C.bege}">Instagram</a> &nbsp;·&nbsp; <a href="${WHATSAPP}" style="color:${C.bege}">WhatsApp</a> &nbsp;·&nbsp; <a href="${SITE}" style="color:${C.bege}">fernandito.com.br</a></p>
-<p style="margin:0;font-size:11px;line-height:1.6;opacity:.8">FERNANDITO BEBIDAS LTDA · CNPJ 69.252.946/0001-41 · Rua Castro Alves, 433, Rio Branco, Porto Alegre/RS<br>Beba com moderação. Venda proibida para menores de 18 anos.</p>
+<p style="margin:0;font-size:11px;line-height:1.6;opacity:.8;color:${C.bege}">FERNANDITO BEBIDAS LTDA · CNPJ 69.252.946/0001&#8203;-41 · Rua&#8203; Castro&#8203; Alves, 433, Rio&#8203; Branco, Porto&#8203; Alegre/RS<br>Beba com moderação. Venda proibida para menores de 18 anos.</p>
 </td></tr>
 </table></td></tr></table></body></html>`;
 }
