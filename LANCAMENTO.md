@@ -131,6 +131,25 @@ Bling de verdade e a etiqueta.
       estoque dos press kits e os brindes.
 - [ ] Contadora: imposto na saída de brinde (Simples/ICMS-RS) e se emite nota de todos.
 
+## Check final no dia do lançamento (anotado em 19/10)
+
+Hoje as conexões apontam pro site de teste (`fernandito-git-teste-meusprojetospessoais.vercel.app`,
+endereço fixo da branch). Quando o site novo for pro `fernandito.com.br`:
+
+- [ ] Bling, app do site → "Link de redirecionamento" = `https://fernandito.com.br/api/bling/callback`
+      (hoje: preview `rjg6j7bsd`). Reconectar em `/api/bling/connect?key=…` só se pedir.
+- [ ] Melhor Envio, app → "URL de redirecionamento" = `https://fernandito.com.br/api/melhorenvio/callback`
+      (hoje: `fernandito-git-teste…`). Reconectar em `/api/melhorenvio/connect`.
+- [ ] Melhor Envio, app → Webhook = `https://fernandito.com.br/api/melhorenvio/webhook` (não dá no preview:
+      a Vercel bloqueia visita de fora).
+- [ ] Mercado Pago: token de produção (só Production) + webhook `https://fernandito.com.br/api/webhooks/mercadopago`.
+- [ ] `/api/loja/checkup?key=…` no `fernandito.com.br`: tudo ✅ (o A1 só fica verde depois da 1ª nota).
+- [ ] Teste de R$ 1 (roteiro abaixo).
+
+Já feito em 19/10: Bling com todos os escopos disponíveis (sem Contratos) e NF ✅; Melhor Envio com
+token que renova sozinho, saldo R$ 50 e compra de etiqueta ✅; agência Jadlog Ferragens Pesce (Floresta);
+Pix manual com a chave aleatória da empresa.
+
 ## Antes de abrir a venda
 
 - [x] Total de kits: **200** (`stockCap` no catálogo e balanço de 200 no Bling, 17/10). Confirmar com a contagem real.
