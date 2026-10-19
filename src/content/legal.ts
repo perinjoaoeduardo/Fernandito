@@ -16,6 +16,8 @@ export type LegalFrame = {
   intro: string;
   summary: { icon: LegalIcon; text: string }[];
   groups: { title: string; text: string; sections: number[] }[];
+  /** Página curta: só os blocos do texto, sem resumo, partes nem índice. */
+  simple?: boolean;
 };
 
 export const LEGAL: Record<"termos" | "privacidade" | "trocas", LegalFrame> = {
@@ -58,33 +60,10 @@ export const LEGAL: Record<"termos" | "privacidade" | "trocas", LegalFrame> = {
   },
   trocas: {
     short: "Trocas",
-    intro:
-      "Desistiu, chegou com problema ou quer o dinheiro de volta: como resolve, sem enrolação.",
-    summary: [
-      {
-        icon: "back",
-        text: "Desistiu? 7 dias depois de receber, sem explicar. A volta é por nossa conta.",
-      },
-      {
-        icon: "receipt",
-        text: "Chegou com defeito ou avariado? 30 dias pra trocar ou receber de volta.",
-      },
-      { icon: "truck", text: "Caixa danificada na entrega: recusa ou tira fotos e avisa a gente." },
-      { icon: "pix", text: "Reembolso integral por Pix, em até 5 dias úteis." },
-      {
-        icon: "chat",
-        text: "Pede no WhatsApp ou e-mail com o nº do pedido. Resposta em 1 dia útil.",
-      },
-      { icon: "shield", text: "Nada aqui limita teus direitos do Código de Defesa do Consumidor." },
-    ],
-    groups: [
-      { title: "Quando dá pra devolver", text: "Desistência e defeito.", sections: [1, 2] },
-      {
-        title: "Como pedir e receber",
-        text: "O passo a passo e o reembolso.",
-        sections: [3, 4, 5],
-      },
-    ],
+    intro: "Desistiu ou chegou com problema? Resolve assim.",
+    simple: true,
+    summary: [],
+    groups: [],
   },
   privacidade: {
     short: "Privacidade",
