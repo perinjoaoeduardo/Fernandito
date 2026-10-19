@@ -278,6 +278,9 @@ export const ME_SCOPES = [
   "shipping-print",
   "shipping-tracking",
   "shipping-cancel",
+  // Só leitura, pro check-up: dados da conta (/me) e saldo (/me/balance).
+  "users-read",
+  "transactions-read",
 ];
 
 /** URL de callback — tem que ser IGUAL à cadastrada no app do Melhor Envio.
