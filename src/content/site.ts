@@ -417,21 +417,21 @@ export const EPISODIOS = {
   items: [
     {
       number: 1,
-      title: "Episódio 1",
-      href: "https://www.instagram.com/toma.fernandito/",
+      title: "Como chegamos aqui?",
+      href: "https://www.instagram.com/p/DeQEuoLRP92/",
       cover: photo("Capa ep. 1", "Capa do episódio 1 do Fernandito"),
       preview: null as string | null,
     },
     {
       number: 2,
-      title: "Episódio 2",
-      href: "https://www.instagram.com/toma.fernandito/",
+      title: "A marca é + ou - assim",
+      href: "https://www.instagram.com/p/Dec1LA3xqMY/",
       cover: photo("Capa ep. 2", "Capa do episódio 2 do Fernandito"),
       preview: null as string | null,
     },
     {
       number: 3,
-      title: "Episódio 3",
+      title: "Em breve",
       href: "https://www.instagram.com/toma.fernandito/",
       cover: photo("Capa ep. 3", "Capa do episódio 3 do Fernandito"),
       preview: null as string | null,
