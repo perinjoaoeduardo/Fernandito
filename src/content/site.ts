@@ -75,8 +75,10 @@ export const STORE = {
    * aqui ou na variável NEXT_PUBLIC_PIX_MANUAL_KEY da Vercel (+ redeploy).
    */
   manualPix: {
-    key: process.env.NEXT_PUBLIC_PIX_MANUAL_KEY?.trim() || "",
-    keyLabel: "Chave Pix (CNPJ)",
+    // Chave aleatória da conta da empresa (é pública: vai na tela do Pix
+    // manual). A variável na Vercel, se existir, tem prioridade.
+    key: process.env.NEXT_PUBLIC_PIX_MANUAL_KEY?.trim() || "114c4c96-ccc8-46c1-b50f-df6003da3546",
+    keyLabel: "Chave Pix (aleatória)",
     holder: "FERNANDITO BEBIDAS LTDA",
   },
 };
@@ -221,6 +223,8 @@ export const PAGES = {
     title: "Contato",
     lead: "Curtiu o Fernandito? Chama a gente.",
     submit: "Chamar no WhatsApp",
+    /** Embaixo do botão quando o motivo pede dados (LGPD: dizer pra quê). */
+    privacy: "Usamos esses dados só pra te responder.",
     sent: "Abrimos o WhatsApp. É só enviar.",
     fallback: "Não abriu?",
     copy: "Copiar mensagem",

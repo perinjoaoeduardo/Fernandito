@@ -322,6 +322,14 @@ export function ContatoTela() {
                 )}
                 {button}
                 {after}
+                {hasFields && !sent && (
+                  <p className="mt-3 text-center font-sans text-[0.75rem] opacity-60">
+                    {page.privacy}{" "}
+                    <a href="/privacidade" className="underline underline-offset-2">
+                      Privacidade
+                    </a>
+                  </p>
+                )}
               </motion.div>
             </AnimatePresence>
           </form>

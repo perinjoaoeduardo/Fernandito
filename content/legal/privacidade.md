@@ -21,6 +21,7 @@ updatedAt: "17/10/2026"
 - **Pedido:** produtos, quantidades, valores e forma de entrega
 - **Confirmação de maioridade:** registro de que você declarou ter 18 anos ou mais, com data e hora
 - **Preferência de comunicação:** se aceitou receber novidades por e-mail
+- **Formulário de contato:** nome, cidade e, conforme o assunto, o tamanho do evento ou o nome do estabelecimento, usados só para responder pelo WhatsApp
 
 ### Dados coletados automaticamente
 
@@ -39,6 +40,7 @@ O pagamento por Pix é processado pelo **Mercado Pago**. Não temos acesso aos d
 | Emitir nota fiscal e cumprir obrigações fiscais | Obrigação legal (art. 7º, II)                                            |
 | Registrar a confirmação de maioridade           | Obrigação legal e exercício regular de direitos (art. 7º, II e VI)       |
 | Atendimento, trocas, devoluções e reembolsos    | Execução de contrato (art. 7º, V)                                        |
+| Responder contatos (evento, revenda)            | Procedimentos preliminares a um contrato (art. 7º, V)                    |
 | Prevenção a fraudes e segurança do site         | Legítimo interesse (art. 7º, IX) e proteção ao crédito (art. 7º, X)      |
 | Guardar registros de acesso ao site             | Obrigação legal (Marco Civil da Internet, art. 15)                       |
 | Enviar novidades e ofertas por e-mail           | **Consentimento** (art. 7º, I), que pode ser retirado a qualquer momento |
