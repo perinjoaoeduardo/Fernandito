@@ -12,6 +12,7 @@ import {
 import { MP_API } from "@/lib/mercadopago";
 import { HAS_REDIS, IS_PRODUCTION, kvDel, kvGet, kvSet } from "@/lib/store/kv";
 import { STORE } from "@/content/site";
+import { EMAIL_ENABLED, sendTestEmail } from "@/lib/email";
 
 /**
  * Check-up da loja, em português, pra abrir no navegador:
@@ -255,6 +256,22 @@ export async function GET(request: NextRequest) {
       ? `LIGADO: o kit está saindo por R$ ${(TEST_PRICE / 100).toFixed(2)}`
       : "desligado (preço normal)",
     fix: "Apagar NEXT_PUBLIC_PRECO_TESTE_CENTAVOS na Vercel e fazer redeploy.",
+  });
+
+  // ── E-mail ───────────────────────────────────────────────────────────
+  // Só manda de verdade com `&email=1` (o resto do check-up só lê).
+  const emailTest =
+    EMAIL_ENABLED && request.nextUrl.searchParams.get("email") === "1"
+      ? await sendTestEmail()
+      : null;
+  add({
+    area: "E-mail",
+    item: "Resend (pedido confirmado, avisos)",
+    status: !EMAIL_ENABLED ? "fail" : emailTest ? (emailTest.ok ? "ok" : "fail") : "warn",
+    detail: !EMAIL_ENABLED
+      ? "sem RESEND_API_KEY"
+      : (emailTest?.detail ?? "chave ok · abra com &email=1 pra mandar um teste pro contato@"),
+    fix: "RESEND_API_KEY na Vercel e o domínio fernandito.com.br verificado no Resend.",
   });
 
   // ── Rotinas ──────────────────────────────────────────────────────────

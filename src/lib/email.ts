@@ -65,6 +65,37 @@ function itemsTable(order: StoredOrder) {
 <tr><td style="padding:10px 0;border-top:1px solid #24302233"><b>Total</b></td><td style="text-align:right;border-top:1px solid #24302233"><b>${formatBRL(order.totalCents)}</b></td></tr></table>`;
 }
 
+/** Teste do check-up (`&email=1`): manda um e-mail pra equipe e devolve o
+ * resultado do Resend, com o erro em texto se não sair. */
+export async function sendTestEmail(): Promise<{ ok: boolean; detail: string }> {
+  if (!KEY) return { ok: false, detail: "sem RESEND_API_KEY" };
+  try {
+    const response = await fetch(`${API}/emails`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: FROM,
+        to: TEAM,
+        subject: "Teste do site: e-mail funcionando",
+        html: layout(
+          "E-mail funcionando",
+          `<p style="font-size:14px">Se chegou, os e-mails do site saem de ${esc(FROM)}.</p>`,
+        ),
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok)
+      return {
+        ok: false,
+        detail: `Resend ${response.status}: ${(await response.text()).slice(0, 160)}`,
+      };
+    return { ok: true, detail: `enviado de ${FROM} pra ${TEAM.join(", ")}` };
+  } catch (error) {
+    return { ok: false, detail: (error as Error).message };
+  }
+}
+
 /** Pro cliente, quando o pagamento é confirmado. */
 export function sendOrderConfirmed(order: StoredOrder) {
   const link = `${SITE}/pedido/${order.id}/confirmado`;
