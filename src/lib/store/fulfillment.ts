@@ -190,7 +190,9 @@ async function stepInvoice(order: StoredOrder, f: Fulfillment) {
   }
   if (status === 1 && !f.invoice.sentAt && AUTO_NFE) {
     // Pendente: envia pra Sefaz (e o Bling manda a nota por e-mail pro cliente).
-    await bling(`/nfe/${f.invoice.id}/enviar?enviarEmail=true`, { method: "POST" });
+    // Autoriza na Sefaz; o PDF/XML fica no Bling, sem mandar por e-mail
+    // pro cliente (decidido em 19/10).
+    await bling(`/nfe/${f.invoice.id}/enviar?enviarEmail=false`, { method: "POST" });
     f.invoice.sentAt = new Date().toISOString();
     console.info(`[envio ${order.id}] nota enviada à Sefaz`);
   }

@@ -1,5 +1,5 @@
 import "server-only";
-import { EMAIL_KIT_JPG, EMAIL_LOGO_PNG } from "@/lib/email-assets";
+import { EMAIL_SEAL_PNG } from "@/lib/email-assets";
 import { formatBRL } from "@/lib/money";
 import type { StoredOrder } from "@/lib/store/orders";
 
@@ -12,8 +12,8 @@ import type { StoredOrder } from "@/lib/store/orders";
  *   sem ela, contato@fernandito.com.br).
  * Sem isso, nada é enviado e nada trava. Nunca lança.
  *
- * Visual: cores da marca, logo e foto do kit embutidos (cid:, sem depender do
- * site no ar). Fontes próprias não funcionam em e-mail: título em Georgia,
+ * Visual: cores da marca e o selo (moeda) embutido (cid:, sem depender do
+ * site no ar). Texto o mais curto possível. Fontes próprias não funcionam em e-mail: título em Georgia,
  * texto em Courier (o mais perto de Rampart / Special Elite). Tudo em tabela
  * e estilo inline, que é o que os programas de e-mail entendem.
  */
@@ -41,10 +41,9 @@ const C = {
 const SERIF = "Georgia,'Times New Roman',serif";
 const MONO = "'Courier New',Courier,monospace";
 
-type Inline = "logo" | "kit";
+type Inline = "selo";
 const INLINE: Record<Inline, { filename: string; content: string }> = {
-  logo: { filename: "fernandito.png", content: EMAIL_LOGO_PNG },
-  kit: { filename: "kit.jpg", content: EMAIL_KIT_JPG },
+  selo: { filename: "fernandito.png", content: EMAIL_SEAL_PNG },
 };
 
 async function post(body: Record<string, unknown>) {
@@ -112,23 +111,18 @@ function timeline(done: number) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 24px"><tr>${cells}</tr></table>`;
 }
 
-type LayoutOptions = { preheader?: string; photo?: boolean };
+type LayoutOptions = { preheader?: string };
 
 /** Moldura: faixa verde com o logo, (foto), título, conteúdo e rodapé da marca. */
-function layout(
-  title: string,
-  body: string,
-  { preheader = "", photo = false }: LayoutOptions = {},
-) {
+function layout(title: string, body: string, { preheader = "" }: LayoutOptions = {}) {
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light"><title>${esc(title)}</title></head>
 <body style="margin:0;padding:0;background:${C.bege}">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(preheader)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bege}"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${C.bege}">
-<tr><td align="center" style="background:${C.escuro};border-radius:20px 20px 0 0;padding:26px 24px">
-<a href="${SITE}" style="text-decoration:none"><img src="cid:logo" width="220" alt="FERNANDITO" style="display:block;width:220px;max-width:70%;height:auto;border:0;color:${C.bege};font-family:${SERIF};font-size:28px;font-weight:bold;letter-spacing:.12em"></a>
+<tr><td align="center" style="background:${C.escuro};border-radius:20px 20px 0 0;padding:22px 24px">
+<a href="${SITE}" style="text-decoration:none"><img src="cid:selo" width="96" height="97" alt="FERNANDITO" style="display:block;width:96px;height:97px;border:0;color:${C.bege};font-family:${SERIF};font-size:22px;font-weight:bold;letter-spacing:.12em"></a>
 </td></tr>
-${photo ? `<tr><td style="background:${C.escuro};padding:0"><img src="cid:kit" width="560" alt="" style="display:block;width:100%;height:auto;border:0"></td></tr>` : ""}
 <tr><td style="background:#F1F1DC;padding:30px 26px 10px;border-left:1px solid ${C.linha};border-right:1px solid ${C.linha}">
 <h1 style="margin:0 0 16px;font-family:${SERIF};font-size:27px;line-height:1.15;color:${C.escuro};text-transform:uppercase;letter-spacing:.03em">${title}</h1>
 <div style="font-family:${MONO};color:${C.escuro}">${body}</div>
@@ -179,13 +173,12 @@ export function sendOrderConfirmed(order: StoredOrder) {
     [order.customer.email],
     `Pedido confirmado! #${order.id}`,
     layout(
-      "Pedido confirmado. Toma Fernandito!",
-      `${p(`Valeu, ${first}! O pagamento chegou e o teu pedido <b>#${esc(order.id)}</b> já está na fila de envio.`)}
+      "Pedido confirmado.",
+      `${p(`Valeu, ${first}! O pagamento chegou e o pedido <b>#${esc(order.id)}</b> já está na fila de envio.`)}
 ${timeline(1)}
 ${itemsTable(order)}
-<p style="margin:0 0 18px">${button(link, "Acompanhar o pedido")}</p>
-${p("A nota fiscal chega por e-mail assim que for emitida. O rastreio aparece na página do pedido, e a gente te avisa por e-mail quando ele for postado. Qualquer coisa, responde este e-mail ou chama no WhatsApp com o número do pedido.", 13)}`,
-      { photo: true, preheader: `Pedido #${order.id} pago. Agora é com a gente.` },
+<p style="margin:0 0 18px">${button(link, "Acompanhar o pedido")}</p>`,
+      { preheader: `Pedido #${order.id} pago.` },
     ),
   );
 }
@@ -199,13 +192,12 @@ export function sendOrderShipped(order: StoredOrder, tracking: string, trackingU
     `Teu pedido foi postado! #${order.id}`,
     layout(
       "Teu pedido foi postado.",
-      `${p(`${first}, o teu Fernandito já está com a Jadlog, a caminho de ${esc(order.address.city)}/${esc(order.address.uf)}.`)}
+      `${p(`${first}, o teu Fernandito está a caminho de ${esc(order.address.city)}/${esc(order.address.uf)}.`)}
 ${timeline(4)}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 22px"><tr><td style="border:2px dashed ${C.claro};border-radius:14px;padding:14px 16px">
 <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${C.medio}">Código de rastreio</div>
 <div style="font-size:20px;font-weight:bold;letter-spacing:.06em;margin-top:4px">${esc(tracking)}</div></td></tr></table>
-<p style="margin:0 0 18px">${trackingUrl ? button(trackingUrl, "Rastrear o pacote") : ""}${button(link, "Ver o pedido", Boolean(trackingUrl))}</p>
-${p("Na entrega, quem receber precisa ter 18 anos ou mais e mostrar um documento com foto. Qualquer coisa, responde este e-mail ou chama no WhatsApp com o número do pedido.", 13)}`,
+<p style="margin:0 0 18px">${trackingUrl ? button(trackingUrl, "Rastrear o pacote") : ""}${button(link, "Ver o pedido", Boolean(trackingUrl))}</p>`,
       { preheader: `Rastreio: ${tracking}` },
     ),
   );
@@ -242,9 +234,9 @@ export function sendNewOrderToTeam(order: StoredOrder) {
     `Compra nova: ${formatBRL(order.totalCents)} · ${order.address.city}/${order.address.uf} · #${order.id}`,
     layout(
       "Compra nova",
-      `${p(`<b>${esc(order.customer.name)}</b> · ${esc(order.address.city)}/${esc(order.address.uf)}<br>${order.manualPix ? "Pix MANUAL (confirmado no painel)" : "Pix Mercado Pago"}`, 14)}
+      `${p(`<b>${esc(order.customer.name)}</b> · ${esc(order.address.city)}/${esc(order.address.uf)}<br>${order.manualPix ? "Pix manual" : "Pix"}`, 14)}
 ${itemsTable(order)}
-${p(`A nota e a etiqueta seguem sozinhas. Painel: <a href="${SITE}/api/loja/diagnostico" style="color:${C.escuro}">${SITE}/api/loja/diagnostico</a>`, 13)}`,
+${p(`<a href="${SITE}/api/loja/diagnostico" style="color:${C.escuro}">Abrir o painel</a>`, 13)}`,
       { preheader: `${formatBRL(order.totalCents)} · #${order.id}` },
     ),
   );
@@ -258,7 +250,7 @@ export function sendAlertToTeam(orderId: string, problem: string) {
     layout(
       "Precisa de atenção",
       `${p(`Pedido <b>#${esc(orderId)}</b>: ${esc(problem)}`, 14)}
-${p(`Painel: <a href="${SITE}/api/loja/diagnostico" style="color:${C.escuro}">${SITE}/api/loja/diagnostico</a>`, 13)}`,
+${p(`<a href="${SITE}/api/loja/diagnostico" style="color:${C.escuro}">Abrir o painel</a>`, 13)}`,
       { preheader: problem.slice(0, 90) },
     ),
   );
