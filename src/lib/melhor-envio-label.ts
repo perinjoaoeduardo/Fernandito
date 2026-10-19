@@ -12,7 +12,7 @@ import { BASE, meToken, USER_AGENT, ALLOWED_CARRIERS, ORIGIN_CEP } from "@/lib/m
 const SENDER = {
   name: process.env.ME_FROM_NAME?.trim() || "FERNANDITO BEBIDAS LTDA",
   phone: process.env.ME_FROM_PHONE?.trim() || "51993383764",
-  email: process.env.ME_FROM_EMAIL?.trim() || "toma.fernandito@gmail.com",
+  email: process.env.ME_FROM_EMAIL?.trim() || "contato@fernandito.com.br",
   company_document: process.env.ME_FROM_CNPJ?.trim() || "69252946000141",
   state_register: process.env.ME_FROM_IE?.trim() || "0964146258",
   address: process.env.ME_FROM_STREET?.trim() || "Rua Castro Alves",

@@ -6,14 +6,15 @@ import type { StoredOrder } from "@/lib/store/orders";
  * E-mails do site (Resend, https://resend.com). Desligado até ter:
  * - `RESEND_API_KEY` (Resend → API Keys) e o domínio fernandito.com.br
  *   verificado lá (registros DNS que o Resend mostra);
- * - `EMAIL_FROM` (ex.: "Fernandito <pedidos@fernandito.com.br>");
- * - `EMAIL_EQUIPE` (quem recebe "compra nova" e os alertas; vírgula separa).
+ * - `EMAIL_FROM` (ex.: "Fernandito <contato@fernandito.com.br>");
+ * - `EMAIL_EQUIPE` (quem recebe "compra nova" e os alertas; vírgula separa;
+ *   sem ela, contato@fernandito.com.br).
  * Sem isso, nada é enviado e nada trava. Nunca lança.
  */
 
 const KEY = process.env.RESEND_API_KEY?.trim() || "";
-const FROM = process.env.EMAIL_FROM?.trim() || "Fernandito <pedidos@fernandito.com.br>";
-const TEAM = (process.env.EMAIL_EQUIPE ?? "")
+const FROM = process.env.EMAIL_FROM?.trim() || "Fernandito <contato@fernandito.com.br>";
+const TEAM = (process.env.EMAIL_EQUIPE?.trim() || "contato@fernandito.com.br")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);

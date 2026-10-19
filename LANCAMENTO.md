@@ -112,8 +112,8 @@ Bling de verdade e a etiqueta.
       do pedido), "Compra nova" e alertas pra equipe. **Pra ligar:** criar conta
       no Resend (resend.com), verificar o domínio fernandito.com.br (registros DNS
       que ele mostra), e na Vercel: `RESEND_API_KEY`, `EMAIL_FROM` (ex.
-      `Fernandito <pedidos@fernandito.com.br>`) e `EMAIL_EQUIPE` (e-mails do time,
-      separados por vírgula).
+      `Fernandito <contato@fernandito.com.br>`; é o padrão) e, se quiser outro além do
+      `contato@`, `EMAIL_EQUIPE`. **E-mail único do site: contato@fernandito.com.br** (19/10).
 
 ## Press kits (brindes) — decidido em 17/10
 
