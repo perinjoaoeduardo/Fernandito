@@ -120,7 +120,7 @@ function layout(title: string, body: string, { preheader = "" }: LayoutOptions =
 <div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(preheader)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bege}"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${C.bege}">
-<tr><td align="center" style="background:${C.escuro};border-radius:20px 20px 0 0;padding:22px 24px">
+<tr><td align="left" style="background:${C.escuro};border-radius:20px 20px 0 0;padding:22px 26px">
 <a href="${SITE}" style="text-decoration:none"><img src="cid:selo" width="96" height="97" alt="FERNANDITO" style="display:block;width:96px;height:97px;border:0;color:${C.bege};font-family:${SERIF};font-size:22px;font-weight:bold;letter-spacing:.12em"></a>
 </td></tr>
 <tr><td style="background:#F1F1DC;padding:30px 26px 10px;border-left:1px solid ${C.linha};border-right:1px solid ${C.linha}">
