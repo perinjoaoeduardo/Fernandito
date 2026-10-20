@@ -42,6 +42,55 @@ async function safe<T>(
 
 const env = (name: string) => Boolean(process.env[name]?.trim());
 
+/** Cotação crua (sem filtro de transportadora), pro check-up mostrar o que
+ * o Melhor Envio devolve de verdade: preço ou o erro de cada serviço. */
+async function meQuote(cep: string) {
+  const token = await meToken();
+  if (!token) throw new Error("sem token");
+  const s = FEATURED_PRODUCT.shipping;
+  const started = Date.now();
+  const response = await fetch(`${ME_BASE}/api/v2/me/shipment/calculate`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "User-Agent": USER_AGENT,
+    },
+    body: JSON.stringify({
+      from: { postal_code: process.env.MELHOR_ENVIO_CEP_ORIGEM?.trim() || "90430131" },
+      to: { postal_code: cep },
+      products: [
+        {
+          id: "1",
+          width: s.widthCm,
+          height: s.heightCm,
+          length: s.lengthCm,
+          weight: s.weightKg,
+          insurance_value: FEATURED_PRODUCT.priceCents / 100,
+          quantity: 1,
+        },
+      ],
+      options: { receipt: false, own_hand: false },
+    }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(15000),
+  });
+  const ms = Date.now() - started;
+  if (!response.ok)
+    throw new Error(
+      `Melhor Envio respondeu ${response.status}: ${(await response.text()).slice(0, 160)}`,
+    );
+  const list = (await response.json()) as {
+    name?: string;
+    price?: string;
+    custom_price?: string;
+    error?: string;
+    company?: { name?: string };
+  }[];
+  return { ms, list };
+}
+
 async function meGet(path: string) {
   const token = await meToken();
   if (!token) throw new Error("sem token");
@@ -240,6 +289,29 @@ export async function GET(request: NextRequest) {
     detail: cart.ok ? "o site consegue montar e comprar etiquetas" : cart.error,
     fix: "Autorizar de novo em /api/melhorenvio/connect (o app pede carrinho, compra, gerar e imprimir).",
   });
+  // Cotação de verdade (CEP de teste ou ?cep=…): mostra cada serviço.
+  const quoteCep = (request.nextUrl.searchParams.get("cep") ?? "96010000").replace(/\D/g, "");
+  const quote = await safe(() => meQuote(quoteCep));
+  const jadlog = quote.ok
+    ? quote.value.list.filter((x) => x.company?.name?.trim().toLowerCase() === "jadlog")
+    : [];
+  const jadlogOk = jadlog.filter((x) => !x.error && (x.custom_price ?? x.price));
+  add({
+    area: "Melhor Envio",
+    item: `Cotação de frete (CEP ${quoteCep})`,
+    status: !quote.ok ? "fail" : jadlogOk.length ? (quote.value.ms > 8000 ? "warn" : "ok") : "fail",
+    detail: !quote.ok
+      ? quote.error
+      : `${quote.value.ms} ms · ` +
+        (quote.value.list
+          .map(
+            (x) =>
+              `${x.company?.name ?? "?"} ${x.name ?? ""}: ${x.error ? `ERRO ${x.error}` : `R$ ${x.custom_price ?? x.price}`}`,
+          )
+          .join(" | ") || "nenhum serviço"),
+    fix: "Sem Jadlog com preço: no Melhor Envio, ativar a Jadlog e escolher a agência (Ferragens Pesce). Outro CEP: &cep=…",
+  });
+
   const meHook = await kvGet("me:webhook:last").catch(() => null);
   add({
     area: "Melhor Envio",
