@@ -6,6 +6,7 @@ import {
   BASE as ME_BASE,
   meToken,
   meTokenStatus,
+  isAllowedCarrier,
   REDIRECT_URI as ME_REDIRECT,
   USER_AGENT,
 } from "@/lib/melhor-envio";
@@ -292,14 +293,21 @@ export async function GET(request: NextRequest) {
   // Cotação de verdade (CEP de teste ou ?cep=…): mostra cada serviço.
   const quoteCep = (request.nextUrl.searchParams.get("cep") ?? "96010000").replace(/\D/g, "");
   const quote = await safe(() => meQuote(quoteCep));
-  const jadlog = quote.ok
-    ? quote.value.list.filter((x) => x.company?.name?.trim().toLowerCase() === "jadlog")
+  const allowedOk = quote.ok
+    ? quote.value.list.filter(
+        (x) => isAllowedCarrier(x.company?.name) && !x.error && (x.custom_price ?? x.price),
+      )
     : [];
-  const jadlogOk = jadlog.filter((x) => !x.error && (x.custom_price ?? x.price));
   add({
     area: "Melhor Envio",
     item: `Cotação de frete (CEP ${quoteCep})`,
-    status: !quote.ok ? "fail" : jadlogOk.length ? (quote.value.ms > 8000 ? "warn" : "ok") : "fail",
+    status: !quote.ok
+      ? "fail"
+      : allowedOk.length
+        ? quote.value.ms > 8000
+          ? "warn"
+          : "ok"
+        : "fail",
     detail: !quote.ok
       ? quote.error
       : `${quote.value.ms} ms · ` +
@@ -309,7 +317,7 @@ export async function GET(request: NextRequest) {
               `${x.company?.name ?? "?"} ${x.name ?? ""}: ${x.error ? `ERRO ${x.error}` : `R$ ${x.custom_price ?? x.price}`}`,
           )
           .join(" | ") || "nenhum serviço"),
-    fix: "Sem Jadlog com preço: no Melhor Envio, ativar a Jadlog e escolher a agência (Ferragens Pesce). Outro CEP: &cep=…",
+    fix: "Nenhuma transportadora liberada (Jadlog, J&T, Loggi, LATAM) com preço: conferir no Melhor Envio se estão ativas e com o ponto de postagem (Pegaki). Outro CEP: &cep=…",
   });
 
   const meHook = await kvGet("me:webhook:last").catch(() => null);

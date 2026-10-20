@@ -182,7 +182,7 @@ export const PERGUNTAS = {
     },
     {
       q: "Vocês entregam onde?",
-      a: "No Brasil todo, pela Jadlog. Em Porto Alegre a entrega é nossa. O valor e o prazo aparecem no checkout, com o teu CEP.",
+      a: "No Brasil todo, por transportadora (Jadlog, J&T, Loggi ou LATAM Cargo). Em Porto Alegre a entrega é nossa. O valor e o prazo aparecem no checkout, com o teu CEP.",
     },
     {
       q: "Quais as formas de pagamento?",

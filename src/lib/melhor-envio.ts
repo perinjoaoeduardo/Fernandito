@@ -132,9 +132,17 @@ export const ORIGIN_CEP = (process.env.MELHOR_ENVIO_CEP_ORIGEM?.trim() || "90430
   "",
 );
 const CACHE_SECONDS = 60 * 60;
-/** Transportadoras que aparecem no checkout (nome da empresa no Melhor Envio).
- * Só Jadlog: postagem num ponto só (agência escolhida no painel do Melhor Envio). */
-export const ALLOWED_CARRIERS = ["Jadlog"];
+/** Transportadoras do checkout (nome da empresa no Melhor Envio). As 4 postam
+ * no mesmo ponto Pegaki (Av. Benjamin Constant, 917, escolhido no painel do
+ * Melhor Envio, 20/10). Correios não: não levam bebida alcoólica. */
+export const ALLOWED_CARRIERS = ["Jadlog", "J&T Express", "Loggi", "LATAM Cargo"];
+// O nome varia no Melhor Envio ("JeT", "J&T", "Latam Cargo"...): compara assim.
+const CARRIER_MATCH = [/jadlog/i, /j\s*(&|e)\s*t/i, /loggi/i, /latam/i];
+
+/** A transportadora é uma das liberadas? */
+export function isAllowedCarrier(name: string | undefined) {
+  return Boolean(name && CARRIER_MATCH.some((re) => re.test(name)));
+}
 // Mostra no máximo as N opções mais baratas.
 const MAX_OPTIONS = 4;
 
@@ -213,9 +221,7 @@ async function quoteReal(
   const services = (await response.json()) as MeService[];
   return services
     .filter((s) => !s.error && (s.custom_price ?? s.price))
-    .filter((s) =>
-      ALLOWED_CARRIERS.some((c) => c.toLowerCase() === s.company?.name?.trim().toLowerCase()),
-    )
+    .filter((s) => isAllowedCarrier(s.company?.name))
     .map((s) => {
       const days = s.custom_delivery_range ?? s.delivery_range ?? { min: 0, max: 0 };
       return {

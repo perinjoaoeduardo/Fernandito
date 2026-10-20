@@ -1,5 +1,5 @@
 import "server-only";
-import { BASE, meToken, USER_AGENT, ALLOWED_CARRIERS, ORIGIN_CEP } from "@/lib/melhor-envio";
+import { BASE, meToken, USER_AGENT, ORIGIN_CEP, isAllowedCarrier } from "@/lib/melhor-envio";
 
 /**
  * Compra automática da etiqueta no Melhor Envio (API v2), paga com o SALDO
@@ -24,7 +24,7 @@ const SENDER = {
   country_id: "BR",
   postal_code: ORIGIN_CEP,
 };
-// Agência de postagem da Jadlog (opcional; sem ela vale a do painel).
+// Agência de postagem (opcional; sem ela vale a do painel: ponto Pegaki).
 const AGENCY = Number(process.env.ME_AGENCY_ID) || undefined;
 
 export class MeError extends Error {
@@ -105,7 +105,7 @@ export async function getShipment(id: string): Promise<MeShipment> {
   return toShipment(await me<MeOrder>(`/orders/${encodeURIComponent(id)}`));
 }
 
-/** Serviço da Jadlog mais barato pro CEP (quando o pedido foi pela tabela fixa). */
+/** Serviço liberado mais barato pro CEP (quando o pedido foi pela tabela fixa). */
 async function cheapestService(input: LabelInput): Promise<number> {
   const services = await me<
     {
@@ -123,11 +123,9 @@ async function cheapestService(input: LabelInput): Promise<number> {
   });
   const ok = services
     .filter((s) => !s.error && (s.custom_price ?? s.price))
-    .filter((s) =>
-      ALLOWED_CARRIERS.some((c) => c.toLowerCase() === s.company?.name?.trim().toLowerCase()),
-    )
+    .filter((s) => isAllowedCarrier(s.company?.name))
     .sort((a, b) => Number(a.custom_price ?? a.price) - Number(b.custom_price ?? b.price));
-  if (!ok[0]) throw new MeError("Nenhum serviço da Jadlog disponível pra esse CEP");
+  if (!ok[0]) throw new MeError("Nenhuma transportadora liberada atende esse CEP");
   return ok[0].id;
 }
 

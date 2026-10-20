@@ -148,7 +148,7 @@ endereço fixo da branch). Quando o site novo for pro `fernandito.com.br`:
       os avisos do Melhor Envio/Mercado Pago chegando.
 
 Já feito em 19/10: Bling com todos os escopos disponíveis (sem Contratos) e NF ✅; Melhor Envio com
-token que renova sozinho, saldo R$ 50 e compra de etiqueta ✅; agência Jadlog Ferragens Pesce (Floresta);
+token que renova sozinho, saldo R$ 50 e compra de etiqueta ✅; transportadoras Jadlog, J&T, Loggi e LATAM Cargo, todas postando no ponto Pegaki da Av. Benjamin Constant, 917 (Correios não: não levam bebida);
 Pix manual com a chave aleatória da empresa.
 
 ## Antes de abrir a venda
@@ -250,7 +250,7 @@ só agenda em produção) — conferido no dia do lançamento em Settings → Cr
 
 **D. Postar e acompanhar (João)**
 
-13. Imprimir a etiqueta e postar na **Ferragens Pesce (Loja Floresta)**.
+13. Imprimir a etiqueta e postar no **ponto Pegaki da Av. Benjamin Constant, 917**.
 14. Quando a Jadlog registrar: e-mail **"Teu pedido foi postado"** e linha do tempo em Postado.
 15. Quando entregar: linha do tempo em **Entregue**.
 

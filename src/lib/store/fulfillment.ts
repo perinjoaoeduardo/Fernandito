@@ -22,6 +22,7 @@ import {
 } from "@/lib/store/kv";
 import { getOrder, raiseAlert, type StoredOrder } from "@/lib/store/orders";
 import { sendOrderShipped } from "@/lib/email";
+import { isAllowedCarrier } from "@/lib/melhor-envio";
 
 /**
  * Depois do pago, tudo automático (sem mão):
@@ -324,7 +325,14 @@ async function saveTrackingInBling(order: StoredOrder, f: Fulfillment) {
       ? data.transporte.volumes.map((v, i) =>
           i === 0 ? { ...v, codigoRastreamento: f.label.tracking! } : v,
         )
-      : [{ servico: "Jadlog", codigoRastreamento: f.label.tracking! }];
+      : [
+          {
+            servico: isAllowedCarrier(order.shipping.carrier)
+              ? order.shipping.carrier
+              : "Transportadora",
+            codigoRastreamento: f.label.tracking!,
+          },
+        ];
     await bling(`/pedidos/vendas/${blingId}`, {
       method: "PUT",
       body: {
@@ -357,7 +365,7 @@ async function stepTrack(order: StoredOrder, f: Fulfillment) {
   return true;
 }
 
-/** E-mail "Teu pedido foi postado", uma vez por pedido, quando a Jadlog pega
+/** E-mail "Teu pedido foi postado", uma vez por pedido, quando a transportadora pega
  * o pacote (ou já entregou) e o rastreio existe. Nunca trava o envio. */
 async function notifyPosted(order: StoredOrder, f: Fulfillment) {
   if (order.simulated || !f.label.tracking) return;
