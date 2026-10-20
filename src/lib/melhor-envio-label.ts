@@ -78,13 +78,17 @@ type MeOrder = {
   tracking?: string | null;
   self_tracking?: string | null;
   tags?: { tag: string }[];
+  generated_at?: string | null;
 };
 
 function toShipment(o: MeOrder): MeShipment {
   const code = o.tracking || o.self_tracking || null;
+  // Algumas transportadoras (ex.: J&T) ficam "released" depois de gerar; a
+  // data de geração é o que prova que a etiqueta existe.
+  const status = o.status === "released" && o.generated_at ? "generated" : o.status;
   return {
     id: o.id,
-    status: o.status,
+    status,
     tracking: o.tracking ?? null,
     selfTracking: o.self_tracking ?? null,
     trackingUrl: code ? `https://www.melhorrastreio.com.br/rastreio/${code}` : null,
@@ -229,8 +233,11 @@ export async function generateLabel(id: string) {
     { orders: [id] },
   );
   const item = result?.[id];
-  if (item && item.status === false)
+  if (item && item.status === false) {
+    if (/j[aá] est[aá] gerad/i.test(item.message ?? "")) return "already";
     throw new MeError(`Melhor Envio não gerou a etiqueta: ${item.message ?? "sem motivo"}`);
+  }
+  return "generated";
 }
 
 /** Link do PDF da etiqueta, pra imprimir e colar na caixa. */

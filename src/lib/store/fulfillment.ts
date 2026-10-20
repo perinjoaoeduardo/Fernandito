@@ -278,9 +278,12 @@ async function stepLabel(order: StoredOrder, f: Fulfillment) {
     shipment = await getShipment(f.label.meId);
   }
   if (shipment.status === "released") {
-    await generateLabel(f.label.meId);
+    const result = await generateLabel(f.label.meId);
     console.info(`[envio ${order.id}] etiqueta GERADA`);
     shipment = await getShipment(f.label.meId);
+    // "Já está gerado" mas o status não mudou: vale como gerada.
+    if (result === "already" && shipment.status === "released")
+      shipment = { ...shipment, status: "generated" };
   }
   if (shipment.status === "canceled") {
     const msg = "Etiqueta cancelada no Melhor Envio — conferir";
