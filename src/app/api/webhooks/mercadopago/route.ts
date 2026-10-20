@@ -44,8 +44,15 @@ export async function POST(request: NextRequest) {
     );
     return json({ ok: true });
   } catch (error) {
+    const message = (error as Error).message;
+    // Pagamento que não existe (ex.: "Simular notificação" do painel): 200,
+    // senão o Mercado Pago fica reenviando à toa.
+    if (/Mercado Pago 404/.test(message)) {
+      console.warn(`[webhook mp] ${dataId} não existe no Mercado Pago — ignorado`);
+      return json({ ok: true, ignorado: "não existe" });
+    }
     // 5xx: o Mercado Pago tenta de novo mais tarde.
-    console.error("[webhook mp] erro:", (error as Error).message);
+    console.error("[webhook mp] erro:", message);
     return json({ error: "erro ao processar" }, 500);
   }
 }
