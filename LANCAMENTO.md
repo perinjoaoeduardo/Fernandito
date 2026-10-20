@@ -144,7 +144,8 @@ endereço fixo da branch). Quando o site novo for pro `fernandito.com.br`:
       a Vercel bloqueia visita de fora).
 - [ ] Mercado Pago: token de produção (só Production) + webhook `https://fernandito.com.br/api/webhooks/mercadopago`.
 - [ ] `/api/loja/checkup?key=…` no `fernandito.com.br`: tudo ✅ (o A1 só fica verde depois da 1ª nota).
-- [ ] Teste de R$ 1 (roteiro abaixo).
+- [ ] Ensaio geral feito (roteiro abaixo). Na 1ª venda real: conferir e-mail "postado" e
+      os avisos do Melhor Envio/Mercado Pago chegando.
 
 Já feito em 19/10: Bling com todos os escopos disponíveis (sem Contratos) e NF ✅; Melhor Envio com
 token que renova sozinho, saldo R$ 50 e compra de etiqueta ✅; agência Jadlog Ferragens Pesce (Floresta);
@@ -198,37 +199,62 @@ POA, frete de último recurso, perdeu o estado), 24/24 em 3 rodadas.
       página do pedido; imprimir o PDF da etiqueta. Depois cancelar a etiqueta no
       Melhor Envio (devolve o saldo) e a NF-e no Bling (até 24h).
 
-## Teste completo de R$ 1 — roteiro (antes de abrir pro público)
+## Ensaio geral — roteiro oficial (definido em 20/10)
 
-**Antes (uma vez):** abrir o check-up
-`https://fernandito.com.br/api/loja/checkup?key=<BLING_ADMIN_KEY>` — tudo
-✅ (os ⚠️ de certificado e webhook do Melhor Envio são conferidos à mão).
+Onde: site de teste, endereço fixo `https://fernandito-git-teste-meusprojetospessoais.vercel.app`
+(só abre com login da Vercel, ninguém de fora compra). Tudo roda de verdade; a nota sai em
+**homologação** (vai pra Sefaz, sem valor fiscal).
 
-1. **Ligar o preço de teste:** Vercel → Environment Variables (Production)
-   → `NEXT_PUBLIC_PRECO_TESTE_CENTAVOS` = `100` → Redeploy. O check-up passa a
-   mostrar ❌ "Preço de teste LIGADO" (é de propósito).
-2. **Comprar** no site no ar, com um CPF e endereço **reais** de alguém do
-   time **fora de POA** (pra testar etiqueta). Frete: o mais barato.
-3. **Pagar o Pix** pelo app do banco. A tela tem que ir sozinha pra
-   "Pedido confirmado" e chegar o e-mail de confirmação.
-4. **Conferir no painel** (`/api/loja/diagnostico?key=…`), em até ~1 min:
-   - `pixAbertos` sem o pedido; `filaBling` vazio; `alertas` vazio;
-   - `envios` com o pedido: etapa `ready`, **nº da nota**, **rastreio** e
-     **PDF da etiqueta**.
-5. **Conferir no Bling:** pedido de venda (loja Site Fernandito, natureza
-   da contadora, Pix, frete, rastreio no volume) e a **NF-e autorizada**.
-6. **Conferir no Melhor Envio:** etiqueta paga (débito no saldo), com a tag
-   do pedido. Abrir o PDF.
-7. **Página do pedido** (link do e-mail): linha do tempo com nota e rastreio.
-8. **Repetir** fechando a tela logo depois de pagar (tem que confirmar igual).
-9. **Desfazer:** cancelar a etiqueta no Melhor Envio (devolve o saldo),
-   cancelar a NF-e no Bling (até 24h), devolver o R$ 1 no Mercado Pago.
-10. **Desligar o preço de teste** (apagar a variável → Redeploy) e ver o
-    check-up voltar a ✅.
-11. (Opcional, mesma coisa) Repetir com `MERCADOPAGO_API=orders`; se ok,
-    deixar ligado (API nova).
+| Peça         | No ensaio                           | Prova                                      |
+| ------------ | ----------------------------------- | ------------------------------------------ |
+| Mercado Pago | Pix real (R$ 1 + frete)             | gera Pix, confirma o pagamento sozinho     |
+| Bling        | pedido de venda real                | cliente, itens, frete, natureza, loja, Pix |
+| Nota fiscal  | homologação                         | certificado A1, natureza, CFOP, Sefaz      |
+| Melhor Envio | etiqueta real, comprada com o saldo | carrinho, compra, PDF, rastreio            |
+| E-mails      | reais                               | "Pedido confirmado" + "Compra nova"        |
 
-Eu (Claude) acompanho cada passo pelo conector do Bling.
+Não dá pra provar no ensaio (só na 1ª venda real, em produção): aviso do Mercado Pago
+(webhook), avisos do Melhor Envio (postado/entregue), e-mail "postado" e o cron diário.
+Já testados com os falsos (bateria `cadeia.mjs`).
+
+**A. Preparar (João)**
+
+1. Mercado Pago: a conta tem **chave Pix cadastrada**.
+2. Bling → Preferências → Notas Fiscais → NF-e → **Ambiente = Homologação**.
+3. Vercel → Environment Variables, **só Preview**: `NEXT_PUBLIC_PRECO_TESTE_CENTAVOS=100` e
+   `MERCADOPAGO_ACCESS_TOKEN=APP_USR-…` (produção). Redeploy da `teste`.
+4. Check-up no endereço fixo: Mercado Pago ✅, Bling ✅, Melhor Envio ✅, E-mail ✅; "Preço de
+   teste" aparece ligado (de propósito).
+
+**B. Comprar (João)**
+
+5. Comprar 1 kit com **CPF, e-mail e celular reais** e endereço **fora de Porto Alegre**
+   (em POA é entrega própria, não sai etiqueta). Frete: o mais barato.
+6. Pagar o Pix pelo app do banco e **deixar a tela aberta** (no site de teste não tem aviso do
+   Mercado Pago nem cron: quem anda com o pedido é a tela aberta). Ela vai sozinha pra
+   "Confirmado"; clicar em "Acompanhar o pedido" e deixar essa página aberta uns 5 min.
+
+**C. Conferir (Claude, pelo conector do Bling + prints)**
+
+7. E-mail "Pedido confirmado" (João) e "Compra nova" (contato@).
+8. Bling: pedido de venda com loja Site Fernandito, natureza 15111699956, Pix, frete.
+9. Bling: **NF-e autorizada em homologação**.
+10. Melhor Envio: etiqueta paga (débito no saldo) com a tag do pedido; PDF abre.
+11. Página do pedido: linha do tempo com nota e etiqueta; rastreio no Bling.
+12. Painel `/api/loja/diagnostico?key=…`: sem alertas, fila do Bling vazia.
+
+**D. Desfazer (logo depois)**
+
+13. **Bling → Ambiente = Produção** (sem isso as vendas reais saem sem valor fiscal).
+14. Melhor Envio: **cancelar a etiqueta** (o valor volta pro saldo).
+15. Claude (com OK do João): pedido de teste cancelado no Bling e estoque conferido em 200.
+16. Estoque do site: `/api/loja/confirmar?key=…&pedido=<id>&acao=estornar` (devolve a unidade).
+17. Vercel, Preview: **apagar** `MERCADOPAGO_ACCESS_TOKEN` e `NEXT_PUBLIC_PRECO_TESTE_CENTAVOS`.
+    Redeploy. Check-up: Mercado Pago ❌ de novo (esperado) e preço normal.
+18. O R$ 26 fica na conta da empresa no Mercado Pago (foi o João que pagou); devolver se quiser.
+
+Se algo falhar no meio: não mexer em nada, mandar print da tela e do painel. Nada disso
+aparece pra cliente.
 
 ## Frete (Melhor Envio + Jadlog) — decidido em 14/10
 
