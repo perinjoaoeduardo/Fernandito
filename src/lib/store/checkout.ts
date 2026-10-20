@@ -393,6 +393,15 @@ export async function reconcileOpenOrders() {
       }
       const synced = (await syncPayment(order.mpPaymentId)) ?? order;
       const old = Date.now() - new Date(order.createdAt).getTime() > OPEN_WATCH_MS;
+      // Pix vencido (+5 min de folga) e ninguém com a tela aberta: devolve o
+      // kit pro estoque já. Continua sendo conferido até as 48h; se pagar
+      // atrasado, o pagamento reserva de novo (markPaid).
+      const pixGone =
+        order.pix && Date.now() > new Date(order.pix.expiresAt).getTime() + 5 * 60 * 1000;
+      if (synced.status === "pending" && pixGone) {
+        await saveOrder({ ...synced, status: "expired" });
+        await releaseStock(id);
+      }
       if (synced.status !== "paid" && old) {
         await kvSRem(OPEN_SET, id);
         if (synced.status === "pending") await saveOrder({ ...synced, status: "expired" });

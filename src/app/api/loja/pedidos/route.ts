@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
   const rows = orders.map((o) =>
     [
       o.id,
-      STATUS[o.status] ?? o.status,
+      o.refundedAt ? "ESTORNADO (teste)" : (STATUS[o.status] ?? o.status),
       br(o.createdAt),
       br(o.paidAt),
       o.customer.name,

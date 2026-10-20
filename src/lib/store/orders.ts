@@ -45,6 +45,8 @@ export type StoredOrder = {
   } | null;
   /** Pago (ou a pagar) direto na chave Pix da conta — plano B. */
   manualPix?: boolean;
+  /** Pedido de teste desfeito (`/api/loja/confirmar&acao=estornar`). */
+  refundedAt?: string;
   /** `true` = Pix simulado (sem Mercado Pago, só fora de produção). */
   simulated: boolean;
   createdAt: string;
