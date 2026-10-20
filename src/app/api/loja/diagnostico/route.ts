@@ -70,6 +70,8 @@ export async function GET(request: NextRequest) {
       id,
       etapa: f?.stage ?? "aguardando",
       nota: f?.invoice.number ?? null,
+      statusEtiqueta: f?.label.status ?? null,
+      envioMelhorEnvio: f?.label.meId ?? null,
       rastreio: f?.label.tracking ?? null,
       etiquetaPdf: f?.label.printUrl ?? null,
       erro: f?.error ?? null,

@@ -293,6 +293,8 @@ async function stepLabel(order: StoredOrder, f: Fulfillment) {
   f.label.status = shipment.status;
   f.label.tracking = shipment.tracking ?? shipment.selfTracking;
   f.label.trackingUrl = shipment.trackingUrl;
+  // Chegou até aqui sem erro: o erro gravado é de uma tentativa anterior.
+  f.error = null;
   if (!f.label.printUrl && ["generated", "posted"].includes(shipment.status))
     f.label.printUrl = await labelPrintUrl(f.label.meId).catch(() => null);
   if (["generated", "posted", "delivered"].includes(shipment.status)) {
