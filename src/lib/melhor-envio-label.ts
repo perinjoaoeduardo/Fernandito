@@ -93,10 +93,11 @@ function toShipment(o: MeOrder): MeShipment {
 
 /** Envio já existente com a tag do pedido (carrinho, pago ou gerado), se houver. */
 export async function findShipmentByTag(orderId: string): Promise<MeShipment | null> {
-  const page = await me<{ data?: MeOrder[] } | MeOrder[]>(
+  // Sem resultado o Melhor Envio responde vazio (null), não uma lista.
+  const page = await me<{ data?: MeOrder[] } | MeOrder[] | null>(
     `/orders/search?q=${encodeURIComponent(orderId)}`,
   );
-  const list = Array.isArray(page) ? page : (page.data ?? []);
+  const list = Array.isArray(page) ? page : (page?.data ?? []);
   const found = list.find((o) => o.tags?.some((t) => t.tag === orderId) && o.status !== "canceled");
   return found ? toShipment(found) : null;
 }
