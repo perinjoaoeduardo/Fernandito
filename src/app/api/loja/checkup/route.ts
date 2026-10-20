@@ -347,6 +347,20 @@ export async function GET(request: NextRequest) {
     fix: "Apagar NEXT_PUBLIC_PRECO_TESTE_CENTAVOS na Vercel e fazer redeploy.",
   });
 
+  // Trava do preview: sem BLING_SYNC_PREVIEW=1, pedido pago não vai pro Bling.
+  const syncOn = IS_PRODUCTION || process.env.BLING_SYNC_PREVIEW?.trim() === "1";
+  add({
+    area: "Bling",
+    item: "Pedidos pagos vão pro Bling",
+    status: syncOn ? "ok" : "fail",
+    detail: syncOn
+      ? IS_PRODUCTION
+        ? "produção: sempre"
+        : "preview: ligado (BLING_SYNC_PREVIEW=1) — nota e etiqueta de verdade"
+      : "preview: DESLIGADO — pedido pago não vira pedido, nota nem etiqueta",
+    fix: "Só pra ensaio: BLING_SYNC_PREVIEW=1 no Preview da Vercel + Redeploy.",
+  });
+
   // ── E-mail ───────────────────────────────────────────────────────────
   // Só manda de verdade com `&email=1` (o resto do check-up só lê).
   // `&email=exemplos` manda os 4 e-mails (pedido de mentira) pro contato@.
