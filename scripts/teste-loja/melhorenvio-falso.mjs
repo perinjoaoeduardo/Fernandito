@@ -41,11 +41,10 @@ http
       ]);
     if (p === "/orders/search") {
       const q = url.searchParams.get("q");
-      return send(
-        res,
-        200,
-        [...orders.values()].filter((o) => o.tags.some((t) => t.tag === q)),
-      );
+      const found = [...orders.values()].filter((o) => o.tags.some((t) => t.tag === q));
+      // Igual ao real: sem resultado, corpo vazio (não uma lista vazia).
+      if (!found.length) return res.writeHead(200).end();
+      return send(res, 200, found);
     }
     if (p === "/cart") {
       calls.cart++;
@@ -73,13 +72,21 @@ http
     }
     if (p === "/shipment/generate") {
       calls.generate++;
+      // Igual à J&T real: depois de gerar o status continua "released" (com
+      // generated_at), e gerar de novo responde 200 com status false.
+      const result = {};
       for (const id of body.orders) {
         const o = orders.get(id);
-        o.status = "generated";
+        if (o.generated_at) {
+          result[id] = { status: false, message: "O envio ja está gerado" };
+          continue;
+        }
+        o.generated_at = new Date().toISOString();
         o.self_tracking = "ME" + id.replace(/\D/g, "").padStart(9, "0");
         o.tracking = "JAD" + id.replace(/\D/g, "").padStart(9, "0");
+        result[id] = { status: true, message: "Envio gerado com sucesso" };
       }
-      return send(res, 200, {});
+      return send(res, 200, result);
     }
     if (p === "/shipment/print")
       return send(res, 200, { url: "https://melhorenvio.example/etiqueta.pdf" });

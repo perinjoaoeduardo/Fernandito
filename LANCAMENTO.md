@@ -199,6 +199,26 @@ POA, frete de último recurso, perdeu o estado), 24/24 em 3 rodadas.
       página do pedido; imprimir o PDF da etiqueta. Depois cancelar a etiqueta no
       Melhor Envio (devolve o saldo) e a NF-e no Bling (até 24h).
 
+## Ensaio geral — FEITO em 20/10 (resultado)
+
+Pedido `dqu67iiGzlwO` (kit a R$ 1 + frete J&T R$ 21,04, Caxias do Sul): Pix real confirmado pelo
+**aviso do Mercado Pago** (aba fechada) → e-mail "Pedido confirmado" → pedido nº 1 no Bling →
+**NF-e 000001 autorizada na Sefaz** (certificado A1, natureza 15111699956, CFOP 5101) →
+**etiqueta J&T paga e gerada** (rastreio 888031003112700, PDF) → rastreio nas observações do
+pedido no Bling. Desfeito no mesmo dia: etiqueta cancelada no Melhor Envio, NF-e cancelada, pedido
+cancelado, estoque 200 no Bling e no site (`acao=estornar`).
+
+O ensaio achou 4 coisas que os falsos não pegavam (corrigidas e agora simuladas nos falsos):
+trava do preview (`BLING_SYNC_PREVIEW=1`, agora no check-up), Bling 429 (limite por segundo:
+espera e tenta de novo), busca do Melhor Envio sem resultado (corpo vazio) e J&T que fica
+"released" depois de gerar. Não testado de verdade (só na 1ª venda real): avisos de
+postado/entregue e o e-mail "postado" — se falharem, o pacote chega igual e o rastreio já está na
+página do pedido.
+
+**Depois do ensaio (Vercel, Preview):** apagar `NEXT_PUBLIC_PRECO_TESTE_CENTAVOS` e
+`BLING_SYNC_PREVIEW`; o `MERCADOPAGO_ACCESS_TOKEN` sai do Preview e vai só pra Production no
+lançamento.
+
 ## Ensaio geral — roteiro oficial (definido em 20/10, revisto no mesmo dia)
 
 **Uma venda real, completa, no site de teste**, antes de abrir pro público. Endereço fixo:

@@ -78,7 +78,8 @@ export function CheckoutClient() {
   const [shippingLoading, setShippingLoading] = useState(false);
   const [shippingId, setShippingId] = useState<string | null>(null);
   const [ageConfirmedAt, setAgeConfirmedAt] = useState<string | null>(null);
-  const [marketingOptIn, setMarketingOptIn] = useState(false);
+  // Sem opção de novidades por e-mail no checkout (tirada em 20/10).
+  const marketingOptIn = false;
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   // Esgotou enquanto a pessoa preenchia: avisa antes de ela chegar no Pix.
@@ -611,14 +612,8 @@ export function CheckoutClient() {
                       setAgeConfirmedAt(checked ? new Date().toISOString() : null)
                     }
                     title="Tenho 18 anos ou mais"
-                    hint="A entrega exige documento com foto."
+                    hint="Venda proibida para menores de 18 anos."
                     required
-                  />
-                  <ConfirmRow
-                    checked={marketingOptIn}
-                    onChange={setMarketingOptIn}
-                    title="Quero receber novidades por e-mail"
-                    hint="Opcional. Prometemos não encher."
                   />
                 </div>
               )}

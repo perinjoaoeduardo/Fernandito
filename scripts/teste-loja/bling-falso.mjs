@@ -2,6 +2,7 @@
 // POST /_ctl muda o comportamento: rejeitar nota, travar nota em "aguardando".
 import http from "node:http";
 const flags = { nfeReject: false, nfeStuck: false };
+const throttled = new Set();
 const sales = new Map();
 const nfes = new Map();
 let nextId = 5000;
@@ -21,7 +22,18 @@ http
       if (body.atender) sales.get(String(body.atender)).situacao = { id: 9 };
       return send(res, 200, { flags, sales: [...sales.values()], nfes: [...nfes.values()] });
     }
-    if (p === "/contatos" && req.method === "GET") return send(res, 200, { data: [] });
+    // Igual ao real: limite por segundo. A 1ª busca de contato de cada CPF
+    // responde 429; o site tem que esperar e tentar de novo.
+    if (p === "/contatos" && req.method === "GET") {
+      const doc = url.searchParams.get("numeroDocumento") ?? "";
+      if (!throttled.has(doc)) {
+        throttled.add(doc);
+        return send(res, 429, {
+          error: { description: "O limite de requisições por segundo foi atingido" },
+        });
+      }
+      return send(res, 200, { data: [] });
+    }
     if (p === "/contatos" && req.method === "POST")
       return send(res, 201, { data: { id: nextId++ } });
     if (p.startsWith("/campos-customizados")) return send(res, 200, { data: [] });
