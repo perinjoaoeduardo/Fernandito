@@ -157,12 +157,14 @@ export async function refreshTokens(force = false): Promise<Tokens> {
 
 /**
  * Chamada autenticada à API. Token vencido/recusado → renova e tenta 1x.
- * O Bling limita ~3 req/s; a loja faz poucas chamadas por pedido.
+ * O Bling limita ~3 req/s: 429 → espera (0,8s, 1,6s, 2,4s) e tenta de novo
+ * até 3 vezes.
  */
 export async function bling<T>(
   path: string,
   init: { method?: string; body?: unknown } = {},
   retried = false,
+  attempt = 0,
 ): Promise<T> {
   if (!BLING_CONFIGURED) throw new BlingNotConnectedError();
   const tokens = await refreshTokens();
@@ -178,7 +180,11 @@ export async function bling<T>(
   });
   if (response.status === 401 && !retried) {
     await refreshTokens(true);
-    return bling<T>(path, init, true);
+    return bling<T>(path, init, true, attempt);
+  }
+  if (response.status === 429 && attempt < 3) {
+    await sleep(800 * (attempt + 1));
+    return bling<T>(path, init, retried, attempt + 1);
   }
   const text = await response.text();
   const data = text ? (JSON.parse(text) as unknown) : null;
