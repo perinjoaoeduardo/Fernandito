@@ -199,62 +199,70 @@ POA, frete de último recurso, perdeu o estado), 24/24 em 3 rodadas.
       página do pedido; imprimir o PDF da etiqueta. Depois cancelar a etiqueta no
       Melhor Envio (devolve o saldo) e a NF-e no Bling (até 24h).
 
-## Ensaio geral — roteiro oficial (definido em 20/10)
+## Ensaio geral — roteiro oficial (definido em 20/10, revisto no mesmo dia)
 
-Onde: site de teste, endereço fixo `https://fernandito-git-teste-meusprojetospessoais.vercel.app`
-(só abre com login da Vercel, ninguém de fora compra). Tudo roda de verdade; a nota sai em
-**homologação** (vai pra Sefaz, sem valor fiscal).
+**Uma venda real, completa, no site de teste**, antes de abrir pro público. Endereço fixo:
+`https://fernandito-git-teste-meusprojetospessoais.vercel.app` (só abre com login da Vercel;
+ninguém de fora compra). É uma venda de verdade (preço normal, nota em produção, pacote
+postado), pra alguém real **fora de Porto Alegre** (amigo, família ou um dos press kits).
 
-| Peça         | No ensaio                           | Prova                                      |
-| ------------ | ----------------------------------- | ------------------------------------------ |
-| Mercado Pago | Pix real (R$ 1 + frete)             | gera Pix, confirma o pagamento sozinho     |
-| Bling        | pedido de venda real                | cliente, itens, frete, natureza, loja, Pix |
-| Nota fiscal  | homologação                         | certificado A1, natureza, CFOP, Sefaz      |
-| Melhor Envio | etiqueta real, comprada com o saldo | carrinho, compra, PDF, rastreio            |
-| E-mails      | reais                               | "Pedido confirmado" + "Compra nova"        |
+| Peça          | Como roda no ensaio                                       |
+| ------------- | --------------------------------------------------------- |
+| Mercado Pago  | Pix real; confirmação pelo **aviso automático** (webhook) |
+| Bling         | pedido de venda real                                      |
+| Nota fiscal   | **produção** (o pacote viaja com ela)                     |
+| Melhor Envio  | etiqueta real; **avisos de postado/entregue** (webhook)   |
+| E-mails       | confirmado, compra nova, **postado**                      |
+| Rotina diária | rodada à mão (`/api/cron/bling?key=…`)                    |
 
-Não dá pra provar no ensaio (só na 1ª venda real, em produção): aviso do Mercado Pago
-(webhook), avisos do Melhor Envio (postado/entregue), e-mail "postado" e o cron diário.
-Já testados com os falsos (bateria `cadeia.mjs`).
+Como os avisos chegam no site de teste: a Vercel bloqueia visita de fora no preview; o
+**"Protection Bypass for Automation"** dá uma senha que, na URL do webhook, deixa só esses
+avisos passarem. O único ponto que não dá pra ver antes: o **agendamento** da rotina (a Vercel
+só agenda em produção) — conferido no dia do lançamento em Settings → Cron Jobs.
 
-**A. Preparar (João)**
+**A. Preparar (João, ~20 min)**
 
 1. Mercado Pago: a conta tem **chave Pix cadastrada**.
-2. Bling → Preferências → Notas Fiscais → NF-e → **Ambiente = Homologação**.
-3. Vercel → Environment Variables, **só Preview**: `NEXT_PUBLIC_PRECO_TESTE_CENTAVOS=100` e
-   `MERCADOPAGO_ACCESS_TOKEN=APP_USR-…` (produção). Redeploy da `teste`.
-4. Check-up no endereço fixo: Mercado Pago ✅, Bling ✅, Melhor Envio ✅, E-mail ✅; "Preço de
-   teste" aparece ligado (de propósito).
+2. Vercel → Settings → Deployment Protection → **Protection Bypass for Automation** → gerar.
+   Copiar a senha (não mandar no chat). Abaixo, `BYPASS` = essa senha.
+3. Vercel → Environment Variables, **só Preview**: `MERCADOPAGO_ACCESS_TOKEN=APP_USR-…`
+   (produção). Redeploy da `teste` depois do passo 4.
+4. Mercado Pago → Suas integrações → app → **Webhooks**, modo produção:
+   URL `https://fernandito-git-teste-meusprojetospessoais.vercel.app/api/webhooks/mercadopago?x-vercel-protection-bypass=BYPASS`,
+   evento **Pagamentos**. Copiar a **assinatura secreta** → Vercel (Preview e Production):
+   `MERCADOPAGO_WEBHOOK_SECRET`.
+5. Melhor Envio → Área Dev → app → **Webhook**:
+   `https://fernandito-git-teste-meusprojetospessoais.vercel.app/api/melhorenvio/webhook?x-vercel-protection-bypass=BYPASS`.
+6. Redeploy. Check-up: tudo ✅ (o A1 só fica verde depois da 1ª nota).
 
 **B. Comprar (João)**
 
-5. Comprar 1 kit com **CPF, e-mail e celular reais** e endereço **fora de Porto Alegre**
-   (em POA é entrega própria, não sai etiqueta). Frete: o mais barato.
-6. Pagar o Pix pelo app do banco e **deixar a tela aberta** (no site de teste não tem aviso do
-   Mercado Pago nem cron: quem anda com o pedido é a tela aberta). Ela vai sozinha pra
-   "Confirmado"; clicar em "Acompanhar o pedido" e deixar essa página aberta uns 5 min.
+7. Comprar 1 kit, preço normal, com os dados reais de quem vai receber (fora de POA).
+8. Pagar o Pix e **fechar a tela** (é de propósito: prova que o aviso do Mercado Pago
+   confirma sozinho). Em ~1 min chega o e-mail "Pedido confirmado".
+9. Rodar a rotina: `/api/cron/bling?key=…` (tem que responder sem erro).
 
 **C. Conferir (Claude, pelo conector do Bling + prints)**
 
-7. E-mail "Pedido confirmado" (João) e "Compra nova" (contato@).
-8. Bling: pedido de venda com loja Site Fernandito, natureza 15111699956, Pix, frete.
-9. Bling: **NF-e autorizada em homologação**.
-10. Melhor Envio: etiqueta paga (débito no saldo) com a tag do pedido; PDF abre.
-11. Página do pedido: linha do tempo com nota e etiqueta; rastreio no Bling.
-12. Painel `/api/loja/diagnostico?key=…`: sem alertas, fila do Bling vazia.
+10. E-mails "Pedido confirmado" e "Compra nova".
+11. Bling: pedido de venda certo e **NF-e autorizada**.
+12. Melhor Envio: etiqueta paga, PDF abre, rastreio no Bling e na página do pedido.
 
-**D. Desfazer (logo depois)**
+**D. Postar e acompanhar (João)**
 
-13. **Bling → Ambiente = Produção** (sem isso as vendas reais saem sem valor fiscal).
-14. Melhor Envio: **cancelar a etiqueta** (o valor volta pro saldo).
-15. Claude (com OK do João): pedido de teste cancelado no Bling e estoque conferido em 200.
-16. Estoque do site: `/api/loja/confirmar?key=…&pedido=<id>&acao=estornar` (devolve a unidade).
-17. Vercel, Preview: **apagar** `MERCADOPAGO_ACCESS_TOKEN` e `NEXT_PUBLIC_PRECO_TESTE_CENTAVOS`.
-    Redeploy. Check-up: Mercado Pago ❌ de novo (esperado) e preço normal.
-18. O R$ 26 fica na conta da empresa no Mercado Pago (foi o João que pagou); devolver se quiser.
+13. Imprimir a etiqueta e postar na **Ferragens Pesce (Loja Floresta)**.
+14. Quando a Jadlog registrar: e-mail **"Teu pedido foi postado"** e linha do tempo em Postado.
+15. Quando entregar: linha do tempo em **Entregue**.
 
-Se algo falhar no meio: não mexer em nada, mandar print da tela e do painel. Nada disso
-aparece pra cliente.
+**E. Dia do lançamento (depois do ensaio)**
+
+16. Trocar as URLs pra `fernandito.com.br` (webhooks do Mercado Pago e do Melhor Envio, sem o
+    bypass; links de retorno do Bling e do Melhor Envio), token do Mercado Pago só em
+    **Production** (apagar do Preview), check-up no site oficial, Cron Jobs na Vercel.
+
+Se algo falhar no meio: não mexer em nada, mandar print da tela e do painel
+(`/api/loja/diagnostico?key=…`). Pedido de teste que precise ser desfeito:
+`/api/loja/confirmar?key=…&pedido=<id>&acao=estornar` (devolve a unidade e para nota/etiqueta).
 
 ## Frete (Melhor Envio + Jadlog) — decidido em 14/10
 
