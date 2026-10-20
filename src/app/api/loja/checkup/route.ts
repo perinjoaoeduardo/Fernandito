@@ -240,11 +240,20 @@ export async function GET(request: NextRequest) {
     detail: cart.ok ? "o site consegue montar e comprar etiquetas" : cart.error,
     fix: "Autorizar de novo em /api/melhorenvio/connect (o app pede carrinho, compra, gerar e imprimir).",
   });
+  const meHook = await kvGet("me:webhook:last").catch(() => null);
   add({
     area: "Melhor Envio",
     item: "Aviso de postado/entregue (webhook)",
-    status: env("MELHOR_ENVIO_SECRET") ? "warn" : "fail",
-    detail: "não dá pra conferir daqui se a URL está cadastrada",
+    status: !env("MELHOR_ENVIO_SECRET")
+      ? "fail"
+      : meHook
+        ? meHook.includes("INVÁLIDA")
+          ? "fail"
+          : "ok"
+        : "warn",
+    detail: meHook
+      ? `último aviso: ${meHook}`
+      : "nenhum aviso recebido ainda (chega quando a 1ª etiqueta for comprada)",
     fix: "Área Dev → app Fernandito → Webhook: /api/melhorenvio/webhook.",
   });
 

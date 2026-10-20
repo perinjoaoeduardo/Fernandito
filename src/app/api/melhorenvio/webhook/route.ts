@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { after } from "next/server";
 import { advanceFulfillment } from "@/lib/store/fulfillment";
+import { kvSet } from "@/lib/store/kv";
 
 /**
  * Aviso do Melhor Envio (etiqueta paga, gerada, postada, entregue…).
@@ -19,6 +20,9 @@ export async function POST(request: Request) {
     Boolean(secret && signature) &&
     expected.length === signature.length &&
     timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  // Último aviso recebido (o check-up mostra): prova que a URL está certa.
+  const seen = `${new Date().toISOString()} · ${ok ? "assinatura ok" : "ASSINATURA INVÁLIDA"}`;
+  await kvSet("me:webhook:last", seen, 60 * 60 * 24 * 60).catch(() => undefined);
   if (!ok) return Response.json({ error: "assinatura inválida" }, { status: 401 });
 
   const body = JSON.parse(raw || "{}") as {
