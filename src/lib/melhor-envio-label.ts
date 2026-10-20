@@ -223,7 +223,14 @@ export async function payWithBalance(id: string) {
 
 /** Gera a etiqueta (sai o código de rastreio). */
 export async function generateLabel(id: string) {
-  await me("/shipment/generate", { orders: [id] });
+  // Responde 200 mesmo quando não gera: { "<id>": { status: false, message } }.
+  const result = await me<Record<string, { status?: boolean; message?: string }> | null>(
+    "/shipment/generate",
+    { orders: [id] },
+  );
+  const item = result?.[id];
+  if (item && item.status === false)
+    throw new MeError(`Melhor Envio não gerou a etiqueta: ${item.message ?? "sem motivo"}`);
 }
 
 /** Link do PDF da etiqueta, pra imprimir e colar na caixa. */
