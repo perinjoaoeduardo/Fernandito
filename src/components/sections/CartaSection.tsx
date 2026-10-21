@@ -58,8 +58,11 @@ export function CartaSection() {
     <>
       <blockquote className="text-body sm:text-body-lg flex flex-col gap-5 font-sans sm:gap-6">
         {MANIFESTO.paragraphs.map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
+          <p key={paragraph} className="whitespace-pre-line">
+            {paragraph}
+          </p>
         ))}
+        <p className="font-accent font-bold">{MANIFESTO.finale}</p>
       </blockquote>
 
       <p className="text-body mt-10 font-sans sm:mt-12">{MANIFESTO.closing}</p>

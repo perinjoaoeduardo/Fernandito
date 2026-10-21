@@ -378,9 +378,15 @@ export const GALERIA = {
 export const MANIFESTO = {
   title: "Nosso manifesto",
   paragraphs: [
-    "A gente acredita numa vida que não se entrega fácil. Que escolhe o caminho difícil porque é nele que mora o gosto de verdade.",
-    "Fernandito nasceu de uma crença simples: existe entrega que é render-se, e existe entrega que é arte. A gente escolheu o segundo caminho — e essa lata é prova disso.",
+    "Tem os que se entregam na fraqueza.\nOutros que se entregam na intenção. Domam.",
+    "É sobre esse chão que nos criamos. Não pra representar um lugar, nem pra reinventar a bebida. Mas pra dar forma a um espírito, colocar em lata um modo de viver.",
+    "Somos a primeira lata quando a lenha pega. O brinde de quem chegou atrasado e ficou até o fim. A mesa que ninguém quer levantar. O rumo que se descobre indo junto.",
+    "Escolhemos o amargo, o detalhe, o tempo que não tem pressa.",
+    "Pra quem tem sede. Pra quem acha a vida pouca e sabe que podia ser mais. Afinal, ninguém conta história que viu de longe.",
+    "Não é pra todos. Aceitamos assim.\nMas pra esses, queremos ser. Queremos fazer parte.",
   ],
+  /** A última frase, em destaque. */
+  finale: "Liberdade não se pede. Se toma. Toma Fernandito.",
   closing: "Com brio, de Porto Alegre,",
   signatures: ["João", "Lorenzo", "Nando", "Matheus"],
   /** Verso do cartão (aparece ao girar). */
