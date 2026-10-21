@@ -6,7 +6,7 @@ import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { Button } from "@/components/ui/Button";
 import { TypewriterText } from "@/components/ui/TypewriterText";
 import { InstagramIcon } from "@/components/ui/icons";
-import { IS_TOUCH, prefersReducedMotion } from "@/lib/gsap";
+import { gsap, IS_TOUCH, prefersReducedMotion, SCRUB } from "@/lib/gsap";
 
 function PlayIcon() {
   return (
@@ -30,32 +30,141 @@ function PlayIcon() {
  * computador ficam lado a lado; no celular viram um trilho que desliza.
  */
 export function EpisodiosSection() {
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // Animações presas à rolagem (nos dois sentidos):
+  // • entrada: título e cartões sobem e aparecem; cada cartão com uma
+  //   profundidade diferente (o do meio vem de mais longe);
+  // • parallax: a mídia dentro de cada cartão anda mais devagar que o cartão;
+  // • saída: tudo sobe um pouco e esmaece ao sair da seção.
+  // No celular (trilho que desliza na horizontal) o trilho todo anda junto:
+  // mexer num cartão só cortaria ele no overflow.
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section || prefersReducedMotion()) return;
+    const q = <T extends HTMLElement>(selector: string) =>
+      Array.from(section.querySelectorAll<T>(selector));
+    const rail = section.querySelector<HTMLElement>("[data-ep-rail]");
+    const foot = section.querySelector<HTMLElement>("[data-ep-foot]");
+    if (!rail || !foot) return;
+
+    const mm = gsap.matchMedia();
+    const enter = { start: "top 98%", end: "top 55%", scrub: SCRUB.soft };
+
+    // Parallax da mídia (mais leve no toque).
+    const amp = IS_TOUCH ? 2.5 : 5;
+    const mediaTweens = () =>
+      q("[data-ep-media]").forEach((media) =>
+        gsap.fromTo(
+          media,
+          { yPercent: -amp },
+          {
+            yPercent: amp,
+            ease: "none",
+            scrollTrigger: {
+              trigger: media.parentElement,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: true,
+            },
+          },
+        ),
+      );
+
+    // Saída: o que já entrou sobe um pouco e esmaece.
+    const leave = (target: gsap.TweenTarget, y: number, trigger: Element, from = "bottom 50%") =>
+      gsap.fromTo(
+        target,
+        { y: 0, opacity: 1 },
+        {
+          y: -y,
+          opacity: 0.2,
+          ease: "none",
+          immediateRender: false,
+          scrollTrigger: { trigger, start: from, end: "bottom 0%", scrub: SCRUB.soft },
+        },
+      );
+
+    mm.add("(min-width: 768px)", () => {
+      const depth = [70, 130, 90]; // px: cada cartão vem de uma distância
+      q("[data-ep-card]").forEach((card, i) => {
+        gsap.fromTo(
+          card,
+          { y: depth[i % depth.length], opacity: 0, scale: 0.96 },
+          {
+            y: 0,
+            opacity: 1,
+            scale: 1,
+            ease: "none",
+            scrollTrigger: { trigger: rail, ...enter },
+          },
+        );
+        leave(card, 30 + (i % 3) * 20, rail);
+      });
+      mediaTweens();
+    });
+
+    mm.add("(max-width: 767px)", () => {
+      gsap.fromTo(
+        rail,
+        { y: 70, opacity: 0 },
+        { y: 0, opacity: 1, ease: "none", scrollTrigger: { trigger: rail, ...enter } },
+      );
+      leave(rail, 40, rail);
+      mediaTweens();
+    });
+
+    // Rodapé da seção (Instagram): entra por último e sai junto.
+    gsap.fromTo(
+      foot,
+      { y: 40, opacity: 0 },
+      {
+        y: 0,
+        opacity: 1,
+        ease: "none",
+        scrollTrigger: { trigger: foot, start: "top 100%", end: "top 78%", scrub: SCRUB.soft },
+      },
+    );
+    leave(foot, 30, foot, "bottom 40%");
+
+    return () => mm.revert();
+  }, []);
+
   return (
     <section
+      ref={sectionRef}
       id="episodios"
       aria-label="Episódios"
-      className="bg-fernandito-verde-escuro text-fernandito-off-white w-full overflow-hidden py-20 md:py-28"
+      className="bg-fernandito-verde-escuro text-fernandito-off-white w-full overflow-hidden py-24 md:py-32 lg:py-36"
     >
-      {/* Título e botão do Instagram iguais aos do antigo "O que anda
-          rolando": título centralizado escrito à máquina e, depois dos
-          cartões, "Segue a gente no Instagram" + @ do perfil. */}
-      <div className="mx-auto flex max-w-5xl flex-col items-center px-6 text-center">
+      {/* Ritmo vertical: 24/32/36 de respiro em cima e embaixo; 12/16 entre
+          o título e os cartões; 12/20 entre os cartões e o Instagram. */}
+      <div data-ep-head className="mx-auto flex max-w-5xl flex-col items-center px-6 text-center">
         <TypewriterText
           text={EPISODIOS.title}
           className="font-rampart text-[min(6.8vw,1.75rem)] leading-[1.05] tracking-[0.02em] whitespace-nowrap sm:text-[clamp(1.75rem,4vw,3rem)] lg:text-[clamp(2.75rem,3.6vw,3.75rem)]"
         />
       </div>
 
-      <ul className="mx-auto mt-10 flex max-w-6xl snap-x snap-mandatory [scrollbar-width:none] gap-4 overflow-x-auto px-6 pb-2 sm:px-10 md:grid md:grid-cols-3 md:overflow-visible lg:gap-6 lg:px-16 [&::-webkit-scrollbar]:hidden">
-        {EPISODIOS.items.map((ep) => (
-          <li key={ep.number} className="w-[68%] shrink-0 snap-center sm:w-[42%] md:w-auto">
-            <EpisodeCard ep={ep} />
-          </li>
-        ))}
-      </ul>
+      <div data-ep-rail className="mt-12 md:mt-16">
+        <ul className="mx-auto flex max-w-6xl snap-x snap-mandatory [scrollbar-width:none] gap-4 overflow-x-auto px-6 pb-2 sm:px-10 md:grid md:grid-cols-3 md:overflow-visible lg:gap-6 lg:px-16 [&::-webkit-scrollbar]:hidden">
+          {EPISODIOS.items.map((ep) => (
+            <li
+              key={ep.number}
+              data-ep-card
+              className="w-[68%] shrink-0 snap-center sm:w-[42%] md:w-auto"
+            >
+              <EpisodeCard ep={ep} />
+            </li>
+          ))}
+        </ul>
+      </div>
 
-      <div className="mx-auto mt-10 flex max-w-5xl flex-col items-center px-6 text-center md:mt-16">
-        <p className="text-body font-accent mb-2 tracking-[0.04em]">{EPISODIOS.follow}</p>
+      <div
+        data-ep-foot
+        className="mx-auto mt-12 flex max-w-5xl flex-col items-center px-6 text-center md:mt-20"
+      >
+        <p className="text-body font-accent mb-3 tracking-[0.04em]">{EPISODIOS.follow}</p>
         <Button
           as="a"
           href={LINKS.instagramUrl}
@@ -116,22 +225,40 @@ function EpisodeCard({ ep }: { ep: (typeof EPISODIOS.items)[number] }) {
       aria-label={`${ep.title} — assistir no Instagram`}
       className="group bg-fernandito-verde-medio ring-fernandito-off-white/10 hover:ring-fernandito-verde-claro duration-base ease-out-standard relative block aspect-[9/16] overflow-hidden rounded-3xl ring-1 transition-[box-shadow,transform] hover:-translate-y-1"
     >
-      <PhotoSlot
-        image={ep.cover}
-        sizes="(max-width: 767px) 68vw, 30vw"
-        placeholderClassName="bg-fernandito-verde-medio"
-      />
-      {ep.preview && (
-        <video
-          ref={videoRef}
-          src={ep.preview}
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          className="duration-slow ease-out-standard absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity group-hover:opacity-100 pointer-coarse:opacity-100"
+      {/* Mídia (capa + vídeo) um pouco maior que o cartão: sobra pro parallax. */}
+      <div data-ep-media className="absolute inset-x-0 -inset-y-[8%]">
+        <PhotoSlot
+          image={ep.cover}
+          sizes="(max-width: 767px) 68vw, 30vw"
+          placeholderClassName="bg-fernandito-verde-medio"
         />
-      )}
+        {ep.preview && (
+          <video
+            ref={videoRef}
+            src={ep.preview}
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            className="duration-slow ease-out-standard absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity group-hover:opacity-100 pointer-coarse:opacity-100"
+          />
+        )}
+      </div>
+      {/* Overlay sutil por cima de qualquer capa/vídeo: tom verde da marca,
+          vinheta nas bordas e um grão leve. Clareia no hover pra mídia
+          ganhar vida. */}
+      <span
+        aria-hidden="true"
+        className="duration-slow ease-out-standard bg-fernandito-verde-escuro/20 pointer-events-none absolute inset-0 mix-blend-multiply transition-opacity group-hover:opacity-40"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(20,28,18,0.35)_100%)]"
+      />
+      <span
+        aria-hidden="true"
+        className="grain-overlay pointer-events-none absolute inset-0 opacity-[0.06] mix-blend-overlay"
+      />
       {/* Véu pro texto ler por cima de qualquer capa. */}
       <span
         aria-hidden="true"
