@@ -8,7 +8,7 @@ import { prefersReducedMotion } from "@/lib/gsap";
 const AGE_KEY = "fernandito:age:v1";
 
 // Páginas que precisam abrir sem o portão (textos legais).
-const OPEN_PATHS = ["/termos", "/privacidade", "/legal"];
+const OPEN_PATHS = ["/termos", "/privacidade", "/legal", "/painel"];
 
 /** Atraso (s) de cada linha do cartão ao entrar, em cascata. */
 const itemDelay = (i: number) => ({ animationDelay: `${0.45 + i * 0.09}s` });

@@ -407,3 +407,14 @@ html[data-age="ask"]:is([data-intro="reveal"], [data-intro="done"]):has(#age-gat
     display: none;
   }
 }
+
+/* Painel interno (/painel): sem o cursor customizado do site. */
+.cursor-none-mode .painel,
+.cursor-none-mode .painel * {
+  cursor: auto !important;
+}
+.cursor-none-mode .painel button,
+.cursor-none-mode .painel a,
+.cursor-none-mode .painel summary {
+  cursor: pointer !important;
+}

@@ -375,3 +375,7 @@ navegação" no DESIGN_SYSTEM.md.
       chat).
 - [ ] Termos de uso e Política de privacidade revisados pelo advogado.
 - [ ] Fotos reais do kit (fotos 2–4 ainda são placeholders).
+
+## Painel de pedidos
+
+`/painel` (branco, só equipe): entra com a mesma senha do `BLING_ADMIN_KEY` (cookie de 12 h, 8 tentativas a cada 10 min por IP). Mostra o que imprimir hoje, pedidos parados, estoque, alertas, DANFE, etiqueta e rastreio de cada pedido; "Atualizar agora" empurra nota/etiqueta; "Baixar planilha" = CSV. Fica fora do Google (noindex).
