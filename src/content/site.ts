@@ -435,8 +435,8 @@ export const EPISODIOS = {
     },
     {
       number: 3,
-      title: "Em breve",
-      href: "https://www.instagram.com/toma.fernandito/",
+      title: "Isso é muito Fernandito",
+      href: "https://www.instagram.com/p/DesR8QqxaRL/",
       cover: photo("Capa ep. 3", "Capa do episódio 3 do Fernandito"),
       preview: null as string | null,
     },
