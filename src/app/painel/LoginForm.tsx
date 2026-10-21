@@ -6,7 +6,7 @@ import { entrar } from "./actions";
 export function LoginForm() {
   const [state, action, pending] = useActionState(entrar, null);
   return (
-    <form action={action} className="mt-6 flex flex-col gap-3">
+    <form action={action} className="mt-5 flex flex-col gap-3">
       <input
         type="password"
         name="senha"
@@ -14,12 +14,12 @@ export function LoginForm() {
         autoFocus
         required
         placeholder="Senha"
-        className="rounded-lg border border-neutral-300 px-4 py-3 text-base outline-none focus:border-neutral-900"
+        className="h-10 rounded-md border border-zinc-200 bg-white px-3 text-sm shadow-sm outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400"
       />
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-neutral-900 px-4 py-3 text-base font-medium text-white disabled:opacity-60"
+        className="h-10 rounded-md bg-zinc-900 px-4 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-60"
       >
         {pending ? "Entrando…" : "Entrar"}
       </button>
