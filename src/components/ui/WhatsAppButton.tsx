@@ -51,7 +51,7 @@ export function whatsappOpenHref(message: string) {
     : `https://web.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${text}`;
 }
 
-/** Número formatado pra mostrar ("(51) 9338-3764"). */
+/** Número formatado pra mostrar ("(51) 99338-3764"). */
 export const WHATSAPP_DISPLAY = WHATSAPP_NUMBER
   ? WHATSAPP_NUMBER.replace(/^55(\d{2})(\d{4,5})(\d{4})$/, "($1) $2-$3")
   : "";

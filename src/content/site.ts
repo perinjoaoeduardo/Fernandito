@@ -30,10 +30,10 @@ function photo(placeholder: string, alt: string, src: string | null = null): Con
 export const LINKS = {
   instagramUrl: "https://www.instagram.com/toma.fernandito/",
   instagramHandle: "@toma.fernandito",
-  /** WhatsApp comercial (+55 51 9338-3764), só dígitos: país + DDD +
+  /** WhatsApp comercial (+55 51 99338-3764), só dígitos: país + DDD +
    * número. A variável NEXT_PUBLIC_WHATSAPP_NUMBER, se existir, tem
    * prioridade (ver README). */
-  whatsappNumber: "555193383764",
+  whatsappNumber: "5551993383764",
   /** Mensagem que já vem escrita quando a pessoa abre o WhatsApp. Sem
    * emoji: o 🐎 chegava como "�" na página do wa.me (redirecionamento do
    * WhatsApp quebra alguns emojis). */

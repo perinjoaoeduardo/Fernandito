@@ -111,4 +111,4 @@ Podemos atualizar esta Política. A data da última atualização fica sempre no
 
 ## 12. Contato
 
-**contato@fernandito.com.br** · **WhatsApp +55 51 9338-3764** · Rua Castro Alves, 433, Rio Branco, Porto Alegre/RS, CEP 90430-131.
+**contato@fernandito.com.br** · **WhatsApp +55 51 99338-3764** · Rua Castro Alves, 433, Rio Branco, Porto Alegre/RS, CEP 90430-131.

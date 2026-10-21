@@ -27,7 +27,7 @@ const TEAM = (process.env.EMAIL_EQUIPE?.trim() || "contato@fernandito.com.br")
 const API = process.env.RESEND_API_URL?.trim() || "https://api.resend.com";
 const SITE = "https://fernandito.com.br";
 const INSTAGRAM = "https://www.instagram.com/toma.fernandito/";
-const WHATSAPP = "https://wa.me/555193383764";
+const WHATSAPP = "https://wa.me/5551993383764";
 
 export const EMAIL_ENABLED = Boolean(KEY);
 

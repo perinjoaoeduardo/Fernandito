@@ -15,7 +15,7 @@ Lata amassada, vazando, com defeito ou fora da validade: avisa em até **30 dias
 
 ## 3. Como pedir
 
-Chama no **WhatsApp (51) 9338-3764** ou em **contato@fernandito.com.br** com o número do pedido. Respondemos em até 1 dia útil, com as instruções de envio (sem custo pra ti).
+Chama no **WhatsApp (51) 99338-3764** ou em **contato@fernandito.com.br** com o número do pedido. Respondemos em até 1 dia útil, com as instruções de envio (sem custo pra ti).
 
 ## 4. Reembolso
 

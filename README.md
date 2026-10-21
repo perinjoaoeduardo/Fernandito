@@ -22,7 +22,7 @@ Copie `.env.example` para `.env.local` e preencha o que for necessário. Veja
   WhatsApp" já está em `src/content/site.ts` (`LINKS.whatsappNumber`); esta
   variável, se preenchida, tem prioridade sobre ele (útil pra testar outro
   número sem mexer no código). Formato: código do país + DDD + número, só
-  dígitos (ex: `555193383764`). Na Vercel: projeto → **Settings →
+  dígitos (ex: `5551993383764`). Na Vercel: projeto → **Settings →
   Environment Variables**, e um redeploy depois.
 
 - **`NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`** — opcional, vazia por enquanto.

@@ -9,7 +9,7 @@ updatedAt: "17/10/2026"
 
 Este site (**fernandito.com.br**) é operado por **FERNANDITO BEBIDAS LTDA**, inscrita no CNPJ sob o nº **69.252.946/0001-41**, Inscrição Estadual nº **096/4146258**, com sede na Rua Castro Alves, 433, Rio Branco, Porto Alegre/RS, CEP 90430-131 ("Fernandito", "nós").
 
-Contato: **contato@fernandito.com.br** · **WhatsApp +55 51 9338-3764** · Atendimento de segunda a sexta, das 9h às 18h (exceto feriados).
+Contato: **contato@fernandito.com.br** · **WhatsApp +55 51 99338-3764** · Atendimento de segunda a sexta, das 9h às 18h (exceto feriados).
 
 ## 2. Aceitação
 
@@ -71,7 +71,7 @@ Nas compras feitas pela internet, você pode **desistir da compra em até 7 dias
 
 Para exercer:
 
-1. Entre em contato pelo e-mail **contato@fernandito.com.br** ou pelo **WhatsApp +55 51 9338-3764**, informando o número do pedido
+1. Entre em contato pelo e-mail **contato@fernandito.com.br** ou pelo **WhatsApp +55 51 99338-3764**, informando o número do pedido
 2. Devolva o produto **com a embalagem original e sem sinais de consumo**, sempre que possível
 3. Os custos de devolução são **por nossa conta**
 4. O reembolso integral (incluindo o frete pago), com correção monetária, será feito por **Pix** assim que recebermos e conferirmos o produto de volta — em até **5 dias úteis** (Código de Defesa do Consumidor, art. 49, parágrafo único)
@@ -102,7 +102,7 @@ O tratamento dos seus dados pessoais está descrito na nossa [Política de Priva
 
 ## 17. Atendimento
 
-Dúvidas, reclamações e solicitações: **contato@fernandito.com.br** · **WhatsApp +55 51 9338-3764**. Respondemos em até **1 dia útil**.
+Dúvidas, reclamações e solicitações: **contato@fernandito.com.br** · **WhatsApp +55 51 99338-3764**. Respondemos em até **1 dia útil**.
 
 ## 18. Lei aplicável e foro
 
