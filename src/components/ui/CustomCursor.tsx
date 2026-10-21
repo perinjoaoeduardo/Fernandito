@@ -8,8 +8,8 @@ import { backgroundAt } from "@/lib/background";
 // através dela) e troca de cor conforme o fundo por baixo: off-white sobre
 // fundo escuro, verde-escuro sobre fundo claro (branco some no bege). Um
 // anel fino da cor oposta mantém ela visível em cima de fotos, que o
-// amostrador não enxerga. No hover só esvazia (mesmo tamanho, vira um anel), pra
-// não tampar o texto do link.
+// amostrador não enxerga. O hover só dá um aumento sutil (~8%), só
+// pra indicar "isso é clicável" sem virar o protagonista da interação.
 // Quem carrega a identidade visual de fato são os próprios componentes
 // (Button, Link, ElevatedCard — ver DESIGN_SYSTEM.md "## Interação").
 // `[data-cursor-hover]` é o opt-in pra elementos não-semânticos (divs com
@@ -17,7 +17,7 @@ import { backgroundAt } from "@/lib/background";
 // ainda assim devem contar como "hover" pro cursor.
 const HOVER_SELECTOR =
   "a, button, [role='button'], input, textarea, select, label, [data-cursor-hover]";
-const HOVER_SCALE = 1;
+const HOVER_SCALE = 1.08;
 
 export function CustomCursor() {
   const [active, setActive] = useState(false);
@@ -68,13 +68,11 @@ export function CustomCursor() {
 
     const handlePointerOver = (event: PointerEvent) => {
       if ((event.target as Element | null)?.closest(HOVER_SELECTOR)) {
-        dot.dataset.hover = "true";
         gsap.to(dot, { scale: HOVER_SCALE, duration: DURATION.base, ease: EASE.outStandard });
       }
     };
     const handlePointerOut = (event: PointerEvent) => {
       if ((event.target as Element | null)?.closest(HOVER_SELECTOR)) {
-        delete dot.dataset.hover;
         gsap.to(dot, { scale: 1, duration: DURATION.base, ease: EASE.outStandard });
       }
     };
@@ -100,7 +98,7 @@ export function CustomCursor() {
       ref={dotRef}
       aria-hidden="true"
       data-tone="light"
-      className="bg-fernandito-off-white data-[tone=dark]:bg-fernandito-verde-escuro data-[hover=true]:!bg-transparent duration-base ease-out-standard pointer-events-none fixed top-0 left-0 z-[200] h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-[0_0_0_1.5px_rgba(36,48,34,0.35)] transition-[background-color,box-shadow] [will-change:transform] data-[tone=dark]:shadow-[0_0_0_1.5px_rgba(230,230,203,0.6)]"
+      className="bg-fernandito-off-white data-[tone=dark]:bg-fernandito-verde-escuro duration-base ease-out-standard pointer-events-none fixed top-0 left-0 z-[200] h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-[0_0_0_1.5px_rgba(36,48,34,0.35)] transition-[background-color,box-shadow] [will-change:transform] data-[tone=dark]:shadow-[0_0_0_1.5px_rgba(230,230,203,0.6)]"
     />
   );
 }
