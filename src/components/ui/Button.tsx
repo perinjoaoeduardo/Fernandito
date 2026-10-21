@@ -13,7 +13,7 @@ const baseClasses =
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    "bg-fernandito-verde-medio text-fernandito-off-white hover:bg-fernandito-verde-escuro active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fernandito-verde-medio",
+    "bg-fernandito-verde-claro text-fernandito-off-white hover:bg-fernandito-verde-medio active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fernandito-verde-claro",
   // Preenchimento do centro pra fora + swap de cor do texto são feitos por
   // dois spans internos (ver `renderContent`), não só por className.
   secondary:

@@ -71,7 +71,7 @@ export function FooterSection() {
             mode="play"
             start="top 75%"
             charsPerSecond={FOOTER_CPS}
-            className="font-rampart text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em] text-balance lg:text-[min(2.75rem,calc((100vw-36rem)/17))] lg:whitespace-nowrap"
+            className="font-rampart text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em] text-balance lg:text-[clamp(2rem,2.8vw,2.75rem)]"
           />
           <TypewriterText
             as="p"
@@ -82,7 +82,7 @@ export function FooterSection() {
             charsPerSecond={FOOTER_CPS}
             // Começa quando a primeira linha termina (+ uma pausa curta).
             delay={FOOTER.line1.length / FOOTER_CPS + 0.3}
-            className="font-rampart text-fernandito-verde-claro mt-1 text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em] lg:text-[min(2.75rem,calc((100vw-36rem)/17))]"
+            className="font-rampart text-fernandito-verde-claro mt-1 text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em] lg:text-[clamp(2rem,2.8vw,2.75rem)]"
           />
           <p className="text-body-lg font-accent mt-4 tracking-[0.04em] opacity-80">
             {FOOTER.tagline}
