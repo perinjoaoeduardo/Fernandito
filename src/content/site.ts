@@ -111,7 +111,9 @@ export const ANNOUNCEMENT = {
 export const SECTIONS = [
   { key: "oQueE", on: true, id: "o-que-e", label: "O que é" },
   { key: "galeria", on: true, id: "galeria", label: "Fotos" },
-  { key: "manifesto", on: true, id: "manifesto", label: "Manifesto" },
+  // Manifesto fora do ar por enquanto (texto em `MANIFESTO` e cartão em
+  // CartaSection ficam guardados; ainda em construção). Pra voltar: on: true.
+  { key: "manifesto", on: false, id: "manifesto", label: "Manifesto" },
   { key: "contato", on: true, id: "contato", label: "Contato" },
   { key: "episodios", on: true, id: "episodios", label: "Episódios" },
   { key: "fichaTecnica", on: true, id: "ficha-tecnica", label: "Ficha técnica" },
