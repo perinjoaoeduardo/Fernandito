@@ -45,7 +45,9 @@ export function ContatoSection({
   contactHref,
   joinHero = false,
   shopCta,
-  titleClassName = "max-w-[13ch] text-[clamp(2.5rem,5vw,5rem)] leading-[1]",
+  // Duas linhas ("SE INTERESSOU / PELO FERNANDITO?"): o tamanho acompanha a
+  // largura da coluna (a fonte do título é larga: ~12 em pra frase mais longa).
+  titleClassName = "text-balance text-[min(7.2vw,2.6rem)] leading-[1.05] md:text-[min(3.1vw,3.6rem)]",
 }: ContatoSectionProps) {
   const goToShop = useGoToShop();
   const sectionRef = useRef<HTMLElement>(null);

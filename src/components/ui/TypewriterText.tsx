@@ -11,7 +11,8 @@ type TypewriterTextProps = {
   /** Faixa do ScrollTrigger (relativa ao próprio texto). */
   start?: string;
   end?: string;
-  /** Cursor de máquina de escrever que acompanha a última letra digitada. */
+  /** Cursor de máquina de escrever que acompanha a última letra digitada
+   * (some quando o texto termina). */
   caret?: boolean;
   /** Seletor de um ancestral pra usar como gatilho em vez do próprio texto
    * (via `closest`). Vários textos com o mesmo gatilho e faixas encadeadas
@@ -68,7 +69,9 @@ export function TypewriterText({
 
     const placeCaret = (count: number) => {
       if (!caretEl) return;
-      if (count <= 0) {
+      // Sem cursor antes de começar e depois que o texto terminou de digitar
+      // (parado ao lado do título ficava sobrando).
+      if (count <= 0 || count >= chars.length) {
         gsap.set(caretEl, { autoAlpha: 0 });
         return;
       }
