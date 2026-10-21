@@ -386,7 +386,7 @@ export const MANIFESTO = {
     "Não é pra todos. Aceitamos assim.\nMas pra esses, queremos ser. Queremos fazer parte.",
   ],
   /** A última frase, em destaque. */
-  finale: "Liberdade não se pede. Se toma. Toma Fernandito.",
+  finale: "Liberdade não se pede. Se toma.",
   closing: "Com brio, de Porto Alegre,",
   signatures: ["João", "Lorenzo", "Nando", "Matheus"],
   /** Verso do cartão (aparece ao girar). */
@@ -438,7 +438,7 @@ export const EPISODIOS = {
     },
     {
       number: 2,
-      title: "A marca é + ou - assim",
+      title: "A marca é + ou -⁠ assim",
       href: "https://www.instagram.com/p/Dec1LA3xqMY/",
       cover: photo(
         "Capa ep. 2",
