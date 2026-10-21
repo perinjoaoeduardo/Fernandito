@@ -8,7 +8,7 @@ import { backgroundAt } from "@/lib/background";
 // através dela) e troca de cor conforme o fundo por baixo: off-white sobre
 // fundo escuro, verde-escuro sobre fundo claro (branco some no bege). Um
 // anel fino da cor oposta mantém ela visível em cima de fotos, que o
-// amostrador não enxerga. No hover vira um anel vazado, pra
+// amostrador não enxerga. No hover só esvazia (mesmo tamanho, vira um anel), pra
 // não tampar o texto do link.
 // Quem carrega a identidade visual de fato são os próprios componentes
 // (Button, Link, ElevatedCard — ver DESIGN_SYSTEM.md "## Interação").
@@ -17,7 +17,7 @@ import { backgroundAt } from "@/lib/background";
 // ainda assim devem contar como "hover" pro cursor.
 const HOVER_SELECTOR =
   "a, button, [role='button'], input, textarea, select, label, [data-cursor-hover]";
-const HOVER_SCALE = 2.6;
+const HOVER_SCALE = 1;
 
 export function CustomCursor() {
   const [active, setActive] = useState(false);
