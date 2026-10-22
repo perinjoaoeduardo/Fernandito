@@ -335,7 +335,9 @@ export function CheckoutClient() {
     },
     {
       label: "Frete",
-      value: shipping ? `${shipping.carrier} · ${formatDays(shipping.days)}` : "",
+      value: shipping
+        ? `${shipping.source === "local" ? "Entrega em mãos" : shipping.carrier} · ${formatDays(shipping.days)}`
+        : "",
     },
   ].slice(0, step);
 
@@ -737,95 +739,37 @@ export function CheckoutClient() {
   );
 }
 
-// Atalhos do recado: começam a frase e põem o cursor no fim.
-const NOTE_STARTERS = [
-  { label: "É presente", text: "É presente pra " },
-  { label: "Escrever no cartão", text: "No cartão: " },
-];
-
 /**
- * Recado opcional: um cartãozinho com linhas de caderno (affordance de
- * "escreve aqui"), sempre aberto, com atalhos que começam a frase. Mesma
- * moldura das linhas de confirmação, pra não parecer de outro lugar.
+ * Recado opcional: um campo como os outros do checkout (mesmo rótulo, mesma
+ * caixa), baixo, que cresce conforme a pessoa escreve. O contador só aparece
+ * quando começa a digitar.
  */
 function NoteCard({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-  const start = (text: string) => {
-    const next = value.trim() ? `${value.trimEnd()}\n${text}` : text;
-    onChange(next.slice(0, NOTE_MAX));
-    // Foco já (senão as primeiras teclas se perdem); o cursor vai pro fim
-    // depois que o texto novo aparece.
-    ref.current?.focus();
-    requestAnimationFrame(() => {
-      const el = ref.current;
-      if (el) el.setSelectionRange(el.value.length, el.value.length);
-    });
-  };
   return (
-    <div
-      onClick={() => ref.current?.focus()}
-      className="border-fernandito-verde-escuro/12 hover:border-fernandito-verde-claro/60 focus-within:border-fernandito-verde-medio duration-base ease-out-standard cursor-text rounded-2xl border-2 bg-white/60 px-4 pt-3.5 pb-3 transition-[border-color,box-shadow,background-color] focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(64,81,57,0.14)]"
-    >
-      <div className="flex items-center gap-3">
-        <span
-          aria-hidden="true"
-          className="bg-fernandito-verde-claro/15 text-fernandito-verde-medio flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.8}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-4 w-4"
-          >
-            <path d="M12 20h9" />
-            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-          </svg>
-        </span>
-        <label htmlFor="recado" className="text-body flex-1 cursor-text font-bold">
-          Quer deixar um recado?
+    <div className="flex flex-col gap-1.5 font-sans lg:gap-1">
+      <div className="flex items-baseline justify-between gap-3">
+        <label htmlFor="recado" className="text-label font-bold tracking-[0.08em] uppercase">
+          Recado
         </label>
-        <span className="text-label border-fernandito-verde-escuro/15 rounded-full border px-2 py-0.5 tracking-[0.06em] uppercase opacity-60">
-          Opcional
-        </span>
-      </div>
-      <textarea
-        ref={ref}
-        id="recado"
-        rows={3}
-        maxLength={NOTE_MAX}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder="Vai de presente? Diz pra quem é e o que escrever no cartão. Outro pedido? É aqui."
-        // Linhas de caderno no fundo (rolam junto com o texto).
-        className="text-body mt-2 block w-full resize-none bg-transparent [background-image:linear-gradient(transparent_calc(1.75rem-1px),rgba(36,48,34,0.14)_1px)] [background-size:100%_1.75rem] [background-attachment:local] leading-[1.75rem] outline-none placeholder:opacity-40"
-      />
-      <div className="mt-2.5 flex flex-wrap items-center gap-2">
-        {NOTE_STARTERS.map((starter) => (
-          <button
-            key={starter.label}
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              start(starter.text);
-            }}
-            className="text-label border-fernandito-verde-escuro/20 hover:border-fernandito-verde-medio hover:bg-fernandito-verde-claro/15 duration-base ease-out-standard rounded-full border px-3 py-1.5 tracking-[0.04em] transition-colors"
-          >
-            + {starter.label}
-          </button>
-        ))}
         <span
           aria-live="polite"
           className={clsx(
-            "text-label ml-auto tabular-nums",
-            value.length > NOTE_MAX - 30 ? "text-red-800 opacity-90" : "opacity-45",
+            "text-label tabular-nums",
+            value.length > NOTE_MAX - 30 ? "text-red-800" : "opacity-55",
           )}
         >
-          {value.length}/{NOTE_MAX}
+          {value ? `${value.length}/${NOTE_MAX}` : "Opcional"}
         </span>
       </div>
+      <textarea
+        id="recado"
+        rows={2}
+        maxLength={NOTE_MAX}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="É presente? Diz pra quem é e o que escrever no cartão."
+        className="text-body duration-base ease-out-standard border-fernandito-verde-escuro/25 focus:border-fernandito-verde-medio field-sizing-content max-h-40 min-h-[3.25rem] w-full resize-none rounded-xl border bg-white/70 px-4 py-2.5 shadow-[inset_0_1px_2px_rgba(36,48,34,0.06)] transition-[background-color,border-color,box-shadow] outline-none placeholder:opacity-40 focus:bg-white focus:shadow-[0_0_0_4px_rgba(64,81,57,0.18)]"
+      />
     </div>
   );
 }
