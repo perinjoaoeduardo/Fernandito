@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { isBlingConnected, refreshTokens } from "@/lib/bling/client";
+import { syncManualSales } from "@/lib/bling/manual";
 import { retryPendingBlingOrders } from "@/lib/bling/orders";
 import { reconcileOpenOrders } from "@/lib/store/checkout";
 import { advanceAllFulfillments } from "@/lib/store/fulfillment";
@@ -36,5 +37,6 @@ export async function GET(request: Request) {
   }
   const retried = await retryPendingBlingOrders();
   const shipping = await advanceAllFulfillments().catch((error: Error) => error.message);
-  return Response.json({ connected: true, reconciled, retried, shipping });
+  const foraDoSite = (await syncManualSales())?.sales.length ?? 0;
+  return Response.json({ connected: true, reconciled, retried, shipping, foraDoSite });
 }

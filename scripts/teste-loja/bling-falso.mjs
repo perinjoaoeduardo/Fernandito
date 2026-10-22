@@ -20,6 +20,11 @@ http
     if (p === "/_ctl") {
       Object.assign(flags, body.flags ?? {});
       if (body.atender) sales.get(String(body.atender)).situacao = { id: 9 };
+      // Nota feita à mão no Bling (venda manual / bonificação), sem pedido do site.
+      if (body.notaManual) {
+        const id = nextId++;
+        nfes.set(String(id), { id, numero: String(id - 4900), situacao: 5, ...body.notaManual });
+      }
       return send(res, 200, { flags, sales: [...sales.values()], nfes: [...nfes.values()] });
     }
     // Igual ao real: limite por segundo. A 1ª busca de contato de cada CPF
@@ -61,7 +66,15 @@ http
       const s = sales.get(m[1]);
       if (s.notaFiscal) return send(res, 400, { error: { description: "já tem nota" } });
       const id = nextId++;
-      nfes.set(String(id), { id, numero: String(id - 4900), situacao: 1, chaveAcesso: null });
+      // Igual ao real: a nota do pedido carrega o número do pedido na loja.
+      nfes.set(String(id), {
+        id,
+        numero: String(id - 4900),
+        situacao: 1,
+        chaveAcesso: null,
+        numeroPedidoLoja: s.numeroLoja,
+        loja: { id: 2 },
+      });
       s.notaFiscal = { id };
       return send(res, 200, { data: { id } });
     }
@@ -75,6 +88,20 @@ http
       }
       return send(res, 200, { data: s });
     }
+    if (p === "/naturezas-operacoes")
+      return send(res, 200, {
+        data: [
+          { id: 1, descricao: "Venda de produção a não contribuinte - Consumidor final" },
+          { id: 7, descricao: "Bonificação" },
+        ],
+      });
+    // Lista de notas: como o real, sem as canceladas.
+    if (p === "/nfe" && req.method === "GET")
+      return send(res, 200, {
+        data: [...nfes.values()]
+          .filter((n) => n.situacao !== 2)
+          .map(({ id, numero, situacao }) => ({ id, numero, situacao })),
+      });
     if ((m = p.match(/^\/nfe\/(\d+)\/enviar$/))) {
       const n = nfes.get(m[1]);
       n.sent = (n.sent ?? 0) + 1;

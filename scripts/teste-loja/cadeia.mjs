@@ -286,6 +286,33 @@ const c1 = await buy({ note: RECADO });
     !(await diag()).envios.some((x) => x.id === id),
   );
 }
+// C13 notas feitas à mão no Bling (venda manual e bonificação) entram no painel;
+// as notas dos pedidos do site não entram de novo.
+{
+  const base = {
+    dataEmissao: "2026-10-22 10:00:00",
+    contato: { nome: "Bar do Zé", endereco: { municipio: "Porto Alegre", uf: "RS" } },
+    linkDanfe: "https://bling.example/danfe",
+  };
+  await ctl(BL, {
+    notaManual: {
+      ...base,
+      naturezaOperacao: { id: 1 },
+      itens: [{ codigo: "FERN-350", descricao: "Lata", quantidade: 12, valor: 14.99, cfop: "5101" }],
+      valorNota: 179.88,
+    },
+  });
+  await ctl(BL, {
+    notaManual: {
+      ...base,
+      naturezaOperacao: { id: 7 },
+      itens: [{ codigo: "FERN-KIT-PRE", descricao: "Kit", quantidade: 1, valor: 89.9, cfop: "5910" }],
+      valorNota: 89.9,
+    },
+  });
+  const cron = await (await fetch(`${B}/api/cron/bling?key=${KEY}`)).json();
+  check("C13 venda manual + bonificação lidas do Bling (só as 2)", cron.foraDoSite === 2, JSON.stringify(cron));
+}
 // C8 frete da tabela (Melhor Envio estava fora na compra)
 {
   const id = await buy({ ship: { id: "tabela-sudeste", priceCents: 2000, source: "tabela" } });

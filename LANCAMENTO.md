@@ -381,3 +381,5 @@ navegação" no DESIGN_SYSTEM.md.
 `/painel` (branco, só equipe): entra com a mesma senha do `BLING_ADMIN_KEY` (cookie de 12 h, 8 tentativas a cada 10 min por IP). Mostra o que imprimir hoje, pedidos parados, estoque, alertas, DANFE, etiqueta e rastreio de cada pedido; "Atualizar agora" empurra nota/etiqueta; "Baixar planilha" = CSV. Fica fora do Google (noindex).
 
 **Entrega própria (Porto Alegre):** sem Melhor Envio e sem etiqueta. A nota sai igual; o pedido fica em "Entregar em Porto Alegre" no `/painel` (com endereço e WhatsApp do cliente) até clicar em "Marcar como entregue" (ou `/api/loja/confirmar?...&acao=entregue`). O "Atendido" do Bling NÃO marca como entregue sozinho.
+
+**Fora do site (vendas manuais e bonificações):** o `/painel` lê as notas fiscais de saída do Bling (últimos 6 meses) que não vieram de pedido do site. Bonificação = natureza com "Bonificação/Brinde/Doação/Amostra" ou CFOP 5910/6910/5911/6911; o resto é "Venda manual". Atualiza no "Atualizar agora", no cron diário e sozinho a cada 10 min ao abrir o painel. Nota cancelada some.

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { connection } from "next/server";
+import { after, connection } from "next/server";
+import { getManualSales, manualSalesStale, syncManualSales } from "@/lib/bling/manual";
 import { ACTIVE_PRODUCTS } from "@/lib/catalog";
 import { painelAuthed } from "@/lib/painel";
 import { ALL_SET } from "@/lib/store/checkout";
@@ -186,6 +187,20 @@ export default async function PainelPage(props: PageProps<"/painel">) {
               ? all
               : active;
 
+  // Vendas fora do site (Bling): sem nada guardado ainda → busca agora; velho →
+  // mostra o que tem e atualiza depois da resposta.
+  let manual = await getManualSales();
+  if (!manual) manual = await syncManualSales();
+  else if (manualSalesStale(manual)) after(() => syncManualSales().then(() => undefined));
+  const NFE_OK = [5, 6, 7];
+  const manualSales = (manual?.sales ?? []).filter((m) => m.tipo === "venda");
+  const bonus = (manual?.sales ?? []).filter((m) => m.tipo === "bonificacao");
+  const manualRevenue = manualSales
+    .filter((m) => NFE_OK.includes(m.situacao))
+    .reduce((sum, m) => sum + m.totalCents, 0);
+  const units = (list: typeof bonus) =>
+    list.reduce((sum, m) => sum + m.itens.reduce((n, i) => n + i.quantidade, 0), 0);
+
   const [stock, alertsRaw] = await Promise.all([
     Promise.all(
       ACTIVE_PRODUCTS.filter((p) => p.stockCap).map(async (p) => ({
@@ -249,8 +264,8 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           <Stat label="Entregues" value={delivered.length} />
           <Stat
             label="Faturado"
-            value={brl(revenue)}
-            hint={`${active.filter((r) => r.order.status === "paid").length} pedidos pagos`}
+            value={brl(revenue + manualRevenue)}
+            hint={`site ${brl(revenue)} · manual ${brl(manualRevenue)}`}
           />
         </section>
 
@@ -431,6 +446,72 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                       >
                         {o.id}
                       </a>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+
+        <section className="mt-10">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">Fora do site</h2>
+              <p className="text-sm text-zinc-500">
+                Vendas manuais e bonificações, lidas das notas fiscais do Bling.
+              </p>
+            </div>
+            <p className="text-sm text-zinc-500">
+              {manualSales.length} vendas · {brl(manualRevenue)} · {bonus.length} bonificações (
+              {units(bonus)} itens)
+            </p>
+          </div>
+          {manual?.error && (
+            <p className="mt-2 text-xs text-red-600">Última conferência falhou: {manual.error}</p>
+          )}
+          {(manual?.sales.length ?? 0) === 0 ? (
+            <p className="mt-3 rounded-xl border border-dashed border-zinc-300 bg-white p-8 text-center text-sm text-zinc-500">
+              Nenhuma nota fora do site nos últimos 6 meses.
+            </p>
+          ) : (
+            <div className="mt-3 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+              <ul className="divide-y divide-zinc-100">
+                {manual!.sales.map((m) => (
+                  <li
+                    key={m.id}
+                    className="grid gap-2 px-5 py-3.5 text-sm md:grid-cols-[1.4fr_1.6fr_1fr_0.8fr] md:items-center md:gap-4"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{m.cliente || "—"}</p>
+                      <p className="text-zinc-500">
+                        {m.cidade ? `${m.cidade}/${m.uf} · ` : ""}
+                        {m.data ? when(m.data.replace(" ", "T") + "-03:00") : "—"}
+                      </p>
+                    </div>
+                    <p className="text-zinc-600">
+                      {m.itens.map((i) => `${i.quantidade}x ${i.descricao}`).join(" + ")}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone={m.tipo === "bonificacao" ? "amber" : "green"}>
+                        {m.tipo === "bonificacao" ? "Bonificação" : "Venda manual"}
+                      </Badge>
+                      {!NFE_OK.includes(m.situacao) && <Badge tone="zinc">Nota pendente</Badge>}
+                    </div>
+                    <div className="flex items-center justify-between gap-3 md:justify-end">
+                      {m.danfeUrl ? (
+                        <a
+                          className={LINK}
+                          href={m.danfeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          NF {m.numero}
+                        </a>
+                      ) : (
+                        <span className="text-zinc-500">NF {m.numero}</span>
+                      )}
+                      <span className="font-medium tabular-nums">{brl(m.totalCents)}</span>
                     </div>
                   </li>
                 ))}

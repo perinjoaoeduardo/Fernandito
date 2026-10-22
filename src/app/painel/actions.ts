@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { syncManualSales } from "@/lib/bling/manual";
 import { retryPendingBlingOrders } from "@/lib/bling/orders";
 import { painelAuthed, painelLogin, painelLogout, passwordOk } from "@/lib/painel";
 import { reconcileOpenOrders } from "@/lib/store/checkout";
@@ -10,7 +11,8 @@ import { rateLimit } from "@/lib/store/kv";
 
 export async function entrar(_prev: { error: string } | null, form: FormData) {
   const h = await headers();
-  const ip = h.get("x-real-ip")?.trim() || h.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+  const ip =
+    h.get("x-real-ip")?.trim() || h.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
   // 8 tentativas a cada 10 min por IP.
   if (!(await rateLimit("painel-login", ip, 8, 600)))
     return { error: "Muitas tentativas. Espera uns minutos." };
@@ -30,6 +32,7 @@ export async function atualizar() {
   await reconcileOpenOrders().catch(() => {});
   await retryPendingBlingOrders().catch(() => {});
   await advanceAllFulfillments().catch(() => {});
+  await syncManualSales();
   redirect("/painel");
 }
 
