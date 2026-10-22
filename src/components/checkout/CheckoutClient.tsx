@@ -80,9 +80,8 @@ export function CheckoutClient() {
   const [ageConfirmedAt, setAgeConfirmedAt] = useState<string | null>(null);
   // Sem opção de novidades por e-mail no checkout (tirada em 20/10).
   const marketingOptIn = false;
-  // Recado opcional (presente, cartinha, pedido especial): fechado por padrão.
+  // Recado opcional (presente, cartinha, pedido especial).
   const [note, setNote] = useState("");
-  const [noteOpen, setNoteOpen] = useState(false);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   // Esgotou enquanto a pessoa preenchia: avisa antes de ela chegar no Pix.
@@ -618,45 +617,7 @@ export function CheckoutClient() {
 
               {step === 3 && (
                 <div className="flex flex-col gap-3 font-sans">
-                  {noteOpen ? (
-                    <div className="flex flex-col gap-1.5">
-                      <label
-                        htmlFor="recado"
-                        className="text-label tracking-[0.08em] uppercase opacity-80"
-                      >
-                        Recado (opcional)
-                      </label>
-                      <textarea
-                        id="recado"
-                        rows={3}
-                        autoFocus
-                        maxLength={NOTE_MAX}
-                        value={note}
-                        onChange={(event) => setNote(event.target.value)}
-                        placeholder="Vai de presente? Diz pra quem é e o que escrever no cartão. Outro pedido? É aqui."
-                        className="text-body duration-base ease-out-standard border-fernandito-verde-escuro/25 focus:border-fernandito-verde-medio w-full resize-none rounded-xl border bg-white/70 px-4 py-3.5 shadow-[inset_0_1px_2px_rgba(36,48,34,0.06)] transition-[background-color,border-color,box-shadow] outline-none placeholder:opacity-40 focus:bg-white focus:shadow-[0_0_0_4px_rgba(64,81,57,0.18)]"
-                      />
-                      <p className="text-label text-right opacity-50">
-                        {note.length}/{NOTE_MAX}
-                      </p>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setNoteOpen(true)}
-                      className="border-fernandito-verde-escuro/25 hover:border-fernandito-verde-claro duration-base ease-out-standard flex items-center gap-3 rounded-2xl border-2 border-dashed px-4 py-3.5 text-left transition-colors"
-                    >
-                      <span aria-hidden="true" className="text-xl leading-none">
-                        +
-                      </span>
-                      <span className="flex flex-col">
-                        <span className="text-body font-medium">Deixar um recado</span>
-                        <span className="text-label opacity-65">
-                          É presente? Quer pedir algo? Escreve aqui.
-                        </span>
-                      </span>
-                    </button>
-                  )}
+                  <NoteCard value={note} onChange={setNote} />
                   <ConfirmRow
                     checked={ageConfirmedAt !== null}
                     onChange={(checked) =>
@@ -743,6 +704,99 @@ export function CheckoutClient() {
           </motion.div>
         </AnimatePresence>
       </section>
+    </div>
+  );
+}
+
+// Atalhos do recado: começam a frase e põem o cursor no fim.
+const NOTE_STARTERS = [
+  { label: "É presente", text: "É presente pra " },
+  { label: "Escrever no cartão", text: "No cartão: " },
+];
+
+/**
+ * Recado opcional: um cartãozinho com linhas de caderno (affordance de
+ * "escreve aqui"), sempre aberto, com atalhos que começam a frase. Mesma
+ * moldura das linhas de confirmação, pra não parecer de outro lugar.
+ */
+function NoteCard({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const start = (text: string) => {
+    const next = value.trim() ? `${value.trimEnd()}\n${text}` : text;
+    onChange(next.slice(0, NOTE_MAX));
+    // Foco já (senão as primeiras teclas se perdem); o cursor vai pro fim
+    // depois que o texto novo aparece.
+    ref.current?.focus();
+    requestAnimationFrame(() => {
+      const el = ref.current;
+      if (el) el.setSelectionRange(el.value.length, el.value.length);
+    });
+  };
+  return (
+    <div
+      onClick={() => ref.current?.focus()}
+      className="border-fernandito-verde-escuro/12 hover:border-fernandito-verde-claro/60 focus-within:border-fernandito-verde-medio duration-base ease-out-standard cursor-text rounded-2xl border-2 bg-white/60 px-4 pt-3.5 pb-3 transition-[border-color,box-shadow,background-color] focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(64,81,57,0.14)]"
+    >
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="bg-fernandito-verde-claro/15 text-fernandito-verde-medio flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+          >
+            <path d="M12 20h9" />
+            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+          </svg>
+        </span>
+        <label htmlFor="recado" className="text-body flex-1 cursor-text font-bold">
+          Quer deixar um recado?
+        </label>
+        <span className="text-label border-fernandito-verde-escuro/15 rounded-full border px-2 py-0.5 tracking-[0.06em] uppercase opacity-60">
+          Opcional
+        </span>
+      </div>
+      <textarea
+        ref={ref}
+        id="recado"
+        rows={3}
+        maxLength={NOTE_MAX}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="Vai de presente? Diz pra quem é e o que escrever no cartão. Outro pedido? É aqui."
+        // Linhas de caderno no fundo (rolam junto com o texto).
+        className="text-body mt-2 block w-full resize-none bg-transparent [background-image:linear-gradient(transparent_calc(1.75rem-1px),rgba(36,48,34,0.14)_1px)] [background-size:100%_1.75rem] [background-attachment:local] leading-[1.75rem] outline-none placeholder:opacity-40"
+      />
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        {NOTE_STARTERS.map((starter) => (
+          <button
+            key={starter.label}
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              start(starter.text);
+            }}
+            className="text-label border-fernandito-verde-escuro/20 hover:border-fernandito-verde-medio hover:bg-fernandito-verde-claro/15 duration-base ease-out-standard rounded-full border px-3 py-1.5 tracking-[0.04em] transition-colors"
+          >
+            + {starter.label}
+          </button>
+        ))}
+        <span
+          aria-live="polite"
+          className={clsx(
+            "text-label ml-auto tabular-nums",
+            value.length > NOTE_MAX - 30 ? "text-red-800 opacity-90" : "opacity-45",
+          )}
+        >
+          {value.length}/{NOTE_MAX}
+        </span>
+      </div>
     </div>
   );
 }
