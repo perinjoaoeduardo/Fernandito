@@ -37,7 +37,7 @@ const STEPS = ["Contato", "Entrega", "Frete", "Pagamento"] as const;
 const STEP_COPY = [
   { title: "Quem tá levando?", hint: "Pra gente saber pra quem mandar e emitir a nota." },
   { title: "Pra onde vai o tordilho?", hint: "" },
-  { title: "Como ele chega?", hint: "Escolhe o frete que mais combina contigo." },
+  { title: "Como ele chega?", hint: "" },
   { title: "Tudo pronto?", hint: "Só confirmar e pagar com Pix. Leva um minuto." },
 ] as const;
 
@@ -572,6 +572,17 @@ export function CheckoutClient() {
                     )}
                     {options.map((option, i) => {
                       const selected = option.id === shippingId;
+                      const local = option.source === "local";
+                      // Selos só fazem sentido comparando: com uma opção, nenhum.
+                      const compare = options.length > 1 && !local;
+                      const fastest =
+                        compare &&
+                        i !== 0 &&
+                        option.days.max ===
+                          Math.min(
+                            ...options.filter((o) => o.source !== "local").map((o) => o.days.max),
+                          ) &&
+                        options[0].days.max !== option.days.max;
                       return (
                         <label
                           key={option.id}
@@ -608,15 +619,20 @@ export function CheckoutClient() {
                           </span>
                           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                             <span className="text-body flex flex-wrap items-center gap-2 font-bold">
-                              {option.carrier}
-                              {i === 0 && option.source !== "local" && (
+                              {local ? "Entrega em mãos · Porto Alegre" : option.carrier}
+                              {compare && i === 0 && (
                                 <span className="bg-fernandito-verde-claro text-fernandito-off-white rounded-full px-2 py-0.5 font-sans text-[0.62rem] tracking-[0.08em] uppercase">
                                   Mais barato
                                 </span>
                               )}
+                              {fastest && (
+                                <span className="bg-fernandito-verde-escuro text-fernandito-off-white rounded-full px-2 py-0.5 font-sans text-[0.62rem] tracking-[0.08em] uppercase">
+                                  Mais rápido
+                                </span>
+                              )}
                             </span>
                             <span className="text-label opacity-65">
-                              {option.service} · {formatDays(option.days)}
+                              {local ? "A gente leva" : option.service} · {formatDays(option.days)}
                             </span>
                           </span>
                           <span className="font-rampart text-[1.3rem] leading-none tabular-nums">
@@ -1236,7 +1252,7 @@ function SummaryCard({
                 <p className="text-label text-fernandito-verde-claro tracking-[0.1em] uppercase brightness-150">
                   {item.label}
                 </p>
-                <p className="text-body mt-0.5 truncate opacity-85">{item.value}</p>
+                <p className="text-body mt-0.5 break-words opacity-85">{item.value}</p>
               </div>
               <button
                 type="button"
