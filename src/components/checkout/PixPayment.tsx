@@ -1,5 +1,6 @@
 "use client";
 
+import { clsx } from "clsx";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -31,10 +32,14 @@ export function PixPayment({
   order,
   simulated,
   canSimulate,
+  embedded = false,
 }: {
   order: PublicOrder;
   simulated: boolean;
   canSimulate: boolean;
+  /** Dentro do checkout (último passo): sem título nem resumo, que o
+   * checkout já mostra, e sem a moldura própria do cartão. */
+  embedded?: boolean;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<OrderStatus>(order.status);
@@ -184,10 +189,13 @@ export function PixPayment({
   return (
     <div
       ref={rootRef}
-      className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-12"
+      className={clsx(
+        "grid items-start",
+        !embedded && "gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-12",
+      )}
     >
-      <div className="flex flex-col gap-8">
-        <div data-enter>
+      <div className={clsx("flex flex-col", embedded ? "gap-0" : "gap-8")}>
+        <div data-enter className={embedded ? "hidden" : undefined}>
           <p className="font-accent text-label tracking-[0.18em] uppercase opacity-70">
             {manual ? "Pix direto na conta" : expired ? "Pix expirado" : "Falta pouco"}
           </p>
@@ -201,7 +209,12 @@ export function PixPayment({
           // WhatsApp. O pedido já está guardado e as unidades reservadas.
           <div
             data-enter
-            className="bg-fernandito-off-white text-fernandito-verde-escuro flex flex-col items-start gap-5 rounded-3xl p-7 font-sans shadow-[0_24px_60px_rgba(0,0,0,0.35)] sm:p-9"
+            className={clsx(
+              "text-fernandito-verde-escuro flex flex-col items-start gap-5 font-sans",
+              embedded
+                ? ""
+                : "bg-fernandito-off-white rounded-3xl p-7 shadow-[0_24px_60px_rgba(0,0,0,0.35)] sm:p-9",
+            )}
           >
             <p className="text-body-lg max-w-xl">
               O Pix automático deu problema, mas teu pedido já está guardado. Paga{" "}
@@ -239,7 +252,12 @@ export function PixPayment({
         ) : expired ? (
           <div
             data-enter
-            className="bg-fernandito-off-white text-fernandito-verde-escuro flex flex-col items-start gap-5 rounded-3xl p-7 font-sans shadow-[0_24px_60px_rgba(0,0,0,0.35)] sm:p-9"
+            className={clsx(
+              "text-fernandito-verde-escuro flex flex-col items-start gap-5 font-sans",
+              embedded
+                ? ""
+                : "bg-fernandito-off-white rounded-3xl p-7 shadow-[0_24px_60px_rgba(0,0,0,0.35)] sm:p-9",
+            )}
           >
             <p className="text-body-lg max-w-xl">
               O código vale por 30 minutos. Nada foi cobrado: gera um novo Pix pro mesmo pedido.
@@ -256,17 +274,25 @@ export function PixPayment({
         ) : (
           <div
             data-enter
-            className="bg-fernandito-off-white text-fernandito-verde-escuro overflow-hidden rounded-3xl font-sans shadow-[0_24px_60px_rgba(0,0,0,0.35)]"
+            className={clsx(
+              "text-fernandito-verde-escuro overflow-hidden font-sans",
+              embedded
+                ? "border-fernandito-verde-escuro/10 rounded-2xl border bg-white/50"
+                : "bg-fernandito-off-white rounded-3xl shadow-[0_24px_60px_rgba(0,0,0,0.35)]",
+            )}
           >
             {/* Topo: total + tempo restante. */}
             <div className="border-fernandito-verde-escuro/10 flex flex-wrap items-end justify-between gap-4 border-b px-6 pt-6 pb-5 sm:px-8">
-              <div>
+              <div className={embedded ? "hidden" : undefined}>
                 <p className="text-label tracking-[0.1em] uppercase opacity-60">Total</p>
                 <p className="font-rampart mt-1.5 text-[2.5rem] leading-none tabular-nums">
                   <Price cents={order.totalCents} />
                 </p>
               </div>
-              <div className="text-right" aria-live="polite">
+              <div
+                className={embedded ? "flex w-full items-baseline justify-between" : "text-right"}
+                aria-live="polite"
+              >
                 <p className="text-label tracking-[0.1em] uppercase opacity-60">Expira em</p>
                 <p className="font-rampart mt-1.5 text-[1.75rem] leading-none tabular-nums">
                   {timeLeft}
@@ -280,7 +306,14 @@ export function PixPayment({
               </div>
             </div>
 
-            <div className="grid gap-7 px-6 py-7 sm:px-8 md:grid-cols-[13rem_minmax(0,1fr)] md:items-center md:gap-8">
+            <div
+              className={clsx(
+                "grid gap-7 px-6 py-7 sm:px-8 md:items-center",
+                embedded
+                  ? "md:grid-cols-[10.5rem_minmax(0,1fr)] md:gap-6"
+                  : "md:grid-cols-[13rem_minmax(0,1fr)] md:gap-8",
+              )}
+            >
               {/* QR: no computador sempre; no celular, sob demanda (quem
                   está no celular copia o código). */}
               <div className="hidden md:block">{qr}</div>
@@ -300,7 +333,11 @@ export function PixPayment({
                   onFocus={(e) => e.currentTarget.select()}
                   className="border-fernandito-verde-escuro/15 w-full resize-none rounded-xl border bg-white/70 px-4 py-3 font-mono text-[0.75rem] leading-snug break-all"
                 />
-                <Button variant="primary" onClick={() => void copy()} className="w-full !py-4">
+                <Button
+                  variant="primary"
+                  onClick={() => void copy()}
+                  className="w-full !py-4 whitespace-nowrap"
+                >
                   {copied ? "Código copiado ✓" : "Copiar código Pix"}
                 </Button>
                 <p className="text-label mt-1 flex items-center gap-2 tracking-[0.08em] uppercase opacity-70">
@@ -317,16 +354,23 @@ export function PixPayment({
             </div>
 
             {/* Como pagar: três passos curtos. */}
-            <ol className="border-fernandito-verde-escuro/10 grid gap-3 border-t px-6 py-5 sm:px-8 md:grid-cols-3 md:gap-4">
-              {PIX_STEPS.map((step, i) => (
-                <li key={step} className="flex items-center gap-3">
-                  <span className="bg-fernandito-verde-escuro text-fernandito-off-white flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[0.8rem] leading-none font-bold">
-                    {i + 1}
-                  </span>
-                  <span className="text-label leading-snug tracking-[0.04em]">{step}</span>
-                </li>
-              ))}
-            </ol>
+            {embedded ? (
+              <p className="border-fernandito-verde-escuro/10 text-label border-t px-6 py-4 leading-snug opacity-75 sm:px-8">
+                Abre o app do banco, lê o QR ou cola o código. Esta tela atualiza sozinha quando o
+                pagamento cair.
+              </p>
+            ) : (
+              <ol className="border-fernandito-verde-escuro/10 grid gap-3 border-t px-6 py-5 sm:px-8 md:grid-cols-3 md:gap-4">
+                {PIX_STEPS.map((step, i) => (
+                  <li key={step} className="flex items-center gap-3">
+                    <span className="bg-fernandito-verde-escuro text-fernandito-off-white flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[0.8rem] leading-none font-bold">
+                      {i + 1}
+                    </span>
+                    <span className="text-label leading-snug tracking-[0.04em]">{step}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
 
             {(simulated || canSimulate) && (
               <div className="border-fernandito-verde-escuro/10 bg-fernandito-verde-escuro/[0.04] flex flex-wrap items-center justify-between gap-3 border-t px-6 py-4 sm:px-8">
@@ -352,7 +396,13 @@ export function PixPayment({
         {/* Saída pra qualquer problema: com o número do pedido, quem
             atende acha no painel da loja na hora. */}
         {help && !manual && (
-          <p data-enter className="text-body mt-5 font-sans opacity-80">
+          <p
+            data-enter
+            className={clsx(
+              "font-sans opacity-80",
+              embedded ? "text-label mt-4" : "text-body mt-5",
+            )}
+          >
             Pagou e a tela não mudou? Não paga de novo:{" "}
             <a
               href={help}
@@ -367,9 +417,11 @@ export function PixPayment({
         )}
       </div>
 
-      <div data-enter className="lg:sticky lg:top-32">
-        <OrderReceipt order={order} />
-      </div>
+      {!embedded && (
+        <div data-enter className="lg:sticky lg:top-32">
+          <OrderReceipt order={order} />
+        </div>
+      )}
     </div>
   );
 }

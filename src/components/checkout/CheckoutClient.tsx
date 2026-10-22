@@ -3,7 +3,6 @@
 import { useStock } from "@/components/cart/useStock";
 import { clsx } from "clsx";
 import NextLink from "next/link";
-import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { gsap, DURATION, EASE, prefersReducedMotion } from "@/lib/gsap";
@@ -16,6 +15,8 @@ import { Button } from "@/components/ui/Button";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { useCart } from "@/components/cart/CartProvider";
 import { Field } from "@/components/checkout/Field";
+import { PixPayment } from "@/components/checkout/PixPayment";
+import type { PublicOrder } from "@/lib/store/orders";
 import { Price } from "@/components/ui/Price";
 import { splitName } from "@/lib/catalog";
 
@@ -38,7 +39,7 @@ const STEP_COPY = [
   { title: "Quem tá levando?", hint: "Pra gente saber pra quem mandar e emitir a nota." },
   { title: "Pra onde vai o tordilho?", hint: "" },
   { title: "Como ele chega?", hint: "" },
-  { title: "Tudo pronto?", hint: "" },
+  { title: "Paga com Pix", hint: "" },
 ] as const;
 
 type Contact = { name: string; email: string; phone: string; cpf: string };
@@ -63,7 +64,7 @@ const EMPTY_ADDRESS: AddressForm = {
   uf: "",
 };
 
-export function CheckoutClient() {
+export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean }) {
   const cart = useCart();
   const [step, setStep] = useState(0);
   // Direção da última troca de etapa (1 = avançando, -1 = voltando): o
@@ -85,13 +86,14 @@ export function CheckoutClient() {
   const [noteOpen, setNoteOpen] = useState(false);
   // Tentou seguir sem marcar o 18+: o cartão avisa em vermelho.
   const [ageError, setAgeError] = useState(false);
+  // Pix gerado no passo do frete: o último passo já abre com o QR.
+  const [pixOrder, setPixOrder] = useState<PublicOrder | null>(null);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   // Esgotou enquanto a pessoa preenchia: avisa antes de ela chegar no Pix.
   const { soldOut } = useStock();
   // Uma chave por tentativa: clique duplo/reenvio → o mesmo pedido e Pix.
   const idempotencyKey = useRef<string | null>(null);
-  const router = useRouter();
   const numberRef = useRef<HTMLInputElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
@@ -205,7 +207,7 @@ export function CheckoutClient() {
       setAgeError(true);
       return;
     }
-    goTo(3);
+    void pay();
   }
 
   async function pay() {
@@ -243,7 +245,7 @@ export function CheckoutClient() {
           : firstKey.startsWith("address")
             ? 1
             : firstKey === "note"
-              ? 3
+              ? 0
               : 2,
       );
       return;
@@ -261,7 +263,7 @@ export function CheckoutClient() {
         body: JSON.stringify(parsed.data),
       });
       const data = (await response.json().catch(() => ({}))) as {
-        order?: { id: string };
+        order?: { id: string } & Partial<PublicOrder>;
         error?: string;
         code?: string;
       };
@@ -274,7 +276,11 @@ export function CheckoutClient() {
         }
         throw new Error(data.error ?? "Não deu pra gerar o Pix. Tenta de novo.");
       }
-      router.push(`/pedido/${data.order.id}`);
+      setPixOrder(data.order as PublicOrder);
+      setPaying(false);
+      goTo(3);
+      // Recarregou a página? Cai na tela do Pix desse pedido, não num checkout vazio.
+      window.history.replaceState(null, "", `/pedido/${data.order.id}`);
     } catch (error) {
       setPayError((error as Error).message);
       setPaying(false);
@@ -374,12 +380,17 @@ export function CheckoutClient() {
         </h1>
         {/* No computador as etapas vão pra dentro do cartão do formulário. */}
         <div className="mt-7 lg:hidden">
-          <Progress step={step} onGo={(i) => i < step && goTo(i)} />
+          <Progress step={step} onGo={(i) => !pixOrder && i < step && goTo(i)} />
         </div>
       </div>
 
       <div className="min-w-0 lg:sticky lg:top-[calc(7rem+var(--announcement-h))] lg:col-start-2 lg:row-start-2">
-        <SummaryCard shipping={shipping} totalCents={totalCents} recap={recap} onEdit={goTo} />
+        <SummaryCard
+          shipping={shipping}
+          totalCents={totalCents}
+          recap={recap}
+          onEdit={(i) => !pixOrder && goTo(i)}
+        />
       </div>
 
       {/* ── Painel bege: uma etapa por vez ──────────────────────────────── */}
@@ -403,7 +414,7 @@ export function CheckoutClient() {
               Passo {step + 1} de {STEPS.length}
             </p>
             <div className="hidden lg:block">
-              <Progress step={step} onGo={(i) => i < step && goTo(i)} tone="light" />
+              <Progress step={step} onGo={(i) => !pixOrder && i < step && goTo(i)} tone="light" />
             </div>
             <h2
               id="etapa-titulo"
@@ -463,6 +474,20 @@ export function CheckoutClient() {
                     error={errors["customer.cpf"]}
                     aside="Só pra nota fiscal"
                   />
+                  {/* Recado opcional, discreto: só vira campo se clicar. */}
+                  <div className="sm:col-span-2">
+                    {noteOpen || note ? (
+                      <NoteCard value={note} onChange={setNote} />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setNoteOpen(true)}
+                        className="text-label duration-base ease-out-standard hover:text-fernandito-verde-medio font-sans underline underline-offset-4 opacity-70 transition-[color,opacity] hover:opacity-100"
+                      >
+                        + Deixar um recado (é presente?)
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -671,90 +696,58 @@ export function CheckoutClient() {
                         error={ageError}
                         required
                       />
-                      {noteOpen || note ? (
-                        <NoteCard value={note} onChange={setNote} />
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setNoteOpen(true)}
-                          className="text-label duration-base ease-out-standard hover:text-fernandito-verde-medio self-start underline underline-offset-4 opacity-70 transition-[color,opacity] hover:opacity-100"
-                        >
-                          + Deixar um recado (é presente?)
-                        </button>
-                      )}
                     </div>
                   </fieldset>
                 ))}
 
-              {step === 3 && (
-                <div className="border-fernandito-verde-claro bg-fernandito-verde-claro/15 flex items-center gap-4 rounded-2xl border-2 px-4 py-4 font-sans">
-                  <span
-                    aria-hidden="true"
-                    className="bg-fernandito-verde-escuro text-fernandito-off-white flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={1.8}
-                      strokeLinejoin="round"
-                      className="h-5 w-5"
-                    >
-                      <path d="M12 3.5 20.5 12 12 20.5 3.5 12Z" />
-                      <path d="M8.5 12h7" />
-                    </svg>
-                  </span>
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="text-body font-bold">Pix</span>
-                    <span className="text-label mt-0.5 leading-snug opacity-70">
-                      Aprovação na hora. Na próxima tela aparece o QR Code e o copia e cola.
-                    </span>
-                  </span>
-                  <span className="font-rampart text-[1.3rem] leading-none tabular-nums">
-                    <Price cents={totalCents} />
-                  </span>
-                </div>
+              {step === 3 && pixOrder && (
+                <PixPayment
+                  order={pixOrder}
+                  simulated={Boolean(pixOrder.pix && !pixOrder.pix.qrCodeBase64)}
+                  canSimulate={canSimulate}
+                  embedded
+                />
               )}
             </div>
 
-            {/* Ações */}
-            <div className="mt-9 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between lg:mt-7">
-              {step > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => goTo(step - 1)}
-                  className="text-label duration-base ease-out-standard hover:text-fernandito-verde-medio h-11 self-center font-sans tracking-[0.12em] uppercase opacity-70 transition-[color,opacity] hover:opacity-100 sm:self-auto"
-                >
-                  ← Voltar
-                </button>
-              ) : (
-                <span className="hidden sm:block" />
-              )}
-              {step === 0 && <NextButton onClick={submitContact}>Continuar</NextButton>}
-              {step === 1 && (
-                <NextButton onClick={() => void submitAddress()}>Ver opções de frete</NextButton>
-              )}
-              {step === 2 && (
-                <NextButton onClick={submitShipping} disabled={!shipping || shippingLoading}>
-                  Continuar
-                </NextButton>
-              )}
-              {step === 3 && (
-                <NextButton onClick={() => void pay()} disabled={!shipping || paying || soldOut}>
-                  {soldOut
-                    ? STORE.soldOut
-                    : paying
-                      ? "Gerando Pix…"
-                      : `Pagar ${formatBRL(totalCents)} no Pix`}
-                </NextButton>
-              )}
-            </div>
+            {/* Ações (no Pix não tem: o próprio Pix é o fim). */}
+            {step < 3 && (
+              <div className="mt-9 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between lg:mt-7">
+                {step > 0 && step < 3 ? (
+                  <button
+                    type="button"
+                    onClick={() => goTo(step - 1)}
+                    className="text-label duration-base ease-out-standard hover:text-fernandito-verde-medio h-11 self-center font-sans tracking-[0.12em] uppercase opacity-70 transition-[color,opacity] hover:opacity-100 sm:self-auto"
+                  >
+                    ← Voltar
+                  </button>
+                ) : (
+                  <span className="hidden sm:block" />
+                )}
+                {step === 0 && <NextButton onClick={submitContact}>Continuar</NextButton>}
+                {step === 1 && (
+                  <NextButton onClick={() => void submitAddress()}>Ver opções de frete</NextButton>
+                )}
+                {step === 2 && (
+                  <NextButton
+                    onClick={submitShipping}
+                    disabled={!shipping || shippingLoading || paying || soldOut}
+                  >
+                    {soldOut
+                      ? STORE.soldOut
+                      : paying
+                        ? "Gerando Pix…"
+                        : "Confirmar e ir pro pagamento"}
+                  </NextButton>
+                )}
+              </div>
+            )}
             {soldOut && (
               <p role="alert" className="text-body mt-4 font-sans">
                 {STORE.soldOutText}
               </p>
             )}
-            {step === 3 && (
+            {step === 2 && (
               <>
                 {payError && (
                   <p role="alert" className="text-body mt-4 font-sans text-red-700">
@@ -762,7 +755,7 @@ export function CheckoutClient() {
                   </p>
                 )}
                 <p className="text-label mt-5 font-sans tracking-[0.04em] opacity-60 sm:text-right">
-                  Ao pagar, tu aceita os{" "}
+                  Ao confirmar, tu aceita os{" "}
                   <NextLink
                     href="/termos"
                     className="underline underline-offset-4"

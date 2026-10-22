@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { STORE } from "@/content/site";
 import { CheckoutClient } from "@/components/checkout/CheckoutClient";
+import { CAN_SIMULATE_PAYMENT } from "@/lib/mercadopago";
 
 export const metadata: Metadata = {
   title: "Finalizar compra",
@@ -14,7 +15,7 @@ export default function CheckoutPage() {
   return (
     <main className="bg-fernandito-verde-medio text-fernandito-off-white min-h-screen [color-scheme:light]">
       <div className="mx-auto max-w-6xl px-5 pt-[calc(7.5rem+var(--announcement-h))] pb-24 sm:px-10">
-        <CheckoutClient />
+        <CheckoutClient canSimulate={CAN_SIMULATE_PAYMENT} />
       </div>
     </main>
   );
