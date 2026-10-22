@@ -383,3 +383,10 @@ navegação" no DESIGN_SYSTEM.md.
 **Entrega própria (Porto Alegre):** sem Melhor Envio e sem etiqueta. A nota sai igual; o pedido fica em "Entregar em Porto Alegre" no `/painel` (com endereço e WhatsApp do cliente) até clicar em "Marcar como entregue" (ou `/api/loja/confirmar?...&acao=entregue`). O "Atendido" do Bling NÃO marca como entregue sozinho.
 
 **Fora do site (vendas manuais e bonificações):** o `/painel` lê as notas fiscais de saída do Bling (últimos 6 meses) que não vieram de pedido do site. Bonificação = natureza com "Bonificação/Brinde/Doação/Amostra" ou CFOP 5910/6910/5911/6911; o resto é "Venda manual". Atualiza no "Atualizar agora", no cron diário e sozinho a cada 10 min ao abrir o painel. Nota cancelada some.
+
+## Pendente: notas de saídas de 22/10/2026 (emitir no Bling quando tiver os dados)
+
+- [ ] Venda manual: 4 latas (FERN-350, R$ 14,99) — falta: dados do comprador.
+- [ ] Bonificação: 1 Kit Pré-Lançamento pra galera da Garfo — falta: CNPJ/CPF e endereço.
+- [ ] Bonificação: 1 Kit Pré-Lançamento pra galera do estúdio do Xisme — falta: CNPJ/CPF e endereço.
+- [ ] Depois de emitir: baixar 2 do estoque do Kit (o contador do site não sabe dessas saídas) e conferir em "Fora do site" no /painel.
