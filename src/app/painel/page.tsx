@@ -8,7 +8,7 @@ import { getFulfillment, type FulfillStage, type Fulfillment } from "@/lib/store
 import { kvSMembers } from "@/lib/store/kv";
 import { getOrder, type StoredOrder } from "@/lib/store/orders";
 import { stockRemaining } from "@/lib/store/stock";
-import { atualizar, sair } from "./actions";
+import { atualizar, marcarEntregue, sair } from "./actions";
 import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = {
@@ -18,6 +18,14 @@ export const metadata: Metadata = {
 
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const phone = (digits: string) => {
+  const d = digits.replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "");
+  return d.length === 11
+    ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+    : d.length === 10
+      ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+      : digits;
+};
 const when = (iso: string | null) =>
   iso
     ? new Date(iso).toLocaleString("pt-BR", {
@@ -53,7 +61,7 @@ const STAGE: Record<FulfillStage, [string, Tone]> = {
   ready: ["Imprimir e postar", "blue"],
   posted: ["Postado", "green"],
   delivered: ["Entregue", "green"],
-  local: ["Entrega própria (POA)", "blue"],
+  local: ["Entregar em Porto Alegre", "blue"],
   "local-delivered": ["Entregue (POA)", "green"],
 };
 
@@ -111,6 +119,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 const FILTERS = [
   ["ativos", "Ativos"],
   ["imprimir", "Imprimir"],
+  ["entregar", "Entregar (POA)"],
   ["olho", "Precisam de olho"],
   ["estornados", "Estornados"],
   ["todos", "Todos"],
@@ -149,6 +158,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const active = all.filter((r) => !r.order.refundedAt);
 
   const toPrint = active.filter((r) => r.f?.stage === "ready");
+  const toDeliver = active.filter((r) => r.f?.stage === "local");
   const stuck = active.filter((r) => r.f?.error || r.order.status === "manual");
   const inTransit = active.filter((r) => r.f?.stage === "posted");
   const delivered = active.filter((r) => r.f?.stage === "delivered" || r.f?.stage === "local-delivered");
@@ -159,7 +169,9 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const rows =
     ver === "imprimir"
       ? toPrint
-      : ver === "olho"
+      : ver === "entregar"
+        ? toDeliver
+        : ver === "olho"
         ? stuck
         : ver === "estornados"
           ? all.filter((r) => r.order.refundedAt)
@@ -208,8 +220,9 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           </div>
         </header>
 
-        <section className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <section className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-6">
           <Stat label="Imprimir hoje" value={toPrint.length} tone={toPrint.length ? "blue" : undefined} />
+          <Stat label="Entregar (POA)" value={toDeliver.length} tone={toDeliver.length ? "blue" : undefined} />
           <Stat label="Precisam de olho" value={stuck.length} tone={stuck.length ? "red" : undefined} />
           <Stat label="A caminho" value={inTransit.length} />
           <Stat label="Entregues" value={delivered.length} />
@@ -299,10 +312,33 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                       <p className="text-sm text-zinc-500">
                         {brl(o.totalCents)} · {o.shipping.carrier} · {when(o.paidAt)}
                       </p>
+                      <p className="mt-1.5 text-sm text-zinc-700">
+                        {o.address.street}, {o.address.number}
+                        {o.address.complement ? ` (${o.address.complement})` : ""} ·{" "}
+                        {o.address.neighborhood} · CEP {o.address.cep}
+                      </p>
+                      <p className="text-sm text-zinc-500">
+                        <a
+                          className="underline decoration-zinc-300 underline-offset-4 hover:decoration-zinc-900"
+                          href={`https://wa.me/55${o.customer.phone.replace(/\D/g, "").replace(/^55/, "")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {phone(o.customer.phone)}
+                        </a>
+                      </p>
                     </div>
                     <div className="flex flex-col items-start gap-1.5">
                       <Badge tone={st[1]}>{st[0]}</Badge>
                       {f?.error && <p className="text-xs text-red-600">{f.error}</p>}
+                      {f?.stage === "local" && (
+                        <form action={marcarEntregue}>
+                          <input type="hidden" name="id" value={o.id} />
+                          <button className="inline-flex h-8 items-center rounded-md bg-zinc-900 px-3 text-xs font-medium text-white shadow-sm transition-colors hover:bg-zinc-800">
+                            Marcar como entregue
+                          </button>
+                        </form>
+                      )}
                     </div>
                     <div className="space-y-1 text-sm">
                       <p className="text-zinc-500">

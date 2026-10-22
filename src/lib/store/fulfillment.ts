@@ -379,16 +379,25 @@ async function notifyPosted(order: StoredOrder, f: Fulfillment) {
   await sendOrderShipped(order, f.label.tracking, f.label.trackingUrl).catch(() => false);
 }
 
-async function stepLocal(order: StoredOrder, f: Fulfillment) {
-  // Entregue = pedido "Atendido" (9) no Bling.
-  const sale = await bling<{ data: { situacao?: { id?: number } } }>(
-    `/pedidos/vendas/${order.bling!.orderId}`,
-  );
-  if (sale.data.situacao?.id === 9) {
-    f.stage = "local-delivered";
-    await save(order.id, f);
-  }
+/**
+ * Entrega própria (POA): não há transportadora nem rastreio, então nada
+ * avisa sozinho que entregou — o pedido fica em "local" até alguém marcar no
+ * painel (`markLocalDelivered`). Não dá pra confiar na situação "Atendido" do
+ * Bling: ela pode virar sozinha quando a nota é autorizada.
+ */
+async function stepLocal() {
   return true;
+}
+
+/** Marca a entrega própria como feita (botão do painel ou `&acao=entregue`). */
+export async function markLocalDelivered(orderId: string) {
+  const f = await getFulfillment(orderId);
+  if (!f || f.stage !== "local") return null;
+  f.stage = "local-delivered";
+  f.error = null;
+  await save(orderId, f);
+  await kvSRem(QUEUE, orderId);
+  return f;
 }
 
 /**
@@ -409,7 +418,7 @@ export async function advanceFulfillment(orderId: string): Promise<Fulfillment |
       if (f.stage === "invoice" && !(await stepInvoice(order, f))) return f;
       if (f.stage === "label" && !(await stepLabel(order, f))) return f;
       if (f.stage === "ready" || f.stage === "posted") await stepTrack(order, f);
-      if (f.stage === "local") await stepLocal(order, f);
+      if (f.stage === "local") await stepLocal();
     } catch (error) {
       f.error = (error as Error).message;
       await save(orderId, f);

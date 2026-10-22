@@ -379,3 +379,5 @@ navegação" no DESIGN_SYSTEM.md.
 ## Painel de pedidos
 
 `/painel` (branco, só equipe): entra com a mesma senha do `BLING_ADMIN_KEY` (cookie de 12 h, 8 tentativas a cada 10 min por IP). Mostra o que imprimir hoje, pedidos parados, estoque, alertas, DANFE, etiqueta e rastreio de cada pedido; "Atualizar agora" empurra nota/etiqueta; "Baixar planilha" = CSV. Fica fora do Google (noindex).
+
+**Entrega própria (Porto Alegre):** sem Melhor Envio e sem etiqueta. A nota sai igual; o pedido fica em "Entregar em Porto Alegre" no `/painel` (com endereço e WhatsApp do cliente) até clicar em "Marcar como entregue" (ou `/api/loja/confirmar?...&acao=entregue`). O "Atendido" do Bling NÃO marca como entregue sozinho.

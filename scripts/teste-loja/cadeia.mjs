@@ -262,11 +262,17 @@ const c1 = await buy();
     e?.etapa === "local" && (await ctl(ME)).calls.cart === before,
     JSON.stringify(e),
   );
+  // Mesmo com o pedido "Atendido" no Bling, só vira entregue quando marcam.
   const sale = (await ctl(BL)).sales.find((s) => s.numeroLoja === id);
   await ctl(BL, { atender: sale.id });
   await diag(true);
   check(
-    "C7 marcou 'Atendido' no Bling → entregue",
+    "C7 'Atendido' no Bling sozinho NÃO conta como entregue",
+    (await diag()).envios.some((x) => x.id === id && x.etapa === "local"),
+  );
+  await fetch(`${B}/api/loja/confirmar?key=${KEY}&pedido=${id}&acao=entregue`);
+  check(
+    "C7 marcou entregue (painel/link) → sai da fila",
     !(await diag()).envios.some((x) => x.id === id),
   );
 }

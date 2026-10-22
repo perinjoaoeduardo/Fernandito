@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { isAdmin } from "@/lib/leads";
 import { syncOrderToBling } from "@/lib/bling/orders";
 import { markPaid, MANUAL_SET } from "@/lib/store/checkout";
+import { markLocalDelivered } from "@/lib/store/fulfillment";
 import { kvSRem } from "@/lib/store/kv";
 import { getOrder, saveOrder } from "@/lib/store/orders";
 import { releaseStock } from "@/lib/store/stock";
@@ -17,6 +18,8 @@ import { releaseStock } from "@/lib/store/stock";
  * Pedido de TESTE já pago (ensaio geral): &acao=estornar → devolve a unidade
  * pro estoque do site e tira o pedido da fila de nota/etiqueta. O pedido
  * continua "pago" no registro (o marcador de pago nunca volta atrás).
+ *
+ * Entrega própria (Porto Alegre) feita: &acao=entregue → marca como entregue.
  *
  * Pedido pago que não chegou no Bling: &acao=bling → manda de novo (e daí
  * seguem nota e etiqueta sozinhas).
@@ -37,6 +40,12 @@ export async function GET(request: NextRequest) {
       pedido: order.id,
       bling: synced?.bling ?? null,
     });
+  }
+  if (action === "entregue") {
+    const done = await markLocalDelivered(order.id);
+    if (!done)
+      return Response.json({ erro: "Não está aguardando entrega própria" }, { status: 409 });
+    return Response.json({ ok: true, pedido: order.id, etapa: done.stage });
   }
   if (action === "estornar") {
     if (order.status !== "paid")

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { retryPendingBlingOrders } from "@/lib/bling/orders";
 import { painelAuthed, painelLogin, painelLogout, passwordOk } from "@/lib/painel";
 import { reconcileOpenOrders } from "@/lib/store/checkout";
-import { advanceAllFulfillments } from "@/lib/store/fulfillment";
+import { advanceAllFulfillments, markLocalDelivered } from "@/lib/store/fulfillment";
 import { rateLimit } from "@/lib/store/kv";
 
 export async function entrar(_prev: { error: string } | null, form: FormData) {
@@ -30,5 +30,12 @@ export async function atualizar() {
   await reconcileOpenOrders().catch(() => {});
   await retryPendingBlingOrders().catch(() => {});
   await advanceAllFulfillments().catch(() => {});
+  redirect("/painel");
+}
+
+/** Entrega própria (Porto Alegre) feita: tira da lista "pra entregar". */
+export async function marcarEntregue(form: FormData) {
+  if (!(await painelAuthed())) redirect("/painel");
+  await markLocalDelivered(String(form.get("id") ?? ""));
   redirect("/painel");
 }
