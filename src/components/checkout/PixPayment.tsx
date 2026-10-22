@@ -227,7 +227,7 @@ export function PixPayment({
     <div
       ref={rootRef}
       className={clsx(
-        "grid items-start",
+        "grid grid-cols-[minmax(0,1fr)] items-start",
         !embedded && "gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-12",
       )}
     >
@@ -322,70 +322,106 @@ export function PixPayment({
             )}
           </div>
         ) : embedded ? (
-          // Dentro do checkout: QR + código lado a lado, copiar colado no
-          // código, status e tempo numa linha só.
-          <div data-enter className="text-fernandito-verde-escuro flex flex-col gap-5 font-sans">
-            <div className="grid gap-5 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
+          // Dentro do checkout: um cartão só. Em cima, o status e o tempo;
+          // no meio, o QR (computador) e o botão grande de copiar; embaixo,
+          // como pagar em 3 passos curtos.
+          <div
+            data-enter
+            className="text-fernandito-verde-escuro ring-fernandito-verde-escuro/10 overflow-hidden rounded-2xl bg-white/60 font-sans ring-1"
+          >
+            <div data-pix-row className="flex items-center justify-between gap-3 px-5 pt-4 pb-3">
+              <span className="text-label bg-fernandito-verde-claro/15 text-fernandito-verde-medio inline-flex items-center gap-2 rounded-full px-3 py-1 font-bold whitespace-nowrap">
+                <span className="bg-fernandito-verde-medio inline-block h-2 w-2 shrink-0 animate-pulse rounded-full" />
+                Aguardando<span className="hidden sm:inline"> pagamento</span>
+              </span>
+              <span
+                className="flex flex-col items-end gap-0.5 sm:flex-row sm:items-baseline sm:gap-2"
+                aria-live="polite"
+              >
+                <span className="text-label whitespace-nowrap opacity-60">Expira em</span>
+                <span className="font-rampart text-[1.35rem] leading-none tabular-nums">
+                  {timeLeft}
+                </span>
+              </span>
+            </div>
+            <div className="bg-fernandito-verde-escuro/10 mx-5 h-1 overflow-hidden rounded-full">
+              <div
+                data-pix-bar
+                className="bg-fernandito-verde-medio h-full rounded-full transition-[width] duration-1000 ease-linear"
+                style={{ width: `${progress * 100}%` }}
+              />
+            </div>
+
+            <div className="grid gap-5 p-5 sm:grid-cols-[10.5rem_minmax(0,1fr)] sm:items-center">
               <div data-pix-qr className="hidden sm:block">
                 {qr}
               </div>
               <div className="flex min-w-0 flex-col gap-3">
-                <p data-pix-row className="text-body font-bold">
-                  Escaneia o QR ou copia o código
-                </p>
-                <div
+                <button
                   data-pix-row
-                  className="border-fernandito-verde-escuro/20 flex items-center gap-2 rounded-xl border bg-white/70 p-1.5 pl-4"
+                  type="button"
+                  onClick={() => void copy()}
+                  className={clsx(
+                    "duration-base ease-out-standard flex h-14 w-full items-center justify-center gap-2.5 rounded-full text-[1rem] font-bold transition-colors active:scale-[0.98]",
+                    copied
+                      ? "bg-fernandito-verde-claro text-fernandito-off-white"
+                      : "bg-fernandito-verde-escuro text-fernandito-off-white hover:bg-fernandito-verde-medio",
+                  )}
                 >
-                  <input
-                    id="pix-code"
-                    readOnly
-                    value={order.pix?.qrCode ?? ""}
-                    onFocus={(e) => e.currentTarget.select()}
-                    aria-label="Pix copia e cola"
-                    className="min-w-0 flex-1 truncate bg-transparent font-mono text-[0.78rem] outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void copy()}
-                    className="bg-fernandito-verde-escuro text-fernandito-off-white hover:bg-fernandito-verde-medio duration-base ease-out-standard h-10 shrink-0 rounded-lg px-4 text-[0.85rem] font-bold whitespace-nowrap transition-colors"
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                    className="h-5 w-5"
                   >
-                    {copied ? "Copiado ✓" : "Copiar"}
-                  </button>
-                </div>
-                <div
+                    {copied ? (
+                      <path d="M5 12.5l4.5 4.5L19 7.5" />
+                    ) : (
+                      <>
+                        <rect x="8" y="8" width="12" height="12" rx="2.5" />
+                        <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+                      </>
+                    )}
+                  </svg>
+                  {copied ? "Código copiado!" : "Copiar código Pix"}
+                </button>
+                <input
                   data-pix-row
-                  className="flex flex-wrap items-center justify-between gap-2"
-                  aria-live="polite"
-                >
-                  <span className="text-label bg-fernandito-verde-claro/15 text-fernandito-verde-medio inline-flex items-center gap-2 rounded-full px-3 py-1 font-bold">
-                    <span className="bg-fernandito-verde-medio inline-block h-2 w-2 animate-pulse rounded-full" />
-                    Aguardando pagamento
-                  </span>
-                  <span className="text-label tabular-nums opacity-70">
-                    Expira em <b className="opacity-100">{timeLeft}</b>
-                  </span>
-                </div>
-                <div
-                  data-pix-row
-                  className="bg-fernandito-verde-escuro/10 h-1 overflow-hidden rounded-full"
-                >
-                  <div
-                    data-pix-bar
-                    className="bg-fernandito-verde-medio h-full rounded-full transition-[width] duration-1000 ease-linear"
-                    style={{ width: `${progress * 100}%` }}
-                  />
-                </div>
+                  id="pix-code"
+                  readOnly
+                  value={order.pix?.qrCode ?? ""}
+                  onFocus={(e) => e.currentTarget.select()}
+                  aria-label="Pix copia e cola"
+                  className="w-full truncate bg-transparent text-center font-mono text-[0.72rem] opacity-50 outline-none"
+                />
+                <ol data-pix-row className="text-label mt-1 flex flex-col gap-1.5">
+                  {[
+                    "Abre o app do banco",
+                    "Escolhe Pix copia e cola (ou lê o QR)",
+                    "Pronto: esta tela muda sozinha",
+                  ].map((t, i) => (
+                    <li key={t} className="flex items-center gap-2.5">
+                      <span className="bg-fernandito-verde-escuro/10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-bold">
+                        {i + 1}
+                      </span>
+                      <span className="opacity-75">{t}</span>
+                    </li>
+                  ))}
+                </ol>
                 <details className="group sm:hidden">
-                  <summary className="text-label flex cursor-pointer list-none items-center gap-2 underline underline-offset-4 opacity-70">
-                    Mostrar QR code
+                  <summary className="text-label mt-1 flex cursor-pointer list-none items-center gap-2 underline underline-offset-4 opacity-70">
+                    Pagar de outro celular? Mostrar QR code
                   </summary>
                   <div className="mt-4 flex justify-center">{qr}</div>
                 </details>
               </div>
             </div>
             {(simulated || canSimulate) && (
-              <div className="border-fernandito-verde-escuro/20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed px-4 py-2.5">
+              <div className="border-fernandito-verde-escuro/10 bg-fernandito-verde-escuro/[0.04] flex flex-wrap items-center justify-between gap-3 border-t px-5 py-3">
                 {simulated && (
                   <p className="text-label opacity-60">Modo teste: não pague este código</p>
                 )}

@@ -128,9 +128,9 @@ export function ProductGallery({ images, seal }: { images: ProductImage[]; seal?
       </div>
 
       {many && (
-        <ul className="mt-4 flex gap-3" aria-label="Fotos do produto">
+        <ul className="mt-4 grid grid-cols-4 gap-3 sm:flex" aria-label="Fotos do produto">
           {images.map((image, i) => (
-            <li key={i} data-gallery-thumb className="w-[4.5rem] sm:w-20">
+            <li key={i} data-gallery-thumb className="sm:w-20">
               <button
                 type="button"
                 onClick={() => go(i)}

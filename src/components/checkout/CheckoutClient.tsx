@@ -388,8 +388,12 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
         </div>
       </div>
 
-      <div className="min-w-0 lg:col-start-2 lg:row-start-2">
+      {/* Celular: o resumo só aparece no pagamento (aberto, com o pedido e
+          os dados); antes, o formulário fica sozinho na tela. */}
+      <div className={clsx("min-w-0 lg:col-start-2 lg:row-start-2", step < 3 && "hidden lg:block")}>
         <SummaryCard
+          expanded={step === 3}
+          locked={Boolean(pixOrder)}
           shipping={shipping}
           totalCents={totalCents}
           recap={recap}
@@ -497,14 +501,14 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
               )}
 
               {step === 1 && (
-                <div className="grid gap-4 sm:grid-cols-6 lg:gap-x-4 lg:gap-y-3.5">
+                <div className="grid grid-cols-6 gap-x-3 gap-y-4 sm:gap-4 lg:gap-x-4 lg:gap-y-3.5">
                   <Field
                     id="cep"
                     label="CEP"
                     inputMode="numeric"
                     autoComplete="postal-code"
                     placeholder="00000-000"
-                    className="sm:col-span-2"
+                    className="col-span-3 sm:col-span-2"
                     value={address.cep}
                     onChange={(e) => {
                       const cep = maskCEP(e.target.value);
@@ -531,7 +535,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                     id="rua"
                     label="Rua"
                     autoComplete="address-line1"
-                    className="sm:col-span-4"
+                    className="col-span-6 sm:col-span-4"
                     value={address.street}
                     onChange={(e) => setAddress({ ...address, street: e.target.value })}
                     error={errors["address.street"]}
@@ -541,7 +545,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                     id="numero"
                     label="Número"
                     inputMode="numeric"
-                    className="sm:col-span-2"
+                    className="col-span-2 sm:col-span-2"
                     value={address.number}
                     onChange={(e) => setAddress({ ...address, number: e.target.value })}
                     error={errors["address.number"]}
@@ -550,7 +554,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                     id="complemento"
                     label="Complemento (opcional)"
                     autoComplete="address-line2"
-                    className="sm:col-span-4"
+                    className="col-span-4 sm:col-span-4"
                     value={address.complement}
                     onChange={(e) => setAddress({ ...address, complement: e.target.value })}
                     error={errors["address.complement"]}
@@ -558,7 +562,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                   <Field
                     id="bairro"
                     label="Bairro"
-                    className="sm:col-span-2"
+                    className="col-span-6 sm:col-span-2"
                     value={address.neighborhood}
                     onChange={(e) => setAddress({ ...address, neighborhood: e.target.value })}
                     error={errors["address.neighborhood"]}
@@ -567,7 +571,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                     id="cidade"
                     label="Cidade"
                     autoComplete="address-level2"
-                    className="sm:col-span-3"
+                    className="col-span-4 sm:col-span-3"
                     value={address.city}
                     onChange={(e) => {
                       setAddress({ ...address, city: e.target.value });
@@ -580,7 +584,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                     label="UF"
                     autoComplete="address-level1"
                     maxLength={2}
-                    className="sm:col-span-1"
+                    className="col-span-2 sm:col-span-1"
                     value={address.uf}
                     onChange={(e) => {
                       setAddress({
@@ -737,14 +741,19 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
 
             {/* Ações (no Pix não tem: o próprio Pix é o fim). */}
             {step < 3 && (
-              <div className="mt-9 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between lg:mt-7">
+              <div className="mt-9 flex items-center gap-3 sm:justify-between lg:mt-7">
                 {step > 0 && step < 3 ? (
                   <button
                     type="button"
                     onClick={() => goTo(step - 1)}
-                    className="text-label duration-base ease-out-standard hover:text-fernandito-verde-medio h-11 self-center font-sans tracking-[0.12em] uppercase opacity-70 transition-[color,opacity] hover:opacity-100 sm:self-auto"
+                    aria-label="Voltar"
+                    // Celular: botão redondo ao lado do principal; computador: texto.
+                    className="text-label border-fernandito-verde-escuro/20 hover:text-fernandito-verde-medio duration-base ease-out-standard flex h-[3.25rem] w-[3.25rem] shrink-0 items-center justify-center rounded-full border font-sans tracking-[0.12em] uppercase transition-[color,opacity,border-color] sm:h-11 sm:w-auto sm:border-0 sm:opacity-70 sm:hover:opacity-100"
                   >
-                    ← Voltar
+                    <span aria-hidden="true" className="text-[1.1rem] sm:text-[inherit]">
+                      ←
+                    </span>
+                    <span className="hidden sm:ml-2 sm:inline">Voltar</span>
                   </button>
                 ) : (
                   <span className="hidden sm:block" />
@@ -758,11 +767,16 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                     onClick={submitShipping}
                     disabled={!shipping || shippingLoading || paying || soldOut}
                   >
-                    {soldOut
-                      ? STORE.soldOut
-                      : paying
-                        ? "Gerando Pix…"
-                        : "Confirmar e ir pro pagamento"}
+                    {soldOut ? (
+                      STORE.soldOut
+                    ) : paying ? (
+                      "Gerando Pix…"
+                    ) : (
+                      <>
+                        <span className="sm:hidden">Ir pro pagamento</span>
+                        <span className="hidden sm:inline">Confirmar e ir pro pagamento</span>
+                      </>
+                    )}
                   </NextButton>
                 )}
               </div>
@@ -1092,7 +1106,7 @@ function NextButton({
       onClick={onClick}
       disabled={disabled}
       aria-disabled={disabled}
-      className="!bg-fernandito-verde-escuro hover:!bg-fernandito-verde-medio w-full !py-3.5 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-w-[14rem] lg:!py-3"
+      className="!bg-fernandito-verde-escuro hover:!bg-fernandito-verde-medio h-[3.25rem] w-full min-w-0 flex-1 !px-4 !py-0 text-[0.95rem] disabled:cursor-not-allowed disabled:opacity-50 sm:h-auto sm:w-auto sm:min-w-[14rem] sm:flex-none sm:!px-6 sm:!py-3.5 sm:text-[length:inherit] lg:!py-3"
     >
       <span className="flex items-center justify-center gap-2 whitespace-nowrap">
         {children}
@@ -1109,14 +1123,21 @@ function SummaryCard({
   totalCents,
   recap,
   onEdit,
+  expanded = false,
+  locked = false,
 }: {
   shipping: ShippingOption | null;
   totalCents: number;
   recap: { label: string; value: string }[];
   onEdit: (index: number) => void;
+  /** Celular, no pagamento: tudo aberto, como no computador. */
+  expanded?: boolean;
+  /** Pix já gerado: nada mais é editável. */
+  locked?: boolean;
 }) {
   const cart = useCart();
-  const [open, setOpen] = useState(false);
+  const [toggled, setOpen] = useState(false);
+  const open = toggled || expanded;
   const reduceMotion = useReducedMotion();
   const details = (
     <>
@@ -1178,13 +1199,23 @@ function SummaryCard({
       </dl>
       {/* No computador o total fecha a conta, embaixo (no celular ele já
           está no topo, junto do "Ver resumo"). */}
-      <div className="border-fernandito-off-white/15 mt-5 hidden items-end justify-between gap-4 border-t pt-5 lg:flex">
+      <div
+        className={clsx(
+          "border-fernandito-off-white/15 mt-5 items-end justify-between gap-4 border-t pt-5",
+          expanded ? "flex" : "hidden lg:flex",
+        )}
+      >
         <p className="text-label tracking-[0.12em] uppercase opacity-80">Total</p>
         <p className="font-rampart text-[2.25rem] leading-none tabular-nums">
           <Price cents={totalCents} />
         </p>
       </div>
-      <p className="text-label mt-4 hidden items-center gap-2 opacity-60 lg:flex">
+      <p
+        className={clsx(
+          "text-label mt-4 items-center gap-2 opacity-60",
+          expanded ? "flex" : "hidden lg:flex",
+        )}
+      >
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -1210,32 +1241,41 @@ function SummaryCard({
       className="bg-fernandito-verde-escuro ring-fernandito-off-white/10 rounded-3xl p-5 font-sans shadow-[0_24px_60px_rgba(20,28,18,0.35)] ring-1 sm:p-6"
     >
       {/* Computador: cabeçalho "Seu pedido" + editar carrinho à parte. */}
-      <div className="mb-6 hidden items-center justify-between gap-4 lg:flex">
+      <div
+        className={clsx(
+          "mb-6 items-center justify-between gap-4",
+          expanded ? "flex" : "hidden lg:flex",
+        )}
+      >
         <p className="font-rampart text-[1.35rem] leading-none">Seu pedido</p>
-        <button
-          type="button"
-          onClick={cart.open}
-          className="border-fernandito-off-white/30 hover:bg-fernandito-off-white hover:text-fernandito-verde-escuro duration-base ease-out-standard inline-flex h-9 items-center gap-2 rounded-full border px-4 font-sans text-[0.8rem] font-bold tracking-[0.02em] transition-colors"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.8}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            className="h-3.5 w-3.5"
+        {!locked && (
+          <button
+            type="button"
+            onClick={cart.open}
+            className="border-fernandito-off-white/30 hover:bg-fernandito-off-white hover:text-fernandito-verde-escuro duration-base ease-out-standard inline-flex h-9 items-center gap-2 rounded-full border px-4 font-sans text-[0.8rem] font-bold tracking-[0.02em] transition-colors"
           >
-            <path d="M12 20h9" />
-            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-          </svg>
-          Editar carrinho
-        </button>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className="h-3.5 w-3.5"
+            >
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+            </svg>
+            Editar carrinho
+          </button>
+        )}
       </div>
 
       {/* Celular: total sempre à vista; é o botão que abre o resto. */}
-      <div className="flex items-end justify-between gap-4 lg:hidden">
+      <div
+        className={clsx("flex items-end justify-between gap-4 lg:hidden", expanded && "!hidden")}
+      >
         <div>
           <p className="text-label tracking-[0.12em] uppercase opacity-70">Total</p>
           <button
@@ -1252,9 +1292,9 @@ function SummaryCard({
         </p>
       </div>
 
-      <div className="hidden lg:block">{details}</div>
+      <div className={expanded ? "block" : "hidden lg:block"}>{details}</div>
       <AnimatePresence initial={false}>
-        {open && (
+        {toggled && !expanded && (
           <motion.div
             className="overflow-hidden lg:hidden"
             initial={reduceMotion ? false : { height: 0, opacity: 0 }}
@@ -1284,13 +1324,15 @@ function SummaryCard({
                 </p>
                 <p className="text-body mt-0.5 break-words opacity-85">{item.value}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => onEdit(i)}
-                className="text-label duration-base ease-out-standard shrink-0 tracking-[0.08em] uppercase underline underline-offset-4 opacity-60 transition-opacity hover:opacity-100"
-              >
-                Editar
-              </button>
+              {!locked && (
+                <button
+                  type="button"
+                  onClick={() => onEdit(i)}
+                  className="text-label duration-base ease-out-standard shrink-0 tracking-[0.08em] uppercase underline underline-offset-4 opacity-60 transition-opacity hover:opacity-100"
+                >
+                  Editar
+                </button>
+              )}
             </li>
           ))}
         </ul>
