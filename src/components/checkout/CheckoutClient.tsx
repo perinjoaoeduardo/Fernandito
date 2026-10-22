@@ -36,7 +36,7 @@ const STEPS = ["Contato", "Entrega", "Frete", "Pagamento"] as const;
 /** Título e linha de apoio de cada etapa — conversa, não formulário. */
 const STEP_COPY = [
   { title: "Quem tá levando?", hint: "Pra gente saber pra quem mandar e emitir a nota." },
-  { title: "Pra onde vai o tordilho?", hint: "Coloca o CEP que a gente completa o resto." },
+  { title: "Pra onde vai o tordilho?", hint: "" },
   { title: "Como ele chega?", hint: "Escolhe o frete que mais combina contigo." },
   { title: "Tudo pronto?", hint: "Só confirmar e pagar com Pix. Leva um minuto." },
 ] as const;
@@ -405,9 +405,11 @@ export function CheckoutClient() {
             >
               {STEP_COPY[step].title}
             </h2>
-            <p className="text-body mt-2 max-w-md font-sans opacity-70 lg:mt-1.5 lg:text-[0.95rem]">
-              {STEP_COPY[step].hint}
-            </p>
+            {STEP_COPY[step].hint && (
+              <p className="text-body mt-2 max-w-md font-sans opacity-70 lg:mt-1.5 lg:text-[0.95rem]">
+                {STEP_COPY[step].hint}
+              </p>
+            )}
 
             <div className="mt-8 lg:mt-6">
               {step === 0 && (
