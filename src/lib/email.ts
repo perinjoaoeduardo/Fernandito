@@ -236,8 +236,11 @@ export function sendNewOrderToTeam(order: StoredOrder) {
       "Compra nova",
       `${p(`<b>${esc(order.customer.name)}</b> · ${esc(order.address.city)}/${esc(order.address.uf)}<br>${order.manualPix ? "Pix manual" : "Pix"}`, 14)}
 ${itemsTable(order)}
-${p(`<a href="${SITE}/api/loja/diagnostico" style="color:${C.escuro}">Abrir o painel</a>`, 13)}`,
-      { preheader: `${formatBRL(order.totalCents)} · #${order.id}` },
+${order.note ? p(`<b>Recado:</b> ${esc(order.note).replace(/\n/g, "<br>")}`, 14) : ""}
+${p(`<a href="${SITE}/painel" style="color:${C.escuro}">Abrir o painel</a>`, 13)}`,
+      {
+        preheader: `${order.note ? "Com recado · " : ""}${formatBRL(order.totalCents)} · #${order.id}`,
+      },
     ),
   );
 }

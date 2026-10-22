@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
     "etapa do envio",
     "rastreio",
     "etiqueta (PDF)",
+    "recado",
     "aceita novidades",
     "declarou 18+ em",
   ];
@@ -102,6 +103,7 @@ export async function GET(request: NextRequest) {
         : (shipping.get(o.id)?.stage ?? ""),
       shipping.get(o.id)?.label.tracking ?? "",
       shipping.get(o.id)?.label.printUrl ?? "",
+      o.note ?? "",
       o.marketingOptIn ? "sim" : "não",
       br(o.ageConfirmedAt),
     ]

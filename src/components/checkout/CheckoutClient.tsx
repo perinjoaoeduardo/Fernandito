@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { gsap, DURATION, EASE, prefersReducedMotion } from "@/lib/gsap";
 import { maskCEP, maskCPF, maskPhone, onlyDigits } from "@/lib/br";
 import { formatBRL } from "@/lib/money";
-import { addressSchema, customerSchema, fieldErrors, orderSchema } from "@/lib/order";
+import { addressSchema, customerSchema, fieldErrors, NOTE_MAX, orderSchema } from "@/lib/order";
 import { formatDays, getShippingOptions, type ShippingOption } from "@/lib/shipping";
 import { SHOP_HREF, STORE } from "@/content/site";
 import { Button } from "@/components/ui/Button";
@@ -80,6 +80,9 @@ export function CheckoutClient() {
   const [ageConfirmedAt, setAgeConfirmedAt] = useState<string | null>(null);
   // Sem opção de novidades por e-mail no checkout (tirada em 20/10).
   const marketingOptIn = false;
+  // Recado opcional (presente, cartinha, pedido especial): fechado por padrão.
+  const [note, setNote] = useState("");
+  const [noteOpen, setNoteOpen] = useState(false);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   // Esgotou enquanto a pessoa preenchia: avisa antes de ela chegar no Pix.
@@ -215,6 +218,7 @@ export function CheckoutClient() {
       ageConfirmed: true as const,
       ageConfirmedAt,
       marketingOptIn,
+      note,
     };
     const parsed = orderSchema.safeParse(candidate);
     if (!parsed.success) {
@@ -222,7 +226,15 @@ export function CheckoutClient() {
       setErrors(errs);
       // Volta pra primeira etapa com problema.
       const firstKey = Object.keys(errs)[0] ?? "";
-      goTo(firstKey.startsWith("customer") ? 0 : firstKey.startsWith("address") ? 1 : 2);
+      goTo(
+        firstKey.startsWith("customer")
+          ? 0
+          : firstKey.startsWith("address")
+            ? 1
+            : firstKey === "note"
+              ? 3
+              : 2,
+      );
       return;
     }
     setPaying(true);
@@ -606,6 +618,45 @@ export function CheckoutClient() {
 
               {step === 3 && (
                 <div className="flex flex-col gap-3 font-sans">
+                  {noteOpen ? (
+                    <div className="flex flex-col gap-1.5">
+                      <label
+                        htmlFor="recado"
+                        className="text-label tracking-[0.08em] uppercase opacity-80"
+                      >
+                        Recado (opcional)
+                      </label>
+                      <textarea
+                        id="recado"
+                        rows={3}
+                        autoFocus
+                        maxLength={NOTE_MAX}
+                        value={note}
+                        onChange={(event) => setNote(event.target.value)}
+                        placeholder="Vai de presente? Diz pra quem é e o que escrever no cartão. Outro pedido? É aqui."
+                        className="text-body duration-base ease-out-standard border-fernandito-verde-escuro/25 focus:border-fernandito-verde-medio w-full resize-none rounded-xl border bg-white/70 px-4 py-3.5 shadow-[inset_0_1px_2px_rgba(36,48,34,0.06)] transition-[background-color,border-color,box-shadow] outline-none placeholder:opacity-40 focus:bg-white focus:shadow-[0_0_0_4px_rgba(64,81,57,0.18)]"
+                      />
+                      <p className="text-label text-right opacity-50">
+                        {note.length}/{NOTE_MAX}
+                      </p>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setNoteOpen(true)}
+                      className="border-fernandito-verde-escuro/25 hover:border-fernandito-verde-claro duration-base ease-out-standard flex items-center gap-3 rounded-2xl border-2 border-dashed px-4 py-3.5 text-left transition-colors"
+                    >
+                      <span aria-hidden="true" className="text-xl leading-none">
+                        +
+                      </span>
+                      <span className="flex flex-col">
+                        <span className="text-body font-medium">Deixar um recado</span>
+                        <span className="text-label opacity-65">
+                          É presente? Quer pedir algo? Escreve aqui.
+                        </span>
+                      </span>
+                    </button>
+                  )}
                   <ConfirmRow
                     checked={ageConfirmedAt !== null}
                     onChange={(checked) =>

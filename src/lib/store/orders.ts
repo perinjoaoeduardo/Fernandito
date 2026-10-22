@@ -33,6 +33,8 @@ export type StoredOrder = {
   ageConfirmed: true;
   ageConfirmedAt: string;
   marketingOptIn: boolean;
+  /** Recado que a pessoa deixou no checkout (presente, cartinha…). */
+  note?: string;
   /** Versões dos Termos e da Política aceitas (frontmatter dos .md). */
   termsVersion?: string;
   privacyVersion?: string;

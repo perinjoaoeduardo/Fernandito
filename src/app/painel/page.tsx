@@ -125,7 +125,8 @@ const FILTERS = [
   ["todos", "Todos"],
 ] as const;
 
-const LINK = "font-medium text-zinc-900 underline decoration-zinc-300 underline-offset-4 hover:decoration-zinc-900";
+const LINK =
+  "font-medium text-zinc-900 underline decoration-zinc-300 underline-offset-4 hover:decoration-zinc-900";
 const BTN =
   "inline-flex h-9 items-center justify-center rounded-md border border-zinc-200 bg-white px-4 text-sm font-medium shadow-sm transition-colors hover:bg-zinc-100";
 
@@ -154,14 +155,20 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     .filter((o): o is StoredOrder => Boolean(o) && (o!.status === "paid" || o!.status === "manual"))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const fulfillments = await Promise.all(orders.map((o) => getFulfillment(o.id)));
-  const all = orders.map((order, i) => ({ order, f: fulfillments[i], st: status(order, fulfillments[i]) }));
+  const all = orders.map((order, i) => ({
+    order,
+    f: fulfillments[i],
+    st: status(order, fulfillments[i]),
+  }));
   const active = all.filter((r) => !r.order.refundedAt);
 
   const toPrint = active.filter((r) => r.f?.stage === "ready");
   const toDeliver = active.filter((r) => r.f?.stage === "local");
   const stuck = active.filter((r) => r.f?.error || r.order.status === "manual");
   const inTransit = active.filter((r) => r.f?.stage === "posted");
-  const delivered = active.filter((r) => r.f?.stage === "delivered" || r.f?.stage === "local-delivered");
+  const delivered = active.filter(
+    (r) => r.f?.stage === "delivered" || r.f?.stage === "local-delivered",
+  );
   const revenue = active
     .filter((r) => r.order.status === "paid")
     .reduce((sum, r) => sum + r.order.totalCents, 0);
@@ -172,12 +179,12 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       : ver === "entregar"
         ? toDeliver
         : ver === "olho"
-        ? stuck
-        : ver === "estornados"
-          ? all.filter((r) => r.order.refundedAt)
-          : ver === "todos"
-            ? all
-            : active;
+          ? stuck
+          : ver === "estornados"
+            ? all.filter((r) => r.order.refundedAt)
+            : ver === "todos"
+              ? all
+              : active;
 
   const [stock, alertsRaw] = await Promise.all([
     Promise.all(
@@ -203,7 +210,9 @@ export default async function PainelPage(props: PageProps<"/painel">) {
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Pedidos</h1>
-            <p className="text-sm text-zinc-500">Pagamento, nota, etiqueta e rastreio num lugar só.</p>
+            <p className="text-sm text-zinc-500">
+              Pagamento, nota, etiqueta e rastreio num lugar só.
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <form action={atualizar}>
@@ -221,9 +230,21 @@ export default async function PainelPage(props: PageProps<"/painel">) {
         </header>
 
         <section className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-6">
-          <Stat label="Imprimir hoje" value={toPrint.length} tone={toPrint.length ? "blue" : undefined} />
-          <Stat label="Entregar (POA)" value={toDeliver.length} tone={toDeliver.length ? "blue" : undefined} />
-          <Stat label="Precisam de olho" value={stuck.length} tone={stuck.length ? "red" : undefined} />
+          <Stat
+            label="Imprimir hoje"
+            value={toPrint.length}
+            tone={toPrint.length ? "blue" : undefined}
+          />
+          <Stat
+            label="Entregar (POA)"
+            value={toDeliver.length}
+            tone={toDeliver.length ? "blue" : undefined}
+          />
+          <Stat
+            label="Precisam de olho"
+            value={stuck.length}
+            tone={stuck.length ? "red" : undefined}
+          />
           <Stat label="A caminho" value={inTransit.length} />
           <Stat label="Entregues" value={delivered.length} />
           <Stat
@@ -261,7 +282,9 @@ export default async function PainelPage(props: PageProps<"/painel">) {
               {alerts.map((a) => (
                 <li key={a.at + a.orderId}>
                   <span className="text-red-700/80">{when(a.at)}</span>
-                  <span className="mx-1.5 rounded bg-red-100 px-1.5 py-0.5 font-mono text-xs">{a.orderId}</span>
+                  <span className="mx-1.5 rounded bg-red-100 px-1.5 py-0.5 font-mono text-xs">
+                    {a.orderId}
+                  </span>
                   {a.problem}
                 </li>
               ))}
@@ -275,7 +298,9 @@ export default async function PainelPage(props: PageProps<"/painel">) {
               key={key}
               href={key === "ativos" ? "/painel" : `/painel?ver=${key}`}
               className={`rounded-md px-3 py-1.5 font-medium transition-colors ${
-                ver === key ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-900"
+                ver === key
+                  ? "bg-white text-zinc-900 shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-900"
               }`}
             >
               {label}
@@ -307,7 +332,8 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                     <div className="min-w-0">
                       <p className="truncate font-medium">{o.customer.name}</p>
                       <p className="text-sm text-zinc-500">
-                        {o.address.city}/{o.address.uf} · {o.items.map((i) => `${i.qty}x ${i.name}`).join(" + ")}
+                        {o.address.city}/{o.address.uf} ·{" "}
+                        {o.items.map((i) => `${i.qty}x ${i.name}`).join(" + ")}
                       </p>
                       <p className="text-sm text-zinc-500">
                         {brl(o.totalCents)} · {o.shipping.carrier} · {when(o.paidAt)}
@@ -327,6 +353,12 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                           {phone(o.customer.phone)}
                         </a>
                       </p>
+                      {o.note && (
+                        <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                          <p className="text-xs font-medium text-amber-700">Recado do cliente</p>
+                          <p className="mt-0.5 whitespace-pre-line">{o.note}</p>
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-col items-start gap-1.5">
                       <Badge tone={st[1]}>{st[0]}</Badge>
@@ -344,7 +376,12 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                       <p className="text-zinc-500">
                         Nota:{" "}
                         {f?.invoice.danfeUrl ? (
-                          <a className={LINK} href={f.invoice.danfeUrl} target="_blank" rel="noopener noreferrer">
+                          <a
+                            className={LINK}
+                            href={f.invoice.danfeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
                             {f.invoice.number ?? "ver DANFE"}
                           </a>
                         ) : (
@@ -354,7 +391,12 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                       <p className="text-zinc-500">
                         Etiqueta:{" "}
                         {f?.label.printUrl ? (
-                          <a className={LINK} href={f.label.printUrl} target="_blank" rel="noopener noreferrer">
+                          <a
+                            className={LINK}
+                            href={f.label.printUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
                             imprimir
                           </a>
                         ) : (
@@ -366,7 +408,12 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                       <p>
                         {f?.label.tracking ? (
                           f.label.trackingUrl ? (
-                            <a className={LINK} href={f.label.trackingUrl} target="_blank" rel="noopener noreferrer">
+                            <a
+                              className={LINK}
+                              href={f.label.trackingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
                               {f.label.tracking}
                             </a>
                           ) : (

@@ -164,6 +164,7 @@ export async function createPixOrder(input: Order, idempotencyKey: string): Prom
     ageConfirmed: true,
     ageConfirmedAt: input.ageConfirmedAt,
     marketingOptIn: input.marketingOptIn,
+    ...(input.note ? { note: input.note } : {}),
     // Versões dos Termos/Privacidade vigentes quando a pessoa aceitou.
     ...(await getLegalVersions()),
     mpPaymentId: null,
@@ -450,6 +451,7 @@ export async function renewOrder(order: StoredOrder) {
     ageConfirmed: true,
     ageConfirmedAt: order.ageConfirmedAt,
     marketingOptIn: order.marketingOptIn,
+    note: order.note ?? "",
   };
   const priced = await priceOrder(input);
   return createPixOrder(

@@ -308,7 +308,10 @@ async function createSalesOrder(order: StoredOrder) {
         },
       ],
       observacoes: `Pedido do site fernandito.com.br #${order.id}. Entrega: ${shipping.service} (${shipping.carrier}).`,
+      // Recado da pessoa nas observações INTERNAS: as "observações" comuns
+      // podem ir pra nota fiscal, e um recado de presente não deve aparecer lá.
       observacoesInternas:
+        (order.note ? `RECADO DO CLIENTE: ${order.note}\n\n` : "") +
         `Site #${order.id} · ${order.manualPix ? "Pix MANUAL na conta" : `Pix MP ${order.mpPaymentId ?? "-"}`} · pago em ${order.paidAt ?? "-"} · ` +
         `frete ${shipping.id} (${shipping.source}) · maioridade declarada em ${order.ageConfirmedAt}` +
         (order.termsVersion

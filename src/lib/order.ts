@@ -9,6 +9,9 @@ import { isValidCEP, isValidCPF, isValidPhone, onlyDigits, UFS } from "@/lib/br"
  * Dinheiro sempre em CENTAVOS (inteiro).
  */
 
+/** Tamanho máximo do recado do checkout. */
+export const NOTE_MAX = 300;
+
 export const orderItemSchema = z.object({
   sku: z.string().min(1).max(40),
   qty: z.number().int().min(1).max(5),
@@ -61,6 +64,14 @@ export const orderSchema = z
     ageConfirmed: z.literal(true, { message: "Confirme que tem 18 anos ou mais" }),
     ageConfirmedAt: z.iso.datetime(),
     marketingOptIn: z.boolean(),
+    // Recado opcional (presente, cartinha, pedido especial). Sem caracteres de
+    // controle, quebra de linha pode.
+    note: z
+      .string()
+      .max(NOTE_MAX, `Recado com no máximo ${NOTE_MAX} caracteres`)
+      .transform((s) => s.replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, "").trim())
+      .optional()
+      .default(""),
   })
   .refine(
     (order) =>

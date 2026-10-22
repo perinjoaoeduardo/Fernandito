@@ -38,6 +38,7 @@ const envio = async (id, c) => (await diag(c)).envios.find((e) => e.id === id);
 async function buy({
   local = false,
   ship = { id: "me-3", priceCents: 2590, source: "melhor-envio" },
+  note,
 } = {}) {
   const b = {
     items: [{ sku: "FERN-KIT-PRE", qty: 1, unitPriceCents: 8990 }],
@@ -81,6 +82,7 @@ async function buy({
     ageConfirmed: true,
     ageConfirmedAt: new Date().toISOString(),
     marketingOptIn: false,
+    ...(note ? { note } : {}),
   };
   b.totalCents = 8990 + b.shipping.priceCents;
   const r = await fetch(B + "/api/checkout/pix", {
@@ -134,8 +136,9 @@ function meWebhook(body, bad = false) {
   });
 }
 
-// C1 caminho normal (fora de POA, frete do Melhor Envio)
-const c1 = await buy();
+// C1 caminho normal (fora de POA, frete do Melhor Envio), com recado
+const RECADO = "É presente pro Nando!\nEscreve: feliz aniversário <3";
+const c1 = await buy({ note: RECADO });
 {
   const e = await until(c1, ["ready"]);
   check("C1 pago → nota emitida e AUTORIZADA sozinha", Boolean(e?.nota), JSON.stringify(e));
@@ -153,6 +156,13 @@ const c1 = await buy();
   );
   const bl = await ctl(BL);
   const sale = bl.sales.find((s) => s.numeroLoja === c1);
+  check(
+    "C1 → recado nas observações internas do Bling (não nas da nota)",
+    sale?.observacoesInternas?.includes(RECADO) && !sale?.observacoes?.includes("Nando"),
+    JSON.stringify({ i: sale?.observacoesInternas, o: sale?.observacoes }),
+  );
+  const csv = await (await fetch(`${B}/api/loja/pedidos?key=${KEY}`)).text();
+  check("C1 → recado na planilha", csv.includes("É presente pro Nando!"));
   check(
     "C1 → rastreio gravado no pedido do Bling",
     sale?.transporte?.volumes?.[0]?.codigoRastreamento === e?.rastreio,
