@@ -873,52 +873,91 @@ function Progress({
 }: {
   step: number;
   onGo: (index: number) => void;
-  /** "dark" = sobre o verde (coluna); "light" = dentro do cartão bege. */
+  /** "dark" = sobre o verde (coluna, celular); "light" = dentro do cartão bege. */
   tone?: "dark" | "light";
 }) {
+  const light = tone === "light";
   return (
     <nav data-enter aria-label="Etapas da compra" className="font-sans">
-      <div
-        className={clsx(
-          "relative h-1.5 overflow-hidden rounded-full",
-          tone === "light" ? "bg-fernandito-verde-escuro/10" : "bg-fernandito-off-white/15",
-        )}
-      >
-        <div
-          className="bg-fernandito-verde-claro duration-slow ease-out-standard absolute inset-y-0 left-0 rounded-full transition-[width]"
-          style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
-        />
-      </div>
-      <ol className="mt-3 grid grid-cols-4 gap-2">
+      {/* Bolinhas numeradas ligadas por uma linha: feito (✓), atual (cheia),
+          a fazer (contorno). Clica pra voltar numa etapa já feita. */}
+      <ol className="grid grid-cols-4">
         {STEPS.map((label, i) => {
           const done = i < step;
+          const current = i === step;
           return (
-            <li key={label}>
+            <li key={label} className="relative flex flex-col items-center">
+              {i < STEPS.length - 1 && (
+                <span
+                  aria-hidden="true"
+                  className={clsx(
+                    "absolute top-4 left-1/2 h-0.5 w-full -translate-y-1/2",
+                    done
+                      ? light
+                        ? "bg-fernandito-verde-medio"
+                        : "bg-fernandito-verde-claro"
+                      : light
+                        ? "bg-fernandito-verde-escuro/15"
+                        : "bg-fernandito-off-white/20",
+                  )}
+                />
+              )}
               <button
                 type="button"
                 onClick={() => onGo(i)}
                 disabled={!done}
-                aria-current={i === step ? "step" : undefined}
+                aria-current={current ? "step" : undefined}
+                aria-label={`${i + 1}. ${label}${done ? " (feito, voltar)" : ""}`}
                 className={clsx(
-                  "text-label duration-base ease-out-standard flex items-center gap-1.5 tracking-[0.08em] uppercase transition-opacity",
-                  i === step && "font-bold opacity-100",
-                  done && "opacity-80 hover:opacity-100",
-                  i > step && "cursor-default opacity-40",
+                  "group relative z-10 flex flex-col items-center gap-2",
+                  done ? "cursor-pointer" : "cursor-default",
                 )}
               >
-                {done && (
-                  <span
-                    aria-hidden="true"
-                    className={
-                      tone === "light"
-                        ? "text-fernandito-verde-medio"
-                        : "text-fernandito-verde-claro"
-                    }
-                  >
-                    ✓
-                  </span>
-                )}
-                {label}
+                <span
+                  className={clsx(
+                    "duration-base ease-out-standard flex h-8 w-8 items-center justify-center rounded-full text-[0.8rem] font-bold tabular-nums transition-[background-color,color,box-shadow,transform]",
+                    current &&
+                      (light
+                        ? "bg-fernandito-verde-escuro text-fernandito-off-white shadow-[0_0_0_4px_rgba(36,48,34,0.12)]"
+                        : "bg-fernandito-off-white text-fernandito-verde-escuro shadow-[0_0_0_4px_rgba(230,230,203,0.18)]"),
+                    done &&
+                      (light
+                        ? "bg-fernandito-verde-medio text-fernandito-off-white group-hover:scale-105"
+                        : "bg-fernandito-verde-claro text-fernandito-off-white group-hover:scale-105"),
+                    !done &&
+                      !current &&
+                      (light
+                        ? "border-fernandito-verde-escuro/25 bg-fernandito-off-white text-fernandito-verde-escuro/45 border-2"
+                        : "border-fernandito-off-white/30 bg-fernandito-verde-medio text-fernandito-off-white/55 border-2"),
+                  )}
+                >
+                  {done ? (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5"
+                    >
+                      <path d="M5 12.5l4.5 4.5L19 7.5" />
+                    </svg>
+                  ) : (
+                    i + 1
+                  )}
+                </span>
+                <span
+                  className={clsx(
+                    "text-label tracking-[0.08em] uppercase",
+                    current && "font-bold",
+                    done && "opacity-85 group-hover:opacity-100",
+                    !done && !current && "opacity-45",
+                  )}
+                >
+                  {label}
+                </span>
               </button>
             </li>
           );
@@ -994,9 +1033,12 @@ function SummaryCard({
                   <p className="text-label mt-1 tracking-[0.06em] uppercase opacity-65">{sub}</p>
                 )}
               </div>
-              <p className="text-body whitespace-nowrap tabular-nums">
-                {formatBRL(line.lineTotalCents)}
-              </p>
+              {/* Um item só: o preço já aparece no subtotal logo abaixo. */}
+              {cart.lines.length > 1 && (
+                <p className="text-body whitespace-nowrap tabular-nums">
+                  {formatBRL(line.lineTotalCents)}
+                </p>
+              )}
             </li>
           );
         })}
@@ -1012,11 +1054,21 @@ function SummaryCard({
             {shipping ? (
               formatBRL(shipping.priceCents)
             ) : (
-              <span className="opacity-60">no passo 3</span>
+              <span aria-label="a calcular" className="opacity-60">
+                —
+              </span>
             )}
           </dd>
         </div>
       </dl>
+      {/* No computador o total fecha a conta, embaixo (no celular ele já
+          está no topo, junto do "Ver resumo"). */}
+      <div className="border-fernandito-off-white/15 mt-5 hidden items-end justify-between gap-4 border-t pt-5 lg:flex">
+        <p className="text-label tracking-[0.12em] uppercase opacity-80">Total</p>
+        <p className="font-rampart text-[2.25rem] leading-none tabular-nums">
+          <Price cents={totalCents} />
+        </p>
+      </div>
     </>
   );
 
@@ -1026,8 +1078,33 @@ function SummaryCard({
       aria-label="Resumo do pedido"
       className="bg-fernandito-verde-escuro/35 ring-fernandito-off-white/10 rounded-3xl p-5 font-sans ring-1 sm:p-6"
     >
-      {/* Total sempre à vista; no celular é o botão que abre o resto. */}
-      <div className="flex items-end justify-between gap-4">
+      {/* Computador: cabeçalho "Seu pedido" + editar carrinho à parte. */}
+      <div className="mb-6 hidden items-center justify-between gap-4 lg:flex">
+        <p className="font-rampart text-[1.35rem] leading-none">Seu pedido</p>
+        <button
+          type="button"
+          onClick={cart.open}
+          className="border-fernandito-off-white/30 hover:bg-fernandito-off-white hover:text-fernandito-verde-escuro duration-base ease-out-standard inline-flex h-9 items-center gap-2 rounded-full border px-4 font-sans text-[0.8rem] font-bold tracking-[0.02em] transition-colors"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className="h-3.5 w-3.5"
+          >
+            <path d="M12 20h9" />
+            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+          </svg>
+          Editar carrinho
+        </button>
+      </div>
+
+      {/* Celular: total sempre à vista; é o botão que abre o resto. */}
+      <div className="flex items-end justify-between gap-4 lg:hidden">
         <div>
           <p className="text-label tracking-[0.12em] uppercase opacity-70">Total</p>
           <button
@@ -1038,20 +1115,13 @@ function SummaryCard({
           >
             {open ? "Esconder resumo" : "Ver resumo"}
           </button>
-          <button
-            type="button"
-            onClick={cart.open}
-            className="text-label hover:text-fernandito-verde-claro duration-base ease-out-standard mt-1 hidden tracking-[0.08em] uppercase underline underline-offset-4 opacity-70 transition-[color,opacity] hover:opacity-100 lg:block"
-          >
-            Editar carrinho
-          </button>
         </div>
         <p className="font-rampart text-[2.25rem] leading-none tabular-nums">
           <Price cents={totalCents} />
         </p>
       </div>
 
-      <div className="mt-6 hidden lg:block">{details}</div>
+      <div className="hidden lg:block">{details}</div>
       <AnimatePresence initial={false}>
         {open && (
           <motion.div
