@@ -38,7 +38,7 @@ const STEP_COPY = [
   { title: "Quem tá levando?", hint: "Pra gente saber pra quem mandar e emitir a nota." },
   { title: "Pra onde vai o tordilho?", hint: "" },
   { title: "Como ele chega?", hint: "" },
-  { title: "Tudo pronto?", hint: "Só confirmar e pagar com Pix. Leva um minuto." },
+  { title: "Tudo pronto?", hint: "" },
 ] as const;
 
 type Contact = { name: string; email: string; phone: string; cpf: string };
@@ -82,6 +82,9 @@ export function CheckoutClient() {
   const marketingOptIn = false;
   // Recado opcional (presente, cartinha, pedido especial).
   const [note, setNote] = useState("");
+  const [noteOpen, setNoteOpen] = useState(false);
+  // Tentou seguir sem marcar o 18+: o cartão avisa em vermelho.
+  const [ageError, setAgeError] = useState(false);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   // Esgotou enquanto a pessoa preenchia: avisa antes de ela chegar no Pix.
@@ -198,11 +201,20 @@ export function CheckoutClient() {
 
   function submitShipping() {
     if (!shipping) return;
+    if (!ageConfirmedAt) {
+      setAgeError(true);
+      return;
+    }
     goTo(3);
   }
 
   async function pay() {
-    if (!shipping || !ageConfirmedAt || paying) return;
+    if (!shipping || paying) return;
+    if (!ageConfirmedAt) {
+      setAgeError(true);
+      goTo(2);
+      return;
+    }
     const candidate = {
       items: cart.lines.map((line) => ({
         sku: line.sku,
@@ -643,21 +655,64 @@ export function CheckoutClient() {
                         </label>
                       );
                     })}
+                    <div className="border-fernandito-verde-escuro/10 mt-3 flex flex-col gap-3 border-t pt-5">
+                      <ConfirmRow
+                        checked={ageConfirmedAt !== null}
+                        onChange={(checked) => {
+                          setAgeConfirmedAt(checked ? new Date().toISOString() : null);
+                          if (checked) setAgeError(false);
+                        }}
+                        title="Tenho 18 anos ou mais"
+                        hint={
+                          ageError
+                            ? "Marca aqui pra seguir: venda só pra maiores de 18."
+                            : "Venda proibida para menores de 18 anos."
+                        }
+                        error={ageError}
+                        required
+                      />
+                      {noteOpen || note ? (
+                        <NoteCard value={note} onChange={setNote} />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setNoteOpen(true)}
+                          className="text-label duration-base ease-out-standard hover:text-fernandito-verde-medio self-start underline underline-offset-4 opacity-70 transition-[color,opacity] hover:opacity-100"
+                        >
+                          + Deixar um recado (é presente?)
+                        </button>
+                      )}
+                    </div>
                   </fieldset>
                 ))}
 
               {step === 3 && (
-                <div className="flex flex-col gap-3 font-sans">
-                  <NoteCard value={note} onChange={setNote} />
-                  <ConfirmRow
-                    checked={ageConfirmedAt !== null}
-                    onChange={(checked) =>
-                      setAgeConfirmedAt(checked ? new Date().toISOString() : null)
-                    }
-                    title="Tenho 18 anos ou mais"
-                    hint="Venda proibida para menores de 18 anos."
-                    required
-                  />
+                <div className="border-fernandito-verde-claro bg-fernandito-verde-claro/15 flex items-center gap-4 rounded-2xl border-2 px-4 py-4 font-sans">
+                  <span
+                    aria-hidden="true"
+                    className="bg-fernandito-verde-escuro text-fernandito-off-white flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.8}
+                      strokeLinejoin="round"
+                      className="h-5 w-5"
+                    >
+                      <path d="M12 3.5 20.5 12 12 20.5 3.5 12Z" />
+                      <path d="M8.5 12h7" />
+                    </svg>
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="text-body font-bold">Pix</span>
+                    <span className="text-label mt-0.5 leading-snug opacity-70">
+                      Aprovação na hora. Na próxima tela aparece o QR Code e o copia e cola.
+                    </span>
+                  </span>
+                  <span className="font-rampart text-[1.3rem] leading-none tabular-nums">
+                    <Price cents={totalCents} />
+                  </span>
                 </div>
               )}
             </div>
@@ -685,10 +740,7 @@ export function CheckoutClient() {
                 </NextButton>
               )}
               {step === 3 && (
-                <NextButton
-                  onClick={() => void pay()}
-                  disabled={!ageConfirmedAt || !shipping || paying || soldOut}
-                >
+                <NextButton onClick={() => void pay()} disabled={!shipping || paying || soldOut}>
                   {soldOut
                     ? STORE.soldOut
                     : paying
@@ -781,12 +833,14 @@ function ConfirmRow({
   title,
   hint,
   required,
+  error,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   title: string;
   hint: string;
   required?: boolean;
+  error?: boolean;
 }) {
   return (
     <label
@@ -794,11 +848,14 @@ function ConfirmRow({
         "duration-base ease-out-standard flex cursor-pointer items-center gap-4 rounded-2xl border-2 px-4 py-3.5 transition-[background-color,border-color]",
         checked
           ? "border-fernandito-verde-claro bg-fernandito-verde-claro/15"
-          : "border-fernandito-verde-escuro/12 hover:border-fernandito-verde-claro/60 bg-white/40",
+          : error
+            ? "border-red-700/60 bg-red-50/60"
+            : "border-fernandito-verde-escuro/12 hover:border-fernandito-verde-claro/60 bg-white/40",
       )}
     >
       <input
         type="checkbox"
+        aria-invalid={error || undefined}
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         required={required}
@@ -807,7 +864,7 @@ function ConfirmRow({
       <span
         aria-hidden="true"
         className={clsx(
-          "duration-base ease-out-standard peer-focus-visible:outline-fernandito-verde-medio flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-[0.8rem] leading-none transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2",
+          "duration-base ease-out-standard peer-focus-visible:outline-fernandito-verde-medio flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 text-[0.8rem] leading-none transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2",
           checked
             ? "bg-fernandito-verde-claro border-fernandito-verde-claro text-fernandito-off-white"
             : "border-fernandito-verde-escuro/30",
@@ -817,7 +874,11 @@ function ConfirmRow({
       </span>
       <span className="flex min-w-0 flex-col">
         <span className="text-body leading-snug font-bold">{title}</span>
-        <span className="text-label mt-0.5 leading-snug opacity-65">{hint}</span>
+        <span
+          className={clsx("text-label mt-0.5 leading-snug", error ? "text-red-800" : "opacity-65")}
+        >
+          {hint}
+        </span>
       </span>
     </label>
   );
