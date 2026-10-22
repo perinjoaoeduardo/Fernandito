@@ -175,7 +175,11 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
     // No celular o painel fica embaixo do resumo: volta pro topo dele.
     requestAnimationFrame(() => {
       const panel = document.getElementById("etapa");
-      if (panel && panel.getBoundingClientRect().top < 0)
+      if (!panel) return;
+      const top = panel.getBoundingClientRect().top;
+      // Celular: o começo da etapa nova sempre à vista (perto do topo).
+      const mobile = window.innerWidth < 1024;
+      if (top < 0 || (mobile && top > window.innerHeight * 0.4))
         panel.scrollIntoView({ block: "start", behavior: "smooth" });
     });
   }
@@ -375,7 +379,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
         >
           <span aria-hidden="true">←</span> Voltar ao kit
         </NextLink>
-        <h1 className="font-rampart mt-3 text-[clamp(2.25rem,4.4vw,3.5rem)] leading-[1] lg:text-[clamp(2.25rem,3.2vw,3rem)] lg:whitespace-nowrap">
+        <h1 className="font-rampart mt-3 text-[clamp(1.6rem,8vw,3.5rem)] leading-[1] whitespace-nowrap lg:text-[clamp(2.25rem,3.2vw,3rem)]">
           Finalizar compra
         </h1>
         {/* No computador as etapas vão pra dentro do cartão do formulário. */}
@@ -413,15 +417,13 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
             transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
             className="p-6 sm:p-8 lg:px-9 lg:py-7"
           >
-            <p className="text-label text-fernandito-verde-medio font-sans tracking-[0.18em] uppercase lg:hidden">
-              Passo {step + 1} de {STEPS.length}
-            </p>
+            {/* As etapas já aparecem logo acima (celular) ou no cartão (computador). */}
             <div className="hidden lg:block">
               <Progress step={step} onGo={(i) => !pixOrder && i < step && goTo(i)} tone="light" />
             </div>
             <h2
               id="etapa-titulo"
-              className="font-rampart mt-3 text-[clamp(1.9rem,3.4vw,2.6rem)] leading-[1.02] text-balance lg:mt-6 lg:text-[clamp(1.6rem,2.2vw,2rem)]"
+              className="font-rampart text-[clamp(1.9rem,3.4vw,2.6rem)] leading-[1.02] text-balance lg:mt-6 lg:text-[clamp(1.6rem,2.2vw,2rem)]"
             >
               {STEP_COPY[step].title}
             </h2>
@@ -431,7 +433,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
               </p>
             )}
 
-            <div className="mt-8 lg:mt-6">
+            <div className="mt-6">
               {step === 0 && (
                 <div className="grid gap-4 sm:grid-cols-2 lg:gap-x-4 lg:gap-y-3.5">
                   <Field
@@ -625,6 +627,20 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                             ...options.filter((o) => o.source !== "local").map((o) => o.days.max),
                           ) &&
                         options[0].days.max !== option.days.max;
+                      const badges = (
+                        <>
+                          {compare && i === 0 && (
+                            <span className="bg-fernandito-verde-claro text-fernandito-off-white rounded-full px-2 py-0.5 font-sans text-[0.62rem] font-bold tracking-[0.08em] uppercase">
+                              Mais barato
+                            </span>
+                          )}
+                          {fastest && (
+                            <span className="bg-fernandito-verde-escuro text-fernandito-off-white rounded-full px-2 py-0.5 font-sans text-[0.62rem] font-bold tracking-[0.08em] uppercase">
+                              Mais rápido
+                            </span>
+                          )}
+                        </>
+                      );
                       return (
                         <label
                           key={option.id}
@@ -659,25 +675,31 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                               )}
                             />
                           </span>
-                          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                            <span className="text-body flex flex-wrap items-center gap-2 font-bold">
-                              {local ? "Entrega em mãos · Porto Alegre" : option.carrier}
-                              {compare && i === 0 && (
-                                <span className="bg-fernandito-verde-claro text-fernandito-off-white rounded-full px-2 py-0.5 font-sans text-[0.62rem] tracking-[0.08em] uppercase">
-                                  Mais barato
-                                </span>
-                              )}
-                              {fastest && (
-                                <span className="bg-fernandito-verde-escuro text-fernandito-off-white rounded-full px-2 py-0.5 font-sans text-[0.62rem] tracking-[0.08em] uppercase">
-                                  Mais rápido
-                                </span>
-                              )}
+                          {/* Celular: nome e preço na mesma linha, selo e prazo
+                              embaixo (o cartão fica baixo). Computador: preço à
+                              direita, selo do lado do nome. */}
+                          <span className="flex min-w-0 flex-1 flex-col gap-1 sm:gap-0.5">
+                            <span className="flex items-baseline justify-between gap-3">
+                              <span className="text-body flex flex-wrap items-center gap-2 font-bold">
+                                {local ? "Entrega em mãos · Porto Alegre" : option.carrier}
+                                <span className="hidden sm:contents">{badges}</span>
+                              </span>
+                              <span className="font-rampart text-[1.2rem] leading-none tabular-nums sm:hidden">
+                                <Price cents={option.priceCents} />
+                              </span>
                             </span>
-                            <span className="text-label opacity-65">
-                              {local ? "A gente leva" : option.service} · {formatDays(option.days)}
+                            <span className="text-label flex flex-wrap items-center gap-x-2 gap-y-1">
+                              <span className="contents sm:hidden">{badges}</span>
+                              <span className="opacity-65">
+                                <span className="hidden sm:inline">
+                                  {local ? "A gente leva" : option.service} ·{" "}
+                                </span>
+                                {local && <span className="sm:hidden">A gente leva · </span>}
+                                {formatDays(option.days)}
+                              </span>
                             </span>
                           </span>
-                          <span className="font-rampart text-[1.3rem] leading-none tabular-nums">
+                          <span className="font-rampart hidden text-[1.3rem] leading-none tabular-nums sm:block">
                             <Price cents={option.priceCents} />
                           </span>
                         </label>
@@ -1246,7 +1268,14 @@ function SummaryCard({
       </AnimatePresence>
 
       {recap.length > 0 && (
-        <ul className="border-fernandito-off-white/15 mt-5 flex flex-col gap-3 border-t pt-5">
+        // No celular o que já foi preenchido só aparece no "Ver resumo":
+        // aberto o tempo todo, empurrava o formulário pra fora da tela.
+        <ul
+          className={clsx(
+            "border-fernandito-off-white/15 mt-5 flex-col gap-3 border-t pt-5",
+            open ? "flex" : "hidden lg:flex",
+          )}
+        >
           {recap.map((item, i) => (
             <li key={item.label} className="flex items-start justify-between gap-4">
               <div className="min-w-0">
