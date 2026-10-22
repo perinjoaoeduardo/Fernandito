@@ -342,28 +342,29 @@ export function CheckoutClient() {
   return (
     <div
       ref={topRef}
-      className="grid grid-cols-[minmax(0,1fr)] items-start gap-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-14"
+      className="grid grid-cols-[minmax(0,1fr)] items-start gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-x-12 lg:gap-y-8"
     >
-      {/* ── Coluna verde: título, progresso, resumo ─────────────────────── */}
-      <div className="flex min-w-0 flex-col gap-7 lg:sticky lg:top-[calc(7rem+var(--announcement-h))]">
-        <div data-enter>
-          <NextLink
-            href={SHOP_HREF}
-            scroll={false}
-            className="text-label duration-base ease-out-standard inline-flex items-center gap-2 font-sans tracking-[0.1em] uppercase opacity-70 transition-opacity hover:opacity-100"
-          >
-            <span aria-hidden="true">←</span> Voltar ao kit
-          </NextLink>
-          <h1 className="font-rampart mt-3 text-[clamp(2.25rem,4.4vw,3.5rem)] leading-[1]">
-            Finalizar compra
-          </h1>
-        </div>
-
+      {/* Computador: formulário à esquerda (com o título em cima, numa linha) e
+          resumo à direita, como nos checkouts de sempre. Celular: título,
+          etapas, total e formulário, nessa ordem. */}
+      <div data-enter className="lg:col-start-1 lg:row-start-1">
+        <NextLink
+          href={SHOP_HREF}
+          scroll={false}
+          className="text-label duration-base ease-out-standard inline-flex items-center gap-2 font-sans tracking-[0.1em] uppercase opacity-70 transition-opacity hover:opacity-100"
+        >
+          <span aria-hidden="true">←</span> Voltar ao kit
+        </NextLink>
+        <h1 className="font-rampart mt-3 text-[clamp(2.25rem,4.4vw,3.5rem)] leading-[1] lg:text-[clamp(2.25rem,3.2vw,3rem)] lg:whitespace-nowrap">
+          Finalizar compra
+        </h1>
         {/* No computador as etapas vão pra dentro do cartão do formulário. */}
-        <div className="lg:hidden">
+        <div className="mt-7 lg:hidden">
           <Progress step={step} onGo={(i) => i < step && goTo(i)} />
         </div>
+      </div>
 
+      <div className="min-w-0 lg:sticky lg:top-[calc(7rem+var(--announcement-h))] lg:col-start-2 lg:row-start-2">
         <SummaryCard shipping={shipping} totalCents={totalCents} recap={recap} onEdit={goTo} />
       </div>
 
@@ -372,7 +373,7 @@ export function CheckoutClient() {
         id="etapa"
         data-enter
         aria-labelledby="etapa-titulo"
-        className="bg-fernandito-off-white text-fernandito-verde-escuro scroll-mt-28 overflow-hidden rounded-[2rem] shadow-[0_30px_70px_rgba(20,28,18,0.35)]"
+        className="bg-fernandito-off-white text-fernandito-verde-escuro scroll-mt-28 overflow-hidden rounded-[2rem] shadow-[0_30px_70px_rgba(20,28,18,0.35)] lg:col-start-1 lg:row-start-2"
       >
         <AnimatePresence mode="wait" initial={false} custom={direction}>
           <motion.div
