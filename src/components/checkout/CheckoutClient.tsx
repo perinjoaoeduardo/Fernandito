@@ -351,7 +351,7 @@ export function CheckoutClient() {
         <NextLink
           href={SHOP_HREF}
           scroll={false}
-          className="text-label duration-base ease-out-standard inline-flex items-center gap-2 font-sans tracking-[0.1em] uppercase opacity-70 transition-opacity hover:opacity-100"
+          className="text-label duration-base ease-out-standard hover:text-fernandito-verde-claro inline-flex items-center gap-2 font-sans font-bold tracking-[0.1em] uppercase opacity-90 transition-[color,opacity] hover:opacity-100"
         >
           <span aria-hidden="true">←</span> Voltar ao kit
         </NextLink>
@@ -1082,6 +1082,11 @@ function SummaryCard({
       <ul className="flex flex-col gap-4">
         {cart.lines.map((line) => {
           const { main, sub } = splitName(line.product.name);
+          // O que vem dentro ("2 latas · 1 copo · 5 adesivos") diz mais que o
+          // "Pré-lançamento" do nome.
+          const contents = line.product.contents
+            ?.map((c) => `${c.qty} ${c.label.split(" ")[0]}`)
+            .join(" · ");
           return (
             <li key={line.sku} className="flex items-center gap-4">
               <div className="relative shrink-0">
@@ -1098,8 +1103,8 @@ function SummaryCard({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="font-rampart text-[1.1rem] leading-tight">{main}</p>
-                {sub && (
-                  <p className="text-label mt-1 tracking-[0.06em] uppercase opacity-65">{sub}</p>
+                {(contents || sub) && (
+                  <p className="text-label mt-1 tracking-[0.04em] opacity-70">{contents || sub}</p>
                 )}
               </div>
               {/* Um item só: o preço já aparece no subtotal logo abaixo. */}
@@ -1138,6 +1143,22 @@ function SummaryCard({
           <Price cents={totalCents} />
         </p>
       </div>
+      <p className="text-label mt-4 hidden items-center gap-2 opacity-60 lg:flex">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          className="h-3.5 w-3.5 shrink-0"
+        >
+          <rect x="4" y="10.5" width="16" height="10" rx="2" />
+          <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+        </svg>
+        Pix seguro pelo Mercado Pago
+      </p>
     </>
   );
 
