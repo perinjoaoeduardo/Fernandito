@@ -8,6 +8,7 @@ import { gsap, DURATION, EASE, prefersReducedMotion } from "@/lib/gsap";
 import type { OrderStatus, PublicOrder } from "@/lib/store/orders";
 import { Button } from "@/components/ui/Button";
 import { OrderReceipt } from "@/components/checkout/OrderReceipt";
+import { SuccessCheck } from "@/components/checkout/SuccessCheck";
 import { Price } from "@/components/ui/Price";
 import { whatsappHref } from "@/components/ui/WhatsAppButton";
 import { STORE } from "@/content/site";
@@ -81,7 +82,13 @@ export function PixPayment({
   }, [status, order.id]);
 
   useEffect(() => {
-    if (status === "paid") router.replace(`/pedido/${order.id}/confirmado`);
+    // Pago: um instante de "deu certo" (o selo se desenha) e daí o pedido.
+    if (status !== "paid") return;
+    const id = window.setTimeout(
+      () => router.replace(`/pedido/${order.id}/confirmado`),
+      prefersReducedMotion() ? 300 : 1700,
+    );
+    return () => window.clearTimeout(id);
   }, [status, order.id, router]);
 
   async function copy() {
@@ -166,6 +173,35 @@ export function PixPayment({
     };
   }, []);
 
+  // Entrada do Pix no checkout: o QR "carimba" (cresce com um giro leve),
+  // as linhas da direita entram em cascata e a barra do tempo se enche.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!embedded || !root || prefersReducedMotion()) return;
+    const tl = gsap.timeline({ defaults: { ease: EASE.outStandard } });
+    tl.fromTo(
+      root.querySelectorAll("[data-pix-qr]"),
+      { opacity: 0, scale: 0.82, rotate: -5 },
+      { opacity: 1, scale: 1, rotate: 0, duration: 0.7, ease: "back.out(1.6)" },
+      0.15,
+    )
+      .fromTo(
+        root.querySelectorAll("[data-pix-row]"),
+        { opacity: 0, x: 18 },
+        { opacity: 1, x: 0, duration: 0.5, stagger: 0.08 },
+        0.25,
+      )
+      .fromTo(
+        root.querySelectorAll("[data-pix-bar]"),
+        { scaleX: 0 },
+        { scaleX: 1, duration: 0.9, transformOrigin: "left center" },
+        0.45,
+      );
+    return () => {
+      tl.kill();
+    };
+  }, [embedded]);
+
   const progress = Math.min(1, remaining / PIX_TOTAL_MS);
   const timeLeft = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 
@@ -204,7 +240,20 @@ export function PixPayment({
           </h1>
         </div>
 
-        {manual ? (
+        {status === "paid" ? (
+          <div
+            className={clsx(
+              "text-fernandito-verde-escuro flex flex-col items-center gap-4 py-10 text-center font-sans",
+              !embedded &&
+                "bg-fernandito-off-white rounded-3xl px-7 shadow-[0_24px_60px_rgba(0,0,0,0.35)]",
+            )}
+            role="status"
+          >
+            <SuccessCheck className="text-fernandito-verde-medio h-20 w-20" />
+            <p className="font-rampart text-[1.9rem] leading-none">Pagamento recebido!</p>
+            <p className="text-label opacity-70">Abrindo teu pedido…</p>
+          </div>
+        ) : manual ? (
           // Plano B (Mercado Pago fora): chave Pix da conta + comprovante no
           // WhatsApp. O pedido já está guardado e as unidades reservadas.
           <div
@@ -269,6 +318,87 @@ export function PixPayment({
               <p role="alert" className="text-body text-red-700">
                 {error}
               </p>
+            )}
+          </div>
+        ) : embedded ? (
+          // Dentro do checkout: QR + código lado a lado, copiar colado no
+          // código, status e tempo numa linha só.
+          <div data-enter className="text-fernandito-verde-escuro flex flex-col gap-5 font-sans">
+            <div className="grid gap-5 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
+              <div data-pix-qr className="hidden sm:block">
+                {qr}
+              </div>
+              <div className="flex min-w-0 flex-col gap-3">
+                <p data-pix-row className="text-body font-bold">
+                  Escaneia o QR ou copia o código
+                </p>
+                <div
+                  data-pix-row
+                  className="border-fernandito-verde-escuro/20 flex items-center gap-2 rounded-xl border bg-white/70 p-1.5 pl-4"
+                >
+                  <input
+                    id="pix-code"
+                    readOnly
+                    value={order.pix?.qrCode ?? ""}
+                    onFocus={(e) => e.currentTarget.select()}
+                    aria-label="Pix copia e cola"
+                    className="min-w-0 flex-1 truncate bg-transparent font-mono text-[0.78rem] outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void copy()}
+                    className="bg-fernandito-verde-escuro text-fernandito-off-white hover:bg-fernandito-verde-medio duration-base ease-out-standard h-10 shrink-0 rounded-lg px-4 text-[0.85rem] font-bold whitespace-nowrap transition-colors"
+                  >
+                    {copied ? "Copiado ✓" : "Copiar"}
+                  </button>
+                </div>
+                <div
+                  data-pix-row
+                  className="flex flex-wrap items-center justify-between gap-2"
+                  aria-live="polite"
+                >
+                  <span className="text-label bg-fernandito-verde-claro/15 text-fernandito-verde-medio inline-flex items-center gap-2 rounded-full px-3 py-1 font-bold">
+                    <span className="bg-fernandito-verde-medio inline-block h-2 w-2 animate-pulse rounded-full" />
+                    Aguardando pagamento
+                  </span>
+                  <span className="text-label tabular-nums opacity-70">
+                    Expira em <b className="opacity-100">{timeLeft}</b>
+                  </span>
+                </div>
+                <div
+                  data-pix-row
+                  className="bg-fernandito-verde-escuro/10 h-1 overflow-hidden rounded-full"
+                >
+                  <div
+                    data-pix-bar
+                    className="bg-fernandito-verde-medio h-full rounded-full transition-[width] duration-1000 ease-linear"
+                    style={{ width: `${progress * 100}%` }}
+                  />
+                </div>
+                <details className="group sm:hidden">
+                  <summary className="text-label flex cursor-pointer list-none items-center gap-2 underline underline-offset-4 opacity-70">
+                    Mostrar QR code
+                  </summary>
+                  <div className="mt-4 flex justify-center">{qr}</div>
+                </details>
+              </div>
+            </div>
+            {(simulated || canSimulate) && (
+              <div className="border-fernandito-verde-escuro/20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed px-4 py-2.5">
+                {simulated && (
+                  <p className="text-label opacity-60">Modo teste: não pague este código</p>
+                )}
+                {canSimulate && (
+                  <button
+                    type="button"
+                    onClick={() => void simulatePaid()}
+                    disabled={busy}
+                    className="text-label underline underline-offset-4 opacity-80 hover:opacity-100"
+                  >
+                    Simular pagamento
+                  </button>
+                )}
+              </div>
             )}
           </div>
         ) : (
@@ -395,26 +525,39 @@ export function PixPayment({
         )}
         {/* Saída pra qualquer problema: com o número do pedido, quem
             atende acha no painel da loja na hora. */}
-        {help && !manual && (
-          <p
-            data-enter
-            className={clsx(
-              "font-sans opacity-80",
-              embedded ? "text-label mt-4" : "text-body mt-5",
-            )}
-          >
-            Pagou e a tela não mudou? Não paga de novo:{" "}
-            <a
-              href={help}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline underline-offset-4 hover:opacity-100"
+        {help &&
+          !manual &&
+          status !== "paid" &&
+          (embedded ? (
+            <p
+              data-enter
+              className="text-label border-fernandito-verde-escuro/10 mt-6 border-t pt-4 font-sans leading-relaxed opacity-75"
             >
-              chama a gente no WhatsApp
-            </a>{" "}
-            com o pedido <span className="font-bold">#{order.id}</span>.
-          </p>
-        )}
+              Já pagou e a tela não mudou? Não paga de novo.{" "}
+              <a
+                href={help}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold underline underline-offset-4 hover:opacity-100"
+              >
+                Fala com a gente no WhatsApp
+              </a>
+              .
+            </p>
+          ) : (
+            <p data-enter className="text-body mt-5 font-sans opacity-80">
+              Pagou e a tela não mudou? Não paga de novo:{" "}
+              <a
+                href={help}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-4 hover:opacity-100"
+              >
+                chama a gente no WhatsApp
+              </a>{" "}
+              com o pedido <span className="font-bold">#{order.id}</span>.
+            </p>
+          ))}
       </div>
 
       {!embedded && (

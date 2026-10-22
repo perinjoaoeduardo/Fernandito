@@ -7,6 +7,7 @@ import { OrderReceipt } from "@/components/checkout/OrderReceipt";
 import { ClearCart } from "@/components/checkout/ClearCart";
 import { Button } from "@/components/ui/Button";
 import { EnterStagger } from "@/components/ui/EnterStagger";
+import { SuccessCheck } from "@/components/checkout/SuccessCheck";
 import { OrderTimeline } from "@/components/checkout/OrderTimeline";
 import { AutoRefresh } from "@/components/checkout/AutoRefresh";
 import { advanceFulfillment, getFulfillment, isStale } from "@/lib/store/fulfillment";
@@ -45,6 +46,7 @@ export default async function ConfirmadoPage(props: PageProps<"/pedido/[id]/conf
       {!finished && <AutoRefresh seconds={30} />}
       <EnterStagger className="mx-auto flex max-w-2xl flex-col items-start gap-8 px-6 pt-[calc(8rem+var(--announcement-h))] pb-24 sm:px-10">
         <div data-enter>
+          <SuccessCheck className="text-fernandito-off-white mb-6 h-16 w-16" />
           <p className="font-accent text-label tracking-[0.16em] uppercase opacity-70">
             Pagamento recebido
           </p>
