@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { teleportTo } from "@/lib/lenis";
+import { curtainNavigate } from "@/lib/page-transition";
 import { SHOP_HREF } from "@/content/site";
 
 /** CTA "Comprar": vai pra onde mora o kit (`SHOP_HREF`) — a página /comprar
@@ -12,6 +13,6 @@ export function useGoToShop() {
   const router = useRouter();
   return useCallback(() => {
     if (document.getElementById("comprar")) teleportTo("#comprar");
-    else router.push(SHOP_HREF, { scroll: !SHOP_HREF.includes("#") });
+    else curtainNavigate(() => router.push(SHOP_HREF, { scroll: !SHOP_HREF.includes("#") }));
   }, [router]);
 }

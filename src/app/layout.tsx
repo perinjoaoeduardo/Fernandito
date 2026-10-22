@@ -9,6 +9,7 @@ import { CookieBanner } from "@/components/providers/CookieBanner";
 import { ThemeColorSync } from "@/components/providers/ThemeColorSync";
 import { FloatingNav } from "@/components/ui/FloatingNav";
 import { CustomCursor } from "@/components/ui/CustomCursor";
+import { PageTransitions } from "@/components/providers/PageTransitions";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { AnnouncementBar } from "@/components/ui/AnnouncementBar";
 import { CartProvider } from "@/components/cart/CartProvider";
@@ -260,6 +261,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <IntroLoader />
             <ScrollProgress />
             <CustomCursor />
+            <PageTransitions />
             <AnnouncementBar />
             <FloatingNav />
             <ThemeColorSync />

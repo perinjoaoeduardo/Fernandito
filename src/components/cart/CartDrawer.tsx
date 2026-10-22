@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { curtainNavigate } from "@/lib/page-transition";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { DURATION, EASE_BEZIER } from "@/lib/gsap";
@@ -128,7 +129,9 @@ export function CartDrawer() {
                     className="mt-6"
                     onClick={() => {
                       close();
-                      router.push(SHOP_HREF, { scroll: !SHOP_HREF.includes("#") });
+                      curtainNavigate(() =>
+                        router.push(SHOP_HREF, { scroll: !SHOP_HREF.includes("#") }),
+                      );
                     }}
                   >
                     Ver o kit
@@ -207,7 +210,7 @@ export function CartDrawer() {
                     className="w-full !py-4"
                     onClick={() => {
                       close();
-                      router.push("/checkout");
+                      curtainNavigate(() => router.push("/checkout"));
                     }}
                   >
                     <span className="flex items-center gap-2">

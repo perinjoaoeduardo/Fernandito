@@ -9,6 +9,7 @@ import type { OrderStatus, PublicOrder } from "@/lib/store/orders";
 import { Button } from "@/components/ui/Button";
 import { OrderReceipt } from "@/components/checkout/OrderReceipt";
 import { SuccessCheck } from "@/components/checkout/SuccessCheck";
+import { curtainNavigate } from "@/lib/page-transition";
 import { Price } from "@/components/ui/Price";
 import { whatsappHref } from "@/components/ui/WhatsAppButton";
 import { STORE } from "@/content/site";
@@ -85,7 +86,7 @@ export function PixPayment({
     // Pago: um instante de "deu certo" (o selo se desenha) e daí o pedido.
     if (status !== "paid") return;
     const id = window.setTimeout(
-      () => router.replace(`/pedido/${order.id}/confirmado`),
+      () => curtainNavigate(() => router.replace(`/pedido/${order.id}/confirmado`)),
       prefersReducedMotion() ? 300 : 1700,
     );
     return () => window.clearTimeout(id);

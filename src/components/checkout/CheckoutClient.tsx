@@ -404,10 +404,13 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
           <motion.div
             key={step}
             custom={direction}
-            initial={reduceMotion ? false : { opacity: 0, x: 48 * direction }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={reduceMotion ? undefined : { opacity: 0, x: -48 * direction }}
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            // Troca de etapa sutil: desliza pouco e desfoca de leve.
+            initial={reduceMotion ? false : { opacity: 0, x: 20 * direction, filter: "blur(4px)" }}
+            animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+            exit={
+              reduceMotion ? undefined : { opacity: 0, x: -14 * direction, filter: "blur(4px)" }
+            }
+            transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
             className="p-6 sm:p-8 lg:px-9 lg:py-7"
           >
             <p className="text-label text-fernandito-verde-medio font-sans tracking-[0.18em] uppercase lg:hidden">

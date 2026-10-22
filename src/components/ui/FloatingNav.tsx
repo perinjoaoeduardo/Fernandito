@@ -3,6 +3,7 @@
 import { clsx } from "clsx";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { curtainNavigate } from "@/lib/page-transition";
 import { motion, AnimatePresence } from "framer-motion";
 import { backgroundAt } from "@/lib/background";
 import { DURATION, EASE_BEZIER, IS_TOUCH } from "@/lib/gsap";
@@ -53,7 +54,7 @@ export function FloatingNav() {
   const handleHorseClick = () => {
     // Fora da home o cavalo é o "voltar pro início".
     if (window.location.pathname !== "/") {
-      router.push("/");
+      curtainNavigate(() => router.push("/"));
       return;
     }
     teleportToTop();
