@@ -383,7 +383,7 @@ export function CheckoutClient() {
             animate={{ opacity: 1, x: 0 }}
             exit={reduceMotion ? undefined : { opacity: 0, x: -48 * direction }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            className="p-6 sm:p-10"
+            className="p-6 sm:p-8 lg:px-9 lg:py-7"
           >
             <p className="text-label text-fernandito-verde-medio font-sans tracking-[0.18em] uppercase lg:hidden">
               Passo {step + 1} de {STEPS.length}
@@ -393,15 +393,17 @@ export function CheckoutClient() {
             </div>
             <h2
               id="etapa-titulo"
-              className="font-rampart mt-3 text-[clamp(1.9rem,3.4vw,2.6rem)] leading-[1.02] text-balance lg:mt-8"
+              className="font-rampart mt-3 text-[clamp(1.9rem,3.4vw,2.6rem)] leading-[1.02] text-balance lg:mt-6 lg:text-[clamp(1.6rem,2.2vw,2rem)]"
             >
               {STEP_COPY[step].title}
             </h2>
-            <p className="text-body mt-2 max-w-md font-sans opacity-70">{STEP_COPY[step].hint}</p>
+            <p className="text-body mt-2 max-w-md font-sans opacity-70 lg:mt-1.5 lg:text-[0.95rem]">
+              {STEP_COPY[step].hint}
+            </p>
 
-            <div className="mt-8">
+            <div className="mt-8 lg:mt-6">
               {step === 0 && (
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2 lg:gap-x-4 lg:gap-y-3.5">
                   <Field
                     id="nome"
                     label="Nome completo"
@@ -449,7 +451,7 @@ export function CheckoutClient() {
               )}
 
               {step === 1 && (
-                <div className="grid gap-4 sm:grid-cols-6">
+                <div className="grid gap-4 sm:grid-cols-6 lg:gap-x-4 lg:gap-y-3.5">
                   <Field
                     id="cep"
                     label="CEP"
@@ -641,7 +643,7 @@ export function CheckoutClient() {
             </div>
 
             {/* Ações */}
-            <div className="mt-9 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-9 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between lg:mt-7">
               {step > 0 ? (
                 <button
                   type="button"
@@ -878,6 +880,72 @@ function Progress({
   tone?: "dark" | "light";
 }) {
   const light = tone === "light";
+  if (light) {
+    // Cartão bege (computador): trilho segmentado, compacto. Atual = pílula
+    // branca em destaque; feito = ✓ verde (clica pra voltar); a fazer = apagado.
+    return (
+      <nav data-enter aria-label="Etapas da compra" className="font-sans">
+        <ol className="bg-fernandito-verde-escuro/[0.06] ring-fernandito-verde-escuro/[0.06] grid grid-cols-4 gap-1 rounded-full p-1 ring-1">
+          {STEPS.map((label, i) => {
+            const done = i < step;
+            const current = i === step;
+            return (
+              <li key={label}>
+                <button
+                  type="button"
+                  onClick={() => onGo(i)}
+                  disabled={!done}
+                  aria-current={current ? "step" : undefined}
+                  aria-label={`${i + 1}. ${label}${done ? " (feito, voltar)" : ""}`}
+                  className={clsx(
+                    "duration-base ease-out-standard flex h-9 w-full items-center justify-center gap-2 rounded-full px-2 transition-[background-color,box-shadow,color]",
+                    current &&
+                      "text-fernandito-verde-escuro bg-white shadow-[0_2px_8px_rgba(36,48,34,0.12)]",
+                    done && "text-fernandito-verde-medio cursor-pointer hover:bg-white/60",
+                    !done && !current && "text-fernandito-verde-escuro/40 cursor-default",
+                  )}
+                >
+                  <span
+                    className={clsx(
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[0.68rem] font-bold tabular-nums",
+                      current && "bg-fernandito-verde-escuro text-fernandito-off-white",
+                      done && "bg-fernandito-verde-claro text-fernandito-off-white",
+                      !done && !current && "ring-fernandito-verde-escuro/25 ring-1",
+                    )}
+                  >
+                    {done ? (
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={3.2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                        className="h-3 w-3"
+                      >
+                        <path d="M5 12.5l4.5 4.5L19 7.5" />
+                      </svg>
+                    ) : (
+                      i + 1
+                    )}
+                  </span>
+                  <span
+                    className={clsx(
+                      "text-label tracking-[0.06em] uppercase",
+                      current && "font-bold",
+                    )}
+                  >
+                    {label}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
+    );
+  }
   return (
     <nav data-enter aria-label="Etapas da compra" className="font-sans">
       {/* Bolinhas numeradas ligadas por uma linha: feito (✓), atual (cheia),
@@ -983,7 +1051,7 @@ function NextButton({
       onClick={onClick}
       disabled={disabled}
       aria-disabled={disabled}
-      className="!bg-fernandito-verde-escuro hover:!bg-fernandito-verde-medio w-full !py-3.5 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-w-[14rem]"
+      className="!bg-fernandito-verde-escuro hover:!bg-fernandito-verde-medio w-full !py-3.5 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-w-[14rem] lg:!py-3"
     >
       <span className="flex items-center justify-center gap-2 whitespace-nowrap">
         {children}
@@ -1077,7 +1145,7 @@ function SummaryCard({
     <section
       data-enter
       aria-label="Resumo do pedido"
-      className="bg-fernandito-verde-escuro/35 ring-fernandito-off-white/10 rounded-3xl p-5 font-sans ring-1 sm:p-6"
+      className="bg-fernandito-verde-escuro ring-fernandito-off-white/10 rounded-3xl p-5 font-sans shadow-[0_24px_60px_rgba(20,28,18,0.35)] ring-1 sm:p-6"
     >
       {/* Computador: cabeçalho "Seu pedido" + editar carrinho à parte. */}
       <div className="mb-6 hidden items-center justify-between gap-4 lg:flex">
