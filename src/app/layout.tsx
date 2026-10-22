@@ -221,20 +221,13 @@ const JSON_LD = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="pt-BR"
-      suppressHydrationWarning
-      className={[fontVariables, "antialiased", ANNOUNCEMENT.enabled && "has-announcement"]
-        .filter(Boolean)
-        .join(" ")}
-    >
+    <html lang="pt-BR" suppressHydrationWarning className={`${fontVariables} antialiased`}>
       <body>
         {/* Decide ANTES de pintar se mostra o portão de idade (sem piscar
             pra quem já confirmou). Sem JS o portão fica escondido. */}
         <script
           dangerouslySetInnerHTML={{
-            __html:
-              'var d=document.documentElement;d.dataset.intro=location.pathname==="/"?"run":"done";try{d.dataset.age=localStorage.getItem("fernandito:age:v1")?"ok":"ask"}catch(e){d.dataset.age="ask"}',
+            __html: `var d=document.documentElement;d.dataset.intro=location.pathname==="/"?"run":"done";${ANNOUNCEMENT.enabled ? 'if(location.pathname==="/")d.classList.add("has-announcement");' : ""}try{d.dataset.age=localStorage.getItem("fernandito:age:v1")?"ok":"ask"}catch(e){d.dataset.age="ask"}`,
           }}
         />
         <script

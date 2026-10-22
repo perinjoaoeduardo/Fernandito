@@ -20,7 +20,17 @@ body {
 }
 
 /* Faixa "Estamos chegando" ligada (ver AnnouncementBar.tsx). Em px (não
-   rem): a FloatingNav lê o valor em JS pra amostrar a cor do fundo. */
+   rem): a FloatingNav lê o valor em JS pra amostrar a cor do fundo.
+   Registrada com @property pra poder animar: quando a faixa sai (só na
+   home, depois de 10 s), o menu sobe junto, suave. */
+@property --announcement-h {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+:root {
+  transition: --announcement-h 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
 html.has-announcement {
   --announcement-h: 32px;
 }
