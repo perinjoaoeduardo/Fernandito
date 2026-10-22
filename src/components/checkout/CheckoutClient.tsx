@@ -359,7 +359,10 @@ export function CheckoutClient() {
           </h1>
         </div>
 
-        <Progress step={step} onGo={(i) => i < step && goTo(i)} />
+        {/* No computador as etapas vão pra dentro do cartão do formulário. */}
+        <div className="lg:hidden">
+          <Progress step={step} onGo={(i) => i < step && goTo(i)} />
+        </div>
 
         <SummaryCard shipping={shipping} totalCents={totalCents} recap={recap} onEdit={goTo} />
       </div>
@@ -381,12 +384,15 @@ export function CheckoutClient() {
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             className="p-6 sm:p-10"
           >
-            <p className="text-label text-fernandito-verde-medio font-sans tracking-[0.18em] uppercase">
+            <p className="text-label text-fernandito-verde-medio font-sans tracking-[0.18em] uppercase lg:hidden">
               Passo {step + 1} de {STEPS.length}
             </p>
+            <div className="hidden lg:block">
+              <Progress step={step} onGo={(i) => i < step && goTo(i)} tone="light" />
+            </div>
             <h2
               id="etapa-titulo"
-              className="font-rampart mt-3 text-[clamp(1.9rem,3.4vw,2.6rem)] leading-[1.02] text-balance"
+              className="font-rampart mt-3 text-[clamp(1.9rem,3.4vw,2.6rem)] leading-[1.02] text-balance lg:mt-8"
             >
               {STEP_COPY[step].title}
             </h2>
@@ -399,6 +405,7 @@ export function CheckoutClient() {
                     id="nome"
                     label="Nome completo"
                     autoComplete="name"
+                    placeholder="Como tá no documento"
                     className="sm:col-span-2"
                     value={contact.name}
                     onChange={(e) => setContact({ ...contact, name: e.target.value })}
@@ -409,6 +416,7 @@ export function CheckoutClient() {
                     type="email"
                     label="E-mail"
                     autoComplete="email"
+                    placeholder="tu@email.com"
                     inputMode="email"
                     value={contact.email}
                     onChange={(e) => setContact({ ...contact, email: e.target.value })}
@@ -434,7 +442,7 @@ export function CheckoutClient() {
                     value={contact.cpf}
                     onChange={(e) => setContact({ ...contact, cpf: maskCPF(e.target.value) })}
                     error={errors["customer.cpf"]}
-                    hint="Só pra nota fiscal."
+                    aside="Só pra nota fiscal"
                   />
                 </div>
               )}
@@ -858,10 +866,24 @@ function prefix(group: string, errors: Record<string, string>) {
 
 /** Progresso horizontal: trilho com preenchimento verde-claro e os nomes
  * das etapas. Etapas já feitas são clicáveis (voltam pra elas). */
-function Progress({ step, onGo }: { step: number; onGo: (index: number) => void }) {
+function Progress({
+  step,
+  onGo,
+  tone = "dark",
+}: {
+  step: number;
+  onGo: (index: number) => void;
+  /** "dark" = sobre o verde (coluna); "light" = dentro do cartão bege. */
+  tone?: "dark" | "light";
+}) {
   return (
     <nav data-enter aria-label="Etapas da compra" className="font-sans">
-      <div className="bg-fernandito-off-white/15 relative h-1.5 overflow-hidden rounded-full">
+      <div
+        className={clsx(
+          "relative h-1.5 overflow-hidden rounded-full",
+          tone === "light" ? "bg-fernandito-verde-escuro/10" : "bg-fernandito-off-white/15",
+        )}
+      >
         <div
           className="bg-fernandito-verde-claro duration-slow ease-out-standard absolute inset-y-0 left-0 rounded-full transition-[width]"
           style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
@@ -885,7 +907,14 @@ function Progress({ step, onGo }: { step: number; onGo: (index: number) => void 
                 )}
               >
                 {done && (
-                  <span aria-hidden="true" className="text-fernandito-verde-claro">
+                  <span
+                    aria-hidden="true"
+                    className={
+                      tone === "light"
+                        ? "text-fernandito-verde-medio"
+                        : "text-fernandito-verde-claro"
+                    }
+                  >
                     ✓
                   </span>
                 )}

@@ -8,6 +8,7 @@ export function Field({
   label,
   error,
   hint,
+  aside,
   className,
   id,
   ...input
@@ -15,14 +16,19 @@ export function Field({
   label: string;
   error?: string;
   hint?: string;
+  /** Recado curto à direita do rótulo (ex.: "Só pra nota fiscal"). */
+  aside?: string;
   id: string;
   ref?: Ref<HTMLInputElement>;
 }) {
   return (
     <div className={clsx("flex flex-col gap-1.5 font-sans", className)}>
-      <label htmlFor={id} className="text-label tracking-[0.08em] uppercase opacity-80">
-        {label}
-      </label>
+      <div className="flex items-baseline justify-between gap-3">
+        <label htmlFor={id} className="text-label font-bold tracking-[0.08em] uppercase">
+          {label}
+        </label>
+        {aside && <span className="text-label opacity-55">{aside}</span>}
+      </div>
       <input
         id={id}
         aria-invalid={error ? true : undefined}
