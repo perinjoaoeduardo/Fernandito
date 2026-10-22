@@ -73,6 +73,9 @@ export function CheckoutClient() {
   const [address, setAddress] = useState<AddressForm>(EMPTY_ADDRESS);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "found" | "error">("idle");
+  // Entrega: primeiro só o CEP; o resto aparece (já preenchido) quando o CEP
+  // é achado, quando não é (aí à mão) ou se a pessoa tentar seguir.
+  const [addressOpen, setAddressOpen] = useState(false);
   const [options, setOptions] = useState<ShippingOption[] | null>(null);
   const [shippingFallback, setShippingFallback] = useState(false);
   const [shippingLoading, setShippingLoading] = useState(false);
@@ -94,6 +97,8 @@ export function CheckoutClient() {
   const reduceMotion = useReducedMotion();
 
   const shipping = options?.find((option) => option.id === shippingId) ?? null;
+  // Voltou pra Entrega com o endereço já preenchido: mostra tudo.
+  const showAddress = addressOpen || Boolean(address.street);
   const totalCents = cart.subtotalCents + (shipping?.priceCents ?? 0);
 
   // Itens pra cotação de frete (peso/dimensões por produto). Mudou o
@@ -156,10 +161,12 @@ export function CheckoutClient() {
         uf: data.uf || current.uf,
       }));
       setCepStatus("found");
+      setAddressOpen(true);
       setErrors((current) => ({ ...current, "address.cep": "" }));
       requestAnimationFrame(() => numberRef.current?.focus());
     } catch {
       setCepStatus("error");
+      setAddressOpen(true);
     }
   }
 
@@ -189,6 +196,7 @@ export function CheckoutClient() {
     const parsed = addressSchema.safeParse(address);
     if (!parsed.success) {
       setErrors(prefix("address", fieldErrors(parsed.error)));
+      if (onlyDigits(address.cep).length === 8) setAddressOpen(true);
       return;
     }
     setErrors({});
@@ -458,7 +466,7 @@ export function CheckoutClient() {
                     inputMode="numeric"
                     autoComplete="postal-code"
                     placeholder="00000-000"
-                    className="sm:col-span-2"
+                    className={showAddress ? "sm:col-span-2" : "sm:col-span-3"}
                     value={address.cep}
                     onChange={(e) => {
                       const cep = maskCEP(e.target.value);
@@ -473,78 +481,96 @@ export function CheckoutClient() {
                         ? "CEP não encontrado — preenche o endereço à mão"
                         : undefined)
                     }
-                    hint={
-                      cepStatus === "loading"
-                        ? "Buscando endereço…"
-                        : cepStatus === "found"
-                          ? "Achamos ✓"
-                          : undefined
+                    aside={
+                      cepStatus === "loading" ? (
+                        "Buscando…"
+                      ) : cepStatus === "found" ? (
+                        <span className="text-fernandito-verde-medio font-bold opacity-100">
+                          Achamos ✓
+                        </span>
+                      ) : (
+                        <a
+                          href="https://buscacepinter.correios.com.br/app/endereco/index.php"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline underline-offset-4 opacity-60 hover:opacity-100"
+                        >
+                          Não sei meu CEP
+                        </a>
+                      )
                     }
                   />
-                  <Field
-                    id="rua"
-                    label="Rua"
-                    autoComplete="address-line1"
-                    className="sm:col-span-4"
-                    value={address.street}
-                    onChange={(e) => setAddress({ ...address, street: e.target.value })}
-                    error={errors["address.street"]}
-                  />
-                  <Field
-                    ref={numberRef}
-                    id="numero"
-                    label="Número"
-                    inputMode="numeric"
-                    className="sm:col-span-2"
-                    value={address.number}
-                    onChange={(e) => setAddress({ ...address, number: e.target.value })}
-                    error={errors["address.number"]}
-                  />
-                  <Field
-                    id="complemento"
-                    label="Complemento (opcional)"
-                    autoComplete="address-line2"
-                    className="sm:col-span-4"
-                    value={address.complement}
-                    onChange={(e) => setAddress({ ...address, complement: e.target.value })}
-                    error={errors["address.complement"]}
-                  />
-                  <Field
-                    id="bairro"
-                    label="Bairro"
-                    className="sm:col-span-2"
-                    value={address.neighborhood}
-                    onChange={(e) => setAddress({ ...address, neighborhood: e.target.value })}
-                    error={errors["address.neighborhood"]}
-                  />
-                  <Field
-                    id="cidade"
-                    label="Cidade"
-                    autoComplete="address-level2"
-                    className="sm:col-span-3"
-                    value={address.city}
-                    onChange={(e) => {
-                      setAddress({ ...address, city: e.target.value });
-                      setOptions(null);
-                    }}
-                    error={errors["address.city"]}
-                  />
-                  <Field
-                    id="uf"
-                    label="UF"
-                    autoComplete="address-level1"
-                    maxLength={2}
-                    className="sm:col-span-1"
-                    value={address.uf}
-                    onChange={(e) => {
-                      setAddress({
-                        ...address,
-                        uf: e.target.value.toUpperCase().replace(/[^A-Z]/g, ""),
-                      });
-                      setOptions(null);
-                    }}
-                    error={errors["address.uf"]}
-                  />
+                  {showAddress && (
+                    <>
+                      <Field
+                        id="rua"
+                        label="Rua"
+                        autoComplete="address-line1"
+                        className="field-in sm:col-span-4"
+                        value={address.street}
+                        onChange={(e) => setAddress({ ...address, street: e.target.value })}
+                        error={errors["address.street"]}
+                      />
+                      <Field
+                        ref={numberRef}
+                        id="numero"
+                        label="Número"
+                        inputMode="numeric"
+                        placeholder="Ex.: 433"
+                        className="field-in sm:col-span-2"
+                        value={address.number}
+                        onChange={(e) => setAddress({ ...address, number: e.target.value })}
+                        error={errors["address.number"]}
+                      />
+                      <Field
+                        id="complemento"
+                        label="Complemento"
+                        aside="Opcional"
+                        placeholder="Apto, bloco, fundos…"
+                        autoComplete="address-line2"
+                        className="field-in sm:col-span-4"
+                        value={address.complement}
+                        onChange={(e) => setAddress({ ...address, complement: e.target.value })}
+                        error={errors["address.complement"]}
+                      />
+                      <Field
+                        id="bairro"
+                        label="Bairro"
+                        className="field-in sm:col-span-2"
+                        value={address.neighborhood}
+                        onChange={(e) => setAddress({ ...address, neighborhood: e.target.value })}
+                        error={errors["address.neighborhood"]}
+                      />
+                      <Field
+                        id="cidade"
+                        label="Cidade"
+                        autoComplete="address-level2"
+                        className="field-in sm:col-span-3"
+                        value={address.city}
+                        onChange={(e) => {
+                          setAddress({ ...address, city: e.target.value });
+                          setOptions(null);
+                        }}
+                        error={errors["address.city"]}
+                      />
+                      <Field
+                        id="uf"
+                        label="UF"
+                        autoComplete="address-level1"
+                        maxLength={2}
+                        className="field-in sm:col-span-1"
+                        value={address.uf}
+                        onChange={(e) => {
+                          setAddress({
+                            ...address,
+                            uf: e.target.value.toUpperCase().replace(/[^A-Z]/g, ""),
+                          });
+                          setOptions(null);
+                        }}
+                        error={errors["address.uf"]}
+                      />
+                    </>
+                  )}
                 </div>
               )}
 

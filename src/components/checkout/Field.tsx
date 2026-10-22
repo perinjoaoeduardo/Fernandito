@@ -1,7 +1,7 @@
 "use client";
 
 import { clsx } from "clsx";
-import type { InputHTMLAttributes, Ref } from "react";
+import type { InputHTMLAttributes, ReactNode, Ref } from "react";
 
 /** Campo de formulário do checkout: rótulo, input e erro embaixo. */
 export function Field({
@@ -17,7 +17,7 @@ export function Field({
   error?: string;
   hint?: string;
   /** Recado curto à direita do rótulo (ex.: "Só pra nota fiscal"). */
-  aside?: string;
+  aside?: ReactNode;
   id: string;
   ref?: Ref<HTMLInputElement>;
 }) {
@@ -27,7 +27,12 @@ export function Field({
         <label htmlFor={id} className="text-label font-bold tracking-[0.08em] uppercase">
           {label}
         </label>
-        {aside && <span className="text-label opacity-55">{aside}</span>}
+        {aside &&
+          (typeof aside === "string" ? (
+            <span className="text-label opacity-55">{aside}</span>
+          ) : (
+            <span className="text-label">{aside}</span>
+          ))}
       </div>
       <input
         id={id}

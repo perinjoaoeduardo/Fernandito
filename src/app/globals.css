@@ -418,3 +418,19 @@ html[data-age="ask"]:is([data-intro="reveal"], [data-intro="done"]):has(#age-gat
 .cursor-none-mode .painel summary {
   cursor: pointer !important;
 }
+
+/* Checkout: campos do endereço entram suaves quando o CEP é achado. */
+@keyframes field-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.field-in {
+  animation: field-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .field-in {
+    animation: none;
+  }
+}
