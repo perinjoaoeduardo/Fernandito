@@ -384,7 +384,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
         </div>
       </div>
 
-      <div className="min-w-0 lg:sticky lg:top-[calc(7rem+var(--announcement-h))] lg:col-start-2 lg:row-start-2">
+      <div className="min-w-0 lg:col-start-2 lg:row-start-2">
         <SummaryCard
           shipping={shipping}
           totalCents={totalCents}
