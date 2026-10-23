@@ -72,7 +72,7 @@ async function buy({
           id: "local-poa",
           service: "x",
           carrier: "y",
-          priceCents: 500,
+          priceCents: 499,
           days: { min: 1, max: 2 },
           source: "local",
         }
