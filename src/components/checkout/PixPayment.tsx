@@ -352,7 +352,7 @@ export function PixPayment({
               />
             </div>
 
-            <div className="grid gap-5 px-5 pt-6 pb-6 sm:grid-cols-[10.5rem_minmax(0,1fr)] sm:items-center sm:p-5">
+            <div className="grid gap-5 px-5 pt-6 pb-6 sm:grid-cols-[10.5rem_minmax(0,1fr)] sm:items-start sm:p-5">
               <div data-pix-qr className="hidden sm:block">
                 {qr}
               </div>
