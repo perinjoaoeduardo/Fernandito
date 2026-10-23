@@ -121,7 +121,10 @@ function Stat({
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="painel fixed inset-0 z-[500] overflow-y-auto bg-zinc-50 font-[system-ui,-apple-system,'Segoe_UI',Roboto,sans-serif] text-zinc-900 antialiased [color-scheme:light]">
+    <div
+      data-lenis-prevent
+      className="painel fixed inset-0 z-[500] overflow-y-auto bg-zinc-50 font-[system-ui,-apple-system,'Segoe_UI',Roboto,sans-serif] text-zinc-900 antialiased [color-scheme:light]"
+    >
       {children}
     </div>
   );
