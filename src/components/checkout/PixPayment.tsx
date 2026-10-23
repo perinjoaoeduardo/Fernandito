@@ -389,26 +389,44 @@ export function PixPayment({
                   </svg>
                   {copied ? "Código copiado!" : "Copiar código Pix"}
                 </button>
-                <input
+                {/* O código fica numa caixinha própria (dá pra selecionar à mão). */}
+                <label
                   data-pix-row
-                  id="pix-code"
-                  readOnly
-                  value={order.pix?.qrCode ?? ""}
-                  onFocus={(e) => e.currentTarget.select()}
-                  aria-label="Pix copia e cola"
-                  className="w-full truncate bg-transparent text-center font-mono text-[0.72rem] opacity-50 outline-none"
-                />
-                <ol data-pix-row className="text-label mt-1 flex flex-col gap-1.5">
+                  htmlFor="pix-code"
+                  className="border-fernandito-verde-escuro/15 flex min-w-0 items-center gap-2 rounded-xl border bg-white/70 px-3.5 py-2.5"
+                >
+                  <span className="text-label shrink-0 font-bold tracking-[0.08em] uppercase opacity-50">
+                    Código
+                  </span>
+                  <input
+                    id="pix-code"
+                    readOnly
+                    value={order.pix?.qrCode ?? ""}
+                    onFocus={(e) => e.currentTarget.select()}
+                    className="min-w-0 flex-1 truncate bg-transparent font-mono text-[0.75rem] opacity-70 outline-none"
+                  />
+                </label>
+                {/* Como pagar: 3 passos numa linha do tempo vertical. */}
+                <ol data-pix-row className="mt-1 flex flex-col">
                   {[
-                    "Abre o app do banco",
-                    "Escolhe Pix copia e cola (ou lê o QR)",
-                    "Pronto: esta tela muda sozinha",
-                  ].map((t, i) => (
-                    <li key={t} className="flex items-center gap-2.5">
-                      <span className="bg-fernandito-verde-escuro/10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-bold">
+                    { t: "Abre o app do teu banco", s: "Na área Pix" },
+                    { t: "Pix copia e cola", s: "Cola o código (ou lê o QR)" },
+                    { t: "Confirma o pagamento", s: "Esta tela muda sozinha" },
+                  ].map((step, i, all) => (
+                    <li key={step.t} className="relative flex gap-3 pb-3 last:pb-0">
+                      {i < all.length - 1 && (
+                        <span
+                          aria-hidden="true"
+                          className="bg-fernandito-verde-escuro/15 absolute top-6 bottom-0 left-[0.6875rem] w-px"
+                        />
+                      )}
+                      <span className="bg-fernandito-verde-escuro text-fernandito-off-white relative flex h-[1.375rem] w-[1.375rem] shrink-0 items-center justify-center rounded-full text-[0.68rem] font-bold">
                         {i + 1}
                       </span>
-                      <span className="opacity-75">{t}</span>
+                      <span className="flex min-w-0 flex-col pt-px">
+                        <span className="text-label font-bold">{step.t}</span>
+                        <span className="text-label opacity-60">{step.s}</span>
+                      </span>
                     </li>
                   ))}
                 </ol>

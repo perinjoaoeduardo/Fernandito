@@ -17,6 +17,7 @@ import { RotatingWord } from "@/components/ui/RotatingWord";
 import { HeroSlideshow } from "@/components/ui/HeroSlideshow";
 import { HERO, PRELAUNCH, STORE, firstSectionHref } from "@/content/site";
 import { Button } from "@/components/ui/Button";
+import { useStock } from "@/components/cart/useStock";
 import { useGoToShop } from "@/components/cart/useGoToShop";
 
 // Quanto o cartão encolhe/arredonda ao rolar (a "moldura") — sutil o
@@ -36,6 +37,7 @@ const VEIL_TO = 0.5;
 
 export function HeroSection() {
   const goToShop = useGoToShop();
+  const { soldOut } = useStock();
   const sectionRef = useRef<HTMLElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -220,7 +222,7 @@ export function HeroSection() {
             {/* CTA de compra: entra junto com a frase (mesma animação). */}
             {STORE.enabled && (
               <Button variant="primary" onClick={goToShop} className="mt-7">
-                {STORE.cta}
+                {soldOut ? STORE.notifyCta : STORE.cta}
               </Button>
             )}
           </div>

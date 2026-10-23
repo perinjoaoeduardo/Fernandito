@@ -57,7 +57,10 @@ export const STORE = {
   stockLast: "Última unidade",
   /** Esgotado (teto do site ou estoque do Bling zerado). */
   soldOut: "Esgotado",
-  soldOutText: "O primeiro lote acabou. Chama a gente no WhatsApp pra saber do próximo.",
+  soldOutText: "O primeiro lote acabou. Deixa teu contato que a gente avisa do próximo.",
+  /** Esgotado: botões que abrem o "me avisa do próximo lote". */
+  notifyCta: "Me avisa do próximo lote",
+  notifyNavCta: "Esgotado",
   /** Barra de compra fixa no celular. */
   stickyCta: "Adicionar",
   addToCart: "Adicionar ao carrinho",
@@ -529,4 +532,19 @@ export const FOOTER = {
   company:
     "FERNANDITO BEBIDAS LTDA · CNPJ 69.252.946/0001-41 · Rua Castro Alves, 433, Rio Branco, Porto Alegre/RS, CEP 90430-131",
   madeIn: "Feito com brio. Porto Alegre, RS.",
+};
+
+/** Modal "me avisa do próximo lote" (quando o kit esgota). Os contatos vão
+ * pro painel (`/painel`, seção "Avisar do próximo lote"). */
+export const NOTIFY = {
+  kicker: "Primeiro lote esgotado",
+  title: "A gente te avisa do próximo",
+  text: "Deixa teu nome e WhatsApp (ou e-mail). Quando sair o próximo lote, tu fica sabendo antes.",
+  name: "Teu nome",
+  contact: "WhatsApp ou e-mail",
+  submit: "Me avisa",
+  skip: "Agora não",
+  doneTitle: "Fechado!",
+  doneText: "Quando o próximo lote sair, a gente te chama. Valeu!",
+  close: "Fechar",
 };

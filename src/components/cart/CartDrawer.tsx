@@ -2,6 +2,8 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { curtainNavigate } from "@/lib/page-transition";
+import { openNotify } from "@/lib/notify";
+import { useStock } from "@/components/cart/useStock";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { DURATION, EASE_BEZIER } from "@/lib/gsap";
@@ -10,7 +12,7 @@ import { formatBRL } from "@/lib/money";
 import { Button } from "@/components/ui/Button";
 import { Price } from "@/components/ui/Price";
 import { splitName } from "@/lib/catalog";
-import { SHOP_HREF } from "@/content/site";
+import { SHOP_HREF, STORE } from "@/content/site";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { ArrowRightIcon, CloseIcon, TrashIcon } from "@/components/ui/icons";
 import { QtyStepper } from "@/components/cart/QtyStepper";
@@ -24,6 +26,7 @@ import { useCart } from "@/components/cart/CartProvider";
  */
 export function CartDrawer() {
   const { lines, count, subtotalCents, isOpen, close, setQty, remove } = useCart();
+  const { soldOut } = useStock();
   const router = useRouter();
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -205,19 +208,37 @@ export function CartDrawer() {
                       <Price cents={subtotalCents} />
                     </p>
                   </div>
-                  <Button
-                    variant="primary"
-                    className="w-full !py-4"
-                    onClick={() => {
-                      close();
-                      curtainNavigate(() => router.push("/checkout"));
-                    }}
-                  >
-                    <span className="flex items-center gap-2">
-                      Finalizar compra
-                      <ArrowRightIcon />
-                    </span>
-                  </Button>
+                  {soldOut ? (
+                    <>
+                      <p className="border-fernandito-verde-escuro/15 bg-fernandito-verde-escuro/[0.05] text-body rounded-2xl border px-4 py-3 leading-snug">
+                        <b>{STORE.soldOut}.</b> {STORE.soldOutText}
+                      </p>
+                      <Button
+                        variant="primary"
+                        className="w-full !py-4"
+                        onClick={() => {
+                          close();
+                          openNotify();
+                        }}
+                      >
+                        {STORE.notifyCta}
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      variant="primary"
+                      className="w-full !py-4"
+                      onClick={() => {
+                        close();
+                        curtainNavigate(() => router.push("/checkout"));
+                      }}
+                    >
+                      <span className="flex items-center gap-2">
+                        Finalizar compra
+                        <ArrowRightIcon />
+                      </span>
+                    </Button>
+                  )}
                 </footer>
               </>
             )}

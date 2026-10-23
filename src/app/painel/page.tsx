@@ -3,6 +3,7 @@ import Link from "next/link";
 import { after, connection } from "next/server";
 import { getManualSales, manualSalesStale, syncManualSales } from "@/lib/bling/manual";
 import { ACTIVE_PRODUCTS } from "@/lib/catalog";
+import { listLeads } from "@/lib/leads";
 import { painelAuthed } from "@/lib/painel";
 import { ALL_SET } from "@/lib/store/checkout";
 import { getFulfillment, type FulfillStage, type Fulfillment } from "@/lib/store/fulfillment";
@@ -200,6 +201,8 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     .reduce((sum, m) => sum + m.totalCents, 0);
   const units = (list: typeof bonus) =>
     list.reduce((sum, m) => sum + m.itens.reduce((n, i) => n + i.quantidade, 0), 0);
+
+  const waitlist = (await listLeads().catch(() => [])).filter((l) => l.form === "aviso");
 
   const [stock, alertsRaw] = await Promise.all([
     Promise.all(
@@ -449,6 +452,49 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                     </div>
                   </li>
                 ))}
+              </ul>
+            </div>
+          )}
+        </section>
+
+        <section className="mt-10">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">Avisar do próximo lote</h2>
+              <p className="text-sm text-zinc-500">
+                Quem pediu pra ser avisado quando o kit voltar (aparece quando esgota).
+              </p>
+            </div>
+            <p className="text-sm text-zinc-500">{waitlist.length} contatos</p>
+          </div>
+          {waitlist.length === 0 ? (
+            <p className="mt-3 rounded-xl border border-dashed border-zinc-300 bg-white p-8 text-center text-sm text-zinc-500">
+              Ninguém na lista ainda.
+            </p>
+          ) : (
+            <div className="mt-3 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+              <ul className="divide-y divide-zinc-100">
+                {waitlist.map((l) => {
+                  const c = l.fields.contato ?? "";
+                  const phone = c.replace(/\D/g, "");
+                  const href = c.includes("@")
+                    ? `mailto:${c}`
+                    : `https://wa.me/55${phone.replace(/^55(?=\d{10,11}$)/, "")}`;
+                  return (
+                    <li
+                      key={l.id}
+                      className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm"
+                    >
+                      <span className="font-medium">{l.fields.nome || "—"}</span>
+                      <span className="flex items-center gap-4">
+                        <a className={LINK} href={href} target="_blank" rel="noopener noreferrer">
+                          {c}
+                        </a>
+                        <span className="text-zinc-400">{when(l.createdAt)}</span>
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}

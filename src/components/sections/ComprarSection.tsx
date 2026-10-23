@@ -1,6 +1,7 @@
 "use client";
 
 import { clsx } from "clsx";
+import { openNotify } from "@/lib/notify";
 import NextLink from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FEATURED_PRODUCT, splitName, type ContentIcon } from "@/lib/catalog";
@@ -197,7 +198,7 @@ export function ComprarSection({
   const showStock = remaining !== null && remaining > 0 && remaining <= STOCK_BADGE_MAX;
   const { main: title } = splitName(product.name);
   const addToCart = () => {
-    if (soldOut) return;
+    if (soldOut) return openNotify();
     add(product.sku, qty);
     setQty(1);
   };
@@ -325,14 +326,9 @@ export function ComprarSection({
             <Button
               variant="primary"
               onClick={addToCart}
-              disabled={soldOut}
-              aria-disabled={soldOut}
-              className={clsx(
-                "w-full !py-3 whitespace-nowrap sm:w-auto sm:flex-1",
-                soldOut && "pointer-events-none opacity-50",
-              )}
+              className="w-full !py-3 whitespace-nowrap sm:w-auto sm:flex-1"
             >
-              {soldOut ? STORE.soldOut : STORE.addToCart}
+              {soldOut ? STORE.notifyCta : STORE.addToCart}
             </Button>
           </div>
           {soldOut && (
@@ -373,10 +369,9 @@ export function ComprarSection({
         <button
           type="button"
           onClick={addToCart}
-          disabled={soldOut}
           className="bg-fernandito-off-white text-fernandito-verde-escuro duration-base ease-out-standard flex h-12 items-center rounded-full px-6 font-sans text-[0.8125rem] font-bold tracking-[0.06em] uppercase transition-transform active:scale-[0.97] disabled:opacity-50"
         >
-          {soldOut ? STORE.soldOut : STORE.stickyCta}
+          {soldOut ? "Me avisa" : STORE.stickyCta}
         </button>
       </div>
     </section>

@@ -11,7 +11,7 @@ import { kvGet, kvSAdd, kvSet, kvSMembers } from "@/lib/store/kv";
  */
 
 export const leadSchema = z.object({
-  form: z.enum(["geral", "casa", "evento", "negocio"]),
+  form: z.enum(["geral", "casa", "evento", "negocio", "aviso"]),
   fields: z
     .record(z.string().max(40), z.string().trim().max(120))
     .refine((f) => Object.keys(f).length <= 8, "Campos demais"),

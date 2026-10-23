@@ -4,6 +4,7 @@ import { clsx } from "clsx";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { curtainNavigate } from "@/lib/page-transition";
+import { useStock } from "@/components/cart/useStock";
 import { motion, AnimatePresence } from "framer-motion";
 import { backgroundAt } from "@/lib/background";
 import { DURATION, EASE_BEZIER, IS_TOUCH } from "@/lib/gsap";
@@ -46,6 +47,7 @@ export function FloatingNav() {
   const lastScrollY = useRef(0);
   const cart = useCart();
   const goToShop = useGoToShop();
+  const { soldOut } = useStock();
   // No checkout e nas telas do pedido a pessoa já está comprando: sem CTA.
   const pathname = usePathname();
   const inPurchase = pathname.startsWith("/checkout") || pathname.startsWith("/pedido");
@@ -233,7 +235,7 @@ export function FloatingNav() {
                   : "bg-fernandito-verde-escuro text-fernandito-off-white hover:bg-fernandito-verde-medio",
               )}
             >
-              {STORE.navCta}
+              {soldOut ? STORE.notifyNavCta : STORE.navCta}
             </button>
           ) : (
             <WhatsAppButton
