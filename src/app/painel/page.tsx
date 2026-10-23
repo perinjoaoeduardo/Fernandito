@@ -2,14 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { after, connection } from "next/server";
 import { getManualSales, manualSalesStale, syncManualSales } from "@/lib/bling/manual";
-import { ACTIVE_PRODUCTS } from "@/lib/catalog";
 import { listLeads } from "@/lib/leads";
 import { painelAuthed } from "@/lib/painel";
 import { ALL_SET } from "@/lib/store/checkout";
 import { getFulfillment, type FulfillStage, type Fulfillment } from "@/lib/store/fulfillment";
 import { kvSMembers } from "@/lib/store/kv";
 import { getOrder, type StoredOrder } from "@/lib/store/orders";
-import { stockRemaining } from "@/lib/store/stock";
+import { blingStock } from "@/lib/bling/orders";
 import { atualizar, marcarEntregue, sair } from "./actions";
 import { LoginForm } from "./LoginForm";
 
@@ -17,6 +16,14 @@ export const metadata: Metadata = {
   title: "Painel",
   robots: { index: false, follow: false },
 };
+
+// Estoque que o painel mostra: os 4 produtos do Bling (saldo virtual).
+const PRODUCTS_STOCK = [
+  { sku: "FERN-KIT-PRE", name: "Kit pré-lançamento", hint: "à venda no site" },
+  { sku: "FERN-350", name: "Lata 350ml", hint: "latas" },
+  { sku: "FERN-350-6", name: "Pack 6 latas", hint: "packs" },
+  { sku: "FERN-PRESSKIT", name: "Press kit (brinde)", hint: "para brindes" },
+] as const;
 
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -157,11 +164,14 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     .filter((o): o is StoredOrder => Boolean(o) && (o!.status === "paid" || o!.status === "manual"))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const fulfillments = await Promise.all(orders.map((o) => getFulfillment(o.id)));
-  const all = orders.map((order, i) => ({
+  const every = orders.map((order, i) => ({
     order,
     f: fulfillments[i],
     st: status(order, fulfillments[i]),
   }));
+  // Pedidos simulados (Pix de mentira dos testes do preview) ficam fora das
+  // contas e da lista; só aparecem em "Todos".
+  const all = every.filter((r) => !r.order.simulated);
   const active = all.filter((r) => !r.order.refundedAt);
 
   const toPrint = active.filter((r) => r.f?.stage === "ready");
@@ -185,7 +195,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           : ver === "estornados"
             ? all.filter((r) => r.order.refundedAt)
             : ver === "todos"
-              ? all
+              ? every
               : active;
 
   // Vendas fora do site (Bling): sem nada guardado ainda → busca agora; velho →
@@ -204,17 +214,12 @@ export default async function PainelPage(props: PageProps<"/painel">) {
 
   const waitlist = (await listLeads().catch(() => [])).filter((l) => l.form === "aviso");
 
-  const [stock, alertsRaw] = await Promise.all([
-    Promise.all(
-      ACTIVE_PRODUCTS.filter((p) => p.stockCap).map(async (p) => ({
-        name: p.name,
-        left: (await stockRemaining(p.sku)) ?? 0,
-        cap: p.stockCap ?? 0,
-      })),
-    ),
+  const [stockMap, alertsRaw] = await Promise.all([
+    blingStock(PRODUCTS_STOCK.map((p) => p.sku)),
     kvSMembers("loja:alertas"),
   ]);
   // Alerta só aparece enquanto o pedido ainda está ativo (estornado não conta).
+  const stock = PRODUCTS_STOCK.map((p) => ({ ...p, left: stockMap?.get(p.sku) ?? null }));
   const refunded = new Set(all.filter((r) => r.order.refundedAt).map((r) => r.order.id));
   const alerts = alertsRaw
     .map((a) => JSON.parse(a) as { at: string; orderId: string; problem: string })
@@ -272,26 +277,19 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           />
         </section>
 
-        {stock.length > 0 && (
-          <section className="mt-3 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-            {stock.map((s) => (
-              <div key={s.name}>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">{s.name}</span>
-                  <span className="text-zinc-500">
-                    {s.left} de {s.cap} livres
-                  </span>
-                </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100">
-                  <div
-                    className="h-full rounded-full bg-zinc-900"
-                    style={{ width: `${s.cap ? Math.round((s.left / s.cap) * 100) : 0}%` }}
-                  />
-                </div>
+        <section className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {stock.map((p) => (
+            <div key={p.sku} className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+              <div className="text-sm text-zinc-500">{p.name}</div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-2xl font-semibold tracking-tight tabular-nums">
+                  {p.left ?? "—"}
+                </span>
+                <span className="text-xs text-zinc-500">{p.hint}</span>
               </div>
-            ))}
-          </section>
-        )}
+            </div>
+          ))}
+        </section>
 
         {alerts.length > 0 && (
           <section className="mt-3 rounded-xl border border-red-200 bg-red-50/60 p-4 text-sm shadow-sm">
