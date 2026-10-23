@@ -75,7 +75,7 @@ export function WhatsAppButton({
   // delas "vence" no CSS gerado pelo Tailwind.
   const bgOverride =
     background === "verde-medio"
-      ? "!bg-fernandito-verde-medio hover:!bg-fernandito-verde-claro"
+      ? "!bg-fernandito-verde-claro hover:!bg-fernandito-verde-medio"
       : "border border-fernandito-off-white/15";
 
   if (!WHATSAPP_NUMBER) {

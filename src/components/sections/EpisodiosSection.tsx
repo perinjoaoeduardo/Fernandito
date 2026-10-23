@@ -135,7 +135,7 @@ export function EpisodiosSection() {
       ref={sectionRef}
       id="episodios"
       aria-label="Episódios"
-      className="bg-fernandito-verde-escuro text-fernandito-off-white w-full overflow-hidden pt-24 pb-12 md:pt-32 md:pb-14 lg:pt-36 lg:pb-16"
+      className="bg-fernandito-verde-medio text-fernandito-off-white w-full overflow-hidden pt-24 pb-12 md:pt-32 md:pb-14 lg:pt-36 lg:pb-16"
     >
       {/* Ritmo vertical: 24/32/36 de respiro em cima e embaixo; 12/16 entre
           o título e os cartões; 12/20 entre os cartões e o Instagram. */}

@@ -329,7 +329,7 @@ export function PixPayment({
             data-enter
             className="text-fernandito-verde-escuro ring-fernandito-verde-escuro/10 overflow-hidden rounded-2xl bg-white/60 font-sans ring-1"
           >
-            <div data-pix-row className="flex items-center justify-between gap-3 px-5 pt-4 pb-3">
+            <div data-pix-row className="flex items-center justify-between gap-3 px-5 pt-5 pb-4">
               <span className="text-label bg-fernandito-verde-claro/15 text-fernandito-verde-medio inline-flex items-center gap-2 rounded-full px-3 py-1 font-bold whitespace-nowrap">
                 <span className="bg-fernandito-verde-medio inline-block h-2 w-2 shrink-0 animate-pulse rounded-full" />
                 Aguardando<span className="hidden sm:inline"> pagamento</span>
@@ -352,11 +352,11 @@ export function PixPayment({
               />
             </div>
 
-            <div className="grid gap-5 p-5 sm:grid-cols-[10.5rem_minmax(0,1fr)] sm:items-center">
+            <div className="grid gap-5 px-5 pt-6 pb-6 sm:grid-cols-[10.5rem_minmax(0,1fr)] sm:items-center sm:p-5">
               <div data-pix-qr className="hidden sm:block">
                 {qr}
               </div>
-              <div className="flex min-w-0 flex-col gap-3">
+              <div className="flex min-w-0 flex-col gap-3.5">
                 <button
                   data-pix-row
                   type="button"
@@ -393,9 +393,9 @@ export function PixPayment({
                 <label
                   data-pix-row
                   htmlFor="pix-code"
-                  className="border-fernandito-verde-escuro/15 flex min-w-0 items-center gap-2 rounded-xl border bg-white/70 px-3.5 py-2.5"
+                  className="border-fernandito-verde-escuro/15 flex h-11 min-w-0 items-center gap-2.5 rounded-xl border bg-white/70 px-3.5"
                 >
-                  <span className="text-label shrink-0 font-bold tracking-[0.08em] uppercase opacity-50">
+                  <span className="shrink-0 font-sans text-[0.68rem] leading-none font-bold tracking-[0.1em] uppercase opacity-50">
                     Código
                   </span>
                   <input
@@ -403,17 +403,17 @@ export function PixPayment({
                     readOnly
                     value={order.pix?.qrCode ?? ""}
                     onFocus={(e) => e.currentTarget.select()}
-                    className="min-w-0 flex-1 truncate bg-transparent font-mono text-[0.75rem] opacity-70 outline-none"
+                    className="min-w-0 flex-1 truncate bg-transparent font-mono text-[0.75rem] leading-none opacity-70 outline-none"
                   />
                 </label>
                 {/* Como pagar: 3 passos numa linha do tempo vertical. */}
-                <ol data-pix-row className="mt-1 flex flex-col">
+                <ol data-pix-row className="mt-3 flex flex-col">
                   {[
                     { t: "Abre o app do teu banco", s: "Na área Pix" },
                     { t: "Pix copia e cola", s: "Cola o código (ou lê o QR)" },
                     { t: "Confirma o pagamento", s: "Esta tela muda sozinha" },
                   ].map((step, i, all) => (
-                    <li key={step.t} className="relative flex gap-3 pb-3 last:pb-0">
+                    <li key={step.t} className="relative flex gap-3.5 pb-5 last:pb-0">
                       {i < all.length - 1 && (
                         <span
                           aria-hidden="true"
@@ -423,7 +423,7 @@ export function PixPayment({
                       <span className="bg-fernandito-verde-escuro text-fernandito-off-white relative flex h-[1.375rem] w-[1.375rem] shrink-0 items-center justify-center rounded-full text-[0.68rem] font-bold">
                         {i + 1}
                       </span>
-                      <span className="flex min-w-0 flex-col pt-px">
+                      <span className="flex min-w-0 flex-col gap-0.5 pt-px">
                         <span className="text-label font-bold">{step.t}</span>
                         <span className="text-label opacity-60">{step.s}</span>
                       </span>
@@ -431,7 +431,7 @@ export function PixPayment({
                   ))}
                 </ol>
                 <details className="group sm:hidden">
-                  <summary className="text-label mt-1 flex cursor-pointer list-none items-center gap-2 underline underline-offset-4 opacity-70">
+                  <summary className="text-label mt-3 flex cursor-pointer list-none items-center gap-2 underline underline-offset-4 opacity-70">
                     Pagar de outro celular? Mostrar QR code
                   </summary>
                   <div className="mt-4 flex justify-center">{qr}</div>
@@ -439,7 +439,7 @@ export function PixPayment({
               </div>
             </div>
             {(simulated || canSimulate) && (
-              <div className="border-fernandito-verde-escuro/10 bg-fernandito-verde-escuro/[0.04] flex flex-wrap items-center justify-between gap-3 border-t px-5 py-3">
+              <div className="border-fernandito-verde-escuro/10 bg-fernandito-verde-escuro/[0.04] flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t px-5 py-4">
                 {simulated && (
                   <p className="text-label opacity-60">Modo teste: não pague este código</p>
                 )}

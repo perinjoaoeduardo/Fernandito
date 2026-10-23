@@ -292,16 +292,22 @@ export function FloatingNav() {
             aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
             className={clsx(iconButton, "md:hidden")}
           >
-            <span aria-hidden="true" className="relative block h-3 w-5">
+            <span aria-hidden="true" className="relative block h-3.5 w-5">
               <span
                 className={clsx(
-                  "duration-base ease-out-standard absolute left-0 h-[1.5px] w-full bg-current transition-transform",
+                  "duration-base ease-out-standard absolute left-0 h-[1.5px] w-full rounded-full bg-current transition-transform",
                   menuOpen ? "top-1/2 -translate-y-1/2 rotate-45" : "top-0",
                 )}
               />
               <span
                 className={clsx(
-                  "duration-base ease-out-standard absolute left-0 h-[1.5px] w-full bg-current transition-transform",
+                  "duration-base ease-out-standard absolute top-1/2 left-0 h-[1.5px] w-full -translate-y-1/2 rounded-full bg-current transition-opacity",
+                  menuOpen && "opacity-0",
+                )}
+              />
+              <span
+                className={clsx(
+                  "duration-base ease-out-standard absolute left-0 h-[1.5px] w-full rounded-full bg-current transition-transform",
                   menuOpen ? "top-1/2 -translate-y-1/2 -rotate-45" : "bottom-0",
                 )}
               />

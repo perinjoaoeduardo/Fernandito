@@ -140,11 +140,13 @@ export function FooterSection() {
 
           {/* Legal: Termos e Privacidade (só com a loja ligada). */}
           {STORE.enabled && (
-            <div>
+            // Celular: linha inteira embaixo, links lado a lado (em coluna a
+            // "Política de privacidade" quebrava e a coluna ficava torta).
+            <div className="col-span-2 lg:col-span-1">
               <h3 className="text-label mb-3 font-sans tracking-[0.08em] uppercase opacity-80">
                 {FOOTER.legalTitle}
               </h3>
-              <ul className="flex flex-col gap-3">
+              <ul className="flex flex-wrap gap-x-6 gap-y-3 lg:flex-col lg:gap-3">
                 {FOOTER.legalLinks.map((link) => (
                   <li key={link.href}>
                     <Link href={link.href} variant="underline-grow" className={FOOTER_LINK_CLASSES}>
@@ -164,27 +166,31 @@ export function FooterSection() {
           imagem futuramente, por isso o fundo fica sólido). */}
       {/* No celular tudo alinhado à esquerda, como o resto do rodapé
           (centralizado, a moeda ficava solta de um lado e o texto do outro). */}
-      <div className="relative mt-10 flex w-full flex-col items-start gap-6 border-t border-white/10 pt-6 text-left sm:mt-12 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático */}
-          <img
-            src="/logo/fernandito-moeda.webp"
-            alt=""
-            aria-hidden="true"
-            width={256}
-            height={258}
-            loading="lazy"
-            decoding="async"
-            className="h-10 w-10 shrink-0 opacity-90"
-          />
-          <div className="font-sans text-[13px]">
-            {/* Aviso de bebida alcoólica: obrigatório e em destaque. */}
+      <div className="relative mt-10 flex w-full flex-col items-start gap-7 border-t border-white/10 pt-7 text-left sm:mt-12 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex max-w-xl flex-col gap-4 font-sans text-[13px] leading-relaxed">
+          {/* Aviso de bebida alcoólica: obrigatório e em destaque, com a
+              moeda do lado. */}
+          <div className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático */}
+            <img
+              src="/logo/fernandito-moeda.webp"
+              alt=""
+              aria-hidden="true"
+              width={256}
+              height={258}
+              loading="lazy"
+              decoding="async"
+              className="h-10 w-10 shrink-0 opacity-90"
+            />
             <p className="font-bold tracking-[0.02em]">{FOOTER.alcoholNotice}</p>
-            <p className="mt-1 opacity-70">
-              {FOOTER.copyright} {FOOTER.company}
-            </p>
-            <p className="opacity-70">{FOOTER.madeIn}</p>
           </div>
+          {/* Dados da empresa, uma informação por linha. */}
+          <div className="flex flex-col gap-0.5 opacity-70">
+            <p>{FOOTER.copyright}</p>
+            <p>{FOOTER.companyName}</p>
+            <p>{FOOTER.companyAddress}</p>
+          </div>
+          <p className="opacity-70">{FOOTER.madeIn}</p>
         </div>
 
         {/* Voltar ao topo: pílula com rótulo escrito + seta (só a seta num

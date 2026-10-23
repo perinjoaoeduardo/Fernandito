@@ -531,6 +531,9 @@ export const FOOTER = {
    * social, CNPJ e endereço visíveis no site. */
   company:
     "FERNANDITO BEBIDAS LTDA · CNPJ 69.252.946/0001-41 · Rua Castro Alves, 433, Rio Branco, Porto Alegre/RS, CEP 90430-131",
+  /** As mesmas informações, quebradas pra caber organizado no rodapé. */
+  companyName: "FERNANDITO BEBIDAS LTDA · CNPJ 69.252.946/0001-41",
+  companyAddress: "Rua Castro Alves, 433, Rio Branco · Porto Alegre/RS · CEP 90430-131",
   madeIn: "Feito com brio. Porto Alegre, RS.",
 };
 
