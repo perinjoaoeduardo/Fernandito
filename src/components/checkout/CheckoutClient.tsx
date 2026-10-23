@@ -88,6 +88,15 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
   const [ageError, setAgeError] = useState(false);
   // Pix gerado no passo do frete: o último passo já abre com o QR.
   const [pixOrder, setPixOrder] = useState<PublicOrder | null>(null);
+  // Pix gerado: o carrinho do menu some (mudar a quantidade agora não muda
+  // o Pix e confundiria). Volta ao sair do checkout.
+  useEffect(() => {
+    if (!pixOrder) return;
+    document.documentElement.dataset.pixOpen = "";
+    return () => {
+      delete document.documentElement.dataset.pixOpen;
+    };
+  }, [pixOrder]);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   // Esgotou enquanto a pessoa preenchia: avisa antes de ela chegar no Pix.

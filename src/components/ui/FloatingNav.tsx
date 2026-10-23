@@ -246,6 +246,7 @@ export function FloatingNav() {
 
           <span
             aria-hidden="true"
+            data-cart-ui
             className={clsx(
               "mx-1.5 h-6 w-px",
               overLight ? "bg-fernandito-off-white/20" : "bg-fernandito-verde-escuro/20",
@@ -256,6 +257,7 @@ export function FloatingNav() {
           {STORE.enabled && (
             <button
               type="button"
+              data-cart-ui
               onClick={cart.open}
               aria-label={
                 cart.count

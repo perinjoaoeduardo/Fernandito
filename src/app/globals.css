@@ -490,3 +490,9 @@ html[data-age="ask"]:is([data-intro="reveal"], [data-intro="done"]):has(#age-gat
     stroke-dashoffset: 0;
   }
 }
+
+/* Pix aberto (checkout ou tela do pedido): sem carrinho no menu. */
+html[data-pix-open] [data-cart-ui],
+body:has([data-pix-page]) [data-cart-ui] {
+  display: none;
+}
