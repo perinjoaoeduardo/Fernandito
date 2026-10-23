@@ -500,9 +500,22 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                       <button
                         type="button"
                         onClick={() => setNoteOpen(true)}
-                        className="text-label duration-base ease-out-standard hover:text-fernandito-verde-medio font-sans underline underline-offset-4 opacity-70 transition-[color,opacity] hover:opacity-100"
+                        className="text-fernandito-verde-medio border-fernandito-verde-medio/35 hover:bg-fernandito-verde-claro/15 hover:border-fernandito-verde-medio duration-base ease-out-standard inline-flex items-center gap-2 rounded-full border border-dashed px-4 py-2 font-sans text-[0.85rem] font-bold transition-colors"
                       >
-                        + Deixar um recado (é presente?)
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                          className="h-4 w-4"
+                        >
+                          <rect x="3.5" y="8" width="17" height="12.5" rx="1.5" />
+                          <path d="M2.5 8h19M12 8v12.5M12 8S10.5 3.5 8 4.2 7.5 8 12 8Zm0 0s1.5-4.5 4-3.8S16.5 8 12 8Z" />
+                        </svg>
+                        É presente? Deixa um recado
                       </button>
                     )}
                   </div>
