@@ -99,6 +99,12 @@ export function FloatingNav() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Trocou de página: o menu do celular fecha (garantia além do clique no link).
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reage à troca de rota
+    setMenuOpen(false);
+  }, [pathname]);
+
   // Fecha o overlay mobile com Esc.
   useEffect(() => {
     if (!menuOpen) return;

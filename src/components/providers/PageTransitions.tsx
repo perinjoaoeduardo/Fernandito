@@ -24,8 +24,10 @@ export function PageTransitions() {
       if (url.origin !== window.location.origin) return;
       if (url.pathname === window.location.pathname) return;
       if (url.pathname.startsWith("/api/")) return;
+      // Só cancela a navegação padrão (o Next não navega se o clique já foi
+      // cancelado). NÃO para a propagação: o `onClick` do próprio link (ex.:
+      // fechar o menu do celular) precisa rodar.
       event.preventDefault();
-      event.stopPropagation();
       curtainNavigate(() => router.push(url.pathname + url.search + url.hash));
     };
     document.addEventListener("click", onClick, true);
