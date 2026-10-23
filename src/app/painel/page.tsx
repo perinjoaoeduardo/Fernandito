@@ -18,11 +18,13 @@ export const metadata: Metadata = {
 };
 
 // Estoque que o painel mostra: os 4 produtos do Bling (saldo virtual).
+// `cap` = tamanho do lote de referência (a barra mostra quanto sobra dele).
+// Mudou o lote? Troca aqui.
 const PRODUCTS_STOCK = [
-  { sku: "FERN-KIT-PRE", name: "Kit pré-lançamento", hint: "à venda no site" },
-  { sku: "FERN-350", name: "Lata 350ml", hint: "latas" },
-  { sku: "FERN-350-6", name: "Pack 6 latas", hint: "packs" },
-  { sku: "FERN-PRESSKIT", name: "Press kit (brinde)", hint: "para brindes" },
+  { sku: "FERN-KIT-PRE", name: "Kit pré-lançamento", cap: 200 },
+  { sku: "FERN-350", name: "Lata 350ml", cap: 1000 },
+  { sku: "FERN-350-6", name: "Pack 6 latas", cap: 166 },
+  { sku: "FERN-PRESSKIT", name: "Press kit (brinde)", cap: 50 },
 ] as const;
 
 const brl = (cents: number) =>
@@ -277,18 +279,26 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           />
         </section>
 
-        <section className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {stock.map((p) => (
-            <div key={p.sku} className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-              <div className="text-sm text-zinc-500">{p.name}</div>
-              <div className="mt-2 flex items-baseline gap-1.5">
-                <span className="text-2xl font-semibold tracking-tight tabular-nums">
-                  {p.left ?? "—"}
-                </span>
-                <span className="text-xs text-zinc-500">{p.hint}</span>
+        <section className="mt-3 flex flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+          {stock.map((p) => {
+            const pct = p.left === null ? 0 : Math.min(100, Math.round((p.left / p.cap) * 100));
+            return (
+              <div key={p.sku}>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">{p.name}</span>
+                  <span className="text-zinc-500">
+                    {p.left ?? "—"} de {p.cap}
+                  </span>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100">
+                  <div
+                    className={`h-full rounded-full ${pct <= 15 ? "bg-red-500" : "bg-zinc-900"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </section>
 
         {alerts.length > 0 && (
