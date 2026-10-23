@@ -772,9 +772,19 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                     // Celular: botão redondo ao lado do principal; computador: texto.
                     className="text-label border-fernandito-verde-escuro/20 hover:text-fernandito-verde-medio duration-base ease-out-standard flex h-[3.25rem] w-[3.25rem] shrink-0 items-center justify-center rounded-full border font-sans tracking-[0.12em] uppercase transition-[color,opacity,border-color] sm:h-11 sm:w-auto sm:border-0 sm:opacity-70 sm:hover:opacity-100"
                   >
-                    <span aria-hidden="true" className="text-[1.1rem] sm:text-[inherit]">
-                      ←
-                    </span>
+                    {/* Seta em SVG: o "←" da fonte ficava fora do centro. */}
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.8}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                      className="h-5 w-5 sm:h-4 sm:w-4"
+                    >
+                      <path d="M19 12H5M11 6l-6 6 6 6" />
+                    </svg>
                     <span className="hidden sm:ml-2 sm:inline">Voltar</span>
                   </button>
                 ) : (

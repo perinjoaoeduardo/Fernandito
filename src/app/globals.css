@@ -504,3 +504,12 @@ body:has([data-pix-page]) [data-cart-ui] {
 #notify-modal[data-state="leaving"] .gate-backdrop {
   animation: fadeOut 0.5s ease-in both;
 }
+
+/* iPhone/Android antigos sem `overflow: clip`: sem isso, o que vaza pro lado
+   (faixa que corre, trilhos de fotos) deixa a página rolar pra sobrar. */
+@supports not (overflow: clip) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+}
