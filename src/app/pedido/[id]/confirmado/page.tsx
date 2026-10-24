@@ -71,7 +71,7 @@ export default async function ConfirmadoPage(props: PageProps<"/pedido/[id]/conf
         <div data-enter className="w-full">
           <OrderReceipt order={publicOrder(order)} />
         </div>
-        <div data-enter className="flex flex-wrap items-center">
+        <div data-enter className="flex flex-wrap items-center gap-x-5 gap-y-4">
           <Button
             as="a"
             href="/"
@@ -85,7 +85,7 @@ export default async function ConfirmadoPage(props: PageProps<"/pedido/[id]/conf
               href={whatsappFor(order.id)!}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-label ml-5 tracking-[0.08em] uppercase underline underline-offset-4 opacity-75 hover:opacity-100"
+              className="text-label tracking-[0.08em] uppercase underline underline-offset-4 opacity-75 hover:opacity-100"
             >
               Dúvidas? WhatsApp
             </a>
