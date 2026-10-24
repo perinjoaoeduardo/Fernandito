@@ -37,6 +37,22 @@ function TopoIcon() {
   );
 }
 
+/** No celular cada trecho entre " · " numa linha própria (quebrando no
+ * meio ficava bagunçado); do sm pra cima, tudo numa linha com o ponto. */
+function Lines({ text }: { text: string }) {
+  const parts = text.split(" · ");
+  return (
+    <p>
+      {parts.map((part, i) => (
+        <span key={i} className="block sm:inline">
+          {i > 0 && <span className="hidden sm:inline"> · </span>}
+          {part}
+        </span>
+      ))}
+    </p>
+  );
+}
+
 export function FooterSection() {
   return (
     <footer
@@ -184,10 +200,10 @@ export function FooterSection() {
             <p className="font-bold tracking-[0.02em]">{FOOTER.alcoholNotice}</p>
           </div>
           {/* Dados da empresa, uma informação por linha. */}
-          <div className="flex flex-col gap-0.5 opacity-70">
-            <p>{FOOTER.copyright}</p>
-            <p>{FOOTER.companyName}</p>
-            <p>{FOOTER.companyAddress}</p>
+          <div className="flex flex-col gap-2 leading-snug opacity-70 sm:gap-0.5 sm:leading-relaxed">
+            <Lines text={FOOTER.copyright} />
+            <Lines text={FOOTER.companyName} />
+            <Lines text={FOOTER.companyAddress} />
           </div>
           <p className="opacity-70">{FOOTER.madeIn}</p>
         </div>

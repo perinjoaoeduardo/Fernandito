@@ -528,16 +528,17 @@ export const FOOTER = {
     { label: "Trocas e devoluções", href: "/trocas" },
   ],
   backToTop: "Voltar ao topo",
-  copyright: "© 2026 Fernandito. Todos os direitos reservados.",
+  copyright: "© 2026 Fernandito · Todos os direitos reservados.",
   /** Aviso obrigatório de bebida alcoólica (sempre visível no rodapé). */
   alcoholNotice: "Beba com moderação. Venda proibida para menores de 18 anos.",
   /** Dados da empresa: a lei do e-commerce (Decreto 7.962/2013) pede razão
    * social, CNPJ e endereço visíveis no site. */
   company:
     "FERNANDITO BEBIDAS LTDA · CNPJ 69.252.946/0001-41 · Rua Castro Alves, 433, Rio Branco, Porto Alegre/RS, CEP 90430-131",
-  /** As mesmas informações, quebradas pra caber organizado no rodapé. */
+  /** As mesmas informações, quebradas pra caber organizado no rodapé
+   * (no celular cada trecho entre " · " vira uma linha). */
   companyName: "FERNANDITO BEBIDAS LTDA · CNPJ 69.252.946/0001-41",
-  companyAddress: "Rua Castro Alves, 433, Rio Branco · Porto Alegre/RS · CEP 90430-131",
+  companyAddress: "Rua Castro Alves, 433, Rio Branco · Porto Alegre/RS, CEP 90430-131",
   madeIn: "Feito com brio. Porto Alegre, RS.",
 };
 
