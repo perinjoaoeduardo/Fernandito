@@ -354,12 +354,9 @@ export function FloatingNav() {
             {/* Fundo padrão (verde-medio) aqui — o overlay já é verde-escuro,
                 então o CTA "verde-escuro" do pill ficaria invisível contra ele. */}
             <div className="flex flex-col items-center gap-4">
-              {/* A compra já está na barra ("Comprar"); aqui ficam os
-                  contatos: WhatsApp (sólido) e Instagram (contornado). */}
-              <WhatsAppButton className="w-64 justify-center">{NAV.whatsappLabel}</WhatsAppButton>
-              {/* Instagram: o lugar onde mais coisa acontece — no menu do
-                  celular ganha um botão próprio, contornado (o WhatsApp
-                  segue sendo o sólido). */}
+              {/* A compra já está na barra ("Comprar") e a conversa no link
+                  "Contato" (a tela do contato leva pro WhatsApp); aqui fica
+                  só o Instagram, contornado. */}
               <a
                 href={SITE_LINKS.instagramUrl}
                 target="_blank"

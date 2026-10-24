@@ -165,6 +165,8 @@ export type ContatoReason = {
   key: "geral" | "evento" | "negocio";
   /** Botão do motivo. */
   chip: string;
+  /** Frase embaixo do seletor, muda junto com o motivo. */
+  lead: string;
   /** Cor da tela inteira com esse motivo. */
   theme: "verde-medio" | "verde-escuro" | "verde-claro" | "off-white";
   photo: ContentImage;
@@ -226,7 +228,6 @@ export const PAGES = {
    * vira lead (`/api/leads`). Na `message`, `{campo}` vira a resposta. */
   contato: {
     title: "Contato",
-    lead: "Curtiu o Fernandito? Chama a gente.",
     submit: "Chamar no WhatsApp",
     /** Embaixo do botão quando o motivo pede dados (LGPD: dizer pra quê). */
     privacy: "Usamos esses dados só pra te responder.",
@@ -238,6 +239,7 @@ export const PAGES = {
       {
         key: "geral",
         chip: "Conversar",
+        lead: "Curtiu o Fernandito? Chama a gente.",
         theme: "verde-medio",
         photo: photo("Foto: contato", "Campo de coxilhas", "/images/placeholder/coxilhas.jpg"),
         fields: [],
@@ -246,6 +248,7 @@ export const PAGES = {
       {
         key: "evento",
         chip: "Evento",
+        lead: "Vai rolar um evento? Conta pra gente que o Fernandito vai junto.",
         theme: "verde-claro",
         photo: photo(
           "Foto: evento",
@@ -267,6 +270,7 @@ export const PAGES = {
       {
         key: "negocio",
         chip: "Revenda",
+        lead: "Quer ter Fernandito no teu bar ou na tua loja? Fala com a gente.",
         theme: "verde-escuro",
         photo: photo("Foto: revenda", "Araucárias no campo", "/images/placeholder/araucarias.jpg"),
         fields: [

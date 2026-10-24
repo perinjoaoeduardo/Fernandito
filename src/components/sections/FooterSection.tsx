@@ -140,13 +140,12 @@ export function FooterSection() {
 
           {/* Legal: Termos e Privacidade (só com a loja ligada). */}
           {STORE.enabled && (
-            // Celular: linha inteira embaixo, links lado a lado (em coluna a
-            // "Política de privacidade" quebrava e a coluna ficava torta).
+            // Celular: linha inteira embaixo, um link embaixo do outro.
             <div className="col-span-2 lg:col-span-1">
               <h3 className="text-label mb-3 font-sans tracking-[0.08em] uppercase opacity-80">
                 {FOOTER.legalTitle}
               </h3>
-              <ul className="flex flex-wrap gap-x-6 gap-y-3 lg:flex-col lg:gap-3">
+              <ul className="flex flex-col gap-3">
                 {FOOTER.legalLinks.map((link) => (
                   <li key={link.href}>
                     <Link href={link.href} variant="underline-grow" className={FOOTER_LINK_CLASSES}>

@@ -179,14 +179,13 @@ export function ContatoTela() {
           <h1 className="font-rampart text-[clamp(2.6rem,min(6vw,9svh),4.6rem)] leading-[0.95]">
             {page.title}
           </h1>
-          <p className="mt-3 font-sans text-[0.95rem] opacity-75">{page.lead}</p>
 
           {/* Motivos: trilho discreto, o destaque desliza de um pro outro. */}
           <div
             role="radiogroup"
             aria-label="Motivo do contato"
             onKeyDown={radioKeys(page.reasons, page.reasons.indexOf(reason), (r) => choose(r.key))}
-            className="mt-6 flex gap-1 self-start rounded-full bg-black/15 p-1"
+            className="mt-6 flex w-full gap-1 rounded-full bg-black/15 p-1"
           >
             {page.reasons.map((r) => {
               const on = r.key === reason.key;
@@ -199,7 +198,7 @@ export function ContatoTela() {
                   tabIndex={on ? 0 : -1}
                   onClick={() => choose(r.key)}
                   className={clsx(
-                    "relative h-9 rounded-full px-4 font-sans text-[0.875rem] font-bold whitespace-nowrap transition-opacity duration-300 lg:h-10 lg:px-5",
+                    "relative h-9 flex-1 rounded-full px-4 font-sans text-[0.875rem] font-bold whitespace-nowrap transition-opacity duration-300 lg:h-10 lg:px-5",
                     on ? "opacity-100" : "opacity-60 hover:opacity-100",
                   )}
                 >
@@ -217,6 +216,20 @@ export function ContatoTela() {
               );
             })}
           </div>
+
+          {/* Frase do motivo: troca junto com o seletor. */}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.p
+              key={reason.key}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 0.75, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={t(0.25)}
+              className="mt-4 font-sans text-[0.95rem]"
+            >
+              {reason.lead}
+            </motion.p>
+          </AnimatePresence>
 
           {/* "Conversar": só o botão. Evento e revenda: um cartão com as
               perguntas e o botão dentro. */}
