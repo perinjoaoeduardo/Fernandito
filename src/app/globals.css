@@ -15,6 +15,17 @@ body {
   overflow-x: clip;
 }
 
+/* A página termina onde o conteúdo termina. Camada absoluta que algo de
+   fora pendure no body (ex.: a barra da Vercel no preview, que mede a
+   altura da home e não encolhe ao trocar de página) não estica mais a
+   rolagem. `position: relative` faz do body o contêiner dessas camadas e o
+   `clip` corta o que passar dele, sem virar contêiner de rolagem (sticky
+   e pins seguem funcionando; `fixed` não é afetado). */
+body {
+  position: relative;
+  overflow-y: clip;
+}
+
 :root {
   --announcement-h: 0px;
 }

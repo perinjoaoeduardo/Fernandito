@@ -52,7 +52,7 @@ export function LegalPage({ doc, slug }: { doc: LegalDoc; slug: LegalSlug }) {
   return (
     <>
       <LegalReader />
-      <main className="bg-fernandito-off-white text-fernandito-verde-escuro min-h-screen [color-scheme:light]">
+      <main className="bg-fernandito-off-white text-fernandito-verde-escuro min-h-svh [color-scheme:light]">
         <div
           data-print-root
           className="mx-auto max-w-6xl px-6 pt-[calc(8rem+var(--announcement-h))] pb-24 motion-safe:animate-[legal-fade_600ms_ease-out_both] sm:px-10"

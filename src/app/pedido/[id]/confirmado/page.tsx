@@ -41,7 +41,7 @@ export default async function ConfirmadoPage(props: PageProps<"/pedido/[id]/conf
     after(() => advanceFulfillment(order.id).then(() => undefined));
 
   return (
-    <main className="bg-fernandito-verde-medio text-fernandito-off-white min-h-screen [color-scheme:light]">
+    <main className="bg-fernandito-verde-medio text-fernandito-off-white min-h-svh [color-scheme:light]">
       <ClearCart />
       {!finished && <AutoRefresh seconds={30} />}
       <EnterStagger className="mx-auto flex max-w-2xl flex-col items-start gap-8 px-6 pt-[calc(8rem+var(--announcement-h))] pb-24 sm:px-10">

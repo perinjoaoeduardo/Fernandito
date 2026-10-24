@@ -23,7 +23,10 @@ export default async function PedidoPage(props: PageProps<"/pedido/[id]">) {
   if (order.status === "paid") redirect(`/pedido/${order.id}/confirmado`);
 
   return (
-    <main data-pix-page className="bg-fernandito-verde-medio text-fernandito-off-white min-h-screen [color-scheme:light]">
+    <main
+      data-pix-page
+      className="bg-fernandito-verde-medio text-fernandito-off-white min-h-svh [color-scheme:light]"
+    >
       <div className="mx-auto max-w-6xl px-6 pt-[calc(8rem+var(--announcement-h))] pb-24 sm:px-10">
         <PixPayment
           order={publicOrder(order)}
