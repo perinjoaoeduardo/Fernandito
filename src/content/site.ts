@@ -348,8 +348,8 @@ export const GALERIA = {
   photos: [
     photo(
       "Foto 01",
-      "Gado pastando no campo, com nuvens baixas sobre as coxilhas",
-      "/images/placeholder/gado.jpg",
+      "Copo Fernandito gelado, cheio de fernet com cola e espuma",
+      "/images/galeria/galeria-01-copo.jpg",
     ),
     photo(
       "Foto 02",
