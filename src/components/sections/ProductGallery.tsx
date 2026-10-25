@@ -95,6 +95,7 @@ export function ProductGallery({ images, seal }: { images: ProductImage[]; seal?
           <div key={active} className="absolute inset-0 animate-[fadeIn_0.7s_ease-out_both]">
             <PhotoSlot
               image={current}
+              eager={active === 0}
               sizes="(max-width: 767px) 90vw, 45vw"
               placeholderClassName="bg-fernandito-verde-medio"
             />

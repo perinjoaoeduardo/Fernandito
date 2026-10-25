@@ -10,6 +10,8 @@ type PhotoSlotProps = {
   /** Tamanho que a foto ocupa na tela, pro navegador baixar a versão certa
    * (ver `sizes` do next/image). */
   sizes: string;
+  /** Foto visível ao abrir a página (ex.: a 1ª do kit): sem lazy. */
+  eager?: boolean;
   /** Classes do placeholder (normalmente a cor de fundo). */
   placeholderClassName?: string;
   className?: string;
@@ -20,7 +22,13 @@ type PhotoSlotProps = {
  * foto de `src/content/site.ts`, recortada pra cobrir. Sem `src`, mostra o
  * placeholder com o nome da foto.
  */
-export function PhotoSlot({ image, sizes, placeholderClassName, className }: PhotoSlotProps) {
+export function PhotoSlot({
+  image,
+  sizes,
+  eager = false,
+  placeholderClassName,
+  className,
+}: PhotoSlotProps) {
   if (image.src) {
     return (
       <Image
@@ -29,6 +37,9 @@ export function PhotoSlot({ image, sizes, placeholderClassName, className }: Pho
         fill
         sizes={sizes}
         quality={PHOTO_QUALITY}
+        // A foto que aparece primeiro na tela carrega na hora, com prioridade;
+        // as outras só quando forem mostradas (lazy, o padrão).
+        {...(eager ? { loading: "eager" as const, fetchPriority: "high" as const } : {})}
         className={clsx("object-cover", className)}
       />
     );

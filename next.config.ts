@@ -40,6 +40,9 @@ const nextConfig: NextConfig = {
     // Fotos da marca saem em 90 (o padrão do Next 16 é só 75, que deixava
     // as fotos de câmera com cara de compressão). Ver `PHOTO_QUALITY`.
     qualities: [75, 90],
+    // AVIF primeiro (uns 30% menor que WebP na mesma qualidade); navegador
+    // sem AVIF recebe WebP.
+    formats: ["image/avif", "image/webp"],
   },
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];

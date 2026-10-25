@@ -58,19 +58,27 @@ export const PRODUCTS: Product[] = [
     // DESLIGAR depois do teste — o check-up (/api/loja/checkup) avisa.
     priceCents: TEST_PRICE ?? 8990,
     images: [
+      // Fotos do press kit (public/images/kit, reduzidas pra 2000px; o
+      // next/image entrega no tamanho de cada tela).
       {
-        // PLACEHOLDER: trocar pela foto do kit.
-        src: "/images/hero-rotulo.jpg",
-        alt: "Rótulo do Fernandito sobre a mesa — foto provisória do kit pré-lançamento",
+        src: "/images/kit/kit-caixa.jpg",
+        alt: "Kit Fernandito aberto: 2 latas, o copo e os adesivos na caixa com palha",
         placeholder: "Foto do kit",
       },
-      // PLACEHOLDERS: trocar pelas fotos reais (latas, copo, adesivos).
-      { src: null, alt: "Latas do kit Fernandito — foto a definir", placeholder: "Foto: latas" },
-      { src: null, alt: "Copo do kit Fernandito — foto a definir", placeholder: "Foto: copo" },
       {
-        src: null,
-        alt: "Adesivos do kit Fernandito — foto a definir",
+        src: "/images/kit/kit-copo.jpg",
+        alt: "Copo Fernandito com fernet com cola e gelo",
+        placeholder: "Foto: copo",
+      },
+      {
+        src: "/images/kit/kit-adesivos.jpg",
+        alt: "Adesivos do Fernandito espalhados sobre fundo verde",
         placeholder: "Foto: adesivos",
+      },
+      {
+        src: "/images/kit/kit-carta.jpg",
+        alt: "Carta de boas-vindas que vai dentro do kit",
+        placeholder: "Foto: carta",
       },
     ],
     maxQty: 5,
