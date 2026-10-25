@@ -81,14 +81,15 @@ export function ProductGallery({ images, seal }: { images: ProductImage[]; seal?
   }, [playing, active, cycle, go]);
 
   return (
-    <div>
+    // Computador: 10% menor que a coluna (largura e altura).
+    <div className="lg:w-[90%]">
       <div className="relative">
         <div
           ref={frameRef}
           data-gallery-image
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
-          className="group bg-fernandito-verde-medio relative aspect-[4/5] overflow-hidden rounded-[1.75rem] shadow-[0_30px_70px_rgba(36,48,34,0.28)] lg:aspect-auto lg:h-[clamp(20rem,calc(100svh-var(--announcement-h)-16rem),40rem)]"
+          className="group bg-fernandito-verde-medio relative aspect-[4/5] overflow-hidden rounded-[1.75rem] shadow-[0_30px_70px_rgba(36,48,34,0.28)] lg:aspect-auto lg:h-[clamp(18rem,calc((100svh-var(--announcement-h)-16rem)*0.9),36rem)]"
         >
           {/* A foto troca com um fade curto (a key remonta o PhotoSlot). */}
           <div key={active} className="absolute inset-0 animate-[fadeIn_0.7s_ease-out_both]">
