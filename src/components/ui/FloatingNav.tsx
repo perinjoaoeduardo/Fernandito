@@ -144,7 +144,7 @@ export function FloatingNav() {
   const iconButton = clsx(
     "duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
     ink,
-    overLight ? "hover:bg-fernandito-off-white/12" : "hover:bg-fernandito-verde-escuro/10",
+    overLight ? "hover:bg-fernandito-off-white/[0.07]" : "hover:bg-fernandito-verde-escuro/[0.06]",
   );
 
   return (
@@ -208,15 +208,22 @@ export function FloatingNav() {
         >
           {/* Páginas (site completo, md+). */}
           {LINKS.length > 0 && (
-            <div className="hidden items-center pl-1 md:flex">
+            // Mesma altura (h-11) e o mesmo fundo de hover do carrinho: todas
+            // as peças da barra são pílulas iguais, a 6px da borda. Hover é
+            // mais leve que a página atual (que ainda ganha negrito).
+            <div className="hidden items-center gap-1 md:flex">
               {LINKS.map((link) => (
                 <Link
                   key={link.label}
                   href={link.href}
+                  variant="none"
                   aria-current={pathname === link.href ? "page" : undefined}
                   className={clsx(
-                    "text-label duration-base ease-out-standard rounded-full px-3 py-2 font-sans tracking-[0.08em] whitespace-nowrap uppercase transition-colors lg:px-4",
+                    "text-label duration-base ease-out-standard flex h-11 items-center rounded-full px-4 font-sans tracking-[0.08em] whitespace-nowrap uppercase transition-colors",
                     ink,
+                    overLight
+                      ? "hover:bg-fernandito-off-white/[0.07]"
+                      : "hover:bg-fernandito-verde-escuro/[0.06]",
                     pathname === link.href &&
                       (overLight
                         ? "bg-fernandito-off-white/12 font-bold"
@@ -235,7 +242,7 @@ export function FloatingNav() {
               type="button"
               onClick={goToShop}
               className={clsx(
-                "duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio ml-1 flex h-11 items-center rounded-full px-5 font-sans text-[0.8125rem] font-bold tracking-[0.06em] whitespace-nowrap uppercase transition-[background-color,color,transform] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]",
+                "duration-base ease-out-standard focus-visible:outline-fernandito-verde-medio flex h-11 items-center rounded-full px-5 font-sans text-[0.8125rem] font-bold tracking-[0.06em] whitespace-nowrap uppercase transition-[background-color,color,transform] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]",
                 overLight
                   ? "bg-fernandito-off-white text-fernandito-verde-escuro hover:bg-fernandito-verde-claro hover:text-fernandito-off-white"
                   : "bg-fernandito-verde-escuro text-fernandito-off-white hover:bg-fernandito-verde-medio",

@@ -216,7 +216,7 @@ export function ComprarSection({
       )}
     >
       {standalone && (
-        <div className="mx-auto mb-8 w-full max-w-6xl lg:mb-6">
+        <div className="mx-auto mb-12 w-full max-w-6xl lg:mb-14">
           <NextLink
             href="/"
             className="text-label duration-base ease-out-standard inline-flex items-center gap-2 font-sans tracking-[0.1em] uppercase opacity-60 transition-opacity hover:opacity-100"

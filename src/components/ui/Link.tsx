@@ -5,7 +5,7 @@ import NextLink from "next/link";
 import type { AnchorHTMLAttributes, ReactNode } from "react";
 import { teleportTo } from "@/lib/lenis";
 
-type LinkVariant = "underline-grow" | "underline-swap";
+type LinkVariant = "underline-grow" | "underline-swap" | "none";
 
 type LinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
   variant?: LinkVariant;
@@ -37,6 +37,8 @@ const UNDERLINE_SWAP =
 const VARIANT_CLASSES: Record<LinkVariant, string> = {
   "underline-grow": UNDERLINE_GROW,
   "underline-swap": UNDERLINE_SWAP,
+  // Sem sublinha: quem desenha o hover é o próprio link (ex.: pílula do menu).
+  none: "",
 };
 
 /**
