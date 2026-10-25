@@ -512,10 +512,11 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                           aria-hidden="true"
                           className="h-4 w-4"
                         >
-                          <rect x="3.5" y="8" width="17" height="12.5" rx="1.5" />
-                          <path d="M2.5 8h19M12 8v12.5M12 8S10.5 3.5 8 4.2 7.5 8 12 8Zm0 0s1.5-4.5 4-3.8S16.5 8 12 8Z" />
+                          {/* Balão de conversa (antes era um presente: o recado
+                              serve pra qualquer pedido, não só pra presente). */}
+                          <path d="M20.5 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 20.5 12Z" />
                         </svg>
-                        É presente? Deixa um recado
+                        Algum pedido ou recado?
                       </button>
                     )}
                   </div>
@@ -885,7 +886,7 @@ function NoteCard({ value, onChange }: { value: string; onChange: (value: string
         maxLength={NOTE_MAX}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="É presente? Diz pra quem é e o que escrever no cartão."
+        placeholder="Um pedido especial ou um recado…"
         className="text-body duration-base ease-out-standard border-fernandito-verde-escuro/25 focus:border-fernandito-verde-medio field-sizing-content max-h-40 min-h-[3.25rem] w-full resize-none rounded-xl border bg-white/70 px-4 py-2.5 shadow-[inset_0_1px_2px_rgba(36,48,34,0.06)] transition-[background-color,border-color,box-shadow] outline-none placeholder:opacity-40 focus:bg-white focus:shadow-[0_0_0_4px_rgba(64,81,57,0.18)]"
       />
     </div>
