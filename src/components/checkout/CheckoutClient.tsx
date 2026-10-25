@@ -9,7 +9,7 @@ import { gsap, DURATION, EASE, prefersReducedMotion } from "@/lib/gsap";
 import { maskCEP, maskCPF, maskPhone, onlyDigits } from "@/lib/br";
 import { formatBRL } from "@/lib/money";
 import { addressSchema, customerSchema, fieldErrors, NOTE_MAX, orderSchema } from "@/lib/order";
-import { formatDays, getShippingOptions, type ShippingOption } from "@/lib/shipping";
+import { formatDays, getShippingOptions, localCity, type ShippingOption } from "@/lib/shipping";
 import { SHOP_HREF, STORE } from "@/content/site";
 import { Button } from "@/components/ui/Button";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
@@ -707,7 +707,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                           <span className="flex min-w-0 flex-1 flex-col gap-1 sm:gap-0.5">
                             <span className="flex items-baseline justify-between gap-3">
                               <span className="text-body flex flex-wrap items-center gap-2 font-bold">
-                                {local ? "Entrega em mãos · Porto Alegre" : option.carrier}
+                                {local ? "Entrega em mãos" : option.carrier}
                                 <span className="hidden sm:contents">{badges}</span>
                               </span>
                               <span className="font-rampart text-[1.2rem] leading-none tabular-nums sm:hidden">
@@ -718,9 +718,11 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                               <span className="contents sm:hidden">{badges}</span>
                               <span className="opacity-65">
                                 <span className="hidden sm:inline">
-                                  {local ? "A gente leva" : option.service} ·{" "}
+                                  {local ? localCity(option.id) : option.service} ·{" "}
                                 </span>
-                                {local && <span className="sm:hidden">A gente leva · </span>}
+                                {local && (
+                                  <span className="sm:hidden">{localCity(option.id)} · </span>
+                                )}
                                 {formatDays(option.days)}
                               </span>
                             </span>

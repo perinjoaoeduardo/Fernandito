@@ -1,11 +1,11 @@
 import { clsx } from "clsx";
-import { LOCAL_DELIVERY } from "@/lib/shipping";
+import { isLocalShipping, localCity } from "@/lib/shipping";
 import type { Fulfillment } from "@/lib/store/fulfillment";
 
 /**
  * Linha do tempo do pedido (página /pedido/[id]/confirmado). Lê o estado do
  * envio automático (`fulfill:<id>`): pago → nota → etiqueta com rastreio →
- * postado → entregue. Em Porto Alegre: pago → nota → saiu pra entrega →
+ * postado → entregue. Entrega própria (Porto Alegre, Caxias do Sul): pago → nota → saiu pra entrega →
  * entregue. Tudo do servidor; a página se atualiza sozinha (AutoRefresh).
  */
 export function OrderTimeline({
@@ -17,7 +17,7 @@ export function OrderTimeline({
   shippingId: string;
   fulfillment: Fulfillment | null;
 }) {
-  const local = shippingId === LOCAL_DELIVERY.id;
+  const local = isLocalShipping(shippingId);
   const stage = f?.stage ?? "invoice";
   const invoiceDone = Boolean(f?.invoice.key);
   const reached = (s: string[]) => s.includes(stage);
@@ -35,7 +35,7 @@ export function OrderTimeline({
         {
           title: "Saiu pra entrega",
           done: reached(["local", "local-delivered"]),
-          note: "Entrega própria em Porto Alegre",
+          note: `Entrega própria em ${localCity(shippingId)}`,
         },
         { title: "Entregue", done: reached(["local-delivered"]), note: null },
       ]

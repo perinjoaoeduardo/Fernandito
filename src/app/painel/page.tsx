@@ -72,8 +72,8 @@ const STAGE: Record<FulfillStage, [string, Tone]> = {
   ready: ["Imprimir e postar", "blue"],
   posted: ["Postado", "green"],
   delivered: ["Entregue", "green"],
-  local: ["Entregar em Porto Alegre", "blue"],
-  "local-delivered": ["Entregue (POA)", "green"],
+  local: ["Entregar em mãos", "blue"],
+  "local-delivered": ["Entregue (em mãos)", "green"],
 };
 
 function status(o: StoredOrder, f: Fulfillment | null): [string, Tone] {
@@ -133,7 +133,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 const FILTERS = [
   ["ativos", "Ativos"],
   ["imprimir", "Imprimir"],
-  ["entregar", "Entregar (POA)"],
+  ["entregar", "Entregar (em mãos)"],
   ["olho", "Precisam de olho"],
   ["estornados", "Estornados"],
   ["todos", "Todos"],
@@ -264,7 +264,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
             tone={toPrint.length ? "blue" : undefined}
           />
           <Stat
-            label="Entregar (POA)"
+            label="Entregar (em mãos)"
             value={toDeliver.length}
             tone={toDeliver.length ? "blue" : undefined}
           />

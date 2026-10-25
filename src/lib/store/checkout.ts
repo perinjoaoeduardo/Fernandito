@@ -4,9 +4,8 @@ import { quoteMelhorEnvio } from "@/lib/melhor-envio";
 import { onlyDigits } from "@/lib/br";
 import type { Order } from "@/lib/order";
 import {
-  LOCAL_DELIVERY,
-  isPoaCep,
-  isPortoAlegre,
+  localDeliveryFor,
+  isLocalShipping,
   tableShipping,
   type ShippingOption,
 } from "@/lib/shipping";
@@ -67,8 +66,9 @@ export async function priceOrder(input: Order) {
   const { cep, city, uf } = input.address;
   const wanted = input.shipping.id;
   let shipping: ShippingOption | undefined;
-  if (wanted === LOCAL_DELIVERY.id) {
-    if (isPortoAlegre(city, uf) && isPoaCep(cep)) shipping = LOCAL_DELIVERY;
+  if (isLocalShipping(wanted)) {
+    const local = localDeliveryFor({ cep, city, uf });
+    if (local?.id === wanted) shipping = local;
   } else if (wanted.startsWith("tabela-")) {
     const table = tableShipping(uf);
     if (table.id === wanted) shipping = table;

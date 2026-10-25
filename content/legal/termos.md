@@ -1,8 +1,8 @@
 ---
 title: Termos de Uso e Condições de Venda
 description: Termos de uso do site fernandito.com.br e condições de venda do Fernandito — venda proibida para menores de 18 anos.
-version: "1.1"
-updatedAt: "17/10/2026"
+version: "1.2"
+updatedAt: "25/10/2026"
 ---
 
 ## 1. Quem somos
@@ -53,7 +53,7 @@ O estoque é verificado e reservado na geração do Pix (e liberado se o Pix nã
 
 ## 8. Entrega
 
-- **Porto Alegre/RS:** entrega própria, com valor e prazo informados no checkout
+- **Porto Alegre/RS e Caxias do Sul/RS:** entrega própria, com valor e prazo informados no checkout
 - **Demais localidades:** entrega por transportadora parceira, com valor e prazo calculados no checkout
 - O prazo começa a contar após a confirmação do pagamento e é estimado. Atrasos causados por transportadora, greve, clima ou outros eventos fora do nosso controle serão comunicados
 - Confira o endereço antes de pagar. Endereço incorreto ou incompleto pode gerar custo extra de reenvio

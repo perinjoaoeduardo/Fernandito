@@ -431,8 +431,13 @@ export function PixPayment({
                   ))}
                 </ol>
                 <details className="group sm:hidden">
-                  <summary className="text-label mt-3 flex cursor-pointer list-none items-center gap-2 underline underline-offset-4 opacity-70">
-                    Pagar de outro celular? Mostrar QR code
+                  {/* Pergunta solta e só o "Mostrar QR code" sublinhado: a
+                      frase inteira sublinhada quebrava em duas linhas. */}
+                  <summary className="text-label mt-3 cursor-pointer list-none opacity-70">
+                    Pagar de outro celular?{" "}
+                    <span className="whitespace-nowrap underline underline-offset-4">
+                      Mostrar QR code
+                    </span>
                   </summary>
                   <div className="mt-4 flex justify-center">{qr}</div>
                 </details>
@@ -588,16 +593,17 @@ export function PixPayment({
               data-enter
               className="text-label border-fernandito-verde-escuro/10 mt-6 border-t pt-4 font-sans leading-relaxed opacity-75"
             >
-              Já pagou e a tela não mudou? Não paga de novo.{" "}
+              Já pagou e a tela não mudou? Não paga de novo.
+              {/* Link numa linha própria e inteiro (quebrando no meio, a
+                  sublinha ficava picada em duas linhas). */}
               <a
                 href={help}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-bold underline underline-offset-4 hover:opacity-100"
+                className="mt-1 block w-fit font-bold whitespace-nowrap underline underline-offset-4 hover:opacity-100"
               >
                 Fala com a gente no WhatsApp
               </a>
-              .
             </p>
           ) : (
             <p data-enter className="text-body mt-5 font-sans opacity-80">
@@ -606,7 +612,7 @@ export function PixPayment({
                 href={help}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline underline-offset-4 hover:opacity-100"
+                className="whitespace-nowrap underline underline-offset-4 hover:opacity-100"
               >
                 chama a gente no WhatsApp
               </a>{" "}

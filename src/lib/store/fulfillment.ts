@@ -1,5 +1,5 @@
 import "server-only";
-import { LOCAL_DELIVERY } from "@/lib/shipping";
+import { isLocalShipping } from "@/lib/shipping";
 import { getProduct } from "@/lib/catalog";
 import { bling } from "@/lib/bling/client";
 import {
@@ -52,7 +52,7 @@ export type FulfillStage =
   | "ready" // etiqueta pronta (com rastreio), falta postar
   | "posted"
   | "delivered"
-  | "local" // POA: saiu pra entrega própria
+  | "local" // POA/Caxias: saiu pra entrega própria
   | "local-delivered";
 
 export type Fulfillment = {
@@ -176,7 +176,7 @@ async function stepInvoice(order: StoredOrder, f: Fulfillment) {
   if (NFE_OK.includes(status)) {
     f.invoice.key = nfe.chaveAcesso ?? null;
     if (!f.invoice.key) throw new Error("Nota autorizada mas sem chave de acesso");
-    f.stage = order.shipping.id === LOCAL_DELIVERY.id ? "local" : "label";
+    f.stage = isLocalShipping(order.shipping.id) ? "local" : "label";
     f.error = null;
     await save(order.id, f);
     console.info(`[envio ${order.id}] nota ${f.invoice.number} AUTORIZADA`);

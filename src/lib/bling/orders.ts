@@ -1,5 +1,5 @@
 import "server-only";
-import { LOCAL_DELIVERY } from "@/lib/shipping";
+import { isLocalShipping } from "@/lib/shipping";
 import { IS_PRODUCTION, kvGet, kvSAdd, kvSMembers, kvSRem, kvSet, kvSetNX } from "@/lib/store/kv";
 import { getOrder, saveOrder, type StoredOrder } from "@/lib/store/orders";
 import { bling, BlingNotConnectedError, isBlingConnected } from "@/lib/bling/client";
@@ -245,7 +245,8 @@ async function createSalesOrder(order: StoredOrder) {
   );
   if (existing.data[0]) return existing.data[0];
 
-  const local = order.shipping.id === LOCAL_DELIVERY.id;
+  // Entrega própria (POA ou Caxias): mesma logística de transporte próprio.
+  const local = isLocalShipping(order.shipping.id);
   const [contactId, ids, formaPagamento, servicoPoa, natureza] = await Promise.all([
     findOrCreateContact(order),
     productIds(order.items.map((i) => i.sku)),
