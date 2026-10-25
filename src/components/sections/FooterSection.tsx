@@ -59,10 +59,10 @@ export function FooterSection() {
       id="footer"
       className="bg-fernandito-verde-escuro text-fernandito-off-white relative w-full px-6 py-14 sm:px-10 sm:py-16 lg:px-16"
     >
-      {/* Largura total (só o padding da página). A partir de lg, "Pra quem
-          não deixa passar," cabe numa linha: a frase mede ~17em na Rampart,
-          então o tamanho é (100vw − 36rem de padding+links) / 17, com teto
-          de 2.75rem. */}
+      {/* Largura total (só o padding da página). A partir de lg, "Liberdade
+          não se pede," fica numa linha só e "se toma." embaixo; as colunas de
+          links ocupam só a largura do conteúdo (antes, colunas iguais
+          espalhavam Navegar/Social/Legal pela tela). */}
       {/* No pré-lançamento só sobra a coluna "Social": ela fica logo ao lado
           da frase, em vez de lá no canto direito da tela. */}
       <div
@@ -87,7 +87,7 @@ export function FooterSection() {
             mode="play"
             start="top 75%"
             charsPerSecond={FOOTER_CPS}
-            className="font-rampart text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em] text-balance lg:text-[clamp(2rem,2.8vw,2.75rem)]"
+            className="font-rampart text-[clamp(1.75rem,3vw,2.75rem)] leading-[1.1] tracking-[0.01em] text-balance lg:text-[clamp(1.75rem,2.6vw,2.75rem)] xl:whitespace-nowrap"
           />
           <TypewriterText
             as="p"
@@ -112,7 +112,7 @@ export function FooterSection() {
         <Parallax
           speed={-16}
           touch={false}
-          className={`grid gap-10 sm:gap-16 ${PRELAUNCH.enabled && !STORE.enabled ? "grid-cols-1" : "grid-cols-2"} ${!PRELAUNCH.enabled && STORE.enabled ? "lg:grid-cols-3" : ""}`}
+          className={`grid gap-10 sm:gap-16 ${PRELAUNCH.enabled && !STORE.enabled ? "grid-cols-1" : "grid-cols-2"} ${!PRELAUNCH.enabled && STORE.enabled ? "lg:grid-cols-[repeat(3,auto)] lg:gap-x-12 xl:gap-x-20" : ""}`}
         >
           {/* No pré-lançamento as seções não existem: some o "Navegar". */}
           {!PRELAUNCH.enabled && (
