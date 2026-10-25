@@ -159,9 +159,17 @@ export function ContatoSection({
             {contactHref ? (
               <NextLink
                 href={contactHref}
-                className="border-fernandito-off-white/40 text-fernandito-off-white text-body duration-base ease-out-standard hover:bg-fernandito-off-white hover:text-fernandito-verde-escuro inline-flex items-center justify-center gap-2 rounded-full border px-6 py-3 font-sans font-medium tracking-[0.01em] transition-colors active:scale-[0.96]"
+                // Sólido no verde-claro (contorno fino sumia no fundo verde) e
+                // com seta: é a chamada principal da seção.
+                className="group bg-fernandito-verde-claro text-fernandito-off-white text-body duration-base ease-out-standard hover:bg-fernandito-off-white hover:text-fernandito-verde-escuro focus-visible:outline-fernandito-off-white inline-flex items-center justify-center gap-2.5 rounded-full px-7 py-3.5 font-sans font-bold tracking-[0.01em] shadow-[0_10px_30px_rgba(20,28,18,0.28)] transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 active:scale-[0.96]"
               >
                 {cta}
+                <span
+                  aria-hidden="true"
+                  className="duration-base ease-out-standard transition-transform group-hover:translate-x-1"
+                >
+                  →
+                </span>
               </NextLink>
             ) : (
               <WhatsAppButton background="verde-escuro">{cta}</WhatsAppButton>

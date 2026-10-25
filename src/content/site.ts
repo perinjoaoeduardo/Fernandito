@@ -414,8 +414,8 @@ export const MANIFESTO = {
 
 export const CONTATO = {
   title: "Se interessou pelo Fernandito?",
-  text: "Quer ele na tua festa, no teu bar, no teu evento? Quer comprar ou saber mais? Fala com a gente.",
-  cta: "Falar com a gente",
+  text: "Quer o Fernandito na tua festa, no teu bar ou no teu evento? Chama a gente.",
+  cta: "Chama a gente",
   photo: photo(
     "Foto contato",
     "Rascunho do cavalo do Fernandito em papel, com canetas e rótulos na mesa",
