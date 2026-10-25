@@ -117,7 +117,7 @@ export function FooterSection() {
           {/* No pré-lançamento as seções não existem: some o "Navegar". */}
           {!PRELAUNCH.enabled && (
             <div>
-              <h3 className="text-label mb-3 font-sans tracking-[0.08em] uppercase opacity-80">
+              <h3 className="text-fernandito-verde-claro mb-4 font-sans text-[12px] font-bold tracking-[0.2em] uppercase">
                 {FOOTER.navTitle}
               </h3>
               <ul className="flex flex-col gap-3">
@@ -133,7 +133,7 @@ export function FooterSection() {
           )}
 
           <div>
-            <h3 className="text-label mb-3 font-sans tracking-[0.08em] uppercase opacity-80">
+            <h3 className="text-fernandito-verde-claro mb-4 font-sans text-[12px] font-bold tracking-[0.2em] uppercase">
               {FOOTER.socialTitle}
             </h3>
             <ul className="flex flex-col gap-3">
@@ -158,7 +158,7 @@ export function FooterSection() {
           {STORE.enabled && (
             // Celular: linha inteira embaixo, um link embaixo do outro.
             <div className="col-span-2 lg:col-span-1">
-              <h3 className="text-label mb-3 font-sans tracking-[0.08em] uppercase opacity-80">
+              <h3 className="text-fernandito-verde-claro mb-4 font-sans text-[12px] font-bold tracking-[0.2em] uppercase">
                 {FOOTER.legalTitle}
               </h3>
               <ul className="flex flex-col gap-3">
