@@ -334,8 +334,8 @@ export const HERO = {
 
 export const O_QUE_E = {
   paragraphs: [
-    "Fernandito é fernet com cola pronto pra tomar, numa lata de 350 ml. Gaseificado, 8% vol.",
-    "Nasceu da vontade de espalhar uma cultura de liberdade com a bebida que a gente ama. É pra quem tem um jeito próprio de fazer as coisas e não precisa seguir o caminho de todo mundo.",
+    "Fernandito é fernet com cola, amargo e refrescante, já misturado e pronto pra tomar. Ele nasceu da vontade de espalhar uma cultura de liberdade, e decidimos que a melhor forma de fazer isso seria através da bebida que a gente ama.",
+    "Cada lata carrega o espírito de quem tem um jeito próprio de fazer as coisas, de quem deixa marca, movimenta ideias e não precisa seguir o caminho de todo mundo. Isso é muito Fernandito.",
   ],
   statement: "Onde tomar fernet vira tão fácil quanto abrir uma lata.",
   lata: photo("Lata (aguardando arte)", "Lata de Fernandito"),
