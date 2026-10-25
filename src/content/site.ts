@@ -349,7 +349,7 @@ export const GALERIA = {
     photo(
       "Foto 01",
       "Copo Fernandito gelado, cheio de fernet com cola e espuma",
-      "/images/galeria/galeria-01-copo.jpg",
+      "/images/galeria/galeria-01-copo-perto.jpg",
     ),
     photo(
       "Foto 02",
