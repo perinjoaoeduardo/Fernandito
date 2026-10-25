@@ -305,23 +305,25 @@ export function FloatingNav() {
             aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
             className={clsx(iconButton, "md:hidden")}
           >
-            <span aria-hidden="true" className="relative block h-3.5 w-5">
+            {/* 3 traços de 2px em posições inteiras (0, 6 e 12px): com 1,5px
+                e meio-pixel de posição, cada traço borrava diferente. */}
+            <span aria-hidden="true" className="relative block h-[14px] w-5">
               <span
                 className={clsx(
-                  "duration-base ease-out-standard absolute left-0 h-[1.5px] w-full rounded-full bg-current transition-transform",
-                  menuOpen ? "top-1/2 -translate-y-1/2 rotate-45" : "top-0",
+                  "duration-base ease-out-standard absolute top-0 left-0 h-[2px] w-full rounded-full bg-current transition-transform",
+                  menuOpen && "translate-y-[6px] rotate-45",
                 )}
               />
               <span
                 className={clsx(
-                  "duration-base ease-out-standard absolute top-1/2 left-0 h-[1.5px] w-full -translate-y-1/2 rounded-full bg-current transition-opacity",
+                  "duration-base ease-out-standard absolute top-[6px] left-0 h-[2px] w-full rounded-full bg-current transition-opacity",
                   menuOpen && "opacity-0",
                 )}
               />
               <span
                 className={clsx(
-                  "duration-base ease-out-standard absolute left-0 h-[1.5px] w-full rounded-full bg-current transition-transform",
-                  menuOpen ? "top-1/2 -translate-y-1/2 -rotate-45" : "bottom-0",
+                  "duration-base ease-out-standard absolute top-[12px] left-0 h-[2px] w-full rounded-full bg-current transition-transform",
+                  menuOpen && "-translate-y-[6px] -rotate-45",
                 )}
               />
             </span>
