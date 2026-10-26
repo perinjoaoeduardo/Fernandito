@@ -364,8 +364,8 @@ export const GALERIA = {
     ),
     photo(
       "Foto 02",
-      "Copo Fernandito gelado, cheio de fernet com cola e espuma",
-      "/images/galeria/galeria-01-copo-perto.jpg",
+      "Duas latas de Fernandito geladas, lado a lado",
+      "/images/fotos/duas-latas-galeria.jpg",
     ),
     photo(
       "Foto 03",
@@ -374,8 +374,8 @@ export const GALERIA = {
     ),
     photo(
       "Foto 04",
-      "Duas latas de Fernandito geladas, lado a lado",
-      "/images/fotos/duas-latas-galeria.jpg",
+      "Copo Fernandito gelado, cheio de fernet com cola e espuma",
+      "/images/galeria/galeria-01-copo-perto.jpg",
     ),
     photo(
       "Foto 05",
