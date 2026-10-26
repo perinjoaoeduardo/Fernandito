@@ -95,7 +95,7 @@ export function HeroSlideshow() {
           opacidade dele pelo `data-hero-veil`. */}
       <div
         data-hero-veil
-        className="bg-fernandito-verde-escuro absolute inset-0 opacity-80 [will-change:opacity]"
+        className="bg-fernandito-verde-escuro absolute inset-0 opacity-55 [will-change:opacity]"
       />
     </div>
   );

@@ -32,8 +32,9 @@ const DESKTOP_SHRINK_SCALE = 0.86;
 const CONTENT_DRIFT = IS_TOUCH ? 22 : 36;
 // Véu escuro por cima das fotos: começa forte (logo legível) e clareia
 // enquanto o cartão fecha, revelando a foto.
-const VEIL_FROM = 0.8;
-const VEIL_TO = 0.5;
+// Foto já escura (fundo verde-escuro): véu mais leve que com o rótulo.
+const VEIL_FROM = 0.55;
+const VEIL_TO = 0.3;
 
 export function HeroSection() {
   const goToShop = useGoToShop();
