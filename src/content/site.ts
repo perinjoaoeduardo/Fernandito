@@ -334,8 +334,8 @@ export const HERO = {
   photos: [
     photo(
       "Hero 01",
-      "Fernandito sendo servido da lata num copo com gelo, sobre fundo verde-escuro",
-      "/images/fotos/servindo-escuro.jpg",
+      "Rascunhos e o rótulo do Fernandito espalhados sobre uma mesa de madeira",
+      "/images/hero-rotulo.jpg",
     ),
   ],
 };

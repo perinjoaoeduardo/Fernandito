@@ -84,9 +84,7 @@ export function HeroSlideshow() {
               sizes="100vw"
               quality={PHOTO_QUALITY}
               priority={i === 0}
-              // Tela deitada: a foto (em pé) desce um pouco, pro selo do
-              // copo ficar abaixo do logo em vez de bem atrás dele.
-              className="object-cover md:object-[center_30%]"
+              className="object-cover"
             />
           </div>
         ) : null,
@@ -97,7 +95,7 @@ export function HeroSlideshow() {
           opacidade dele pelo `data-hero-veil`. */}
       <div
         data-hero-veil
-        className="bg-fernandito-verde-escuro absolute inset-0 opacity-[0.72] [will-change:opacity]"
+        className="bg-fernandito-verde-escuro absolute inset-0 opacity-80 [will-change:opacity]"
       />
     </div>
   );
