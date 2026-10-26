@@ -243,8 +243,8 @@ export const PAGES = {
         theme: "verde-medio",
         photo: photo(
           "Foto: contato",
-          "Fernandito sendo servido da lata no copo com gelo",
-          "/images/fotos/servindo-escuro.jpg",
+          "Mão segurando um copo Fernandito cheio, com espuma",
+          "/images/fotos/copo-na-mao.jpg",
         ),
         fields: [],
         message: "Oi, Fernandito! Vim pelo site.\n— enviado pelo site · Contato",
@@ -278,8 +278,8 @@ export const PAGES = {
         theme: "verde-escuro",
         photo: photo(
           "Foto: revenda",
-          "Mão segurando um copo Fernandito cheio, com espuma",
-          "/images/fotos/copo-na-mao.jpg",
+          "Duas latas de Fernandito geladas, lado a lado",
+          "/images/fotos/duas-latas.jpg",
         ),
         fields: [
           { name: "nome", label: "Qual teu nome?", placeholder: "Ana Souza" },
