@@ -241,7 +241,11 @@ export const PAGES = {
         chip: "Conversar",
         lead: "Curtiu o Fernandito? Chama a gente.",
         theme: "verde-medio",
-        photo: photo("Foto: contato", "Campo de coxilhas", "/images/placeholder/coxilhas.jpg"),
+        photo: photo(
+          "Foto: contato",
+          "Fernandito sendo servido da lata no copo com gelo",
+          "/images/fotos/servindo-escuro.jpg",
+        ),
         fields: [],
         message: "Oi, Fernandito! Vim pelo site.\n— enviado pelo site · Contato",
       },
@@ -364,30 +368,26 @@ export const GALERIA = {
       "Copo Fernandito gelado, cheio de fernet com cola e espuma",
       "/images/galeria/galeria-01-copo-perto.jpg",
     ),
+    photo("Foto 03", "Campo de coxilhas com a serra ao fundo", "/images/placeholder/coxilhas.jpg"),
     photo(
-      "Foto 03",
+      "Foto 04",
       "Duas latas de Fernandito geladas, lado a lado",
       "/images/fotos/duas-latas.jpg",
     ),
     photo(
-      "Foto 04",
+      "Foto 05",
       "Cavalo malhado no meio do capim alto, sob céu nublado",
       "/images/placeholder/cavalo-capim.jpg",
     ),
     photo(
-      "Foto 05",
+      "Foto 06",
       "Três amigos rindo e brindando com copos Fernandito",
       "/images/fotos/brinde-sorrindo.jpg",
     ),
     photo(
-      "Foto 06",
+      "Foto 07",
       "Fernandito sendo servido da lata num copo com gelo, transbordando",
       "/images/fotos/servindo-maos.jpg",
-    ),
-    photo(
-      "Foto 07",
-      "Vaca de cara branca vindo pelo campo dourado",
-      "/images/placeholder/vaca-campo.jpg",
     ),
   ],
 };
