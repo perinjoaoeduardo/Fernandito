@@ -10,6 +10,7 @@ import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { InstagramIcon } from "@/components/ui/icons";
 import { useGoToShop } from "@/components/cart/useGoToShop";
+import { useModo } from "@/components/providers/ModoProvider";
 import { CONTATO, LINKS } from "@/content/site";
 
 /**
@@ -50,6 +51,9 @@ export function ContatoSection({
   titleClassName = "text-balance text-[min(7.2vw,2.6rem)] leading-[1.05] md:text-[min(3.1vw,3.6rem)]",
 }: ContatoSectionProps) {
   const goToShop = useGoToShop();
+  // Versão pública (sem convite): o bloco como era antes da loja — fundo
+  // verde-médio e a foto dos rascunhos.
+  const { publico } = useModo();
   const sectionRef = useRef<HTMLElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
@@ -113,7 +117,10 @@ export function ContatoSection({
       ref={sectionRef}
       id="contato"
       aria-label="Contato"
-      className="bg-fernandito-verde-escuro text-fernandito-off-white grid w-full md:min-h-[110vh] md:grid-cols-2"
+      className={clsx(
+        "text-fernandito-off-white grid w-full md:min-h-[110vh] md:grid-cols-2",
+        publico ? "bg-fernandito-verde-medio" : "bg-fernandito-verde-escuro",
+      )}
     >
       <div
         className={clsx(
@@ -212,7 +219,7 @@ export function ContatoSection({
           className="absolute inset-x-0 -top-[10%] h-[120%] [will-change:transform]"
         >
           <PhotoSlot
-            image={CONTATO.photo}
+            image={publico ? CONTATO.publicPhoto : CONTATO.photo}
             sizes="(max-width: 767px) 100vw, 50vw"
             placeholderClassName="bg-fernandito-verde-escuro"
           />

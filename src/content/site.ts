@@ -98,7 +98,7 @@ export const PRELAUNCH = {
 };
 
 /** Acesso por convite: com `restrito: true`, quem entra no site vê só a
- * página "O Fernandito está chegando" (/em-breve). Quem abre o link de
+ * versão pública do site (pré-lançamento, sem loja). Quem abre o link de
  * convite (fernandito.com.br/?convite=CÓDIGO) ganha um cookie de 1 ano e vê
  * o site completo, com a loja. O código é a variável CONVITE_CODIGO na
  * Vercel (ou o padrão abaixo). Dia do lançamento: `restrito: false`.
@@ -113,6 +113,8 @@ export const ANNOUNCEMENT = {
   enabled: true,
   text: "Lançamento · primeiro lote em pré-venda",
   soldOutText: "Primeiro lote esgotado · valeu, gurizada",
+  /** Versão pública (sem convite): o pré-lançamento de antes. */
+  publicText: "Estamos chegando",
 };
 
 /**
@@ -432,6 +434,12 @@ export const CONTATO = {
   title: "Se interessou pelo Fernandito?",
   text: "Quer o Fernandito na tua festa, no teu bar ou no teu evento? Chama a gente.",
   cta: "Chama a gente",
+  /** Versão pública (sem convite): a foto de antes da loja. */
+  publicPhoto: photo(
+    "Foto contato",
+    "Rascunho do cavalo do Fernandito em papel, com canetas e rótulos na mesa",
+    "/images/contato-rascunhos.jpg",
+  ),
   photo: photo(
     "Foto contato",
     "Três amigos levantando copos Fernandito pra câmera",

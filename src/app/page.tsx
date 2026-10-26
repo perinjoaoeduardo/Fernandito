@@ -12,17 +12,21 @@ import { FooterSection } from "@/components/sections/FooterSection";
 import { Fragment, type ReactNode } from "react";
 import { PRELAUNCH, SECTIONS, STORE, sectionOn, type SectionKey } from "@/content/site";
 import { HashScroll } from "@/components/providers/HashScroll";
+import { isPublico } from "@/lib/modo";
 
 // ManifestoSection e ProdutoSection saíram da página por enquanto (pedido
 // explícito) — os componentes continuam em src/components/sections/, só
 // não estão montados aqui. Ver DESIGN_SYSTEM.md.
-export default function Home() {
+export default async function Home() {
+  // Sem convite (ver `ACESSO`): a versão pública, o pré-lançamento de antes.
+  const publico = await isPublico();
+  const prelaunch = publico || PRELAUNCH.enabled;
   // Pré-lançamento (`PRELAUNCH.enabled` em src/content/site.ts): só a Hero,
   // a compra do kit (#comprar, se a loja estiver ligada), o bloco "estamos
   // chegando" (o Contato com outro texto) e o rodapé. Loja desligada
   // (`STORE.enabled`): o Contato encosta na Hero de novo, sem botão de compra.
-  const shop = STORE.enabled;
-  if (PRELAUNCH.enabled) {
+  const shop = STORE.enabled && !publico;
+  if (prelaunch) {
     return (
       <main>
         <HashScroll />

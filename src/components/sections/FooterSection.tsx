@@ -6,7 +6,8 @@ import { TypewriterText } from "@/components/ui/TypewriterText";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { Link } from "@/components/ui/Link";
 import { InstagramIcon } from "@/components/ui/icons";
-import { FOOTER, LINKS, NAV, PRELAUNCH, STORE } from "@/content/site";
+import { FOOTER, LINKS, NAV } from "@/content/site";
+import { useModo } from "@/components/providers/ModoProvider";
 
 // Ritmo da frase de fechamento, que se escreve sozinha quando o rodapé
 // aparece (não acompanha a rolagem): devagar, como máquina de escrever.
@@ -54,6 +55,7 @@ function Lines({ text }: { text: string }) {
 }
 
 export function FooterSection() {
+  const modo = useModo();
   return (
     <footer
       id="footer"
@@ -67,7 +69,7 @@ export function FooterSection() {
           da frase, em vez de lá no canto direito da tela. */}
       <div
         className={`grid w-full gap-10 md:items-start ${
-          PRELAUNCH.enabled
+          modo.prelaunch
             ? "md:grid-cols-[auto_auto] md:justify-start md:gap-[12vw] lg:gap-[20vw]"
             : "md:grid-cols-[minmax(0,34rem)_auto] md:justify-between md:gap-16 lg:grid-cols-[minmax(0,1fr)_auto]"
         }`}
@@ -112,10 +114,10 @@ export function FooterSection() {
         <Parallax
           speed={-16}
           touch={false}
-          className={`grid gap-10 sm:gap-16 ${PRELAUNCH.enabled && !STORE.enabled ? "grid-cols-1" : "grid-cols-2"} ${!PRELAUNCH.enabled && STORE.enabled ? "lg:grid-cols-[repeat(3,auto)] lg:gap-x-12 xl:gap-x-20" : ""}`}
+          className={`grid gap-10 sm:gap-16 ${modo.prelaunch && !modo.store ? "grid-cols-1" : "grid-cols-2"} ${!modo.prelaunch && modo.store ? "lg:grid-cols-[repeat(3,auto)] lg:gap-x-12 xl:gap-x-20" : ""}`}
         >
           {/* No pré-lançamento as seções não existem: some o "Navegar". */}
-          {!PRELAUNCH.enabled && (
+          {!modo.prelaunch && (
             <div>
               <h3 className="text-fernandito-verde-claro mb-4 font-sans text-[12px] font-bold tracking-[0.2em] uppercase">
                 {FOOTER.navTitle}
@@ -155,7 +157,7 @@ export function FooterSection() {
           </div>
 
           {/* Legal: Termos e Privacidade (só com a loja ligada). */}
-          {STORE.enabled && (
+          {modo.store && (
             // Celular: linha inteira embaixo, um link embaixo do outro.
             <div className="col-span-2 lg:col-span-1">
               <h3 className="text-fernandito-verde-claro mb-4 font-sans text-[12px] font-bold tracking-[0.2em] uppercase">

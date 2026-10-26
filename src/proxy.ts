@@ -1,18 +1,25 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ACESSO } from "@/content/site";
+import { HEADER_PUBLICO } from "@/lib/acesso";
 
 /**
- * Acesso por convite (ver `ACESSO` em src/content/site.ts). Sem o cookie do
- * convite, as páginas do site vão pra /em-breve. Ficam sempre abertas: API
- * (webhooks, callbacks), painel, a página do pedido (o link do e-mail pode
- * abrir em outro aparelho) e os textos legais.
+ * Acesso por convite (ver `ACESSO` em src/content/site.ts). Quem não tem o
+ * cookie do convite vê a versão pública (o pré-lançamento de antes, sem
+ * loja): o proxy marca a visita com o cabeçalho `x-fernandito-publico` e o
+ * site (layout e home) se monta nessa versão. Ficam sempre abertos: API
+ * (webhooks, callbacks, fora do matcher), painel, a página do pedido (o link
+ * do e-mail pode abrir em outro aparelho) e os textos legais.
  */
 const COOKIE = "fernandito_convite";
 const CODE = process.env.CONVITE_CODIGO?.trim() || "brio2026";
-const OPEN = ["/em-breve", "/pedido", "/painel", "/termos", "/privacidade", "/trocas"];
+const OPEN = ["/painel", "/pedido", "/termos", "/privacidade", "/trocas"];
 
 export function proxy(request: NextRequest) {
-  if (!ACESSO.restrito) return NextResponse.next();
+  // Sempre sobrescreve: um cabeçalho vindo de fora nunca vale.
+  const headers = new Headers(request.headers);
+  headers.delete(HEADER_PUBLICO);
+  if (!ACESSO.restrito) return NextResponse.next({ request: { headers } });
+
   const { pathname, searchParams } = request.nextUrl;
 
   // Link de convite: grava o cookie e volta pra mesma página sem o código.
@@ -31,14 +38,20 @@ export function proxy(request: NextRequest) {
   }
 
   // Arquivos (imagem, fonte, vídeo, ícone, robots.txt...) passam direto.
-  if (pathname.includes(".")) return NextResponse.next();
-  if (request.cookies.get(COOKIE)?.value === "1") return NextResponse.next();
-  if (OPEN.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return NextResponse.next();
+  if (pathname.includes(".")) return NextResponse.next({ request: { headers } });
+  if (request.cookies.get(COOKIE)?.value === "1")
+    return NextResponse.next({ request: { headers } });
 
-  const url = request.nextUrl.clone();
-  url.pathname = "/em-breve";
-  url.search = "";
-  return NextResponse.redirect(url);
+  // Sem convite, as páginas do site (menos as abertas) levam pra home pública.
+  if (pathname !== "/" && !OPEN.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  headers.set(HEADER_PUBLICO, "1");
+  return NextResponse.next({ request: { headers } });
 }
 
 export const config = {

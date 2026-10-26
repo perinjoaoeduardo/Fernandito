@@ -84,8 +84,8 @@ export const PRODUCTS: Product[] = [
     maxQty: 5,
     // Igual ao cadastro no Bling: caixa 19 × 19 × 6,5 cm, 1,2 kg.
     shipping: { weightKg: 1.2, widthCm: 19, heightCm: 6.5, lengthCm: 19 },
-    // Primeiro lote: no máximo 200 kits (confirmar quando contar o estoque real).
-    stockCap: 200,
+    // Primeiro lote: 150 kits no Bling, 145 à venda no site (5 de margem).
+    stockCap: 145,
     active: true,
   },
   {

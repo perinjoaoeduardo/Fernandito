@@ -15,7 +15,8 @@ import { scrollToTarget } from "@/lib/lenis";
 import { Logo } from "@/components/ui/Logo";
 import { RotatingWord } from "@/components/ui/RotatingWord";
 import { HeroSlideshow } from "@/components/ui/HeroSlideshow";
-import { HERO, PRELAUNCH, STORE, firstSectionHref } from "@/content/site";
+import { HERO, STORE, firstSectionHref } from "@/content/site";
+import { useModo } from "@/components/providers/ModoProvider";
 import { Button } from "@/components/ui/Button";
 import { useStock } from "@/components/cart/useStock";
 import { useGoToShop } from "@/components/cart/useGoToShop";
@@ -32,12 +33,17 @@ const DESKTOP_SHRINK_SCALE = 0.86;
 const CONTENT_DRIFT = IS_TOUCH ? 22 : 36;
 // Véu escuro por cima das fotos: começa forte (logo legível) e clareia
 // enquanto o cartão fecha, revelando a foto.
-const VEIL_FROM = 0.8;
-const VEIL_TO = 0.5;
+// Véu escuro sobre as fotos do cartão (opacidade no topo → com o cartão
+// fechado na moldura). Versão pública = a de antes (0,8 → 0,5).
+const VEIL = { publico: [0.8, 0.5], completo: [0.88, 0.72] } as const;
 
 export function HeroSection() {
+  const modo = useModo();
   const goToShop = useGoToShop();
   const { soldOut } = useStock();
+  // Primeira seção depois da Hero (a seta "scroll"): no pré-lançamento sem
+  // loja é o bloco "estamos chegando".
+  const firstHref = modo.prelaunch ? (modo.store ? "#comprar" : "#contato") : firstSectionHref();
   const sectionRef = useRef<HTMLElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -46,6 +52,8 @@ export function HeroSection() {
   const indicatorRef = useRef<HTMLButtonElement>(null);
   const indicatorFadeRef = useRef<HTMLDivElement>(null);
   const chevronRef = useRef<SVGSVGElement>(null);
+
+  const [VEIL_FROM, VEIL_TO] = modo.publico ? VEIL.publico : VEIL.completo;
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -178,6 +186,7 @@ export function HeroSection() {
       removeMouseMove?.();
       ctx.revert();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a versão (público x completo) não muda numa visita
   }, []);
 
   return (
@@ -191,7 +200,7 @@ export function HeroSection() {
       // é mais alta que a tela pro cartão ficar preso enquanto fecha. Toque
       // (pointer-coarse, o mesmo critério do IS_TOUCH): 140vh no celular,
       // 160vh do md pra cima. Mouse (pointer-fine): 150vh.
-      className={`${(PRELAUNCH.enabled && !STORE.enabled) || (!PRELAUNCH.enabled && firstSectionHref() === "#portas") ? "bg-fernandito-verde-medio" : "bg-fernandito-off-white"} relative h-screen motion-safe:pointer-coarse:h-[140vh] md:motion-safe:pointer-coarse:h-[160vh] motion-safe:pointer-fine:h-[150vh]`}
+      className={`${(modo.prelaunch && !modo.store) || (!modo.prelaunch && firstHref === "#portas") ? "bg-fernandito-verde-medio" : "bg-fernandito-off-white"} relative h-screen motion-safe:pointer-coarse:h-[140vh] md:motion-safe:pointer-coarse:h-[160vh] motion-safe:pointer-fine:h-[150vh]`}
     >
       <div
         ref={boxRef}
@@ -220,7 +229,7 @@ export function HeroSection() {
               <RotatingWord />
             </div>
             {/* CTA de compra: entra junto com a frase (mesma animação). */}
-            {STORE.enabled && (
+            {modo.store && (
               <Button variant="primary" onClick={goToShop} className="mt-7">
                 {soldOut ? STORE.notifyCta : STORE.cta}
               </Button>
@@ -235,7 +244,7 @@ export function HeroSection() {
           <button
             ref={indicatorRef}
             type="button"
-            onClick={() => scrollToTarget(firstSectionHref())}
+            onClick={() => scrollToTarget(firstHref)}
             aria-label="Rolar até a próxima seção"
             className="text-fernandito-off-white/70 duration-base ease-out-standard focus-visible:outline-fernandito-off-white text-body hover:text-fernandito-off-white focus-visible:text-fernandito-off-white flex items-center gap-1 bg-transparent font-sans transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
           >

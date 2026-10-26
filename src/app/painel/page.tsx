@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 // `cap` = tamanho do lote de referência (a barra mostra quanto sobra dele).
 // Mudou o lote? Troca aqui.
 const PRODUCTS_STOCK = [
-  { sku: "FERN-KIT-PRE", name: "Kit pré-lançamento", cap: 200 },
+  { sku: "FERN-KIT-PRE", name: "Kit pré-lançamento", cap: 150 },
   { sku: "FERN-350", name: "Lata 350ml", cap: 1000 },
   { sku: "FERN-350-6", name: "Pack 6 latas", cap: 166 },
   { sku: "FERN-PRESSKIT", name: "Press kit (brinde)", cap: 50 },

@@ -2,12 +2,15 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import Script from "next/script";
 import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvider";
+import { ModoProvider } from "@/components/providers/ModoProvider";
+import { isPublico } from "@/lib/modo";
 import { IntroLoader } from "@/components/providers/IntroLoader";
 import { SiteAnalytics } from "@/components/providers/SiteAnalytics";
 import { AgeGate } from "@/components/providers/AgeGate";
 import { CookieBanner } from "@/components/providers/CookieBanner";
 import { ThemeColorSync } from "@/components/providers/ThemeColorSync";
 import { FloatingNav } from "@/components/ui/FloatingNav";
+import { FloatingNavPublico } from "@/components/ui/FloatingNavPublico";
 import { CustomCursor } from "@/components/ui/CustomCursor";
 import { PageTransitions } from "@/components/providers/PageTransitions";
 import { NotifyModal } from "@/components/providers/NotifyModal";
@@ -220,7 +223,8 @@ const JSON_LD = {
   ],
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const publico = await isPublico();
   return (
     <html lang="pt-BR" suppressHydrationWarning className={`${fontVariables} antialiased`}>
       <body>
@@ -251,18 +255,20 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           } catch (e) {}`}
         </Script>
         <SmoothScrollProvider>
-          <CartProvider>
-            <IntroLoader />
-            <ScrollProgress />
-            <CustomCursor />
-            <PageTransitions />
-            <NotifyModal />
-            <AnnouncementBar />
-            <FloatingNav />
-            <ThemeColorSync />
-            {children}
-            {STORE.enabled && <CartDrawer />}
-          </CartProvider>
+          <ModoProvider publico={publico}>
+            <CartProvider>
+              <IntroLoader />
+              <ScrollProgress />
+              <CustomCursor />
+              <PageTransitions />
+              <NotifyModal />
+              <AnnouncementBar />
+              {publico ? <FloatingNavPublico /> : <FloatingNav />}
+              <ThemeColorSync />
+              {children}
+              {STORE.enabled && !publico && <CartDrawer />}
+            </CartProvider>
+          </ModoProvider>
         </SmoothScrollProvider>
         <AgeGate />
         <CookieBanner />

@@ -14,13 +14,12 @@ import { Link } from "@/components/ui/Link";
 import { CartIcon, InstagramIcon } from "@/components/ui/icons";
 import { useCart } from "@/components/cart/CartProvider";
 import { useGoToShop } from "@/components/cart/useGoToShop";
-import { LINKS as SITE_LINKS, NAV, PRELAUNCH, STORE } from "@/content/site";
+import { LINKS as SITE_LINKS, NAV, STORE } from "@/content/site";
+import { useModo } from "@/components/providers/ModoProvider";
 
 // Menu das PÁGINAS (Manifesto · Eventos · Revenda · Contato — máx. 4, regra
 // da navegação). O cavalo (início) mora fora da barra, no canto. No
 // pré-lançamento as páginas não existem: o menu fica só com o essencial.
-const LINKS = PRELAUNCH.enabled ? [] : NAV.links;
-const MENU_LINKS = LINKS;
 
 // Ponto de amostragem fixo (canto esquerdo, fora da pill que fica centrada)
 // — assim a amostra sempre pega o fundo da SEÇÃO por trás do nav, nunca o
@@ -45,6 +44,10 @@ export function FloatingNav() {
   const [overLight, setOverLight] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const lastScrollY = useRef(0);
+  const modo = useModo();
+  // Pré-lançamento: o menu fica só com o essencial (sem páginas).
+  const LINKS = modo.prelaunch ? [] : NAV.links;
+  const MENU_LINKS = LINKS;
   const cart = useCart();
   const goToShop = useGoToShop();
   const { soldOut } = useStock();
@@ -147,9 +150,6 @@ export function FloatingNav() {
     overLight ? "hover:bg-fernandito-off-white/[0.07]" : "hover:bg-fernandito-verde-escuro/[0.06]",
   );
 
-  // Página "em breve" (sem convite): sem menu nem loja.
-  if (pathname === "/em-breve") return null;
-
   return (
     <>
       {/* Cavalo + barra lado a lado, centralizados: o cavalo é uma peça
@@ -240,7 +240,7 @@ export function FloatingNav() {
           )}
 
           {/* CTA: compra (loja ligada) ou WhatsApp (loja desligada, md+). */}
-          {inPurchase ? null : STORE.enabled ? (
+          {inPurchase ? null : modo.store ? (
             <button
               type="button"
               onClick={goToShop}
@@ -272,7 +272,7 @@ export function FloatingNav() {
           />
 
           {/* Carrinho, com contador. */}
-          {STORE.enabled && (
+          {modo.store && (
             <button
               type="button"
               data-cart-ui

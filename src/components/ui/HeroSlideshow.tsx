@@ -1,5 +1,6 @@
 "use client";
 
+import { useModo } from "@/components/providers/ModoProvider";
 import { clsx } from "clsx";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -21,6 +22,7 @@ const ZOOM_MS = 7000;
  * Decorativo: `aria-hidden` e `alt=""` — o conteúdo da Hero é o h1.
  */
 export function HeroSlideshow() {
+  const { publico } = useModo();
   const photos = HERO.photos;
   const [active, setActive] = useState(0);
   // A que está saindo (ainda no fade). As outras ficam `invisible`: fora da
@@ -95,7 +97,10 @@ export function HeroSlideshow() {
           opacidade dele pelo `data-hero-veil`. */}
       <div
         data-hero-veil
-        className="bg-fernandito-verde-escuro absolute inset-0 opacity-80 [will-change:opacity]"
+        className={clsx(
+          "bg-fernandito-verde-escuro absolute inset-0 [will-change:opacity]",
+          publico ? "opacity-80" : "opacity-[0.88]",
+        )}
       />
     </div>
   );

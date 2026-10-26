@@ -3,7 +3,8 @@
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ANNOUNCEMENT, PRELAUNCH, SHOP_HREF, STORE } from "@/content/site";
+import { ANNOUNCEMENT, SHOP_HREF } from "@/content/site";
+import { useModo } from "@/components/providers/ModoProvider";
 import { useStock } from "@/components/cart/useStock";
 
 /**
@@ -24,7 +25,8 @@ let dismissed = false;
 export function AnnouncementBar() {
   // Com a loja no ar (site completo), a faixa inteira leva pra página do kit;
   // esgotado, ela avisa (e continua levando pro kit, que mostra "Esgotado").
-  const shop = STORE.enabled && !PRELAUNCH.enabled;
+  const modo = useModo();
+  const shop = modo.store && !modo.prelaunch;
   const { soldOut } = useStock();
   const pathname = usePathname();
   const [gone, setGone] = useState(dismissed);
@@ -54,7 +56,11 @@ export function AnnouncementBar() {
   }, [pathname]);
 
   if (!ANNOUNCEMENT.enabled || gone || pathname !== "/") return null;
-  const text = shop && soldOut ? ANNOUNCEMENT.soldOutText : ANNOUNCEMENT.text;
+  const text = modo.publico
+    ? ANNOUNCEMENT.publicText
+    : shop && soldOut
+      ? ANNOUNCEMENT.soldOutText
+      : ANNOUNCEMENT.text;
   const content = (
     <>
       <span
