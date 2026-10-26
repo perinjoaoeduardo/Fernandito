@@ -53,9 +53,16 @@ const PHOTOS: Photo[] = [
     speed: 1,
     z: 4,
   },
-  // Galeria menor por enquanto (5 fotos). Pra voltar a 7, as duas que
-  // ficavam aqui: { escuro, 3/4, h .4, off .15, speed .8, z 1 } e
-  // { claro, 4/3, h .46, off -.13, speed 1.15, z 6 }.
+  // 6 fotos por enquanto. Pra voltar a 7, o quadro que ficava aqui:
+  // { escuro, 3/4, h .4, off .15, speed .8, z 1 }.
+  {
+    tone: "bg-fernandito-verde-claro",
+    ratio: 4 / 3,
+    h: 0.46,
+    off: -0.13,
+    speed: 1.15,
+    z: 6,
+  },
   {
     tone: "bg-fernandito-verde-medio",
     ratio: 4 / 5,

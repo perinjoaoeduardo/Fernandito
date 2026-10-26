@@ -354,7 +354,7 @@ export const O_QUE_E = {
 };
 
 export const GALERIA = {
-  /** 5 fotos (mesmo número de quadros em GaleriaSection), na ordem em que passam na tela. O formato de cada uma
+  /** 6 fotos (mesmo número de quadros em GaleriaSection), na ordem em que passam na tela. O formato de cada uma
    * (vertical, horizontal) é definido pelo layout da galeria; a foto é
    * recortada pra caber. */
   photos: [
@@ -368,14 +368,23 @@ export const GALERIA = {
       "Copo Fernandito gelado, cheio de fernet com cola e espuma",
       "/images/galeria/galeria-01-copo-perto.jpg",
     ),
-    photo("Foto 03", "Campo de coxilhas com a serra ao fundo", "/images/placeholder/coxilhas.jpg"),
+    photo(
+      "Foto 03",
+      "Cavalo malhado no meio do capim alto, olhando pra frente",
+      "/images/placeholder/cavalo-capim.jpg",
+    ),
     photo(
       "Foto 04",
       "Duas latas de Fernandito geladas, lado a lado",
-      "/images/fotos/duas-latas.jpg",
+      "/images/fotos/duas-latas-galeria.jpg",
     ),
     photo(
       "Foto 05",
+      "Os quatro fundadores do Fernandito rindo na frente de uma cerca viva",
+      "/images/fundadores.jpg",
+    ),
+    photo(
+      "Foto 06",
       "Três amigos rindo e brindando com copos Fernandito",
       "/images/fotos/brinde-sorrindo.jpg",
     ),
