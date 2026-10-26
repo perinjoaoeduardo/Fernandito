@@ -371,13 +371,13 @@ export const GALERIA = {
     photo("Foto 03", "Campo de coxilhas com a serra ao fundo", "/images/placeholder/coxilhas.jpg"),
     photo(
       "Foto 04",
-      "Duas latas de Fernandito geladas, lado a lado",
-      "/images/fotos/duas-latas.jpg",
+      "Cavalo malhado no meio do capim alto, sob céu nublado",
+      "/images/placeholder/cavalo-capim.jpg",
     ),
     photo(
       "Foto 05",
-      "Cavalo malhado no meio do capim alto, sob céu nublado",
-      "/images/placeholder/cavalo-capim.jpg",
+      "Duas latas de Fernandito geladas, lado a lado",
+      "/images/fotos/duas-latas.jpg",
     ),
     photo(
       "Foto 06",
