@@ -354,7 +354,7 @@ export const O_QUE_E = {
 };
 
 export const GALERIA = {
-  /** Sempre 7 fotos, na ordem em que passam na tela. O formato de cada uma
+  /** 5 fotos (mesmo número de quadros em GaleriaSection), na ordem em que passam na tela. O formato de cada uma
    * (vertical, horizontal) é definido pelo layout da galeria; a foto é
    * recortada pra caber. */
   photos: [
@@ -371,23 +371,13 @@ export const GALERIA = {
     photo("Foto 03", "Campo de coxilhas com a serra ao fundo", "/images/placeholder/coxilhas.jpg"),
     photo(
       "Foto 04",
-      "Cavalo malhado no meio do capim alto, sob céu nublado",
-      "/images/placeholder/cavalo-capim.jpg",
-    ),
-    photo(
-      "Foto 05",
       "Duas latas de Fernandito geladas, lado a lado",
       "/images/fotos/duas-latas.jpg",
     ),
     photo(
-      "Foto 06",
+      "Foto 05",
       "Três amigos rindo e brindando com copos Fernandito",
       "/images/fotos/brinde-sorrindo.jpg",
-    ),
-    photo(
-      "Foto 07",
-      "Fernandito sendo servido da lata num copo com gelo, transbordando",
-      "/images/fotos/servindo-maos.jpg",
     ),
   ],
 };
