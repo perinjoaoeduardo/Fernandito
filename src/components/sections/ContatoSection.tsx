@@ -113,7 +113,7 @@ export function ContatoSection({
       ref={sectionRef}
       id="contato"
       aria-label="Contato"
-      className="bg-fernandito-verde-claro text-fernandito-off-white grid w-full md:min-h-[110vh] md:grid-cols-2"
+      className="bg-fernandito-verde-escuro text-fernandito-off-white grid w-full md:min-h-[110vh] md:grid-cols-2"
     >
       <div
         className={clsx(
@@ -159,9 +159,9 @@ export function ContatoSection({
             {contactHref ? (
               <NextLink
                 href={contactHref}
-                // Sólido bege sobre o verde-claro da seção (verde no verde
-                // sumia) e com seta: é a chamada principal da seção.
-                className="group bg-fernandito-off-white text-fernandito-verde-escuro text-body duration-base ease-out-standard hover:bg-fernandito-verde-escuro hover:text-fernandito-off-white focus-visible:outline-fernandito-off-white inline-flex items-center justify-center gap-2.5 rounded-full px-7 py-3.5 font-sans font-bold tracking-[0.01em] shadow-[0_10px_30px_rgba(20,28,18,0.28)] transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 active:scale-[0.96]"
+                // Sólido bege sobre o verde-escuro da seção e com seta: é a
+                // chamada principal da seção.
+                className="group bg-fernandito-off-white text-fernandito-verde-escuro text-body duration-base ease-out-standard hover:bg-fernandito-verde-claro hover:text-fernandito-off-white focus-visible:outline-fernandito-off-white inline-flex items-center justify-center gap-2.5 rounded-full px-7 py-3.5 font-sans font-bold tracking-[0.01em] shadow-[0_10px_30px_rgba(20,28,18,0.28)] transition-colors focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 active:scale-[0.96]"
               >
                 {cta}
                 <span
