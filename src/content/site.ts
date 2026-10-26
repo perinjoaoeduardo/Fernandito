@@ -369,8 +369,8 @@ export const GALERIA = {
     ),
     photo(
       "Foto 03",
-      "Cavalo malhado no meio do capim alto, olhando pra frente",
-      "/images/placeholder/cavalo-capim.jpg",
+      "Os quatro fundadores do Fernandito rindo na frente de uma cerca viva",
+      "/images/fundadores.jpg",
     ),
     photo(
       "Foto 04",
@@ -379,8 +379,8 @@ export const GALERIA = {
     ),
     photo(
       "Foto 05",
-      "Os quatro fundadores do Fernandito rindo na frente de uma cerca viva",
-      "/images/fundadores.jpg",
+      "Cavalo malhado no meio do capim alto, olhando pra frente",
+      "/images/placeholder/cavalo-capim.jpg",
     ),
     photo(
       "Foto 06",
