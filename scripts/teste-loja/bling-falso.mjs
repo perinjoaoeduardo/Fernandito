@@ -5,6 +5,7 @@ const flags = { nfeReject: false, nfeStuck: false };
 const throttled = new Set();
 const sales = new Map();
 const nfes = new Map();
+const baixas = [];
 let nextId = 5000;
 const send = (res, code, body) => {
   res.writeHead(code, { "content-type": "application/json" });
@@ -46,6 +47,12 @@ http
       return send(res, 200, {
         data: url.searchParams.getAll("codigos[]").map((c, i) => ({ id: 100 + i, codigo: c })),
       });
+    if (p === "/depositos") return send(res, 200, { data: [{ id: 7, padrao: true }] });
+    if (p === "/estoques" && req.method === "POST") {
+      baixas.push(body);
+      return send(res, 201, { data: { id: nextId++ } });
+    }
+    if (p === "/_baixas") return send(res, 200, { baixas });
     if (p === "/estoques/saldos")
       return send(res, 200, {
         data: url.searchParams

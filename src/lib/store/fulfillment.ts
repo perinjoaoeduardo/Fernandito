@@ -180,6 +180,9 @@ async function stepInvoice(order: StoredOrder, f: Fulfillment) {
     f.error = null;
     await save(order.id, f);
     console.info(`[envio ${order.id}] nota ${f.invoice.number} AUTORIZADA`);
+    // A natureza de venda do site não baixa estoque no Bling: o site baixa.
+    // (import tardio: bling/orders já importa este arquivo)
+    await import("@/lib/bling/orders").then((m) => m.baixarEstoqueBling(order));
     return true;
   }
   if (NFE_FAIL[status]) {

@@ -1,7 +1,16 @@
 import "server-only";
 import { isLocalShipping } from "@/lib/shipping";
-import { IS_PRODUCTION, kvGet, kvSAdd, kvSMembers, kvSRem, kvSet, kvSetNX } from "@/lib/store/kv";
-import { getOrder, saveOrder, type StoredOrder } from "@/lib/store/orders";
+import {
+  IS_PRODUCTION,
+  kvDel,
+  kvGet,
+  kvSAdd,
+  kvSMembers,
+  kvSRem,
+  kvSet,
+  kvSetNX,
+} from "@/lib/store/kv";
+import { getOrder, raiseAlert, saveOrder, type StoredOrder } from "@/lib/store/orders";
 import { bling, BlingNotConnectedError, isBlingConnected } from "@/lib/bling/client";
 import { queueFulfillment } from "@/lib/store/fulfillment";
 
@@ -192,6 +201,49 @@ async function productIds(skus: string[]) {
   const ids = new Map(page.data.map((p) => [p.codigo, p.id]));
   for (const sku of skus) if (!ids.has(sku)) throw new Error(`SKU ${sku} não existe no Bling`);
   return ids;
+}
+
+/**
+ * Dá a baixa no estoque do Bling depois que a nota do pedido sai. A natureza
+ * de operação das vendas do site não movimenta estoque no Bling (conferido
+ * na venda nº 7), então o site faz a saída dos itens — uma vez por pedido
+ * (`bling:baixa:<id>`), com a observação do pedido. Se o Bling passar a baixar
+ * sozinho (configuração dele), desligue aqui com `BLING_BAIXA_SITE=0` na
+ * Vercel, senão baixaria em dobro. Nunca lança: falhou → alerta, e o pedido
+ * segue (o painel/checkup mostram a diferença).
+ */
+export async function baixarEstoqueBling(order: StoredOrder) {
+  if (process.env.BLING_BAIXA_SITE === "0") return;
+  // Pedido simulado (teste, sem Pix de verdade) não mexe no estoque do Bling.
+  if (order.simulated && process.env.BLING_BAIXA_SIMULADOS !== "1") return;
+  if (!(await kvSetNX(`bling:baixa:${order.id}`, "1", 60 * 60 * 24 * 400))) return;
+  try {
+    const skus = order.items.map((item) => item.sku);
+    const [ids, depositos] = await Promise.all([
+      productIds(skus),
+      bling<Page<{ id: number; padrao?: boolean }>>("/depositos?situacao=1&limite=100"),
+    ]);
+    const deposito = depositos.data.find((d) => d.padrao) ?? depositos.data[0];
+    if (!deposito) throw new Error("nenhum depósito ativo");
+    for (const item of order.items) {
+      await bling("/estoques", {
+        method: "POST",
+        body: {
+          produto: { id: ids.get(item.sku) },
+          deposito: { id: deposito.id },
+          operacao: "S",
+          quantidade: item.qty,
+          observacoes: `Baixa do pedido do site #${order.id}`,
+        },
+      });
+    }
+    console.info(`[bling] baixa de estoque do pedido ${order.id}`);
+  } catch (error) {
+    await kvDel(`bling:baixa:${order.id}`).catch(() => {});
+    const message = (error as Error).message;
+    console.error("[bling] baixa de estoque:", message);
+    await raiseAlert(order.id, `Baixa de estoque no Bling falhou (${message}) — dar a baixa à mão`);
+  }
 }
 
 /** Forma de pagamento "Pix" do Bling (variável ou a primeira do tipo Pix). */
