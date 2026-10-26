@@ -252,8 +252,8 @@ export const PAGES = {
         theme: "verde-claro",
         photo: photo(
           "Foto: evento",
-          "Jipe com barraca no teto, no campo ao pôr do sol",
-          "/images/placeholder/troller.jpg",
+          "Três amigos brindando com copos Fernandito numa fábrica",
+          "/images/fotos/brinde-fabrica.jpg",
         ),
         fields: [
           { name: "nome", label: "Qual teu nome?", placeholder: "Ana Souza" },
@@ -272,7 +272,11 @@ export const PAGES = {
         chip: "Revenda",
         lead: "Quer ter Fernandito no teu bar ou na tua loja? Fala com a gente.",
         theme: "verde-escuro",
-        photo: photo("Foto: revenda", "Araucárias no campo", "/images/placeholder/araucarias.jpg"),
+        photo: photo(
+          "Foto: revenda",
+          "Mão segurando um copo Fernandito cheio, com espuma",
+          "/images/fotos/copo-na-mao.jpg",
+        ),
         fields: [
           { name: "nome", label: "Qual teu nome?", placeholder: "Ana Souza" },
           { name: "lugar", label: "Qual o lugar e a cidade?", placeholder: "Bar do Zé, Pelotas" },
@@ -362,23 +366,23 @@ export const GALERIA = {
     ),
     photo(
       "Foto 03",
+      "Duas latas de Fernandito geladas, lado a lado",
+      "/images/fotos/duas-latas.jpg",
+    ),
+    photo(
+      "Foto 04",
       "Cavalo malhado no meio do capim alto, sob céu nublado",
       "/images/placeholder/cavalo-capim.jpg",
     ),
     photo(
-      "Foto 04",
-      "Cavalo deitado num banhado, com mata de araucárias ao fundo",
-      "/images/placeholder/cavalo-banhado.jpg",
-    ),
-    photo(
       "Foto 05",
-      "Morros pontudos cobertos de mata, sob céu fechado",
-      "/images/placeholder/morros.jpg",
+      "Três amigos rindo e brindando com copos Fernandito",
+      "/images/fotos/brinde-sorrindo.jpg",
     ),
     photo(
       "Foto 06",
-      "Rio raso entre pedras e araucárias, contra o sol",
-      "/images/placeholder/rio.jpg",
+      "Fernandito sendo servido da lata num copo com gelo, transbordando",
+      "/images/fotos/servindo-maos.jpg",
     ),
     photo(
       "Foto 07",
@@ -422,8 +426,8 @@ export const CONTATO = {
   cta: "Chama a gente",
   photo: photo(
     "Foto contato",
-    "Rascunho do cavalo do Fernandito em papel, com canetas e rótulos na mesa",
-    "/images/contato-rascunhos.jpg",
+    "Três amigos levantando copos Fernandito pra câmera",
+    "/images/fotos/brinde-pra-camera.jpg",
   ),
 };
 
@@ -481,8 +485,8 @@ export const SOCIAL = {
   photos: [
     photo(
       "Foto 01",
-      "Jipe amarelo com barraca no teto, no campo ao pôr do sol",
-      "/images/placeholder/troller.jpg",
+      "Fernandito sendo servido da lata no copo com gelo",
+      "/images/fotos/servindo-escuro.jpg",
     ),
     photo("Foto 02", "Campo de coxilhas com a serra ao fundo", "/images/placeholder/coxilhas.jpg"),
     photo(
