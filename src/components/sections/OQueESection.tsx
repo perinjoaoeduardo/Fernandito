@@ -89,7 +89,7 @@ export function OQueESection() {
       aria-label="O que é o Fernandito"
       className="bg-fernandito-off-white text-fernandito-verde-escuro w-full px-6 py-20 sm:py-32"
     >
-      <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-[minmax(0,200px)_1fr] md:items-center md:gap-16">
+      <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-[minmax(0,300px)_1fr] md:items-center md:gap-16">
         {/* A lata (arte em `src/content/site.ts`; sem arte, placeholder
             tracejado). Parallax: lata atrás (mais lenta), texto na frente —
             o texto só no computador; no celular ele fica parado (andando
@@ -99,7 +99,8 @@ export function OQueESection() {
             <div
               className={
                 O_QUE_E.lata.src
-                  ? "relative mx-auto aspect-[3/7] w-24 shrink-0 md:mx-0 md:w-full"
+                  ? // Foto (2:3), não mais a arte recortada da lata.
+                    "relative mx-auto aspect-[2/3] w-[min(18rem,78vw)] shrink-0 overflow-hidden rounded-[1.75rem] shadow-[0_30px_70px_rgba(36,48,34,0.28)] md:mx-0 md:w-full"
                   : "border-fernandito-verde-escuro/25 mx-auto flex aspect-[3/7] w-24 shrink-0 items-center justify-center rounded-[2rem] border-2 border-dashed md:mx-0 md:w-full"
               }
             >
@@ -108,8 +109,9 @@ export function OQueESection() {
                   src={O_QUE_E.lata.src}
                   alt={O_QUE_E.lata.alt}
                   fill
-                  sizes="(max-width: 767px) 96px, 200px"
-                  className="object-contain"
+                  sizes="(max-width: 767px) 78vw, 300px"
+                  quality={90}
+                  className="object-cover"
                 />
               ) : (
                 <span className="text-label font-accent px-3 text-center uppercase opacity-80">
@@ -122,7 +124,7 @@ export function OQueESection() {
             {STORE.enabled && !PRELAUNCH.enabled && (
               <NextLink
                 href={SHOP_HREF}
-                className="group bg-fernandito-verde-escuro text-fernandito-off-white ring-fernandito-off-white duration-base ease-out-standard absolute -top-4 left-[calc(100%-1.5rem)] flex rotate-[-6deg] flex-col items-start gap-0.5 rounded-xl px-3.5 py-2 whitespace-nowrap uppercase shadow-[0_10px_24px_rgba(36,48,34,0.35)] ring-[3px] transition-transform hover:scale-105 hover:rotate-[-3deg] md:-top-6 md:left-[calc(100%-2.5rem)]"
+                className="group bg-fernandito-verde-escuro text-fernandito-off-white ring-fernandito-off-white duration-base ease-out-standard absolute -top-4 -right-3 flex rotate-[-6deg] flex-col items-start gap-0.5 rounded-xl px-3.5 py-2 whitespace-nowrap uppercase shadow-[0_10px_24px_rgba(36,48,34,0.35)] ring-[3px] transition-transform hover:scale-105 hover:rotate-[-3deg] md:-top-6 md:-right-10"
               >
                 <span className="flex items-center gap-1.5 font-sans text-[0.6rem] tracking-[0.16em] opacity-85">
                   <span className="bg-fernandito-verde-claro h-1.5 w-1.5 rounded-full motion-safe:animate-pulse" />

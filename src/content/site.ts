@@ -338,7 +338,11 @@ export const O_QUE_E = {
     "Cada lata carrega o espírito de quem tem um jeito próprio de fazer as coisas, de quem deixa marca, movimenta ideias e não precisa seguir o caminho de todo mundo. Isso é muito Fernandito.",
   ],
   statement: "Onde tomar fernet vira tão fácil quanto abrir uma lata.",
-  lata: photo("Lata (aguardando arte)", "Lata de Fernandito"),
+  lata: photo(
+    "Lata",
+    "Lata de Fernandito ao lado do copo, com o fernet com cola sendo servido",
+    "/images/home/lata-copo.jpg",
+  ),
 };
 
 export const GALERIA = {
@@ -348,13 +352,13 @@ export const GALERIA = {
   photos: [
     photo(
       "Foto 01",
-      "Copo Fernandito gelado, cheio de fernet com cola e espuma",
-      "/images/galeria/galeria-01-copo-perto.jpg",
+      "Fernandito sendo servido da lata no copo com gelo",
+      "/images/galeria/galeria-01-servindo.jpg",
     ),
     photo(
       "Foto 02",
-      "Touro vermelho de pelo crespo olhando pra câmera, no campo com neblina",
-      "/images/placeholder/touro.jpg",
+      "Copo Fernandito gelado, cheio de fernet com cola e espuma",
+      "/images/galeria/galeria-01-copo-perto.jpg",
     ),
     photo(
       "Foto 03",
