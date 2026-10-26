@@ -97,6 +97,16 @@ export const PRELAUNCH = {
   instagram: "Ver Instagram",
 };
 
+/** Acesso por convite: com `restrito: true`, quem entra no site vê só a
+ * página "O Fernandito está chegando" (/em-breve). Quem abre o link de
+ * convite (fernandito.com.br/?convite=CÓDIGO) ganha um cookie de 1 ano e vê
+ * o site completo, com a loja. O código é a variável CONVITE_CODIGO na
+ * Vercel (ou o padrão abaixo). Dia do lançamento: `restrito: false`.
+ * Regra aplicada em `src/proxy.ts`. */
+export const ACESSO = {
+  restrito: true,
+};
+
 /** Faixa fixa no topo do pré-lançamento ("Estamos chegando"). Pra tirar do
  * site: `enabled: false` — some a faixa e o menu volta pro lugar sozinho. */
 export const ANNOUNCEMENT = {

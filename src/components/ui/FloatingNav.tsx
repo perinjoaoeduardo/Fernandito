@@ -147,6 +147,9 @@ export function FloatingNav() {
     overLight ? "hover:bg-fernandito-off-white/[0.07]" : "hover:bg-fernandito-verde-escuro/[0.06]",
   );
 
+  // Página "em breve" (sem convite): sem menu nem loja.
+  if (pathname === "/em-breve") return null;
+
   return (
     <>
       {/* Cavalo + barra lado a lado, centralizados: o cavalo é uma peça
