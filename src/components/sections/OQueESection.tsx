@@ -24,20 +24,18 @@ export function OQueESection() {
   const { soldOut } = useStock();
   const p1Ref = useRef<HTMLParagraphElement>(null);
   const p2Ref = useRef<HTMLParagraphElement>(null);
-  const statementRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     const column = columnRef.current;
     const p1 = p1Ref.current;
     const p2 = p2Ref.current;
-    const statement = statementRef.current;
-    if (!column || !p1 || !p2 || !statement) return;
+    if (!column || !p1 || !p2) return;
 
     const reduceMotion = prefersReducedMotion();
     const splitInstances: SplitText[] = [];
 
     if (reduceMotion) {
-      gsap.set([p1, p2, statement], { opacity: 1 });
+      gsap.set([p1, p2], { opacity: 1 });
       return;
     }
 
@@ -48,12 +46,11 @@ export function OQueESection() {
       // navegador quebrar no meio da palavra ("qu / anto").
       const splitP1 = new SplitText(p1, { type: "words,chars", aria: "none" });
       const splitP2 = new SplitText(p2, { type: "words,chars", aria: "none" });
-      const splitStatement = new SplitText(statement, { type: "words,chars", aria: "none" });
-      splitInstances.push(splitP1, splitP2, splitStatement);
-      chars = [...splitP1.chars, ...splitP2.chars, ...splitStatement.chars];
+      splitInstances.push(splitP1, splitP2);
+      chars = [...splitP1.chars, ...splitP2.chars];
     } catch (err) {
       console.warn("[OQueESection] SplitText indisponível, usando fallback manual.", err);
-      gsap.set([p1, p2, statement], { opacity: 1 });
+      gsap.set([p1, p2], { opacity: 1 });
       return;
     }
 
@@ -63,7 +60,7 @@ export function OQueESection() {
     // escrever avança enquanto você rola pra baixo E volta letra por letra
     // se você rolar pra cima — mesma lógica de "aparece e some conforme
     // rola" que o resto do site usa pros títulos grandes. Uma trilha só
-    // (parágrafos + frase de fechamento juntos), não dois triggers
+    // (os dois parágrafos juntos), não dois triggers
     // separados — lê como um bloco de texto contínuo, não duas animações
     // independentes.
     const trigger = ScrollTrigger.create({
@@ -151,12 +148,6 @@ export function OQueESection() {
             <p ref={p2Ref} className="text-body-lg font-sans">
               {O_QUE_E.paragraphs[1]}
             </p>
-            <h2
-              ref={statementRef}
-              className="text-display-sm font-rampart mt-4 leading-[1.15] tracking-[0.01em] text-balance"
-            >
-              {O_QUE_E.statement}
-            </h2>
           </div>
         </Parallax>
       </div>
