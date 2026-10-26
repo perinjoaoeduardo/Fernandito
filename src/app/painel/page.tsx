@@ -22,8 +22,8 @@ export const metadata: Metadata = {
 // Mudou o lote? Troca aqui.
 const PRODUCTS_STOCK = [
   { sku: "FERN-KIT-PRE", name: "Kit pré-lançamento", cap: 150 },
-  { sku: "FERN-350", name: "Lata 350ml", cap: 1000 },
-  { sku: "FERN-350-6", name: "Pack 6 latas", cap: 166 },
+  { sku: "FERN-350", name: "Lata 350ml", cap: 250 },
+  { sku: "FERN-350-6", name: "Pack 6 latas", cap: 41 },
   { sku: "FERN-PRESSKIT", name: "Press kit (brinde)", cap: 50 },
 ] as const;
 
