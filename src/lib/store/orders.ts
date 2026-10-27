@@ -135,8 +135,7 @@ export type PublicOrder = ReturnType<typeof publicOrder>;
  */
 export async function raiseAlert(orderId: string, problem: string) {
   console.error(`[ALERTA pedido ${orderId}] ${problem}`);
-  // E-mail pra equipe (se configurado); import tardio evita ciclo.
-  void import("@/lib/email").then((m) => m.sendAlertToTeam(orderId, problem)).catch(() => {});
+  // Sem e-mail pra equipe (cota do Resend): o alerta aparece no painel.
   try {
     await kvSAdd(
       "loja:alertas",

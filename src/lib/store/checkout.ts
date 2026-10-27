@@ -27,7 +27,7 @@ import { blingStock, maybeRetryBling, queueForBling } from "@/lib/bling/orders";
 import { getLegalVersions } from "@/lib/legal";
 import { STORE } from "@/content/site";
 import { after } from "next/server";
-import { sendNewOrderToTeam, sendOrderConfirmed } from "@/lib/email";
+import { sendOrderConfirmed } from "@/lib/email";
 import { maybeAdvanceFulfillments } from "@/lib/store/fulfillment";
 import { OutOfStockError, releaseStock, reserveStock } from "@/lib/store/stock";
 
@@ -281,10 +281,11 @@ export async function markPaid(orderId: string) {
     await saveOrder(order);
     console.info(`[pedido ${order.id}] PAGO · ${order.totalCents} centavos`);
   }
-  // E-mails (uma vez por pedido; sem Resend configurado, não faz nada).
+  // E-mail (uma vez por pedido; sem Resend configurado, não faz nada). Só o
+  // "pedido confirmado" pro cliente: o Resend limita a 100 por dia e 3.000 por
+  // mês, então a equipe se informa pelo painel e o cliente acompanha pelo link.
   if (!order.simulated && (await kvSetNX(`email:paid:${order.id}`, "1", 60 * 60 * 24 * 400))) {
-    const mails = () =>
-      Promise.all([sendOrderConfirmed(order), sendNewOrderToTeam(order)]).then(() => undefined);
+    const mails = () => sendOrderConfirmed(order).then(() => undefined);
     try {
       after(mails);
     } catch {

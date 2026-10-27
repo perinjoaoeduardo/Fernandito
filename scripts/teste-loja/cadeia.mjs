@@ -298,7 +298,9 @@ const c1 = await buy({ note: RECADO });
     notaManual: {
       ...base,
       naturezaOperacao: { id: 1 },
-      itens: [{ codigo: "FERN-350", descricao: "Lata", quantidade: 12, valor: 14.99, cfop: "5101" }],
+      itens: [
+        { codigo: "FERN-350", descricao: "Lata", quantidade: 12, valor: 14.99, cfop: "5101" },
+      ],
       valorNota: 179.88,
     },
   });
@@ -306,12 +308,18 @@ const c1 = await buy({ note: RECADO });
     notaManual: {
       ...base,
       naturezaOperacao: { id: 7 },
-      itens: [{ codigo: "FERN-KIT-PRE", descricao: "Kit", quantidade: 1, valor: 89.9, cfop: "5910" }],
+      itens: [
+        { codigo: "FERN-KIT-PRE", descricao: "Kit", quantidade: 1, valor: 89.9, cfop: "5910" },
+      ],
       valorNota: 89.9,
     },
   });
   const cron = await (await fetch(`${B}/api/cron/bling?key=${KEY}`)).json();
-  check("C13 venda manual + bonificação lidas do Bling (só as 2)", cron.foraDoSite === 2, JSON.stringify(cron));
+  check(
+    "C13 venda manual + bonificação lidas do Bling (só as 2)",
+    cron.foraDoSite === 2,
+    JSON.stringify(cron),
+  );
 }
 // C8 frete da tabela (Melhor Envio estava fora na compra)
 {
@@ -365,7 +373,7 @@ const c1 = await buy({ note: RECADO });
     JSON.stringify({ saved: saved.accessToken, auth: me.calls.lastAuth }),
   );
 }
-// C12 e-mails: cliente e equipe na compra; alerta pra equipe
+// C12 e-mails: só o "pedido confirmado" pro cliente
 {
   const toClient = mails.filter(
     (m) =>
@@ -382,15 +390,21 @@ const c1 = await buy({ note: RECADO });
     toClient.length === 1 && toClient[0].html.includes(`/pedido/${c1}/confirmado`),
     `${toClient.length}`,
   );
+  // Cota do Resend (100/dia, 3.000/mês): só o "pedido confirmado" sai.
   check(
-    "C12 cliente recebe 'Teu pedido foi postado' com o rastreio (1 vez)",
-    posted.length === 1 && /JAD\d+/.test(posted[0].html),
+    "C12 NÃO manda 'postado' (só o de pedido confirmado)",
+    posted.length === 0,
     `${posted.length}`,
   );
-  check("C12 equipe recebe 'Compra nova' (1 vez)", toTeam.length === 1);
   check(
-    "C12 equipe recebe e-mail de alerta (ex.: sem saldo)",
-    mails.some((m) => m.to.includes("equipe@fernandito.test") && /saldo/i.test(m.subject)),
+    "C12 NÃO manda e-mail pra equipe (compra nova nem alerta)",
+    toTeam.length === 0,
+    `${toTeam.length}`,
+  );
+  check(
+    "C12 todo e-mail enviado é o 'Pedido confirmado' pro cliente",
+    mails.every((m) => /confirmado/i.test(m.subject) && m.to.includes("b@example.com")),
+    mails.map((m) => m.subject).join(" | "),
   );
 }
 // C9 planilha mostra nota e rastreio

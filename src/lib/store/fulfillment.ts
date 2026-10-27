@@ -21,7 +21,6 @@ import {
   kvSetNX,
 } from "@/lib/store/kv";
 import { getOrder, raiseAlert, type StoredOrder } from "@/lib/store/orders";
-import { sendOrderShipped } from "@/lib/email";
 import { isAllowedCarrier } from "@/lib/melhor-envio";
 
 /**
@@ -314,7 +313,6 @@ async function stepLabel(order: StoredOrder, f: Fulfillment) {
   }
   await save(order.id, f);
   if (f.label.tracking && !f.label.savedInBling) await saveTrackingInBling(order, f);
-  await notifyPosted(order, f);
   return f.stage !== "label";
 }
 
@@ -369,17 +367,7 @@ async function stepTrack(order: StoredOrder, f: Fulfillment) {
   if (shipment.status === "delivered") f.stage = "delivered";
   await save(order.id, f);
   if (f.label.tracking && !f.label.savedInBling) await saveTrackingInBling(order, f);
-  await notifyPosted(order, f);
   return true;
-}
-
-/** E-mail "Teu pedido foi postado", uma vez por pedido, quando a transportadora pega
- * o pacote (ou já entregou) e o rastreio existe. Nunca trava o envio. */
-async function notifyPosted(order: StoredOrder, f: Fulfillment) {
-  if (order.simulated || !f.label.tracking) return;
-  if (f.stage !== "posted" && f.stage !== "delivered") return;
-  if (!(await kvSetNX(`email:posted:${order.id}`, "1", 60 * 60 * 24 * 400))) return;
-  await sendOrderShipped(order, f.label.tracking, f.label.trackingUrl).catch(() => false);
 }
 
 /**
