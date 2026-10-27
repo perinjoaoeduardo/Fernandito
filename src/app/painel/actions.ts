@@ -40,5 +40,7 @@ export async function atualizar() {
 export async function marcarEntregue(form: FormData) {
   if (!(await painelAuthed())) redirect("/painel");
   await markLocalDelivered(String(form.get("id") ?? ""));
-  redirect("/painel");
+  // Volta pra mesma lista (filtro, busca e página) em que a pessoa estava.
+  const back = String(form.get("back") ?? "");
+  redirect(back.startsWith("/painel") && !back.startsWith("//") ? back : "/painel");
 }

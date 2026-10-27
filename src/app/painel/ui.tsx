@@ -136,14 +136,16 @@ export function ActionCard({
   return (
     <Link
       href={href}
-      className={`flex items-center justify-between gap-3 rounded-xl border p-4 shadow-sm transition-colors sm:flex-col sm:items-start ${FOCUS} ${
+      className={`flex flex-col items-start justify-between gap-1 rounded-xl border p-3 shadow-sm transition-colors sm:p-4 ${FOCUS} ${
         on
           ? `${BADGE[tone]} hover:brightness-95`
           : "border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50"
       }`}
     >
-      <span className="text-sm font-medium">{label}</span>
-      <span className={`text-3xl font-semibold tracking-tight ${on ? "" : "text-zinc-400"}`}>
+      <span className="text-xs leading-tight font-medium sm:text-sm">{label}</span>
+      <span
+        className={`text-2xl font-semibold tracking-tight sm:text-3xl ${on ? "" : "text-zinc-400"}`}
+      >
         {value}
       </span>
     </Link>

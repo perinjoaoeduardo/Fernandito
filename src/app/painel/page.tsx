@@ -11,6 +11,7 @@ import { getOrder, type StoredOrder } from "@/lib/store/orders";
 import { blingStock } from "@/lib/bling/orders";
 import { atualizar, marcarEntregue, sair } from "./actions";
 import { LoginForm } from "./LoginForm";
+import { SubmitButton } from "./SubmitButton";
 import {
   ActionCard,
   Badge,
@@ -80,6 +81,8 @@ function status(o: StoredOrder, f: Fulfillment | null): [string, Tone] {
   return [o.bling?.orderId ? "Na fila de envio" : "Entrando no Bling", "amber"];
 }
 
+const PAGE_SIZE = 20;
+
 const FILTERS = [
   ["ativos", "Ativos"],
   ["imprimir", "Imprimir"],
@@ -106,7 +109,10 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     );
   }
 
-  const raw = (await props.searchParams).ver;
+  const sp = await props.searchParams;
+  const raw = sp.ver;
+  const q = (typeof sp.q === "string" ? sp.q : "").trim().slice(0, 80);
+  const page = Math.max(1, Number.parseInt(String(sp.p ?? "1"), 10) || 1);
   const ver = FILTERS.some(([k]) => k === raw) ? String(raw) : "ativos";
 
   const ids = await kvSMembers(ALL_SET);
@@ -135,7 +141,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     .filter((r) => r.order.status === "paid")
     .reduce((sum, r) => sum + r.order.totalCents, 0);
 
-  const rows =
+  const byFilter =
     ver === "imprimir"
       ? toPrint
       : ver === "entregar"
@@ -147,6 +153,48 @@ export default async function PainelPage(props: PageProps<"/painel">) {
             : ver === "todos"
               ? every
               : active;
+
+  // Busca: nome, telefone, cidade, itens, nota, rastreio e código do pedido.
+  const norm = (t: string) =>
+    t
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  const needle = norm(q);
+  const digits = q.replace(/\D/g, "");
+  const rows = needle
+    ? byFilter.filter(({ order: o, f }) => {
+        const hay = norm(
+          [
+            o.id,
+            o.customer.name,
+            o.customer.phone,
+            o.address.city,
+            o.address.neighborhood,
+            o.address.cep,
+            o.items.map((i) => i.name).join(" "),
+            f?.invoice.number,
+            f?.label.tracking,
+          ].join(" "),
+        );
+        return (
+          hay.includes(needle) || (digits.length >= 4 && hay.replace(/\D/g, "").includes(digits))
+        );
+      })
+    : byFilter;
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const cur = Math.min(page, pages);
+  const shown = rows.slice((cur - 1) * PAGE_SIZE, cur * PAGE_SIZE);
+  const href = (o: { ver?: string; p?: number; q?: string }) => {
+    const v = o.ver ?? ver;
+    const qs = new URLSearchParams();
+    if (v !== "ativos") qs.set("ver", v);
+    const query = o.q ?? q;
+    if (query) qs.set("q", query);
+    if (o.p && o.p > 1) qs.set("p", String(o.p));
+    const t = qs.toString();
+    return t ? `/painel?${t}` : "/painel";
+  };
 
   // Vendas fora do site (Bling): sem nada guardado ainda → busca agora; velho →
   // mostra o que tem e atualiza depois da resposta.
@@ -207,7 +255,9 @@ export default async function PainelPage(props: PageProps<"/painel">) {
               <button className={btn("secondary")}>Sair</button>
             </form>
             <form action={atualizar}>
-              <button className={btn("primary")}>Atualizar agora</button>
+              <SubmitButton variant="primary" pending="Atualizando…">
+                Atualizar agora
+              </SubmitButton>
             </form>
           </div>
         </header>
@@ -231,15 +281,15 @@ export default async function PainelPage(props: PageProps<"/painel">) {
 
         <section className="flex flex-col gap-3">
           <SectionHead title="Fazer agora" />
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             <ActionCard
-              label="Imprimir etiqueta"
+              label="Imprimir"
               value={toPrint.length}
               href="/painel?ver=imprimir"
               tone="blue"
             />
             <ActionCard
-              label="Entregar em mãos"
+              label="Entregar"
               value={toDeliver.length}
               href="/painel?ver=entregar"
               tone="blue"
@@ -251,6 +301,45 @@ export default async function PainelPage(props: PageProps<"/painel">) {
               tone="red"
             />
           </div>
+        </section>
+
+        <details open className="group flex flex-col gap-3">
+          <summary className="flex cursor-pointer list-none items-end justify-between gap-3 marker:hidden focus-visible:outline-2 focus-visible:outline-zinc-900">
+            <span>
+              <span className="block text-base font-semibold tracking-tight">Estoque</span>
+              <span className="block text-sm text-zinc-500">
+                Saldo no Bling, em relação ao lote de cada produto.
+              </span>
+            </span>
+            <span aria-hidden className="text-zinc-400 transition-transform group-open:rotate-180">
+              ▾
+            </span>
+          </summary>
+          <div className={`${CARD} grid gap-x-8 gap-y-4 p-5 sm:grid-cols-2`}>
+            {stock.map((p) => {
+              const pct = p.left === null ? 0 : Math.min(100, Math.round((p.left / p.cap) * 100));
+              const low = p.left !== null && pct <= 15;
+              return (
+                <div key={p.sku}>
+                  <div className="flex items-baseline justify-between gap-2 text-sm">
+                    <span className="font-medium">{p.name}</span>
+                    <span className={low ? "font-medium text-red-600" : "text-zinc-500"}>
+                      {p.left ?? "—"} <span className="text-zinc-400">/ {p.cap}</span>
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100">
+                    <div
+                      className={`h-full rounded-full ${low ? "bg-red-500" : "bg-zinc-900"}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </details>
+
+        <section>
           <div className={`${CARD} grid grid-cols-2 divide-x divide-zinc-100 sm:grid-cols-3`}>
             <Figure label="A caminho" value={inTransit.length} />
             <Figure label="Entregues" value={delivered.length} />
@@ -265,7 +354,27 @@ export default async function PainelPage(props: PageProps<"/painel">) {
         </section>
 
         <section className="flex flex-col gap-3">
-          <SectionHead title="Pedidos" aside={`${rows.length} na lista`} />
+          <SectionHead
+            title="Pedidos"
+            aside={`${rows.length} ${rows.length === 1 ? "pedido" : "pedidos"}${q ? " na busca" : ""}`}
+          />
+          <form action="/painel" className="flex gap-2">
+            {ver !== "ativos" && <input type="hidden" name="ver" value={ver} />}
+            <input
+              type="search"
+              name="q"
+              defaultValue={q}
+              placeholder="Buscar nome, telefone, cidade, nota, rastreio ou código"
+              aria-label="Buscar pedidos"
+              className="h-9 min-w-0 flex-1 rounded-md border border-zinc-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10"
+            />
+            <button className={btn("primary")}>Buscar</button>
+            {q && (
+              <Link href={href({ q: "" })} className={btn("secondary")}>
+                Limpar
+              </Link>
+            )}
+          </form>
           <nav
             aria-label="Filtrar pedidos"
             className="flex flex-wrap gap-1 self-start rounded-lg bg-zinc-100 p-1 text-sm"
@@ -273,7 +382,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
             {FILTERS.map(([key, label]) => (
               <Link
                 key={key}
-                href={key === "ativos" ? "/painel" : `/painel?ver=${key}`}
+                href={href({ ver: key })}
                 aria-current={ver === key ? "page" : undefined}
                 className={`rounded-md px-3 py-1.5 font-medium transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900 ${
                   ver === key
@@ -287,10 +396,10 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           </nav>
 
           {rows.length === 0 ? (
-            <Empty>Nada por aqui.</Empty>
+            <Empty>{q ? "Nenhum pedido bate com a busca." : "Nada por aqui."}</Empty>
           ) : (
             <ul className={`${CARD} divide-y divide-zinc-100 overflow-hidden`}>
-              {rows.map(({ order: o, f, st }) => (
+              {shown.map(({ order: o, f, st }) => (
                 <li
                   key={o.id}
                   className={`grid gap-4 px-5 py-4 md:grid-cols-[1fr_16rem] ${
@@ -332,7 +441,10 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                       {f?.stage === "local" && (
                         <form action={marcarEntregue}>
                           <input type="hidden" name="id" value={o.id} />
-                          <button className={btn("primary", "sm")}>Marcar como entregue</button>
+                          <input type="hidden" name="back" value={href({})} />
+                          <SubmitButton variant="primary" size="sm">
+                            Marcar como entregue
+                          </SubmitButton>
                         </form>
                       )}
                       {f?.label.printUrl && (
@@ -373,32 +485,28 @@ export default async function PainelPage(props: PageProps<"/painel">) {
               ))}
             </ul>
           )}
-        </section>
 
-        <section className="flex flex-col gap-3">
-          <SectionHead title="Estoque" hint="Saldo no Bling, em relação ao lote de cada produto." />
-          <div className={`${CARD} grid gap-x-8 gap-y-4 p-5 sm:grid-cols-2`}>
-            {stock.map((p) => {
-              const pct = p.left === null ? 0 : Math.min(100, Math.round((p.left / p.cap) * 100));
-              const low = p.left !== null && pct <= 15;
-              return (
-                <div key={p.sku}>
-                  <div className="flex items-baseline justify-between gap-2 text-sm">
-                    <span className="font-medium">{p.name}</span>
-                    <span className={low ? "font-medium text-red-600" : "text-zinc-500"}>
-                      {p.left ?? "—"} <span className="text-zinc-400">/ {p.cap}</span>
-                    </span>
-                  </div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100">
-                    <div
-                      className={`h-full rounded-full ${low ? "bg-red-500" : "bg-zinc-900"}`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          {pages > 1 && (
+            <nav aria-label="Páginas" className="flex items-center justify-between gap-3 text-sm">
+              {cur > 1 ? (
+                <Link href={href({ p: cur - 1 })} className={btn("secondary")}>
+                  ← Anterior
+                </Link>
+              ) : (
+                <span />
+              )}
+              <span className="text-zinc-500">
+                Página {cur} de {pages}
+              </span>
+              {cur < pages ? (
+                <Link href={href({ p: cur + 1 })} className={btn("secondary")}>
+                  Próxima →
+                </Link>
+              ) : (
+                <span />
+              )}
+            </nav>
+          )}
         </section>
 
         <section className="flex flex-col gap-3">
