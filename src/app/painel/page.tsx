@@ -578,11 +578,11 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                     </div>
                     <div className="flex items-center justify-between gap-3 md:justify-end">
                       {m.danfeUrl ? (
-                        <a className={LINK} href={m.danfeUrl} {...ext}>
+                        <a className={`${LINK} whitespace-nowrap`} href={m.danfeUrl} {...ext}>
                           NF {m.numero}
                         </a>
                       ) : (
-                        <span className="text-zinc-500">NF {m.numero}</span>
+                        <span className="whitespace-nowrap text-zinc-500">NF {m.numero}</span>
                       )}
                       <span className="font-medium tabular-nums">{brl(m.totalCents)}</span>
                     </div>
