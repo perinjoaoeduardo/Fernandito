@@ -56,11 +56,12 @@ export const STORE = {
   stockLeft: "Restam {n} unidades",
   stockLast: "Última unidade",
   /** Esgotado (teto do site ou estoque do Bling zerado). */
-  soldOut: "Esgotado",
-  soldOutText: "O primeiro lote acabou. Deixa teu contato que a gente avisa do próximo.",
+  soldOut: "Em breve",
+  soldOutText:
+    "O primeiro lote esgotou. A pré-venda do Kit Fernandito volta em breve: deixa teu contato que a gente avisa.",
   /** Esgotado: botões que abrem o "me avisa do próximo lote". */
-  notifyCta: "Me avisa do próximo lote",
-  notifyNavCta: "Esgotado",
+  notifyCta: "Me avisa quando abrir",
+  notifyNavCta: "Em breve",
   /** Barra de compra fixa no celular. */
   stickyCta: "Adicionar",
   addToCart: "Adicionar ao carrinho",
@@ -104,7 +105,7 @@ export const PRELAUNCH = {
  * Vercel (ou o padrão abaixo). Dia do lançamento: `restrito: false`.
  * Regra aplicada em `src/proxy.ts`. */
 export const ACESSO = {
-  restrito: true,
+  restrito: false,
 };
 
 /** Faixa fixa no topo do pré-lançamento ("Estamos chegando"). Pra tirar do
@@ -112,7 +113,7 @@ export const ACESSO = {
 export const ANNOUNCEMENT = {
   enabled: true,
   text: "Lançamento · primeiro lote em pré-venda",
-  soldOutText: "Primeiro lote esgotado · valeu, gurizada",
+  soldOutText: "Kit Fernandito · pré-venda em breve",
   /** Versão pública (sem convite): o pré-lançamento de antes. */
   publicText: "Estamos chegando",
 };
@@ -230,8 +231,8 @@ export const PAGES = {
     tag: "Pré-venda no ar",
     cta: "Comprar",
     /** Mesmo adesivo quando esgota. */
-    soldOutTag: "Primeiro lote",
-    soldOutCta: "Esgotado",
+    soldOutTag: "Pré-venda",
+    soldOutCta: "Em breve",
   },
   /** Página Contato: título, 3 motivos e o botão do WhatsApp. "Falar com a
    * gente" não pede nada; evento e revenda pedem o mínimo pra mensagem já
@@ -305,8 +306,8 @@ export const PAGES = {
   /** Faixa de "próximo passo" no fim das páginas internas. */
   next: {
     title: "Bora?",
-    text: "O primeiro lote tá em pré-venda.",
-    buy: "Comprar o kit",
+    text: "A pré-venda do kit volta em breve.",
+    buy: "Ver o kit",
     talk: "Falar com a gente",
   },
 };
@@ -569,14 +570,14 @@ export const FOOTER = {
 /** Modal "me avisa do próximo lote" (quando o kit esgota). Os contatos vão
  * pro painel (`/painel`, seção "Avisar do próximo lote"). */
 export const NOTIFY = {
-  kicker: "Primeiro lote esgotado",
-  title: "A gente te avisa do próximo",
-  text: "Deixa teu nome e WhatsApp (ou e-mail). Quando sair o próximo lote, tu fica sabendo antes.",
+  kicker: "Pré-venda em breve",
+  title: "A gente te avisa quando abrir",
+  text: "Deixa teu nome e WhatsApp (ou e-mail). Quando a pré-venda do kit abrir, tu fica sabendo antes.",
   name: "Teu nome",
   contact: "WhatsApp ou e-mail",
   submit: "Me avisa",
   skip: "Agora não",
   doneTitle: "Fechado!",
-  doneText: "Quando o próximo lote sair, a gente te chama. Valeu!",
+  doneText: "Quando a pré-venda abrir, a gente te chama. Valeu!",
   close: "Fechar",
 };
