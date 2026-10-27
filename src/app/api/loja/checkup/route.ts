@@ -201,11 +201,18 @@ export async function GET(request: NextRequest) {
       detail: nfe.ok ? "o site consegue ler/emitir notas" : nfe.error,
       fix: "No app do Bling (Central de extensões → Área do integrador → app do site): marcar Notas Fiscais (NF-e) e reconectar em /api/bling/connect.",
     });
+    // Nota autorizada pela Sefaz = certificado e série funcionando.
+    const issued = await safe(() =>
+      bling<{ data: { numero?: string }[] }>(`/nfe?tipo=1&situacao=5&limite=1`),
+    );
+    const lastNote = issued.ok ? issued.value.data[0] : undefined;
     add({
       area: "Bling",
       item: "Certificado digital A1 e série da NF-e",
-      status: "warn",
-      detail: "não dá pra conferir pela API — a conta ainda não emitiu nenhuma nota",
+      status: lastNote ? "ok" : "warn",
+      detail: lastNote
+        ? `já emitiu notas na Sefaz (última autorizada: nº ${lastNote.numero ?? "?"})`
+        : "não dá pra conferir pela API — a conta ainda não emitiu nenhuma nota",
       fix: "Bling → Configurações → Notas fiscais: certificado A1 da empresa instalado e série/numeração em produção (a contadora sabe).",
     });
     add({
@@ -375,10 +382,11 @@ export async function GET(request: NextRequest) {
   add({
     area: "E-mail",
     item: "Resend (pedido confirmado, avisos)",
-    status: !EMAIL_ENABLED ? "fail" : emailTest ? (emailTest.ok ? "ok" : "fail") : "warn",
+    status: !EMAIL_ENABLED ? "fail" : emailTest && !emailTest.ok ? "fail" : "ok",
     detail: !EMAIL_ENABLED
       ? "sem RESEND_API_KEY"
-      : (emailTest?.detail ?? "chave ok · abra com &email=1 pra mandar um teste pro contato@"),
+      : (emailTest?.detail ??
+        'chave ok · só o "pedido confirmado" sai (cota 100/dia, 3.000/mês); &email=1 manda um teste'),
     fix: "RESEND_API_KEY na Vercel e o domínio fernandito.com.br verificado no Resend.",
   });
 
