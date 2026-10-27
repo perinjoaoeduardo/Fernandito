@@ -28,11 +28,21 @@ export type ManualSale = {
   danfeUrl: string | null;
 };
 
-type Store = { syncedAt: string; sales: ManualSale[]; error: string | null };
+type Store = {
+  syncedAt: string;
+  sales: ManualSale[];
+  /** Notas de pedido do site: já aparecem pelo pedido, não busca de novo. */
+  ignored?: number[];
+  error: string | null;
+};
 
 const KEY = "bling:manual";
 const DAYS = 180;
 const FRESH_MS = 10 * 60 * 1000;
+// O Bling limita ~3 req/s: no máximo 25 notas novas por conferência, com
+// pausa entre uma e outra (o resto fica pra próxima, 10 min depois).
+const MAX_NEW = 25;
+const PAUSE_MS = 400;
 // Autorizada / emitida DANFE / registrada: não muda mais (só se cancelar).
 const FINAL = [5, 6, 7];
 // CFOP de remessa em bonificação, doação ou brinde (dentro e fora do estado).
@@ -88,6 +98,8 @@ function since() {
 /** Confere as notas de saída no Bling e atualiza a lista. Nunca lança. */
 export async function syncManualSales(): Promise<Store | null> {
   const previous = await getManualSales();
+  const sales: ManualSale[] = [];
+  const ignored = new Set(previous?.ignored ?? []);
   try {
     if (!(await isBlingConnected())) return previous;
     const known = new Map((previous?.sales ?? []).map((s) => [s.id, s]));
@@ -103,20 +115,29 @@ export async function syncManualSales(): Promise<Store | null> {
     }
 
     let names: Map<number, string> | null = null;
-    const sales: ManualSale[] = [];
+    let fetched = 0;
+    let more = false;
     for (const item of list) {
+      if (ignored.has(item.id)) continue;
       const cached = known.get(item.id);
       if (cached && FINAL.includes(cached.situacao) && cached.situacao === item.situacao) {
         sales.push(cached);
         continue;
       }
+      if (fetched >= MAX_NEW) {
+        more = true;
+        continue;
+      }
+      if (fetched++ > 0) await new Promise((r) => setTimeout(r, PAUSE_MS));
       const nfe = (await bling<{ data: NfeDetail }>(`/nfe/${item.id}`)).data;
       // Nota de pedido do site: já aparece no painel pelo próprio pedido.
       if (
         nfe.numeroPedidoLoja &&
         (siteOrders.has(nfe.numeroPedidoLoja) || (SITE_LOJA && nfe.loja?.id === SITE_LOJA))
-      )
+      ) {
+        ignored.add(item.id);
         continue;
+      }
       names ??= await natureNames().catch(() => new Map<number, string>());
       const natureza = names.get(nfe.naturezaOperacao?.id ?? 0) ?? "";
       const itens = (nfe.itens ?? []).map((i) => ({
@@ -144,7 +165,14 @@ export async function syncManualSales(): Promise<Store | null> {
     }
 
     sales.sort((a, b) => b.data.localeCompare(a.data));
-    const store: Store = { syncedAt: new Date().toISOString(), sales, error: null };
+    const store: Store = {
+      syncedAt: new Date().toISOString(),
+      sales,
+      ignored: [...ignored],
+      error: null,
+    };
+    // Sobrou nota por buscar: confere de novo logo na próxima visita.
+    if (more) store.syncedAt = new Date(Date.now() - FRESH_MS).toISOString();
     await kvSet(KEY, JSON.stringify(store));
     return store;
   } catch (error) {
@@ -152,7 +180,9 @@ export async function syncManualSales(): Promise<Store | null> {
     console.error("[bling] vendas manuais:", message);
     const store: Store = {
       syncedAt: new Date().toISOString(),
-      sales: previous?.sales ?? [],
+      // Guarda o que já foi lido até o erro (não perde o progresso).
+      sales: sales.length ? sales : (previous?.sales ?? []),
+      ignored: [...ignored],
       error: message,
     };
     await kvSet(KEY, JSON.stringify(store)).catch(() => {});
