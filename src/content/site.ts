@@ -60,7 +60,7 @@ export const STORE = {
   soldOutText:
     "O primeiro lote esgotou. A pré-venda do Kit Fernandito volta em breve: deixa teu contato que a gente avisa.",
   /** Esgotado: botões que abrem o "me avisa do próximo lote". */
-  notifyCta: "Me avisa quando abrir",
+  notifyCta: "Me avise quando chegar",
   notifyNavCta: "Em breve",
   /** Barra de compra fixa no celular. */
   stickyCta: "Adicionar",
@@ -571,11 +571,11 @@ export const FOOTER = {
  * pro painel (`/painel`, seção "Avisar do próximo lote"). */
 export const NOTIFY = {
   kicker: "Pré-venda em breve",
-  title: "A gente te avisa quando abrir",
+  title: "A gente te avisa quando chegar",
   text: "Deixa teu nome e WhatsApp (ou e-mail). Quando a pré-venda do kit abrir, tu fica sabendo antes.",
   name: "Teu nome",
   contact: "WhatsApp ou e-mail",
-  submit: "Me avisa",
+  submit: "Me avise",
   skip: "Agora não",
   doneTitle: "Fechado!",
   doneText: "Quando a pré-venda abrir, a gente te chama. Valeu!",

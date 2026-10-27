@@ -371,7 +371,7 @@ export function ComprarSection({
           onClick={addToCart}
           className="bg-fernandito-off-white text-fernandito-verde-escuro duration-base ease-out-standard flex h-12 items-center rounded-full px-6 font-sans text-[0.8125rem] font-bold tracking-[0.06em] uppercase transition-transform active:scale-[0.97] disabled:opacity-50"
         >
-          {soldOut ? "Me avisa" : STORE.stickyCta}
+          {soldOut ? "Me avise" : STORE.stickyCta}
         </button>
       </div>
     </section>
