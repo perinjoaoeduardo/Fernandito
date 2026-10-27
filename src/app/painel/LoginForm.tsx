@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { entrar } from "./actions";
+import { btn } from "./ui";
 
 export function LoginForm() {
   const [state, action, pending] = useActionState(entrar, null);
@@ -14,12 +15,12 @@ export function LoginForm() {
         autoFocus
         required
         placeholder="Senha"
-        className="h-10 rounded-md border border-zinc-200 bg-white px-3 text-sm shadow-sm outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400"
+        className="h-10 rounded-md border border-zinc-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10"
       />
       <button
         type="submit"
         disabled={pending}
-        className="h-10 rounded-md bg-zinc-900 px-4 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-60"
+        className={`${btn("primary")} h-10 disabled:opacity-60`}
       >
         {pending ? "Entrando…" : "Entrar"}
       </button>
