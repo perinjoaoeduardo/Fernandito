@@ -17,7 +17,7 @@ export async function entrar(_prev: { error: string } | null, form: FormData) {
   if (!(await rateLimit("painel-login", ip, 8, 600)))
     return { error: "Muitas tentativas. Espera uns minutos." };
   if (!passwordOk(String(form.get("senha") ?? ""))) return { error: "Senha errada." };
-  await painelLogin();
+  await painelLogin(form.get("lembrar") === "on");
   redirect("/painel");
 }
 
