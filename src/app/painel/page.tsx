@@ -566,6 +566,9 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                         {m.cidade ? `${m.cidade}/${m.uf} · ` : ""}
                         {m.data ? when(m.data.replace(" ", "T") + "-03:00") : "—"}
                       </p>
+                      {m.nfPara && (
+                        <p className="truncate text-xs text-zinc-400">Nota em nome de {m.nfPara}</p>
+                      )}
                     </div>
                     <p className="text-zinc-600">
                       {m.itens.map((i) => `${i.quantidade}x ${i.descricao}`).join(" + ")}

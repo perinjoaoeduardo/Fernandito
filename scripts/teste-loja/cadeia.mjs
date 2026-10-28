@@ -312,6 +312,8 @@ const c1 = await buy({ note: RECADO });
         { codigo: "FERN-KIT-PRE", descricao: "Kit", quantidade: 1, valor: 89.9, cfop: "5910" },
       ],
       valorNota: 89.9,
+      // Nota em nome de um, entrega pra outro: o painel mostra quem recebe.
+      transporte: { etiqueta: { nome: "Rodrigo Rech", municipio: "Florianópolis", uf: "SC" } },
     },
   });
   const cron = await (await fetch(`${B}/api/cron/bling?key=${KEY}`)).json();
@@ -319,6 +321,15 @@ const c1 = await buy({ note: RECADO });
     "C13 venda manual + bonificação lidas do Bling (só as 2)",
     cron.foraDoSite === 2,
     JSON.stringify(cron),
+  );
+  const store = JSON.parse(
+    execSync(`redis-cli -p ${process.env.REDIS_PORT ?? 6390} get bling:manual`).toString(),
+  );
+  const brinde = store.sales.find((x) => x.cliente === "Rodrigo Rech");
+  check(
+    "C13 nota em nome de um e entrega pra outro → painel mostra quem recebe",
+    brinde?.nfPara === "Bar do Zé" && brinde?.cidade === "Florianópolis" && brinde?.uf === "SC",
+    JSON.stringify(brinde),
   );
 }
 // C8 frete da tabela (Melhor Envio estava fora na compra)

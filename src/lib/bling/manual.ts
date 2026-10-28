@@ -21,6 +21,8 @@ export type ManualSale = {
   tipo: "venda" | "bonificacao";
   natureza: string;
   cliente: string;
+  /** Nome na nota, quando a entrega é pra outra pessoa (etiqueta do pedido). */
+  nfPara?: string;
   cidade: string;
   uf: string;
   itens: { codigo: string; descricao: string; quantidade: number; valor: number }[];
@@ -29,6 +31,8 @@ export type ManualSale = {
 };
 
 type Store = {
+  /** Muda quando o jeito de ler a nota muda: refaz as já guardadas aos poucos. */
+  version?: number;
   syncedAt: string;
   sales: ManualSale[];
   /** Notas de pedido do site: já aparecem pelo pedido, não busca de novo. */
@@ -37,6 +41,7 @@ type Store = {
 };
 
 const KEY = "bling:manual";
+const VERSION = 2;
 const DAYS = 180;
 const FRESH_MS = 10 * 60 * 1000;
 // O Bling limita ~3 req/s: no máximo 25 notas novas por conferência, com
@@ -61,6 +66,7 @@ type NfeDetail = {
   loja?: { id?: number };
   naturezaOperacao?: { id?: number };
   contato?: { nome?: string; endereco?: { municipio?: string; uf?: string } };
+  transporte?: { etiqueta?: { nome?: string; municipio?: string; uf?: string } };
   itens?: {
     codigo?: string;
     descricao?: string;
@@ -72,6 +78,29 @@ type NfeDetail = {
   linkDanfe?: string;
   linkPDF?: string;
 };
+
+/**
+ * Quem aparece na lista: se a etiqueta do pedido é de outra pessoa (nota em
+ * nome de um, entrega pra outro), mostra quem recebe e guarda o nome da nota.
+ */
+function whoGets(nfe: NfeDetail) {
+  const nota = nfe.contato?.nome ?? "";
+  const etiqueta = nfe.transporte?.etiqueta;
+  const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+  if (etiqueta?.nome && nota && !same(etiqueta.nome, nota)) {
+    return {
+      cliente: etiqueta.nome,
+      nfPara: nota,
+      cidade: etiqueta.municipio ?? "",
+      uf: etiqueta.uf ?? "",
+    };
+  }
+  return {
+    cliente: nota,
+    cidade: nfe.contato?.endereco?.municipio ?? "",
+    uf: nfe.contato?.endereco?.uf ?? "",
+  };
+}
 
 export async function getManualSales(): Promise<Store | null> {
   const raw = await kvGet(KEY);
@@ -120,12 +149,14 @@ export async function syncManualSales(): Promise<Store | null> {
     for (const item of list) {
       if (ignored.has(item.id)) continue;
       const cached = known.get(item.id);
-      if (cached && FINAL.includes(cached.situacao) && cached.situacao === item.situacao) {
+      const fresh = previous?.version === VERSION;
+      if (cached && fresh && FINAL.includes(cached.situacao) && cached.situacao === item.situacao) {
         sales.push(cached);
         continue;
       }
       if (fetched >= MAX_NEW) {
         more = true;
+        if (cached) sales.push(cached);
         continue;
       }
       if (fetched++ > 0) await new Promise((r) => setTimeout(r, PAUSE_MS));
@@ -155,9 +186,7 @@ export async function syncManualSales(): Promise<Store | null> {
         situacao: nfe.situacao ?? item.situacao,
         tipo: bonus ? "bonificacao" : "venda",
         natureza,
-        cliente: nfe.contato?.nome ?? "",
-        cidade: nfe.contato?.endereco?.municipio ?? "",
-        uf: nfe.contato?.endereco?.uf ?? "",
+        ...whoGets(nfe),
         itens,
         totalCents: Math.round(Number(nfe.valorNota ?? 0) * 100),
         danfeUrl: nfe.linkDanfe ?? nfe.linkPDF ?? null,
@@ -166,6 +195,7 @@ export async function syncManualSales(): Promise<Store | null> {
 
     sales.sort((a, b) => b.data.localeCompare(a.data));
     const store: Store = {
+      version: VERSION,
       syncedAt: new Date().toISOString(),
       sales,
       ignored: [...ignored],
@@ -179,6 +209,7 @@ export async function syncManualSales(): Promise<Store | null> {
     const message = (error as Error).message;
     console.error("[bling] vendas manuais:", message);
     const store: Store = {
+      version: previous?.version,
       syncedAt: new Date().toISOString(),
       // Guarda o que já foi lido até o erro (não perde o progresso).
       sales: sales.length ? sales : (previous?.sales ?? []),
