@@ -32,7 +32,12 @@ export async function GET(request: NextRequest) {
 
   const text = (name: string, max = 120) => (p.get(name) ?? "").trim().slice(0, max);
   const digits = (name: string) => text(name, 60).replace(/\D/g, "");
-  const fail = (erro: string, status = 400) => Response.json({ erro }, { status });
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body, null, 1), {
+      status,
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+    });
+  const fail = (erro: string, status = 400) => json({ erro }, status);
 
   const cep = digits("cep");
   if (cep.length !== 8) return fail("cep: 8 dígitos");
@@ -53,7 +58,7 @@ export async function GET(request: NextRequest) {
       const options = await quoteMelhorEnvio(cep, [
         { qty: 1, priceCents: Math.round(valor * 100), ...box },
       ]);
-      return Response.json({
+      return json({
         ok: true,
         cep,
         caixa: `${length}x${width}x${height}`,
@@ -131,7 +136,7 @@ export async function GET(request: NextRequest) {
     }
     const shipment = await getShipment(id);
     const pdf = await labelPrintUrl(id);
-    return Response.json({
+    return json({
       ok: true,
       ref,
       envio: id,
