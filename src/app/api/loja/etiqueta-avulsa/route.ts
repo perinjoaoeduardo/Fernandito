@@ -87,9 +87,12 @@ export async function GET(request: NextRequest) {
   const bairro = text("bairro", 60);
   const cidade = text("cidade", 60);
   const uf = text("uf", 2).toUpperCase();
-  const fone = digits("fone");
+  // O Melhor Envio exige um telefone do destinatário (a transportadora liga
+  // se precisar). Sem `fone`, vai o da Fernandito.
+  const fone =
+    digits("fone") || (process.env.ME_FROM_PHONE?.trim() || "51993383764").replace(/\D/g, "");
   if (!nome || !rua || !numero || !bairro || !cidade || !/^[A-Z]{2}$/.test(uf) || fone.length < 10)
-    return fail("faltou: nome, fone (com DDD), rua, numero, bairro, cidade, uf");
+    return fail("faltou: nome, rua, numero, bairro, cidade, uf");
 
   const ref = text("ref", 40).replace(/[^\w-]/g, "") || `avulso-${nf.slice(-8)}`;
   const qty = Math.min(50, Math.max(1, Math.round(Number(p.get("qtd") ?? 1)) || 1));
