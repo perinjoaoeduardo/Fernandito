@@ -48,12 +48,20 @@ export function OrderTimeline({
         },
         {
           title: "Etiqueta pronta",
-          done: reached(["ready", "posted", "delivered"]),
-          note: f?.label.tracking ? `Rastreio ${f.label.tracking}` : null,
-          link: f?.label.trackingUrl ?? null,
+          done: reached(["ready", "posted", "delivered", "local-delivered"]),
+          // Entregue em mãos: a etiqueta não foi usada, então sem rastreio.
+          note:
+            f?.label.tracking && stage !== "local-delivered"
+              ? `Rastreio ${f.label.tracking}`
+              : null,
+          link: stage !== "local-delivered" ? (f?.label.trackingUrl ?? null) : null,
         },
-        { title: "Postado na transportadora", done: reached(["posted", "delivered"]), note: null },
-        { title: "Entregue", done: reached(["delivered"]), note: null },
+        {
+          title: "Postado na transportadora",
+          done: reached(["posted", "delivered", "local-delivered"]),
+          note: null,
+        },
+        { title: "Entregue", done: reached(["delivered", "local-delivered"]), note: null },
       ];
   const current = steps.findIndex((s) => !s.done);
 

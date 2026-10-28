@@ -381,9 +381,12 @@ async function stepLocal() {
 }
 
 /** Marca a entrega própria como feita (botão do painel ou `&acao=entregue`). */
-export async function markLocalDelivered(orderId: string) {
+export async function markLocalDelivered(orderId: string, force = false) {
   const f = await getFulfillment(orderId);
-  if (!f || f.stage !== "local") return null;
+  // `force` (só pelo link de admin, `&forcar=1`): caso raro de pedido com etiqueta
+  // que acabou entregue em mãos. Valor e nota não mudam.
+  const allowed = force ? ["local", "ready", "posted"] : ["local"];
+  if (!f || !allowed.includes(f.stage)) return null;
   f.stage = "local-delivered";
   f.error = null;
   await save(orderId, f);

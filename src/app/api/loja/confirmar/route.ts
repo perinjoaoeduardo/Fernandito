@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     });
   }
   if (action === "entregue") {
-    const done = await markLocalDelivered(order.id);
+    const done = await markLocalDelivered(order.id, params.get("forcar") === "1");
     if (!done)
       return Response.json({ erro: "Não está aguardando entrega própria" }, { status: 409 });
     return Response.json({ ok: true, pedido: order.id, etapa: done.stage });
