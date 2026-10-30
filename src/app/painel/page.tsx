@@ -243,21 +243,27 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     kvSMembers("loja:alertas"),
     stockRemaining(KIT_SKU).catch(() => null),
   ]);
-  // Kit: livres no site = o menor entre o teto do site e o saldo do Bling.
+  // Kit. A conta vem do contador do site (`siteLeft` = teto − vendidos − Pix
+  // abertos), que anda junto com a compra; o Bling só baixa depois da nota.
+  //   restam    = livres no site + reserva fora do site (as 8 sobras do lote)
+  //   em Pix    = kits reservados em Pix aberto (ainda não pagos)
+  //   vendidos  = total − restam − em Pix
   const kitBling = stockMap?.get(KIT_SKU) ?? null;
+  const kitReserve = CONTAGEM_BLING - LOTE_KIT;
   const kitFree =
-    siteLeft === null ? kitBling : kitBling === null ? siteLeft : Math.min(siteLeft, kitBling);
-  // Vendidos no total: o que saiu do saldo do Bling (+ 1º lote); sem Bling, pela contagem do site.
-  const kitSold =
-    kitBling !== null
-      ? Math.min(TOTAL_KITS, Math.max(0, TOTAL_KITS - kitBling))
-      : siteLeft === null
-        ? null
-        : PRIMEIRO_LOTE + Math.max(0, LOTE_KIT - siteLeft);
-  const kitRest = kitSold === null ? null : TOTAL_KITS - kitSold;
-  const kitReserve = kitBling !== null && kitFree !== null ? Math.max(0, kitBling - kitFree) : null;
+    siteLeft === null ? null : kitBling === null ? siteLeft : Math.min(siteLeft, kitBling);
+  const kitHeld = Math.max(
+    0,
+    (await getOrders(await kvSMembers("orders:open")))
+      .filter((o): o is StoredOrder => Boolean(o) && o!.status === "pending")
+      .flatMap((o) => o.items)
+      .filter((i) => i.sku === KIT_SKU)
+      .reduce((n, i) => n + i.qty, 0),
+  );
+  const kitRest = kitFree === null ? null : kitFree + kitReserve;
+  const kitSold = kitRest === null ? null : Math.max(0, TOTAL_KITS - kitRest - kitHeld);
   const kitPct = kitRest === null ? 0 : Math.min(100, Math.round((kitRest / TOTAL_KITS) * 100));
-  const kitLow = kitRest !== null && kitRest <= 15;
+  const kitLow = kitFree !== null && kitFree <= 10;
   // Alerta só aparece enquanto o pedido ainda está ativo (estornado não conta).
   const refunded = new Set(all.filter((r) => r.order.refundedAt).map((r) => r.order.id));
   const alerts = alertsRaw
@@ -370,10 +376,12 @@ export default async function PainelPage(props: PageProps<"/painel">) {
               />
             </div>
             <p className="mt-3 text-xs text-zinc-500">
-              No site: {kitFree ?? "—"} livres (liberados {LOTE_KIT} neste lote)
-              {kitReserve !== null ? ` · reserva fora do site: ${kitReserve}` : ""}
+              No site: {kitFree ?? "—"} livres (liberados {LOTE_KIT} neste lote) · reserva fora do
+              site: {kitReserve}
+              {kitHeld > 0 ? ` · ${kitHeld} em Pix aberto (reservados, ainda não pagos)` : ""}
             </p>
             <p className="mt-1 text-xs text-zinc-400">
+              {`Bling: ${kitBling ?? "—"} · `}
               {OTHER_STOCK.map((p) => `${p.name} ${stockMap?.get(p.sku) ?? "—"}`).join(" · ")}
             </p>
           </div>
