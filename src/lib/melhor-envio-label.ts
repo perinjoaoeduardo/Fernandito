@@ -23,11 +23,9 @@ const SENDER = {
   state_abbr: "RS",
   country_id: "BR",
   postal_code: ORIGIN_CEP,
-  // CNAE da empresa (só dígitos, 7): a LATAM Cargo exige em envio com CNPJ.
-  // Vem da variável ME_FROM_CNAE (Vercel); sem ela o campo nem vai.
-  ...(process.env.ME_FROM_CNAE?.replace(/\D/g, "")
-    ? { economic_activity_code: process.env.ME_FROM_CNAE.replace(/\D/g, "") }
-    : {}),
+  // CNAE principal da empresa (4723-7/00, comércio varejista de bebidas): a
+  // LATAM Cargo exige em envio com CNPJ. Só dígitos; `ME_FROM_CNAE` troca.
+  economic_activity_code: (process.env.ME_FROM_CNAE?.replace(/\D/g, "") || "4723700").slice(0, 7),
 };
 // Agência de postagem (opcional; sem ela vale a do painel: ponto Pegaki).
 const AGENCY = Number(process.env.ME_AGENCY_ID) || undefined;
