@@ -32,11 +32,15 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Estoque que o painel mostra. O kit é o que importa: `LOTE_KIT` = quantos
-// kits foram liberados no site neste lote (o teto `stockCap` em
-// src/lib/catalog.ts = vendidos antes + este lote). Mudou o lote? Troca aqui.
+// Estoque que o painel mostra. O kit é o que importa. Total à venda =
+// 54 vendidos no 1º lote + 108 contados no Bling no relançamento = 162. O site
+// libera só 100 do lote novo (teto `stockCap` em src/lib/catalog.ts = 54 + 100),
+// o resto é reserva. Mudou o lote? Troca aqui.
 const KIT_SKU = "FERN-KIT-PRE";
-const LOTE_KIT = 100;
+const LOTE_KIT = 100; // liberado no site neste lote
+const PRIMEIRO_LOTE = 54; // vendidos antes
+const CONTAGEM_BLING = 108; // saldo no relançamento
+const TOTAL_KITS = PRIMEIRO_LOTE + CONTAGEM_BLING;
 // Os outros produtos aparecem só como número (contagem ainda a acertar).
 const OTHER_STOCK = [
   { sku: "FERN-350", name: "Lata" },
@@ -224,10 +228,17 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const kitBling = stockMap?.get(KIT_SKU) ?? null;
   const kitFree =
     siteLeft === null ? kitBling : kitBling === null ? siteLeft : Math.min(siteLeft, kitBling);
-  const kitSold = siteLeft === null ? null : Math.max(0, LOTE_KIT - siteLeft);
+  // Vendidos no total: o que saiu do saldo do Bling (+ 1º lote); sem Bling, pela contagem do site.
+  const kitSold =
+    kitBling !== null
+      ? Math.min(TOTAL_KITS, Math.max(0, TOTAL_KITS - kitBling))
+      : siteLeft === null
+        ? null
+        : PRIMEIRO_LOTE + Math.max(0, LOTE_KIT - siteLeft);
+  const kitRest = kitSold === null ? null : TOTAL_KITS - kitSold;
   const kitReserve = kitBling !== null && kitFree !== null ? Math.max(0, kitBling - kitFree) : null;
-  const kitPct = kitFree === null ? 0 : Math.min(100, Math.round((kitFree / LOTE_KIT) * 100));
-  const kitLow = kitFree !== null && kitFree <= 10;
+  const kitPct = kitRest === null ? 0 : Math.min(100, Math.round((kitRest / TOTAL_KITS) * 100));
+  const kitLow = kitRest !== null && kitRest <= 15;
   // Alerta só aparece enquanto o pedido ainda está ativo (estornado não conta).
   const refunded = new Set(all.filter((r) => r.order.refundedAt).map((r) => r.order.id));
   const alerts = alertsRaw
@@ -315,16 +326,19 @@ export default async function PainelPage(props: PageProps<"/painel">) {
         </section>
 
         <section className="flex flex-col gap-3">
-          <SectionHead title="Estoque do kit" hint="Kits à venda no site neste lote." />
+          <SectionHead
+            title="Estoque do kit"
+            hint={`Total pra vender: ${PRIMEIRO_LOTE} do 1º lote + ${CONTAGEM_BLING} contados = ${TOTAL_KITS}.`}
+          />
           <div className={`${CARD} p-5`}>
             <div className="flex items-baseline justify-between gap-3">
               <p>
                 <span
                   className={`text-3xl font-semibold tracking-tight ${kitLow ? "text-red-600" : ""}`}
                 >
-                  {kitFree ?? "—"}
+                  {kitRest ?? "—"}
                 </span>{" "}
-                <span className="text-sm text-zinc-500">livres de {LOTE_KIT}</span>
+                <span className="text-sm text-zinc-500">restam de {TOTAL_KITS}</span>
               </p>
               <p className="text-sm text-zinc-500">
                 {kitSold !== null ? `${kitSold} vendidos` : ""}
@@ -337,7 +351,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
               />
             </div>
             <p className="mt-3 text-xs text-zinc-500">
-              Bling: {kitBling ?? "—"}
+              No site: {kitFree ?? "—"} livres (liberados {LOTE_KIT} neste lote)
               {kitReserve !== null ? ` · reserva fora do site: ${kitReserve}` : ""}
             </p>
             <p className="mt-1 text-xs text-zinc-400">
