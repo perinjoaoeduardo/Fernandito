@@ -9,6 +9,7 @@ import { getFulfillment, type FulfillStage, type Fulfillment } from "@/lib/store
 import { kvSMembers } from "@/lib/store/kv";
 import { getOrder, type StoredOrder } from "@/lib/store/orders";
 import { blingStock } from "@/lib/bling/orders";
+import { stockRemaining } from "@/lib/store/stock";
 import { atualizar, marcarEntregue, sair } from "./actions";
 import { LoginForm } from "./LoginForm";
 import { SubmitButton } from "./SubmitButton";
@@ -31,14 +32,16 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Estoque que o painel mostra: os 4 produtos do Bling (saldo virtual).
-// `cap` = tamanho do lote de referência (a barra mostra quanto sobra dele).
-// Mudou o lote? Troca aqui.
-const PRODUCTS_STOCK = [
-  { sku: "FERN-KIT-PRE", name: "Kit pré-lançamento", cap: 150 },
-  { sku: "FERN-350", name: "Lata 350ml", cap: 250 },
-  { sku: "FERN-350-6", name: "Pack 6 latas", cap: 41 },
-  { sku: "FERN-PRESSKIT", name: "Press kit (brinde)", cap: 50 },
+// Estoque que o painel mostra. O kit é o que importa: `LOTE_KIT` = quantos
+// kits foram liberados no site neste lote (o teto `stockCap` em
+// src/lib/catalog.ts = vendidos antes + este lote). Mudou o lote? Troca aqui.
+const KIT_SKU = "FERN-KIT-PRE";
+const LOTE_KIT = 100;
+// Os outros produtos aparecem só como número (contagem ainda a acertar).
+const OTHER_STOCK = [
+  { sku: "FERN-350", name: "Lata" },
+  { sku: "FERN-350-6", name: "Pack 6" },
+  { sku: "FERN-PRESSKIT", name: "Press kit" },
 ] as const;
 
 const brl = (cents: number) =>
@@ -212,12 +215,20 @@ export default async function PainelPage(props: PageProps<"/painel">) {
 
   const waitlist = (await listLeads().catch(() => [])).filter((l) => l.form === "aviso");
 
-  const [stockMap, alertsRaw] = await Promise.all([
-    blingStock(PRODUCTS_STOCK.map((p) => p.sku)),
+  const [stockMap, alertsRaw, siteLeft] = await Promise.all([
+    blingStock([KIT_SKU, ...OTHER_STOCK.map((p) => p.sku)]),
     kvSMembers("loja:alertas"),
+    stockRemaining(KIT_SKU).catch(() => null),
   ]);
+  // Kit: livres no site = o menor entre o teto do site e o saldo do Bling.
+  const kitBling = stockMap?.get(KIT_SKU) ?? null;
+  const kitFree =
+    siteLeft === null ? kitBling : kitBling === null ? siteLeft : Math.min(siteLeft, kitBling);
+  const kitSold = siteLeft === null ? null : Math.max(0, LOTE_KIT - siteLeft);
+  const kitReserve = kitBling !== null && kitFree !== null ? Math.max(0, kitBling - kitFree) : null;
+  const kitPct = kitFree === null ? 0 : Math.min(100, Math.round((kitFree / LOTE_KIT) * 100));
+  const kitLow = kitFree !== null && kitFree <= 10;
   // Alerta só aparece enquanto o pedido ainda está ativo (estornado não conta).
-  const stock = PRODUCTS_STOCK.map((p) => ({ ...p, left: stockMap?.get(p.sku) ?? null }));
   const refunded = new Set(all.filter((r) => r.order.refundedAt).map((r) => r.order.id));
   const alerts = alertsRaw
     .map((a) => JSON.parse(a) as { at: string; orderId: string; problem: string })
@@ -303,41 +314,37 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           </div>
         </section>
 
-        <details open className="group flex flex-col gap-3">
-          <summary className="flex cursor-pointer list-none items-end justify-between gap-3 marker:hidden focus-visible:outline-2 focus-visible:outline-zinc-900">
-            <span>
-              <span className="block text-base font-semibold tracking-tight">Estoque</span>
-              <span className="block text-sm text-zinc-500">
-                Saldo no Bling, em relação ao lote de cada produto.
-              </span>
-            </span>
-            <span aria-hidden className="text-zinc-400 transition-transform group-open:rotate-180">
-              ▾
-            </span>
-          </summary>
-          <div className={`${CARD} grid gap-x-8 gap-y-4 p-5 sm:grid-cols-2`}>
-            {stock.map((p) => {
-              const pct = p.left === null ? 0 : Math.min(100, Math.round((p.left / p.cap) * 100));
-              const low = p.left !== null && pct <= 15;
-              return (
-                <div key={p.sku}>
-                  <div className="flex items-baseline justify-between gap-2 text-sm">
-                    <span className="font-medium">{p.name}</span>
-                    <span className={low ? "font-medium text-red-600" : "text-zinc-500"}>
-                      {p.left ?? "—"} <span className="text-zinc-400">/ {p.cap}</span>
-                    </span>
-                  </div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100">
-                    <div
-                      className={`h-full rounded-full ${low ? "bg-red-500" : "bg-zinc-900"}`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+        <section className="flex flex-col gap-3">
+          <SectionHead title="Estoque do kit" hint="Kits à venda no site neste lote." />
+          <div className={`${CARD} p-5`}>
+            <div className="flex items-baseline justify-between gap-3">
+              <p>
+                <span
+                  className={`text-3xl font-semibold tracking-tight ${kitLow ? "text-red-600" : ""}`}
+                >
+                  {kitFree ?? "—"}
+                </span>{" "}
+                <span className="text-sm text-zinc-500">livres de {LOTE_KIT}</span>
+              </p>
+              <p className="text-sm text-zinc-500">
+                {kitSold !== null ? `${kitSold} vendidos` : ""}
+              </p>
+            </div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-zinc-100">
+              <div
+                className={`h-full rounded-full ${kitLow ? "bg-red-500" : "bg-zinc-900"}`}
+                style={{ width: `${kitPct}%` }}
+              />
+            </div>
+            <p className="mt-3 text-xs text-zinc-500">
+              Bling: {kitBling ?? "—"}
+              {kitReserve !== null ? ` · reserva fora do site: ${kitReserve}` : ""}
+            </p>
+            <p className="mt-1 text-xs text-zinc-400">
+              {OTHER_STOCK.map((p) => `${p.name} ${stockMap?.get(p.sku) ?? "—"}`).join(" · ")}
+            </p>
           </div>
-        </details>
+        </section>
 
         <section>
           <div className={`${CARD} grid grid-cols-2 divide-x divide-zinc-100 sm:grid-cols-3`}>
