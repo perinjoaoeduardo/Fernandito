@@ -14,7 +14,7 @@ export const NOTE_MAX = 300;
 
 export const orderItemSchema = z.object({
   sku: z.string().min(1).max(40),
-  qty: z.number().int().min(1).max(5),
+  qty: z.number().int().min(1).max(10),
   unitPriceCents: z.number().int().nonnegative(),
 });
 

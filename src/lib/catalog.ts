@@ -81,7 +81,8 @@ export const PRODUCTS: Product[] = [
         placeholder: "Foto: carta",
       },
     ],
-    maxQty: 5,
+    // Por pedido (não existe limite por CPF): 10 kits.
+    maxQty: 10,
     // Igual ao cadastro no Bling: caixa 19 × 19 × 6,5 cm, 1,2 kg.
     shipping: { weightKg: 1.2, widthCm: 19, heightCm: 6.5, lengthCm: 19 },
     // O teto conta os já vendidos: 54 da 1ª leva + 100 liberados em 30/10 = 154.
