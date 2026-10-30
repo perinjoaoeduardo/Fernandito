@@ -45,14 +45,14 @@ export type ShippingItem = {
 // painel e o Bling olham).
 const LOCAL_AREAS = [
   // CEPs de Porto Alegre: 90000-000 a 91999-999.
-  { id: "local-poa", city: "Porto Alegre", cep: [90000000, 91999999], days: { min: 1, max: 2 } },
+  { id: "local-poa", city: "Porto Alegre", cep: [90000000, 91999999], days: { min: 5, max: 5 } },
   // CEPs de Caxias do Sul (sede e distritos): 95000-000 a 95139-999.
-  // Entrega em mãos, mas não todo dia: 4 a 5 dias úteis.
+  // Entrega em mãos, mas não todo dia. Prazo informado: 5 dias úteis (POA e Caxias).
   {
     id: "local-caxias",
     city: "Caxias do Sul",
     cep: [95000000, 95139999],
-    days: { min: 4, max: 5 },
+    days: { min: 5, max: 5 },
   },
 ] as const;
 
