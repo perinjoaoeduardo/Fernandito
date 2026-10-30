@@ -84,10 +84,10 @@ export const PRODUCTS: Product[] = [
     maxQty: 5,
     // Igual ao cadastro no Bling: caixa 19 × 19 × 6,5 cm, 1,2 kg.
     shipping: { weightKg: 1.2, widthCm: 19, heightCm: 6.5, lengthCm: 19 },
-    // 150 kits no Bling; por enquanto o site vende 49 além dos 5 da 1ª venda
-    // (5 já vendidos + 49 = 54, contando os já vendidos). Pra liberar mais: sobe
-    // este número (até 145, com a margem).
-    stockCap: 54,
+    // O teto conta os já vendidos: 54 da 1ª leva + 100 liberados em 30/10 = 154.
+    // O Bling está com 108 (contagem física): sobram 8 de reserva fora do site.
+    // Pra liberar mais: sobe este número (sem passar do saldo do Bling).
+    stockCap: 154,
     active: true,
   },
   {

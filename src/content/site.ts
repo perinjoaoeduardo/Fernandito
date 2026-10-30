@@ -306,8 +306,8 @@ export const PAGES = {
   /** Faixa de "próximo passo" no fim das páginas internas. */
   next: {
     title: "Bora?",
-    text: "A pré-venda do kit volta em breve.",
-    buy: "Ver o kit",
+    text: "O primeiro lote tá em pré-venda.",
+    buy: "Comprar o kit",
     talk: "Falar com a gente",
   },
 };
