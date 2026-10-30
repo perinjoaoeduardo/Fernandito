@@ -5,13 +5,14 @@ import { getManualSales, manualSalesStale, syncManualSales } from "@/lib/bling/m
 import { listLeads } from "@/lib/leads";
 import { painelAuthed } from "@/lib/painel";
 import { ALL_SET } from "@/lib/store/checkout";
-import { getFulfillment, type FulfillStage, type Fulfillment } from "@/lib/store/fulfillment";
-import { kvSMembers } from "@/lib/store/kv";
-import { getOrder, type StoredOrder } from "@/lib/store/orders";
+import { getFulfillments, type FulfillStage, type Fulfillment } from "@/lib/store/fulfillment";
+import { kvGet, kvSet, kvSMembers } from "@/lib/store/kv";
+import { getOrders, type StoredOrder } from "@/lib/store/orders";
 import { blingStock } from "@/lib/bling/orders";
 import { stockRemaining } from "@/lib/store/stock";
 import { atualizar, marcarEntregue, sair } from "./actions";
 import { LoginForm } from "./LoginForm";
+import { SearchBox } from "./SearchBox";
 import { SubmitButton } from "./SubmitButton";
 import {
   ActionCard,
@@ -47,6 +48,24 @@ const OTHER_STOCK = [
   { sku: "FERN-350-6", name: "Pack 6" },
   { sku: "FERN-PRESSKIT", name: "Press kit" },
 ] as const;
+
+/**
+ * Saldo do Bling com validade de 1 min no banco: o painel não precisa ir ao
+ * Bling (duas chamadas lentas) a cada clique. "Atualizar agora" não limpa; em
+ * no máximo 1 min o número se renova sozinho.
+ */
+async function cachedBlingStock(skus: string[]): Promise<Map<string, number> | null> {
+  const key = "painel:estoque";
+  try {
+    const raw = await kvGet(key);
+    if (raw) return new Map(Object.entries(JSON.parse(raw) as Record<string, number>));
+  } catch {
+    // Sem cache: vai direto ao Bling.
+  }
+  const fresh = await blingStock(skus);
+  if (fresh) await kvSet(key, JSON.stringify(Object.fromEntries(fresh)), 60).catch(() => {});
+  return fresh;
+}
 
 const brl = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -123,10 +142,10 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const ver = FILTERS.some(([k]) => k === raw) ? String(raw) : "ativos";
 
   const ids = await kvSMembers(ALL_SET);
-  const orders = (await Promise.all(ids.map(getOrder)))
+  const orders = (await getOrders(ids))
     .filter((o): o is StoredOrder => Boolean(o) && (o!.status === "paid" || o!.status === "manual"))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const fulfillments = await Promise.all(orders.map((o) => getFulfillment(o.id)));
+  const fulfillments = await getFulfillments(orders.map((o) => o.id));
   const every = orders.map((order, i) => ({
     order,
     f: fulfillments[i],
@@ -220,7 +239,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const waitlist = (await listLeads().catch(() => [])).filter((l) => l.form === "aviso");
 
   const [stockMap, alertsRaw, siteLeft] = await Promise.all([
-    blingStock([KIT_SKU, ...OTHER_STOCK.map((p) => p.sku)]),
+    cachedBlingStock([KIT_SKU, ...OTHER_STOCK.map((p) => p.sku)]),
     kvSMembers("loja:alertas"),
     stockRemaining(KIT_SKU).catch(() => null),
   ]);
@@ -379,23 +398,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
             title="Pedidos"
             aside={`${rows.length} ${rows.length === 1 ? "pedido" : "pedidos"}${q ? " na busca" : ""}`}
           />
-          <form action="/painel" className="flex gap-2">
-            {ver !== "ativos" && <input type="hidden" name="ver" value={ver} />}
-            <input
-              type="search"
-              name="q"
-              defaultValue={q}
-              placeholder="Buscar nome, telefone, cidade, nota, rastreio ou código"
-              aria-label="Buscar pedidos"
-              className="h-9 min-w-0 flex-1 rounded-md border border-zinc-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10"
-            />
-            <button className={btn("primary")}>Buscar</button>
-            {q && (
-              <Link href={href({ q: "" })} className={btn("secondary")}>
-                Limpar
-              </Link>
-            )}
-          </form>
+          <SearchBox ver={ver} q={q} />
           <nav
             aria-label="Filtrar pedidos"
             className="flex flex-wrap gap-1 self-start rounded-lg bg-zinc-100 p-1 text-sm"

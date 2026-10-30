@@ -13,6 +13,7 @@ import {
 import {
   IS_PRODUCTION,
   kvGet,
+  kvMGet,
   kvReleaseLock,
   kvSAdd,
   kvSMembers,
@@ -112,6 +113,17 @@ function fresh(): Fulfillment {
 export async function getFulfillment(orderId: string): Promise<Fulfillment | null> {
   const raw = await kvGet(key(orderId));
   return raw ? (JSON.parse(raw) as Fulfillment) : null;
+}
+
+/** Vários envios de uma vez (uma ida ao banco a cada 100), pro painel. */
+export async function getFulfillments(orderIds: string[]): Promise<(Fulfillment | null)[]> {
+  const out: (Fulfillment | null)[] = [];
+  const CHUNK = 100;
+  for (let from = 0; from < orderIds.length; from += CHUNK) {
+    const values = await kvMGet(...orderIds.slice(from, from + CHUNK).map(key));
+    for (const raw of values) out.push(raw ? (JSON.parse(raw) as Fulfillment) : null);
+  }
+  return out;
 }
 
 async function save(orderId: string, f: Fulfillment) {

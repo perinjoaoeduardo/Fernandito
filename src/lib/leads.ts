@@ -2,7 +2,7 @@ import "server-only";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { BLING_ADMIN_KEY } from "@/lib/bling/client";
-import { kvGet, kvSAdd, kvSet, kvSMembers } from "@/lib/store/kv";
+import { kvGet, kvMGet, kvSAdd, kvSet, kvSMembers } from "@/lib/store/kv";
 
 /**
  * Leads da página Contato (geral, evento, revenda): cada envio fica guardado no Redis (`lead:<id>`, conjunto `leads`) antes de
@@ -30,7 +30,7 @@ export async function saveLead(input: z.infer<typeof leadSchema>) {
 
 export async function listLeads(): Promise<Lead[]> {
   const ids = await kvSMembers(SET);
-  const leads = await Promise.all(ids.map((id) => kvGet(`lead:${id}`)));
+  const leads = ids.length ? await kvMGet(...ids.map((id) => `lead:${id}`)) : [];
   return leads
     .filter((raw): raw is string => Boolean(raw))
     .map((raw) => JSON.parse(raw) as Lead)

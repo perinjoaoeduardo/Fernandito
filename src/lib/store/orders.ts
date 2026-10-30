@@ -87,6 +87,30 @@ export async function getOrder(id: string): Promise<StoredOrder | null> {
   return order;
 }
 
+/** Vários pedidos de uma vez (uma ida ao banco a cada 100), pro painel. */
+export async function getOrders(ids: string[]): Promise<(StoredOrder | null)[]> {
+  const valid = ids.map((id) => (/^[\w-]{6,40}$/.test(id) ? id : null));
+  const out: (StoredOrder | null)[] = valid.map(() => null);
+  const CHUNK = 100;
+  for (let from = 0; from < valid.length; from += CHUNK) {
+    const part = valid.slice(from, from + CHUNK);
+    const keys = part.flatMap((id) => (id ? [`order:${id}`, `paid:${id}`] : ["x:-", "x:-"]));
+    const values = await kvMGet(...keys);
+    part.forEach((id, i) => {
+      const raw = values[i * 2];
+      if (!id || !raw) return;
+      const order = JSON.parse(raw) as StoredOrder;
+      const paidAt = values[i * 2 + 1];
+      if (paidAt && order.status !== "paid") {
+        order.status = "paid";
+        order.paidAt = paidAt;
+      }
+      out[from + i] = order;
+    });
+  }
+  return out;
+}
+
 /**
  * Marca de "pago" separada do pedido, gravada uma vez só e nunca apagada.
  * É ela que garante que um pagamento confirmado não se perde se o pedido
