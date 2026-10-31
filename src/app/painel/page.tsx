@@ -35,10 +35,10 @@ export const metadata: Metadata = {
 
 // Estoque que o painel mostra. O kit é o que importa. Total à venda =
 // 54 vendidos no 1º lote + 108 contados no Bling no relançamento = 162. O site
-// libera só 100 do lote novo (teto `stockCap` em src/lib/catalog.ts = 54 + 100),
+// libera só 104 do lote novo (teto `stockCap` em src/lib/catalog.ts = 54 + 104),
 // o resto é reserva. Mudou o lote? Troca aqui.
 const KIT_SKU = "FERN-KIT-PRE";
-const LOTE_KIT = 100; // liberado no site neste lote
+const LOTE_KIT = 104; // liberado no site neste lote (reserva = 108 − 104 = 4)
 const PRIMEIRO_LOTE = 54; // vendidos antes
 const CONTAGEM_BLING = 108; // saldo no relançamento
 const TOTAL_KITS = PRIMEIRO_LOTE + CONTAGEM_BLING;
