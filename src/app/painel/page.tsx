@@ -269,6 +269,12 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const alerts = alertsRaw
     .map((a) => JSON.parse(a) as { at: string; orderId: string; problem: string })
     .filter((a) => !refunded.has(a.orderId))
+    // "Sem saldo no Melhor Envio" some sozinho quando a etiqueta já saiu.
+    .filter((a) => {
+      if (!/sem saldo no melhor envio/i.test(a.problem)) return true;
+      const row = every.find((r) => r.order.id === a.orderId);
+      return !(row?.f && !row.f.error && row.f.stage !== "invoice" && row.f.stage !== "label");
+    })
     .sort((a, b) => b.at.localeCompare(a.at))
     .slice(0, 10);
 
@@ -376,8 +382,8 @@ export default async function PainelPage(props: PageProps<"/painel">) {
               />
             </div>
             <p className="mt-3 text-xs text-zinc-500">
-              No site: {kitFree ?? "—"} livres (liberados {LOTE_KIT} neste lote) · reserva fora do
-              site: {kitReserve}
+              No site: {kitFree ?? "—"} {kitFree === 1 ? "livre" : "livres"} (liberados {LOTE_KIT}{" "}
+              neste lote) · reserva fora do site: {kitReserve}
               {kitHeld > 0 ? ` · ${kitHeld} em Pix aberto (reservados, ainda não pagos)` : ""}
             </p>
             <p className="mt-1 text-xs text-zinc-400">
