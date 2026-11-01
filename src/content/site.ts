@@ -56,12 +56,11 @@ export const STORE = {
   stockLeft: "Restam {n} unidades",
   stockLast: "Última unidade",
   /** Esgotado (teto do site ou estoque do Bling zerado). */
-  soldOut: "Em breve",
-  soldOutText:
-    "O primeiro lote esgotou. A pré-venda do Kit Fernandito volta em breve: deixa teu contato que a gente avisa.",
+  soldOut: "Esgotado",
+  soldOutText: "O primeiro lote esgotou. Deixa teu contato que a gente avisa quando tiver mais.",
   /** Esgotado: botões que abrem o "me avisa do próximo lote". */
   notifyCta: "Me avise quando chegar",
-  notifyNavCta: "Em breve",
+  notifyNavCta: "Esgotado",
   /** Barra de compra fixa no celular. */
   stickyCta: "Adicionar",
   addToCart: "Adicionar ao carrinho",
@@ -113,7 +112,7 @@ export const ACESSO = {
 export const ANNOUNCEMENT = {
   enabled: true,
   text: "Lançamento · primeiro lote em pré-venda",
-  soldOutText: "Kit Fernandito · pré-venda em breve",
+  soldOutText: "Primeiro lote esgotado · valeu, gurizada",
   /** Versão pública (sem convite): o pré-lançamento de antes. */
   publicText: "Estamos chegando",
 };
@@ -231,8 +230,8 @@ export const PAGES = {
     tag: "Pré-venda no ar",
     cta: "Comprar",
     /** Mesmo adesivo quando esgota. */
-    soldOutTag: "Pré-venda",
-    soldOutCta: "Em breve",
+    soldOutTag: "Primeiro lote",
+    soldOutCta: "Esgotado",
   },
   /** Página Contato: título, 3 motivos e o botão do WhatsApp. "Falar com a
    * gente" não pede nada; evento e revenda pedem o mínimo pra mensagem já
@@ -306,8 +305,8 @@ export const PAGES = {
   /** Faixa de "próximo passo" no fim das páginas internas. */
   next: {
     title: "Bora?",
-    text: "O primeiro lote tá em pré-venda.",
-    buy: "Comprar o kit",
+    text: "O primeiro lote esgotou.",
+    buy: "Ver o kit",
     talk: "Falar com a gente",
   },
 };
@@ -570,14 +569,14 @@ export const FOOTER = {
 /** Modal "me avisa do próximo lote" (quando o kit esgota). Os contatos vão
  * pro painel (`/painel`, seção "Avisar do próximo lote"). */
 export const NOTIFY = {
-  kicker: "Pré-venda em breve",
+  kicker: "Primeiro lote esgotado",
   title: "A gente te avisa quando chegar",
-  text: "Deixa teu nome e WhatsApp (ou e-mail). Quando a pré-venda do kit abrir, tu fica sabendo antes.",
+  text: "Deixa teu nome e WhatsApp (ou e-mail). Quando sair mais, tu fica sabendo antes.",
   name: "Teu nome",
   contact: "WhatsApp ou e-mail",
   submit: "Me avise",
   skip: "Agora não",
   doneTitle: "Fechado!",
-  doneText: "Quando a pré-venda abrir, a gente te chama. Valeu!",
+  doneText: "Quando tiver mais kits, a gente te chama. Valeu!",
   close: "Fechar",
 };
