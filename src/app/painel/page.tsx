@@ -478,6 +478,16 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                   <div className="flex flex-col items-start gap-2 md:items-end">
                     <Badge tone={st[1]}>{st[0]}</Badge>
                     {f?.error && <p className="text-xs text-red-600 md:text-right">{f.error}</p>}
+                    {o.status === "paid" && !o.bling?.orderId && o.bling?.error && (
+                      <p className="text-xs text-red-600 md:text-right">
+                        Não entrou no Bling: {o.bling.error}
+                      </p>
+                    )}
+                    {o.simulated && (
+                      <p className="text-xs text-zinc-400 md:text-right">
+                        Pedido de teste (Pix simulado)
+                      </p>
+                    )}
                     <div className="flex flex-wrap gap-2 md:justify-end">
                       {f?.stage === "local" && (
                         <form action={marcarEntregue}>
