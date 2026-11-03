@@ -1,7 +1,8 @@
 // Bling de mentira pra testar a loja localmente (porta 3998).
 // POST /_ctl muda o comportamento: rejeitar nota, travar nota em "aguardando".
 import http from "node:http";
-const flags = { nfeReject: false, nfeStuck: false };
+const flags = { nfeReject: false, nfeStuck: false, celularReject: false };
+const contacts = [];
 const throttled = new Set();
 const sales = new Map();
 const nfes = new Map();
@@ -26,7 +27,12 @@ http
         const id = nextId++;
         nfes.set(String(id), { id, numero: String(id - 4900), situacao: 5, ...body.notaManual });
       }
-      return send(res, 200, { flags, sales: [...sales.values()], nfes: [...nfes.values()] });
+      return send(res, 200, {
+        flags,
+        sales: [...sales.values()],
+        nfes: [...nfes.values()],
+        contacts,
+      });
     }
     // Igual ao real: limite por segundo. A 1ª busca de contato de cada CPF
     // responde 429; o site tem que esperar e tentar de novo.
@@ -40,8 +46,18 @@ http
       }
       return send(res, 200, { data: [] });
     }
-    if (p === "/contatos" && req.method === "POST")
+    if (p === "/contatos" && req.method === "POST") {
+      // Igual ao real: celular fora do padrão (ex.: não começa com 9) é recusado.
+      if (flags.celularReject && body.celular)
+        return send(res, 400, {
+          error: {
+            description:
+              "O contato não pode ser salvo, pois ocorreram problemas em sua validação. (É necessário preencher corretamente o campo Celular)",
+          },
+        });
+      contacts.push(body);
       return send(res, 201, { data: { id: nextId++ } });
+    }
     if (p.startsWith("/campos-customizados")) return send(res, 200, { data: [] });
     if (p === "/produtos")
       return send(res, 200, {

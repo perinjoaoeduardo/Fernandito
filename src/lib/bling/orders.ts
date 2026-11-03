@@ -154,21 +154,39 @@ async function findOrCreateContact(order: StoredOrder) {
     municipio: address.city,
     uf: address.uf,
   };
-  const created = await bling<Created>("/contatos", {
-    method: "POST",
-    body: {
-      nome: customer.name,
-      tipo: "F",
-      situacao: "A",
-      numeroDocumento: customer.cpf,
-      email: customer.email,
-      emailNotaFiscal: customer.email,
-      celular: customer.phone,
-      indicadorIe: "9",
-      endereco: { geral: endereco },
-      ...(campos.length ? { camposCustomizados: campos } : {}),
-    },
-  });
+  const base = {
+    nome: customer.name,
+    tipo: "F",
+    situacao: "A",
+    numeroDocumento: customer.cpf,
+    email: customer.email,
+    emailNotaFiscal: customer.email,
+    indicadorIe: "9",
+    endereco: { geral: endereco },
+    ...(campos.length ? { camposCustomizados: campos } : {}),
+  };
+  // O Bling recusa o contato se o "celular" não parecer celular (ex.: número
+  // que não começa com 9). Aí manda como telefone fixo e, se ainda recusar,
+  // sem telefone: o pedido não pode ficar preso por isso (o telefone do
+  // cliente continua no pedido do site e no painel).
+  let created: Created;
+  try {
+    created = await bling<Created>("/contatos", {
+      method: "POST",
+      body: { ...base, celular: customer.phone },
+    });
+  } catch (error) {
+    if (!/celular|telefone/i.test((error as Error).message)) throw error;
+    console.error(`[bling] celular recusado (${order.id}), tentando como telefone`);
+    try {
+      created = await bling<Created>("/contatos", {
+        method: "POST",
+        body: { ...base, telefone: customer.phone },
+      });
+    } catch {
+      created = await bling<Created>("/contatos", { method: "POST", body: base });
+    }
+  }
   return created.data.id;
 }
 

@@ -286,6 +286,23 @@ const c1 = await buy({ note: RECADO });
     !(await diag()).envios.some((x) => x.id === id),
   );
 }
+// C15 o Bling recusa o celular do cliente → o pedido entra mesmo assim (telefone fixo)
+{
+  await ctl(BL, { flags: { celularReject: true } });
+  const id = await buy({ note: "teste celular" });
+  const e = await until(id, ["ready", "local"]);
+  const bl = await ctl(BL);
+  const contato = bl.contacts.at(-1);
+  await ctl(BL, { flags: { celularReject: false } });
+  check(
+    "C15 Bling recusa o celular → pedido entra mesmo assim (telefone vai como fixo)",
+    Boolean(e) && !e.erro && Boolean(contato?.telefone) && !contato?.celular,
+    JSON.stringify({
+      e,
+      contato: contato && { telefone: contato.telefone, celular: contato.celular },
+    }),
+  );
+}
 // C13 notas feitas à mão no Bling (venda manual e bonificação) entram no painel;
 // as notas dos pedidos do site não entram de novo.
 {
