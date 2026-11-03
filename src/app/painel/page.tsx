@@ -98,6 +98,9 @@ const STAGE: Record<FulfillStage, [string, Tone]> = {
   "local-delivered": ["Entregue (em mãos)", "green"],
 };
 
+/** Entregue em mãos: a etiqueta (se houve) foi cancelada, então não mostra botão nem rastreio. */
+const byHand = (f: Fulfillment) => f.stage === "local-delivered";
+
 function status(o: StoredOrder, f: Fulfillment | null): [string, Tone] {
   if (o.refundedAt) return ["Estornado", "zinc"];
   if (o.status === "manual") return ["Pix manual: conferir", "red"];
@@ -485,7 +488,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                           </SubmitButton>
                         </form>
                       )}
-                      {f?.label.printUrl && (
+                      {f?.label.printUrl && !byHand(f) && (
                         <a
                           className={btn(f.stage === "ready" ? "primary" : "secondary", "sm")}
                           href={f.label.printUrl}
@@ -499,14 +502,16 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                           Nota {f.invoice.number ?? "(DANFE)"}
                         </a>
                       )}
-                      {f?.label.trackingUrl && (
+                      {f?.label.trackingUrl && !byHand(f) && (
                         <a className={btn("secondary", "sm")} href={f.label.trackingUrl} {...ext}>
                           Rastrear
                         </a>
                       )}
                     </div>
                     <p className="text-xs text-zinc-400 md:text-right">
-                      {f?.label.tracking && <span className="mr-2">{f.label.tracking}</span>}
+                      {f?.label.tracking && !byHand(f) && (
+                        <span className="mr-2">{f.label.tracking}</span>
+                      )}
                       {!f?.invoice.danfeUrl && f?.invoice.number && (
                         <span className="mr-2">Nota {f.invoice.number}</span>
                       )}
