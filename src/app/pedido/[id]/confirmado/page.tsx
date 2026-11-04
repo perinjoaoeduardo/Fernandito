@@ -60,6 +60,7 @@ export default async function ConfirmadoPage(props: PageProps<"/pedido/[id]/conf
         </div>
         <div data-enter className="w-full">
           <OrderTimeline
+            orderId={order.id}
             paidAt={order.paidAt}
             shippingId={order.shipping.id}
             fulfillment={fulfillment}

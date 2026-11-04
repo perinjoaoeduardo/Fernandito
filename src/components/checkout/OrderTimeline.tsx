@@ -9,10 +9,12 @@ import type { Fulfillment } from "@/lib/store/fulfillment";
  * entregue. Tudo do servidor; a página se atualiza sozinha (AutoRefresh).
  */
 export function OrderTimeline({
+  orderId,
   paidAt,
   shippingId,
   fulfillment: f,
 }: {
+  orderId: string;
   paidAt: string | null;
   shippingId: string;
   fulfillment: Fulfillment | null;
@@ -20,6 +22,8 @@ export function OrderTimeline({
   const local = isLocalShipping(shippingId);
   const stage = f?.stage ?? "invoice";
   const invoiceDone = Boolean(f?.invoice.key);
+  // PDF da nota (DANFE): link novo a cada clique, buscado no Bling.
+  const pdf = invoiceDone && f?.invoice.id ? `/pedido/${orderId}/nota` : null;
   const reached = (s: string[]) => s.includes(stage);
   const date = (iso: string | null | undefined) =>
     iso ? new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : null;
@@ -31,6 +35,7 @@ export function OrderTimeline({
           title: "Nota fiscal emitida",
           done: invoiceDone,
           note: f?.invoice.number ? `Nota nº ${f.invoice.number} — vai pro teu e-mail` : null,
+          pdf,
         },
         {
           title: "Saiu pra entrega",
@@ -45,6 +50,7 @@ export function OrderTimeline({
           title: "Nota fiscal emitida",
           done: invoiceDone,
           note: f?.invoice.number ? `Nota nº ${f.invoice.number} — vai pro teu e-mail` : null,
+          pdf,
         },
         {
           title: "Etiqueta pronta",
@@ -110,6 +116,16 @@ export function OrderTimeline({
                   </span>
                 </p>
                 {step.note && <p className="text-body mt-0.5 opacity-75">{step.note}</p>}
+                {"pdf" in step && step.pdf && (
+                  <a
+                    href={step.pdf}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-label mt-1 inline-block tracking-[0.06em] uppercase underline underline-offset-4"
+                  >
+                    Baixar nota (PDF)
+                  </a>
+                )}
                 {"link" in step && step.link && (
                   <a
                     href={step.link}

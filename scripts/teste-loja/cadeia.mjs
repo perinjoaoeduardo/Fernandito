@@ -303,6 +303,29 @@ const c1 = await buy({ note: RECADO });
     }),
   );
 }
+// C16 a nota vai por e-mail pelo Bling e o cliente baixa o PDF na página do pedido
+{
+  const id = await buy({ note: "teste nota" });
+  await until(id, ["ready", "local"]);
+  const bl = await ctl(BL);
+  const sale = bl.sales.find((x) => (x.numeroLoja ?? x.observacoes ?? "").includes(id));
+  const nfe = bl.nfes.find((n) => n.id === sale?.notaFiscal?.id);
+  check(
+    "C16 nota enviada à Sefaz com e-mail do Bling ligado",
+    nfe?.enviarEmail === "true",
+    JSON.stringify(nfe),
+  );
+  const r = await fetch(`${B}/pedido/${id}/nota`, { redirect: "manual" });
+  check(
+    "C16 /pedido/<id>/nota manda pro PDF novo da nota",
+    r.status === 302 && /bling\.example\/nfe-\d+\.pdf/.test(r.headers.get("location") ?? ""),
+    `${r.status} ${r.headers.get("location")}`,
+  );
+  const page = await (await fetch(`${B}/pedido/${id}/confirmado`)).text();
+  check("C16 página do pedido tem 'Baixar nota (PDF)'", page.includes("Baixar nota (PDF)"));
+  const bad = await fetch(`${B}/pedido/naoexiste1/nota`, { redirect: "manual" });
+  check("C16 pedido que não existe → 404", bad.status === 404, String(bad.status));
+}
 // C13 notas feitas à mão no Bling (venda manual e bonificação) entram no painel;
 // as notas dos pedidos do site não entram de novo.
 {

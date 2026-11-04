@@ -204,10 +204,11 @@ async function stepInvoice(order: StoredOrder, f: Fulfillment) {
     return false;
   }
   if (status === 1 && !f.invoice.sentAt && AUTO_NFE) {
-    // Pendente: envia pra Sefaz (e o Bling manda a nota por e-mail pro cliente).
-    // Autoriza na Sefaz; o PDF/XML fica no Bling, sem mandar por e-mail
-    // pro cliente (decidido em 19/10).
-    await bling(`/nfe/${f.invoice.id}/enviar?enviarEmail=false`, { method: "POST" });
+    // Pendente: envia pra Sefaz e o Bling manda o PDF/XML da nota por e-mail
+    // pro cliente (e-mail da nota = o do pedido; não conta na cota do Resend).
+    // Desde 4/11. `BLING_NFE_EMAIL=0` na Vercel volta a não mandar.
+    const email = process.env.BLING_NFE_EMAIL === "0" ? "false" : "true";
+    await bling(`/nfe/${f.invoice.id}/enviar?enviarEmail=${email}`, { method: "POST" });
     f.invoice.sentAt = new Date().toISOString();
     console.info(`[envio ${order.id}] nota enviada à Sefaz`);
   }

@@ -128,6 +128,8 @@ http
     if ((m = p.match(/^\/nfe\/(\d+)\/enviar$/))) {
       const n = nfes.get(m[1]);
       n.sent = (n.sent ?? 0) + 1;
+      n.enviarEmail = url.searchParams.get("enviarEmail");
+      n.linkPDF = `https://bling.example/nfe-${n.id}.pdf?k=${Date.now()}`;
       n.situacao = flags.nfeReject ? 4 : flags.nfeStuck ? 3 : 5;
       if (n.situacao === 5) n.chaveAcesso = "4326" + String(n.id).padStart(40, "0");
       return send(res, 200, { data: {} });
