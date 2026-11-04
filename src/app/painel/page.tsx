@@ -116,6 +116,7 @@ const FILTERS = [
   ["ativos", "Ativos"],
   ["imprimir", "Imprimir"],
   ["entregar", "Entregar (em mãos)"],
+  ["caminho", "A caminho"],
   ["olho", "Precisam de olho"],
   ["estornados", "Estornados"],
   ["todos", "Todos"],
@@ -175,13 +176,15 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       ? toPrint
       : ver === "entregar"
         ? toDeliver
-        : ver === "olho"
-          ? stuck
-          : ver === "estornados"
-            ? all.filter((r) => r.order.refundedAt)
-            : ver === "todos"
-              ? every
-              : active;
+        : ver === "caminho"
+          ? inTransit
+          : ver === "olho"
+            ? stuck
+            : ver === "estornados"
+              ? all.filter((r) => r.order.refundedAt)
+              : ver === "todos"
+                ? every
+                : active;
 
   // Busca: nome, telefone, cidade, itens, nota, rastreio e código do pedido.
   const norm = (t: string) =>
@@ -285,6 +288,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     ativos: active.length,
     imprimir: toPrint.length,
     entregar: toDeliver.length,
+    caminho: inTransit.length,
     olho: stuck.length,
     estornados: all.filter((r) => r.order.refundedAt).length,
     todos: every.length,
