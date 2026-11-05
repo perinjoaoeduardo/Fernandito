@@ -99,8 +99,9 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
   }, [pixOrder]);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
-  // Esgotou enquanto a pessoa preenchia: avisa antes de ela chegar no Pix.
-  const { soldOut } = useStock();
+  // Esgotou (algum item do carrinho) enquanto a pessoa preenchia: avisa
+  // antes de ela chegar no Pix.
+  const { soldOut } = useStock(cart.lines.map((line) => line.sku));
   // Uma chave por tentativa: clique duplo/reenvio → o mesmo pedido e Pix.
   const idempotencyKey = useRef<string | null>(null);
   const numberRef = useRef<HTMLInputElement>(null);

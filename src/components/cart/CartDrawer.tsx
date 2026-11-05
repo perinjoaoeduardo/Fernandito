@@ -26,7 +26,7 @@ import { useCart } from "@/components/cart/CartProvider";
  */
 export function CartDrawer() {
   const { lines, count, subtotalCents, isOpen, close, setQty, remove } = useCart();
-  const { soldOut } = useStock();
+  const { soldOut } = useStock(lines.map((line) => line.sku));
   const router = useRouter();
   const closeRef = useRef<HTMLButtonElement>(null);
 

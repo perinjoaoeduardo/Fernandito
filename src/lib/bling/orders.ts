@@ -1,4 +1,5 @@
 import "server-only";
+import { getProductAny } from "@/lib/catalog";
 import { isLocalShipping } from "@/lib/shipping";
 import {
   IS_PRODUCTION,
@@ -236,21 +237,28 @@ export async function baixarEstoqueBling(order: StoredOrder) {
   if (order.simulated && process.env.BLING_BAIXA_SIMULADOS !== "1") return;
   if (!(await kvSetNX(`bling:baixa:${order.id}`, "1", 60 * 60 * 24 * 400))) return;
   try {
-    const skus = order.items.map((item) => item.sku);
+    // Pack (composição no Bling): a saída é dos componentes (6 latas cada).
+    const lines = order.items.flatMap((item) => {
+      const parts = getProductAny(item.sku)?.stockComponents;
+      return parts?.length
+        ? parts.map((c) => ({ sku: c.sku, qty: c.qty * item.qty }))
+        : [{ sku: item.sku, qty: item.qty }];
+    });
+    const skus = [...new Set(lines.map((line) => line.sku))];
     const [ids, depositos] = await Promise.all([
       productIds(skus),
       bling<Page<{ id: number; padrao?: boolean }>>("/depositos?situacao=1&limite=100"),
     ]);
     const deposito = depositos.data.find((d) => d.padrao) ?? depositos.data[0];
     if (!deposito) throw new Error("nenhum depósito ativo");
-    for (const item of order.items) {
+    for (const line of lines) {
       await bling("/estoques", {
         method: "POST",
         body: {
-          produto: { id: ids.get(item.sku) },
+          produto: { id: ids.get(line.sku) },
           deposito: { id: deposito.id },
           operacao: "S",
-          quantidade: item.qty,
+          quantidade: line.qty,
           observacoes: `Baixa do pedido do site #${order.id}`,
         },
       });

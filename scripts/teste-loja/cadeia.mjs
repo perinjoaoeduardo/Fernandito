@@ -39,9 +39,11 @@ async function buy({
   local = false,
   ship = { id: "me-3", priceCents: 2590, source: "melhor-envio" },
   note,
+  items = [{ sku: "FERN-KIT-PRE", qty: 1, unitPriceCents: 8990 }],
 } = {}) {
+  const sub = items.reduce((n, i) => n + i.qty * i.unitPriceCents, 0);
   const b = {
-    items: [{ sku: "FERN-KIT-PRE", qty: 1, unitPriceCents: 8990 }],
+    items,
     customer: {
       name: "Bruna Lima",
       email: "b@example.com",
@@ -77,14 +79,14 @@ async function buy({
           source: "local",
         }
       : { service: "x", carrier: "Jadlog", days: { min: 1, max: 5 }, ...ship },
-    subtotalCents: 8990,
+    subtotalCents: sub,
     totalCents: 0,
     ageConfirmed: true,
     ageConfirmedAt: new Date().toISOString(),
     marketingOptIn: false,
     ...(note ? { note } : {}),
   };
-  b.totalCents = 8990 + b.shipping.priceCents;
+  b.totalCents = sub + b.shipping.priceCents;
   const r = await fetch(B + "/api/checkout/pix", {
     method: "POST",
     headers: { ...H(), "x-idempotency-key": randomUUID() },
@@ -325,6 +327,19 @@ const c1 = await buy({ note: RECADO });
   check("C16 página do pedido tem 'Baixar nota (PDF)'", page.includes("Baixar nota (PDF)"));
   const bad = await fetch(`${B}/pedido/naoexiste1/nota`, { redirect: "manual" });
   check("C16 pedido que não existe → 404", bad.status === 404, String(bad.status));
+}
+// C17 six pack: entra no Bling e a baixa sai das latas (6 por pack)
+{
+  const id = await buy({ items: [{ sku: "FERN-350-6", qty: 2, unitPriceCents: 10000 }] });
+  const e = await until(id, ["ready", "local"]);
+  const { baixas } = await fetch(`${BL}/_baixas`).then((r) => r.json());
+  const mine = baixas.filter((x) => String(x.observacoes ?? "").includes(id));
+  check("C17 six pack pago → nota/etiqueta sem erro", Boolean(e) && !e.erro, JSON.stringify(e));
+  check(
+    "C17 baixa do six pack sai das latas (2 packs = 12 latas, nada no pack)",
+    mine.length === 1 && mine[0].quantidade === 12,
+    JSON.stringify(mine),
+  );
 }
 // C13 notas feitas à mão no Bling (venda manual e bonificação) entram no painel;
 // as notas dos pedidos do site não entram de novo.

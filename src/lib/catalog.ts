@@ -18,6 +18,15 @@ export type ContentIcon = "can" | "cup" | "sticker";
 
 export type Product = {
   sku: string;
+  /** Endereço da página do produto: /comprar/<slug>. */
+  slug: string;
+  /** Selo da foto ("Pré-lançamento · Edição limitada"); sem ele, o padrão da loja. */
+  badge?: string;
+  /** Título da lista "O que vem…" (padrão: o da loja, "O que vem no kit"). */
+  contentsTitle?: string;
+  /** Produto montado de outros (ex.: pack = 6 latas): a baixa no Bling sai
+   * dos componentes, porque o estoque do pack lá é calculado a partir deles. */
+  stockComponents?: { sku: string; qty: number }[];
   name: string;
   /** Descrição curta, uma frase. */
   description: string;
@@ -45,6 +54,7 @@ export const TEST_PRICE =
 export const PRODUCTS: Product[] = [
   {
     sku: "FERN-KIT-PRE",
+    slug: "kit-pre-lancamento",
     name: "Kit Fernandito Pré-Lançamento",
     description:
       "A primeira leva do Fernandito. Pra ti que é fã e quer provar antes de todo mundo.",
@@ -94,17 +104,28 @@ export const PRODUCTS: Product[] = [
   },
   {
     sku: "FERN-350-6",
-    name: "Pack 6 latas",
-    description: "Seis latas de Fernandito 350ml.",
+    slug: "six-pack",
+    // TESTE (branch sixpack): preço, texto, fotos e teto ainda a confirmar.
+    name: "Six Pack Fernandito",
+    badge: "Novo · Six pack",
+    contentsTitle: "O que vem no pack",
+    description:
+      "Seis latas de Fernandito 350ml. Fernet y cola gelado, pronto pra abrir e dividir.",
     contents: [{ icon: "can", qty: "6", label: "latas 350ml" }],
     priceCents: 10000,
-    images: [{ src: null, alt: "Pack com 6 latas de Fernandito", placeholder: "Pack 6 latas" }],
-    maxQty: 5,
+    images: [
+      { src: null, alt: "Six pack de Fernandito com 6 latas", placeholder: "Foto do six pack" },
+      { src: null, alt: "Latas de Fernandito geladas", placeholder: "Foto: latas" },
+    ],
+    // Até 6 packs por pedido.
+    maxQty: 6,
     // Igual ao cadastro no Bling: caixa 24 × 14 × 16,5 cm, 2,5 kg.
     shipping: { weightKg: 2.5, widthCm: 24, heightCm: 16.5, lengthCm: 14 },
-    stockCap: null,
-    // Liberado quando os kits de pré-lançamento acabarem.
-    active: false,
+    // TESTE: teto provisório até a contagem das latas.
+    stockCap: 20,
+    // No Bling o pack é composição de 6 latas: a baixa sai das latas.
+    stockComponents: [{ sku: "FERN-350", qty: 6 }],
+    active: true,
   },
 ];
 
@@ -113,6 +134,16 @@ export const ACTIVE_PRODUCTS = PRODUCTS.filter((product) => product.active);
 /** Produto ativo pelo SKU (inativo ou inexistente → undefined). */
 export function getProduct(sku: string) {
   return ACTIVE_PRODUCTS.find((product) => product.sku === sku);
+}
+
+/** Qualquer produto do catálogo pelo SKU, ativo ou não (pedidos antigos). */
+export function getProductAny(sku: string) {
+  return PRODUCTS.find((product) => product.sku === sku);
+}
+
+/** Produto ativo pelo endereço da página (/comprar/<slug>). */
+export function getProductBySlug(slug: string) {
+  return ACTIVE_PRODUCTS.find((product) => product.slug === slug);
 }
 
 /** O produto em destaque na seção/página de compra. */

@@ -4,7 +4,7 @@ import { clsx } from "clsx";
 import { openNotify } from "@/lib/notify";
 import NextLink from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { FEATURED_PRODUCT, splitName, type ContentIcon } from "@/lib/catalog";
+import { FEATURED_PRODUCT, splitName, type ContentIcon, type Product } from "@/lib/catalog";
 import { Price } from "@/components/ui/Price";
 import { STORE } from "@/content/site";
 import { Button } from "@/components/ui/Button";
@@ -38,15 +38,22 @@ const STOCK_BADGE_MAX = 30;
 export function ComprarSection({
   headingLevel = "h2",
   standalone = false,
+  product: chosen,
+  back = { href: "/", label: "Início" },
 }: {
   headingLevel?: "h1" | "h2";
-  /** Página /comprar: mais espaço no topo (menu flutuante) e "← Início". */
+  /** Página de produto: mais espaço no topo (menu flutuante) e o "← voltar". */
   standalone?: boolean;
+  /** Produto da página (padrão: o em destaque, o kit). */
+  product?: Product;
+  /** Link "← …" do topo da página. */
+  back?: { href: string; label: string };
 }) {
-  const product = FEATURED_PRODUCT;
+  const product = chosen ?? FEATURED_PRODUCT;
+  const badge = product?.badge ?? STORE.badge;
   const { add } = useCart();
   const [qty, setQty] = useState(1);
-  const { remaining, soldOut } = useStock();
+  const { remaining, soldOut } = useStock(product?.sku);
   const sectionRef = useRef<HTMLElement>(null);
   const buyRef = useRef<HTMLDivElement>(null);
   const [showSticky, setShowSticky] = useState(false);
@@ -218,10 +225,10 @@ export function ComprarSection({
       {standalone && (
         <div className="mx-auto mb-12 w-full max-w-6xl lg:mb-14">
           <NextLink
-            href="/"
+            href={back.href}
             className="text-label duration-base ease-out-standard inline-flex items-center gap-2 font-sans tracking-[0.1em] uppercase opacity-60 transition-opacity hover:opacity-100"
           >
-            <span aria-hidden="true">←</span> Início
+            <span aria-hidden="true">←</span> {back.label}
           </NextLink>
         </div>
       )}
@@ -235,11 +242,11 @@ export function ComprarSection({
                 className="bg-fernandito-verde-escuro text-fernandito-off-white ring-fernandito-off-white pointer-events-none absolute -top-4 -left-3 z-10 flex origin-top-left rotate-[-6deg] flex-col items-center gap-0.5 rounded-xl px-4 py-2.5 text-center uppercase shadow-[0_10px_24px_rgba(36,48,34,0.35)] ring-[3px] sm:-top-5 sm:-left-5"
               >
                 <span className="font-rampart-stamp text-[1rem] leading-none tracking-[0.1em] sm:text-[1.1rem]">
-                  {STORE.badge.split(" · ")[0]}
+                  {badge.split(" · ")[0]}
                 </span>
-                {STORE.badge.includes(" · ") && (
+                {badge.includes(" · ") && (
                   <span className="font-accent text-[0.6rem] tracking-[0.2em] opacity-85">
-                    {STORE.badge.split(" · ")[1]}
+                    {badge.split(" · ")[1]}
                   </span>
                 )}
               </span>
@@ -265,7 +272,7 @@ export function ComprarSection({
           {/* O que vem no kit: lista curta, um detalhe — não compete com a foto. */}
           <div data-reveal className="mt-7">
             <p className="text-label tracking-[0.12em] uppercase opacity-60">
-              {STORE.contentsTitle}
+              {product.contentsTitle ?? STORE.contentsTitle}
             </p>
             <ul className="mt-3 flex flex-wrap gap-2 xl:flex-nowrap">
               {product.contents.map((item) => (
