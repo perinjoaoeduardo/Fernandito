@@ -71,9 +71,11 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
               {product.contents.map((c) => `${c.qty} ${c.label}`).join(" · ")}
             </p>
             {soldOut ? (
-              <p className="text-label mt-4 flex h-12 items-center tracking-[0.12em] uppercase opacity-60">
-                Esgotado · ver como foi →
-              </p>
+              // Mesmo tamanho do "Comprar", só contorno: dá pra ver que é botão
+              // (abre a página do kit), mas não chama mais que o à venda.
+              <span className="border-fernandito-verde-escuro/30 text-fernandito-verde-escuro/70 group-hover:border-fernandito-verde-escuro/60 duration-base ease-out-standard mt-4 inline-flex h-12 w-full items-center justify-center rounded-full border-[1.5px] px-6 text-[1rem] font-bold tracking-[0.02em] transition-colors">
+                {STORE.soldOut}
+              </span>
             ) : (
               <span className="bg-fernandito-verde-escuro text-fernandito-off-white group-hover:bg-fernandito-verde-medio duration-base ease-out-standard mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full px-6 text-[1rem] font-bold tracking-[0.02em] transition-colors">
                 Comprar
