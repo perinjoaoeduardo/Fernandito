@@ -20,6 +20,8 @@ export type Product = {
   sku: string;
   /** Endereço da página do produto: /comprar/<slug>. */
   slug: string;
+  /** Nome curto do cartão da Loja ("Six pack"); sem ele, o nome sem o subtítulo. */
+  shortName?: string;
   /** Ordem na Loja (menor primeiro). Esgotado vai pro fim de qualquer jeito. */
   position: number;
   /** Selo da foto ("Pré-lançamento · Edição limitada"); sem ele, o padrão da loja. */
@@ -111,6 +113,7 @@ export const PRODUCTS: Product[] = [
     sku: "FERN-350-6",
     slug: "six-pack",
     position: 1,
+    shortName: "Six pack",
     // TESTE (branch sixpack): preço, texto, fotos e teto ainda a confirmar.
     name: "Six Pack Fernandito",
     badge: "Novo · Six pack",
