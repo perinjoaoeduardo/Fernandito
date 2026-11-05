@@ -464,5 +464,11 @@ const c1 = await buy({ note: RECADO });
   check("C9 planilha tem nota, etapa e rastreio", csv.includes(`"${c1}"`) && /JAD\d+/.test(csv));
 }
 
+// SALVAR_EMAIL=arquivo.html → guarda o e-mail de pedido confirmado pra olhar.
+if (process.env.SALVAR_EMAIL) {
+  const { writeFileSync } = await import("node:fs");
+  const m = mails.find((x) => /confirmado/i.test(x.subject));
+  if (m) writeFileSync(process.env.SALVAR_EMAIL, m.html);
+}
 console.log(`\n${results.filter(Boolean).length}/${results.length} ok`);
 process.exit(0);

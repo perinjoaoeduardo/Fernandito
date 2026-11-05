@@ -174,10 +174,13 @@ export function sendOrderConfirmed(order: StoredOrder) {
     `Pedido confirmado! #${order.id}`,
     layout(
       "Pedido confirmado.",
-      `${p(`Valeu, ${first}! O pagamento chegou e o pedido <b>#${esc(order.id)}</b> já está na fila de envio.`)}
+      // O botão vem logo no começo: é o atalho pro pedido (entrega e nota).
+      `${p(`Valeu, ${first}! O pagamento chegou e o teu pedido <a href="${link}" style="color:${C.escuro};font-weight:bold;white-space:nowrap">#${esc(order.id)}</a> já está na fila de envio.`)}
+<p style="margin:0 0 10px">${button(link, "Ver pedido e nota fiscal")}</p>
+${p("Na página do pedido tu acompanha a entrega e baixa a <b>nota fiscal (PDF)</b> assim que ela sair. A nota também chega por e-mail, num envio separado do nosso sistema fiscal.", 13)}
 ${timeline(1)}
 ${itemsTable(order)}
-<p style="margin:0 0 18px">${button(link, "Acompanhar o pedido")}</p>`,
+${p(`Guarda este e-mail: o botão lá em cima é o teu atalho pro pedido. Se ele não abrir, copia o link: <a href="${link}" style="color:${C.escuro};word-break:break-all">${link}</a>`, 12)}`,
       { preheader: `Pedido #${order.id} pago.` },
     ),
   );
