@@ -1,8 +1,8 @@
 "use client";
 
 import NextLink from "next/link";
-import { FEATURED_PRODUCT, splitName } from "@/lib/catalog";
-import { PAGES, SHOP_HREF } from "@/content/site";
+import { HOME_PRODUCT, splitName } from "@/lib/catalog";
+import { PAGES } from "@/content/site";
 import { Price } from "@/components/ui/Price";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { ArrowRightIcon } from "@/components/ui/icons";
@@ -13,9 +13,12 @@ import { ArrowRightIcon } from "@/components/ui/icons";
  * (contraste) logo depois da Hero; a foto inteira também é clicável.
  */
 export function KitTeaserSection() {
-  const product = FEATURED_PRODUCT;
+  // O produto que abre a Loja (hoje o six pack), com link direto pra página dele.
+  const product = HOME_PRODUCT;
   if (!product) return null;
   const { main } = splitName(product.name);
+  const href = `/comprar/${product.slug}`;
+  const eyebrow = product.badge ?? PAGES.kitTeaser.eyebrow;
   return (
     <section
       id="kit"
@@ -24,7 +27,7 @@ export function KitTeaserSection() {
     >
       <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-20">
         <NextLink
-          href={SHOP_HREF}
+          href={href}
           aria-label={`Ver o ${main}`}
           className="group bg-fernandito-verde-medio relative block aspect-[4/3] overflow-hidden rounded-[1.75rem] shadow-[0_30px_70px_rgba(36,48,34,0.25)]"
         >
@@ -38,7 +41,7 @@ export function KitTeaserSection() {
         </NextLink>
         <div className="flex flex-col items-start font-sans">
           <p className="font-accent text-label text-fernandito-verde-medio tracking-[0.18em] uppercase">
-            {PAGES.kitTeaser.eyebrow}
+            {eyebrow}
           </p>
           <h2
             id="kit-titulo"
@@ -51,10 +54,10 @@ export function KitTeaserSection() {
             <Price cents={product.priceCents} />
           </p>
           <NextLink
-            href={SHOP_HREF}
+            href={href}
             className="group bg-fernandito-verde-escuro text-fernandito-off-white hover:bg-fernandito-verde-medio duration-base ease-out-standard mt-7 inline-flex h-12 items-center gap-2 rounded-full px-7 text-[0.95rem] font-bold transition-colors"
           >
-            {PAGES.kitTeaser.cta}
+            {product.teaserCta ?? PAGES.kitTeaser.cta}
             <span className="duration-base ease-out-standard transition-transform group-hover:translate-x-1">
               <ArrowRightIcon />
             </span>

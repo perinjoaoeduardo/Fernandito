@@ -50,7 +50,6 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
           <div className="mt-5 flex flex-1 flex-col font-sans">
             <h2 className="font-rampart text-[clamp(1.7rem,2.6vw,2.2rem)] leading-[1]">{main}</h2>
             {sub && <p className="text-label mt-1 tracking-[0.12em] uppercase opacity-60">{sub}</p>}
-            <p className="text-body mt-3 max-w-md opacity-80">{product.description}</p>
             <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-5">
               <p className="font-rampart text-[1.9rem] leading-none tabular-nums">
                 <Price cents={product.priceCents} />

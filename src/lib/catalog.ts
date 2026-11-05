@@ -20,8 +20,12 @@ export type Product = {
   sku: string;
   /** Endereço da página do produto: /comprar/<slug>. */
   slug: string;
+  /** Ordem na Loja (menor primeiro). Esgotado vai pro fim de qualquer jeito. */
+  position: number;
   /** Selo da foto ("Pré-lançamento · Edição limitada"); sem ele, o padrão da loja. */
   badge?: string;
+  /** Botão da chamada na home ("Ver o six pack"); padrão: o da loja. */
+  teaserCta?: string;
   /** Título da lista "O que vem…" (padrão: o da loja, "O que vem no kit"). */
   contentsTitle?: string;
   /** Produto montado de outros (ex.: pack = 6 latas): a baixa no Bling sai
@@ -55,6 +59,7 @@ export const PRODUCTS: Product[] = [
   {
     sku: "FERN-KIT-PRE",
     slug: "kit-pre-lancamento",
+    position: 2,
     name: "Kit Fernandito Pré-Lançamento",
     description:
       "A primeira leva do Fernandito. Pra ti que é fã e quer provar antes de todo mundo.",
@@ -105,9 +110,11 @@ export const PRODUCTS: Product[] = [
   {
     sku: "FERN-350-6",
     slug: "six-pack",
+    position: 1,
     // TESTE (branch sixpack): preço, texto, fotos e teto ainda a confirmar.
     name: "Six Pack Fernandito",
     badge: "Novo · Six pack",
+    teaserCta: "Ver o six pack",
     contentsTitle: "O que vem no pack",
     description:
       "Seis latas de Fernandito 350ml. Fernet y cola gelado, pronto pra abrir e dividir.",
@@ -145,6 +152,9 @@ export function getProductAny(sku: string) {
 export function getProductBySlug(slug: string) {
   return ACTIVE_PRODUCTS.find((product) => product.slug === slug);
 }
+
+/** O que a home mostra na chamada da loja: o primeiro da Loja (posição). */
+export const HOME_PRODUCT = [...ACTIVE_PRODUCTS].sort((a, b) => a.position - b.position)[0];
 
 /** O produto em destaque na seção/página de compra. */
 export const FEATURED_PRODUCT = ACTIVE_PRODUCTS[0];

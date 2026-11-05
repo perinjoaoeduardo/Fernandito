@@ -65,7 +65,8 @@ export const STORE = {
   stickyCta: "Adicionar",
   addToCart: "Adicionar ao carrinho",
   /** CTA dos outros lugares do site (menu, Hero, bloco final). */
-  cta: "Comprar o kit",
+  // PROPOSTA (teste do six pack): era "Comprar o kit".
+  cta: "Comprar",
   navCta: "Comprar",
   /** Contato secundário embaixo do botão de compra. */
   helpPrefix: "Dúvidas?",
@@ -111,7 +112,8 @@ export const ACESSO = {
  * site: `enabled: false` — some a faixa e o menu volta pro lugar sozinho. */
 export const ANNOUNCEMENT = {
   enabled: true,
-  text: "Lançamento · primeiro lote em pré-venda",
+  // PROPOSTA (teste do six pack): era "Lançamento · primeiro lote em pré-venda".
+  text: "Six pack no ar · fernet y cola em lata",
   soldOutText: "Primeiro lote esgotado · valeu, gurizada",
   /** Versão pública (sem convite): o pré-lançamento de antes. */
   publicText: "Estamos chegando",
@@ -124,6 +126,8 @@ export const ANNOUNCEMENT = {
  * ainda depende de `STORE.enabled`.
  */
 export const SECTIONS = [
+  // PROPOSTA (teste do six pack): chamada do six pack logo depois da Hero.
+  { key: "kit", on: true, id: "kit", label: "Six pack" },
   { key: "oQueE", on: true, id: "o-que-e", label: "O que é" },
   { key: "galeria", on: true, id: "galeria", label: "Fotos" },
   // Manifesto fora do ar por enquanto (texto em `MANIFESTO` e cartão em
@@ -132,9 +136,8 @@ export const SECTIONS = [
   { key: "contato", on: true, id: "contato", label: "Contato" },
   { key: "episodios", on: true, id: "episodios", label: "Episódios" },
   { key: "fichaTecnica", on: true, id: "ficha-tecnica", label: "Ficha técnica" },
-  // Fora do lançamento (código guardado): chamada grande do kit e a
-  // galeria do Instagram (deu lugar aos episódios).
-  { key: "kit", on: false, id: "kit", label: "Kit" },
+  // Fora do lançamento (código guardado): a galeria do Instagram (deu lugar
+  // aos episódios).
   { key: "social", on: false, id: "social", label: "Instagram" },
 ] as const;
 
@@ -227,7 +230,8 @@ export const PAGES = {
   },
   /** Adesivo "pré-venda no ar" colado na lata do "O que é" (→ /comprar). */
   preVenda: {
-    tag: "Pré-venda no ar",
+    // PROPOSTA (teste do six pack): era "Pré-venda no ar".
+    tag: "Six pack no ar",
     cta: "Comprar",
     /** Mesmo adesivo quando esgota. */
     soldOutTag: "Primeiro lote",

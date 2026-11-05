@@ -23,8 +23,9 @@ export default async function ComprarPage() {
   const left = await Promise.all(
     ACTIVE_PRODUCTS.map((p) => stockRemaining(p.sku).catch(() => null)),
   );
-  const order = ACTIVE_PRODUCTS.map((p, i) => ({ sku: p.sku, out: left[i] === 0 }))
-    .sort((a, b) => Number(a.out) - Number(b.out))
+  // Six pack primeiro (posição no catálogo); o que esgotou vai pro fim.
+  const order = ACTIVE_PRODUCTS.map((p, i) => ({ sku: p.sku, out: left[i] === 0, pos: p.position }))
+    .sort((a, b) => Number(a.out) - Number(b.out) || a.pos - b.pos)
     .map((p) => p.sku);
   return (
     <main>
