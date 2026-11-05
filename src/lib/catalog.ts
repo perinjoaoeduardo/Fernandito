@@ -49,6 +49,9 @@ export type Product = {
    * Bling): chegou nele, esgota. `null` = sem teto (só o estoque do Bling). */
   stockCap: number | null;
   active: boolean;
+  /** Aparece na Loja e tem página, mas ainda não vende: botão "Em breve" e
+   * "Me avise quando chegar". Tira (ou `false`) no dia de abrir a venda. */
+  comingSoon?: boolean;
 };
 
 /** Preço de teste (só pro teste de R$ 1). */
@@ -122,7 +125,8 @@ export const PRODUCTS: Product[] = [
     description:
       "Seis latas de Fernandito 350ml. Fernet y cola gelado, pronto pra abrir e dividir.",
     contents: [{ icon: "can", qty: "6", label: "latas 350ml" }],
-    priceCents: 10000,
+    // R$ 94,99 (igual ao cadastro no Bling).
+    priceCents: 9499,
     images: [
       { src: null, alt: "Six pack de Fernandito com 6 latas", placeholder: "Foto do six pack" },
       { src: null, alt: "Latas de Fernandito geladas", placeholder: "Foto: latas" },
@@ -136,6 +140,8 @@ export const PRODUCTS: Product[] = [
     // No Bling o pack é composição de 6 latas: a baixa sai das latas.
     stockComponents: [{ sku: "FERN-350", qty: 6 }],
     active: true,
+    // Vitrine antes da venda: aparece, mas a compra mostra "Em breve".
+    comingSoon: true,
   },
 ];
 

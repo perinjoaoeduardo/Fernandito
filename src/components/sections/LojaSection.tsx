@@ -13,6 +13,7 @@ import { useStock } from "@/components/cart/useStock";
 
 function ProductCard({ product, index }: { product: Product; index: number }) {
   const { soldOut } = useStock(product.sku);
+  const comingSoon = Boolean(product.comingSoon);
   // Só o nome (o selo da foto já diz "Pré-lançamento" / "Novo").
   const title = product.shortName ?? splitName(product.name).main;
   const href = `/comprar/${product.slug}`;
@@ -70,11 +71,11 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
             <p className="text-label mt-1.5 tracking-[0.12em] uppercase opacity-60">
               {product.contents.map((c) => `${c.qty} ${c.label}`).join(" · ")}
             </p>
-            {soldOut ? (
+            {soldOut || comingSoon ? (
               // Mesmo botão do "Comprar", em verde-escuro desbotado: desativado,
               // não chama mais que o produto à venda.
               <span className="bg-fernandito-verde-escuro/35 text-fernandito-off-white/80 mt-4 inline-flex h-12 w-full cursor-default items-center justify-center rounded-full px-6 text-[1rem] font-bold tracking-[0.02em] transition-colors">
-                {STORE.soldOut}
+                {comingSoon ? STORE.comingSoon : STORE.soldOut}
               </span>
             ) : (
               <span className="bg-fernandito-verde-escuro text-fernandito-off-white group-hover:bg-fernandito-verde-medio duration-base ease-out-standard mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full px-6 text-[1rem] font-bold tracking-[0.02em] transition-colors">

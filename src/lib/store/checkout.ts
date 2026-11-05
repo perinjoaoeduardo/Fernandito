@@ -52,6 +52,8 @@ export async function priceOrder(input: Order) {
     const product = getProduct(item.sku);
     if (!product)
       throw new CheckoutError("Um produto do carrinho não está mais à venda.", 409, "product");
+    if (product.comingSoon)
+      throw new CheckoutError(`${product.name} ainda não está à venda.`, 409, "product");
     if (item.qty > product.maxQty)
       throw new CheckoutError(`Máximo de ${product.maxQty} unidades por pedido.`, 400, "qty");
     return {

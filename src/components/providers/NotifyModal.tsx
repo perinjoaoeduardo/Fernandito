@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getLenis } from "@/lib/lenis";
-import { NOTIFY_EVENT } from "@/lib/notify";
+import { NOTIFY_EVENT, type NotifyContext } from "@/lib/notify";
 import { NOTIFY } from "@/content/site";
 
 const itemDelay = (i: number) => ({ animationDelay: `${0.35 + i * 0.08}s` });
@@ -21,9 +21,11 @@ export function NotifyModal() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const firstRef = useRef<HTMLInputElement>(null);
+  const [context, setContext] = useState<NotifyContext>({});
 
   useEffect(() => {
-    const open = () => {
+    const open = (event: Event) => {
+      setContext((event as CustomEvent<NotifyContext | undefined>).detail ?? {});
       setError(null);
       setState("open");
     };
@@ -64,7 +66,11 @@ export function NotifyModal() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           form: "aviso",
-          fields: { nome: name.trim(), contato: c },
+          fields: {
+            nome: name.trim(),
+            contato: c,
+            ...(context.produto ? { produto: context.produto } : {}),
+          },
         }),
       });
       if (!res.ok) throw new Error();
@@ -120,20 +126,20 @@ export function NotifyModal() {
             className="gate-item font-accent text-fernandito-verde-medio text-label tracking-[0.22em] uppercase"
             style={itemDelay(0)}
           >
-            {done ? "Anotado" : NOTIFY.kicker}
+            {done ? "Anotado" : (context.kicker ?? NOTIFY.kicker)}
           </p>
           <h2
             id="notify-title"
             className="gate-item font-rampart mt-3 text-[clamp(1.9rem,6vw,2.25rem)] leading-[1.05] text-balance"
             style={itemDelay(1)}
           >
-            {done ? NOTIFY.doneTitle : NOTIFY.title}
+            {done ? NOTIFY.doneTitle : (context.title ?? NOTIFY.title)}
           </h2>
           <p
             className="gate-item text-body mx-auto mt-4 max-w-[19rem] opacity-80"
             style={itemDelay(2)}
           >
-            {done ? NOTIFY.doneText : NOTIFY.text}
+            {done ? NOTIFY.doneText : (context.text ?? NOTIFY.text)}
           </p>
 
           {done ? (

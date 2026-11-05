@@ -328,18 +328,14 @@ const c1 = await buy({ note: RECADO });
   const bad = await fetch(`${B}/pedido/naoexiste1/nota`, { redirect: "manual" });
   check("C16 pedido que não existe → 404", bad.status === 404, String(bad.status));
 }
-// C17 six pack: entra no Bling e a baixa sai das latas (6 por pack)
+// C17 six pack: em "Em breve" (comingSoon) o checkout recusa.
+// Quando abrir a venda, voltar ao teste da baixa (2 packs = 12 latas).
 {
-  const id = await buy({ items: [{ sku: "FERN-350-6", qty: 2, unitPriceCents: 10000 }] });
-  const e = await until(id, ["ready", "local"]);
-  const { baixas } = await fetch(`${BL}/_baixas`).then((r) => r.json());
-  const mine = baixas.filter((x) => String(x.observacoes ?? "").includes(id));
-  check("C17 six pack pago → nota/etiqueta sem erro", Boolean(e) && !e.erro, JSON.stringify(e));
-  check(
-    "C17 baixa do six pack sai das latas (2 packs = 12 latas, nada no pack)",
-    mine.length === 1 && mine[0].quantidade === 12,
-    JSON.stringify(mine),
+  const err = await buy({ items: [{ sku: "FERN-350-6", qty: 2, unitPriceCents: 9499 }] }).then(
+    () => "",
+    (e) => String(e.message),
   );
+  check("C17 six pack em breve → checkout recusa", err.includes("ainda não está à venda"), err);
 }
 // C13 notas feitas à mão no Bling (venda manual e bonificação) entram no painel;
 // as notas dos pedidos do site não entram de novo.

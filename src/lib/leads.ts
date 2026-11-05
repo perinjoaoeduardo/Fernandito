@@ -2,7 +2,7 @@ import "server-only";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { BLING_ADMIN_KEY } from "@/lib/bling/client";
-import { kvGet, kvMGet, kvSAdd, kvSet, kvSMembers } from "@/lib/store/kv";
+import { kvMGet, kvSAdd, kvSet, kvSMembers } from "@/lib/store/kv";
 
 /**
  * Leads da página Contato (geral, evento, revenda): cada envio fica guardado no Redis (`lead:<id>`, conjunto `leads`) antes de

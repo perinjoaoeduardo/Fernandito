@@ -24,9 +24,6 @@ const CONTENT_ICONS: Record<ContentIcon, ReactNode> = {
   sticker: <StickerIcon className="h-4 w-4" />,
 };
 
-/** Só mostra o selo quando o estoque está baixo (acima disso não é urgência). */
-const STOCK_BADGE_MAX = 30;
-
 /**
  * Compra do produto em destaque (hoje o Kit Pré-Lançamento): galeria com
  * etiqueta "Pré-lançamento", nome (digitado, como os títulos do site), o
@@ -53,7 +50,12 @@ export function ComprarSection({
   const badge = product?.badge ?? STORE.badge;
   const { add } = useCart();
   const [qty, setQty] = useState(1);
-  const { remaining, soldOut } = useStock(product?.sku);
+  const stock = useStock(product?.sku);
+  // "Em breve" (vitrine antes da venda) funciona como esgotado: sem quantidade,
+  // o botão abre o "me avise".
+  const comingSoon = Boolean(product?.comingSoon);
+  const soldOut = stock.soldOut || comingSoon;
+  const remaining = stock.remaining;
   const sectionRef = useRef<HTMLElement>(null);
   const buyRef = useRef<HTMLDivElement>(null);
   const [showSticky, setShowSticky] = useState(false);
@@ -202,10 +204,18 @@ export function ComprarSection({
 
   if (!product) return null;
   const maxQty = remaining && remaining > 0 ? Math.min(product.maxQty, remaining) : product.maxQty;
-  const showStock = remaining !== null && remaining > 0 && remaining <= STOCK_BADGE_MAX;
   const { main: title } = splitName(product.name);
+  const notify = () =>
+    comingSoon
+      ? openNotify({
+          kicker: "Em breve",
+          title: "A gente te avisa quando abrir",
+          text: `Deixa teu nome e WhatsApp (ou e-mail). Quando o ${(product.shortName ?? title).toLowerCase()} entrar à venda, tu fica sabendo antes.`,
+          produto: product.sku,
+        })
+      : openNotify();
   const addToCart = () => {
-    if (soldOut) return openNotify();
+    if (soldOut) return notify();
     add(product.sku, qty);
     setQty(1);
   };
@@ -301,18 +311,7 @@ export function ComprarSection({
             </p>
             {soldOut && (
               <span className="bg-fernandito-verde-escuro text-fernandito-off-white text-label inline-flex items-center rounded-full px-3 py-1 tracking-[0.12em] uppercase">
-                {STORE.soldOut}
-              </span>
-            )}
-            {showStock && !soldOut && (
-              <span className="border-fernandito-verde-medio/30 bg-fernandito-verde-medio/10 text-label inline-flex items-center gap-2 rounded-full border px-3 py-1 tracking-[0.08em] uppercase">
-                <span
-                  aria-hidden="true"
-                  className="bg-fernandito-verde-medio h-1.5 w-1.5 animate-pulse rounded-full"
-                />
-                {remaining === 1
-                  ? STORE.stockLast
-                  : STORE.stockLeft.replace("{n}", String(remaining))}
+                {comingSoon ? STORE.comingSoon : STORE.soldOut}
               </span>
             )}
           </div>
@@ -340,7 +339,7 @@ export function ComprarSection({
           </div>
           {soldOut && (
             <p data-reveal className="text-body mt-3 max-w-md opacity-80">
-              {STORE.soldOutText}
+              {comingSoon ? STORE.comingSoonText : STORE.soldOutText}
             </p>
           )}
 

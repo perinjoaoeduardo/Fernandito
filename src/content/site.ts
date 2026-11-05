@@ -57,6 +57,9 @@ export const STORE = {
   stockLast: "Última unidade",
   /** Esgotado (teto do site ou estoque do Bling zerado). */
   soldOut: "Esgotado",
+  /** Produto na vitrine antes de abrir a venda (`comingSoon` no catálogo). */
+  comingSoon: "Em breve",
+  comingSoonText: "Chega logo. Deixa teu contato que a gente avisa quando abrir a venda.",
   soldOutText: "O primeiro lote esgotou. Deixa teu contato que a gente avisa quando tiver mais.",
   /** Esgotado: botões que abrem o "me avisa do próximo lote". */
   notifyCta: "Me avise quando chegar",
@@ -111,7 +114,8 @@ export const ACESSO = {
 /** Faixa fixa no topo do pré-lançamento ("Estamos chegando"). Pra tirar do
  * site: `enabled: false` — some a faixa e o menu volta pro lugar sozinho. */
 export const ANNOUNCEMENT = {
-  enabled: true,
+  // Faixa do topo desligada no lançamento do six pack (pedido em 05/11).
+  enabled: false,
   // PROPOSTA (teste do six pack): era "Lançamento · primeiro lote em pré-venda".
   text: "Six pack no ar · fernet y cola em lata",
   soldOutText: "Primeiro lote esgotado · valeu, gurizada",
