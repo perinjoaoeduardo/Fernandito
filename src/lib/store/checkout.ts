@@ -30,6 +30,7 @@ import { after } from "next/server";
 import { sendOrderConfirmed } from "@/lib/email";
 import { maybeAdvanceFulfillments } from "@/lib/store/fulfillment";
 import { OutOfStockError, releaseStock, reserveStock } from "@/lib/store/stock";
+import { ESPECIAL, ESPECIAL_SKU } from "@/lib/especial";
 
 /** Erro "esperado" do checkout: vira resposta HTTP com mensagem pro cliente. */
 export class CheckoutError extends Error {
@@ -95,8 +96,15 @@ export async function priceOrder(input: Order) {
  * Cria o pedido ("pending") e o Pix dele. Mesma `idempotencyKey` (reenvio,
  * clique duplo) → devolve o MESMO pedido, sem gerar outro Pix.
  */
-export async function createPixOrder(input: Order, idempotencyKey: string): Promise<StoredOrder> {
+export async function createPixOrder(
+  input: Order,
+  idempotencyKey: string,
+  options: { especial?: boolean } = {},
+): Promise<StoredOrder> {
   const priced = await priceOrder(input);
+  // Link especial (src/lib/especial.ts): só conta se o pedido tem o kit.
+  const especial =
+    Boolean(options.especial) && priced.items.some((item) => item.sku === ESPECIAL.sku);
   // O total mostrado na tela tem que ser o cobrado. Mudou? Pede pra revisar.
   if (priced.totalCents !== input.totalCents)
     throw new CheckoutError(
@@ -135,11 +143,12 @@ export async function createPixOrder(input: Order, idempotencyKey: string): Prom
   // Trava do próprio site (teto do catálogo, ex.: 150 kits): reserva as
   // unidades agora; o Pix vencer devolve. Não passa do teto nunca.
   try {
-    await reserveStock(id, priced.items);
+    await reserveStock(id, priced.items, false, especial);
   } catch (error) {
     await kvDel(idemKey).catch(() => {});
     if (error instanceof OutOfStockError) {
-      const name = priced.items.find((i) => i.sku === error.sku)?.name ?? "O kit";
+      const sku = error.sku === ESPECIAL_SKU ? ESPECIAL.sku : error.sku;
+      const name = priced.items.find((i) => i.sku === sku)?.name ?? "O kit";
       throw new CheckoutError(
         error.remaining > 0
           ? `Só temos ${error.remaining} unidade${error.remaining === 1 ? "" : "s"} de ${name} agora.`
@@ -165,6 +174,7 @@ export async function createPixOrder(input: Order, idempotencyKey: string): Prom
     ageConfirmedAt: input.ageConfirmedAt,
     marketingOptIn: input.marketingOptIn,
     ...(input.note ? { note: input.note } : {}),
+    ...(especial ? { especial: true } : {}),
     // Versões dos Termos/Privacidade vigentes quando a pessoa aceitou.
     ...(await getLegalVersions()),
     mpPaymentId: null,
@@ -272,7 +282,7 @@ export async function markPaid(orderId: string) {
   if (!before.simulated) await queueForBling(orderId);
   // Unidades continuam reservadas (se o Pix já tinha vencido e devolvido,
   // reserva de novo — o dinheiro entrou, então passa do teto e avisa).
-  await reserveStock(orderId, before.items, true).catch((error: Error) =>
+  await reserveStock(orderId, before.items, true, before.especial).catch((error: Error) =>
     console.error(`[pedido ${orderId}] estoque ao pagar:`, error.message),
   );
 
@@ -458,5 +468,6 @@ export async function renewOrder(order: StoredOrder) {
   return createPixOrder(
     { ...input, subtotalCents: priced.subtotalCents, totalCents: priced.totalCents },
     `renew-${order.id}`,
+    { especial: order.especial },
   );
 }

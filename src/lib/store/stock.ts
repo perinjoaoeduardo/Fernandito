@@ -1,5 +1,6 @@
 import "server-only";
 import { getProduct } from "@/lib/catalog";
+import { ESPECIAL, ESPECIAL_SKU } from "@/lib/especial";
 import { IS_PRODUCTION, kvEval, kvGet, kvSet } from "@/lib/store/kv";
 import { raiseAlert } from "@/lib/store/orders";
 
@@ -35,10 +36,16 @@ function decode(value: string): Line[] {
     });
 }
 
-// Só os produtos com teto entram na conta.
-function capped(lines: Line[]) {
+// Teto de um SKU; o lote do link especial (src/lib/especial.ts) tem o seu.
+const capOf = (sku: string) =>
+  sku === ESPECIAL_SKU ? ESPECIAL.cap : (getProduct(sku)?.stockCap ?? null);
+
+// Só os produtos com teto entram na conta. Pedido do link especial: o kit
+// reserva do lote especial (contador próprio), não do público.
+function capped(lines: Line[], especial = false) {
   return lines
-    .map((l) => ({ ...l, cap: getProduct(l.sku)?.stockCap ?? null }))
+    .map((l) => (especial && l.sku === ESPECIAL.sku ? { ...l, sku: ESPECIAL_SKU } : l))
+    .map((l) => ({ ...l, cap: capOf(l.sku) }))
     .filter((l): l is Line & { cap: number } => l.cap !== null);
 }
 
@@ -82,7 +89,7 @@ export class OutOfStockError extends Error {
 
 /** Unidades ainda livres de um SKU com teto (`null` = sem teto). */
 export async function stockRemaining(sku: string): Promise<number | null> {
-  const cap = getProduct(sku)?.stockCap ?? null;
+  const cap = capOf(sku);
   if (cap === null) return null;
   const held = Number((await kvGet(counter(sku))) ?? 0);
   return Math.max(0, cap - held);
@@ -93,8 +100,13 @@ export async function stockRemaining(sku: string): Promise<number | null> {
  * `OutOfStockError`. `force` (pagamento que chegou depois do Pix vencer):
  * reserva mesmo passando do teto — o dinheiro já entrou — e gera alerta.
  */
-export async function reserveStock(orderId: string, items: Line[], force = false) {
-  const lines = capped(items);
+export async function reserveStock(
+  orderId: string,
+  items: Line[],
+  force = false,
+  especial = false,
+) {
+  const lines = capped(items, especial);
   if (!lines.length) return;
   const keys = [...lines.map((l) => counter(l.sku)), holdKey(orderId)];
   const args = [

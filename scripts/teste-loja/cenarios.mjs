@@ -438,4 +438,91 @@ const approve = async (orderId, extra = {}) =>
   );
 }
 
+// S18 link especial (src/lib/especial.ts): com o público esgotado (S17), o
+// link libera só o lote separado (4), sem tocar no estoque público.
+{
+  const CODE = "y82hz96ccr";
+  const wrong = await fetch(`${B}/comprar?acesso=errado`, { redirect: "manual" });
+  check(
+    "S18 código errado → volta sem cookie",
+    wrong.status === 307 &&
+      !(wrong.headers.get("set-cookie") ?? "").includes("fernandito_especial="),
+  );
+  const link = await fetch(`${B}/comprar?acesso=${CODE}`, { redirect: "manual" });
+  const setCookie = link.headers.get("set-cookie") ?? "";
+  check(
+    "S18 link certo → grava o cookie e tira o código da barra",
+    link.status === 307 &&
+      setCookie.includes(`fernandito_especial=${CODE}`) &&
+      setCookie.includes("fernandito_especial_on=1") &&
+      !(link.headers.get("location") ?? "").includes("acesso"),
+    `${link.status} ${link.headers.get("location")}`,
+  );
+  const cookie = `fernandito_especial=${CODE}; fernandito_especial_on=1`;
+  const buy = async (qty, withCookie = true) => {
+    const b = body();
+    b.items[0].qty = qty;
+    b.subtotalCents = PRICE * qty;
+    b.shipping = {
+      id: "tabela-sudeste",
+      service: "x",
+      carrier: "y",
+      priceCents: SHIP,
+      days: { min: 1, max: 5 },
+      source: "tabela",
+    };
+    b.totalCents = b.subtotalCents + SHIP;
+    const r = await fetch(B + "/api/checkout/pix", {
+      method: "POST",
+      headers: {
+        ...H(),
+        "x-idempotency-key": randomUUID(),
+        ...(withCookie ? { cookie } : {}),
+      },
+      body: JSON.stringify(b),
+    });
+    return { code: r.status, data: await r.json() };
+  };
+  const livresPublico = async () => (await diag()).estoque["FERN-KIT-PRE"].livres;
+  const est = (c) =>
+    fetch(`${B}/api/estoque${c ? "?especial=1" : ""}`, { headers: c ? { cookie } : {} }).then((x) =>
+      x.json(),
+    );
+  check("S18 sem o link continua esgotado", (await buy(1, false)).code === 409);
+  const e0 = await est(true);
+  check(
+    "S18 /api/estoque com o link → 4 livres",
+    e0.remaining === 4 && !e0.soldOut,
+    JSON.stringify(e0),
+  );
+  const pub0 = await livresPublico();
+  const a = await buy(3);
+  check("S18 com o link compra 3", a.code === 201, JSON.stringify(a.data).slice(0, 120));
+  const tooMany = await buy(2);
+  check(
+    "S18 pedir 2 com só 1 livre → recusa 'Só temos 1'",
+    tooMany.code === 409 && /Só temos 1/.test(tooMany.data.error),
+    tooMany.data.error,
+  );
+  const b1 = await buy(1);
+  check("S18 compra o último", b1.code === 201);
+  const over = await buy(1);
+  check(
+    "S18 lote especial esgotado → 'esgotou'",
+    over.code === 409 && /esgotou/.test(over.data.error),
+    over.data.error,
+  );
+  const e1 = await est(true);
+  check("S18 /api/estoque com o link → esgotado", e1.soldOut === true, JSON.stringify(e1));
+  // Pago: fica no lote especial (não reserva de novo no público).
+  await approve(b1.data.order.id);
+  await status(b1.data.order.id);
+  await sleep(300);
+  const st = await status(b1.data.order.id);
+  check("S18 pedido do link pago normal", st.status === "paid", st.status);
+  check("S18 estoque público intacto", (await livresPublico()) === pub0, `${pub0}`);
+  const pub = await est(false);
+  check("S18 /api/estoque público segue esgotado", pub.soldOut === true, JSON.stringify(pub));
+}
+
 console.log(`\n${results.filter((r) => r.ok).length}/${results.length} ok`);

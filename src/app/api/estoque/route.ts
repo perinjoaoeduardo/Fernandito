@@ -2,6 +2,7 @@ import { STORE } from "@/content/site";
 import { FEATURED_PRODUCT } from "@/lib/catalog";
 import { blingStock } from "@/lib/bling/orders";
 import { stockRemaining } from "@/lib/store/stock";
+import { ESPECIAL, ESPECIAL_SKU, hasEspecialCookie } from "@/lib/especial";
 
 // Estoque público do kit: `remaining` (selo "Restam X", `null` = não
 // mostrar) e `soldOut` (site mostra "Esgotado" e trava a compra). Vale o
@@ -14,9 +15,28 @@ const cache = globalThis as unknown as {
   __fernanditoStock?: { at: number; remaining: number | null };
 };
 
-export async function GET() {
+export async function GET(request: Request) {
   if (!STORE.enabled || !FEATURED_PRODUCT)
     return Response.json({ error: "Loja fechada" }, { status: 404 });
+  // Link especial (src/lib/especial.ts): estoque do lote separado, sem cache
+  // (o navegador pede com `?especial=1`, então o cache público não mistura).
+  if (
+    new URL(request.url).searchParams.has("especial") &&
+    FEATURED_PRODUCT.sku === ESPECIAL.sku &&
+    hasEspecialCookie(request.headers.get("cookie"))
+  ) {
+    const sku = ESPECIAL.sku;
+    const [own, bling] = await Promise.all([
+      stockRemaining(ESPECIAL_SKU).catch(() => null),
+      blingStock([sku]).then((stock) => (stock ? Math.max(0, stock.get(sku) ?? 0) : null)),
+    ]);
+    const known = [own, bling].filter((n): n is number => n !== null);
+    const remaining = known.length ? Math.min(...known) : null;
+    return Response.json(
+      { remaining, soldOut: remaining === 0, especial: true },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
+  }
   const hit = cache.__fernanditoStock;
   if (hit && Date.now() - hit.at < TTL_MS) return respond(hit.remaining);
 

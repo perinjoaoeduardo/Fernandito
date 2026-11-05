@@ -45,6 +45,8 @@ export type StoredOrder = {
     qrCodeBase64: string;
     expiresAt: string;
   } | null;
+  /** Comprado pelo link especial (lote separado, src/lib/especial.ts). */
+  especial?: boolean;
   /** Pago (ou a pagar) direto na chave Pix da conta — plano B. */
   manualPix?: boolean;
   /** Pedido de teste desfeito (`/api/loja/confirmar&acao=estornar`). */

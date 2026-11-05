@@ -11,7 +11,13 @@ let pendingAt = 0;
 function load(): Promise<StockState> {
   if (!pending || Date.now() - pendingAt > 30_000) {
     pendingAt = Date.now();
-    pending = fetch("/api/estoque")
+    // Link especial (src/lib/especial.ts, `ESPECIAL.flag`): pede o estoque do
+    // lote separado. O nome do cookie fica aqui pra não levar o módulo (e o
+    // código) pro navegador.
+    const especial = document.cookie
+      .split(";")
+      .some((c) => c.trim() === "fernandito_especial_on=1");
+    pending = fetch(especial ? "/api/estoque?especial=1" : "/api/estoque")
       .then((res) => (res.ok ? res.json() : null))
       .then((data: Partial<StockState> | null) => ({
         remaining: typeof data?.remaining === "number" ? data.remaining : null,
