@@ -6,7 +6,8 @@ import { useEffect, useRef } from "react";
 import { gsap, DURATION, EASE, prefersReducedMotion } from "@/lib/gsap";
 import { ACTIVE_PRODUCTS, splitName, type Product } from "@/lib/catalog";
 import { STORE } from "@/content/site";
-import { formatBRL } from "@/lib/money";
+import { Price } from "@/components/ui/Price";
+import { ArrowRightIcon } from "@/components/ui/icons";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { useStock } from "@/components/cart/useStock";
 
@@ -49,25 +50,38 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
               </span>
             )}
           </div>
-          {/* Ritmo fixo: foto → 16px → nome → 12px → preço + botão. */}
-          <div className="mt-4 flex flex-col font-sans">
-            <h2 className="font-rampart text-[clamp(1.7rem,2.6vw,2.2rem)] leading-[1]">{title}</h2>
-            {/* Preço (fonte comum, menor que o nome) e o botão ocupando o resto. */}
-            <div className="mt-3 flex items-center gap-4">
-              <p className="text-[1.35rem] leading-none font-bold tracking-tight tabular-nums">
-                {formatBRL(product.priceCents)}
-              </p>
-              <span
+          {/* Ritmo: foto → 20px → nome + preço (mesma linha) → 4px → o que vem
+              → 16px → botão. Uma hierarquia só: nome manda, preço acompanha,
+              o resto sussurra. */}
+          <div className="mt-5 flex flex-col font-sans">
+            <div className="flex items-baseline justify-between gap-4">
+              <h2 className="font-rampart text-[clamp(1.7rem,2.6vw,2.2rem)] leading-[1]">
+                {title}
+              </h2>
+              <p
                 className={clsx(
-                  "duration-base ease-out-standard inline-flex h-11 flex-1 items-center justify-center rounded-full px-6 text-[0.95rem] font-bold tracking-[0.02em] transition-colors",
-                  soldOut
-                    ? "border-fernandito-verde-escuro/30 text-fernandito-verde-escuro/70 border-[1.5px]"
-                    : "bg-fernandito-verde-escuro text-fernandito-off-white group-hover:bg-fernandito-verde-medio",
+                  "font-rampart text-[1.5rem] leading-none whitespace-nowrap tabular-nums",
+                  soldOut && "opacity-45",
                 )}
               >
-                {soldOut ? STORE.soldOut : "Comprar"}
-              </span>
+                <Price cents={product.priceCents} />
+              </p>
             </div>
+            <p className="text-label mt-1.5 tracking-[0.12em] uppercase opacity-60">
+              {product.contents.map((c) => `${c.qty} ${c.label}`).join(" · ")}
+            </p>
+            {soldOut ? (
+              <p className="text-label mt-4 flex h-12 items-center tracking-[0.12em] uppercase opacity-60">
+                Esgotado · ver como foi →
+              </p>
+            ) : (
+              <span className="bg-fernandito-verde-escuro text-fernandito-off-white group-hover:bg-fernandito-verde-medio duration-base ease-out-standard mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full px-6 text-[1rem] font-bold tracking-[0.02em] transition-colors">
+                Comprar
+                <span className="duration-base ease-out-standard transition-transform group-hover:translate-x-1">
+                  <ArrowRightIcon />
+                </span>
+              </span>
+            )}
           </div>
         </article>
       </NextLink>
