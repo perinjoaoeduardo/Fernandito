@@ -3,6 +3,7 @@ import { orderSchema } from "@/lib/order";
 import { createPixOrder, housekeeping } from "@/lib/store/checkout";
 import { errorResponse, guard, json } from "@/lib/store/http";
 import { publicOrder } from "@/lib/store/orders";
+import { hasEspecialCookie } from "@/lib/especial";
 
 // Cria o pedido + Pix. O corpo é o pedido do checkout; tudo é validado
 // (zod) e recalculado no servidor — ver src/lib/store/checkout.ts.
@@ -19,7 +20,9 @@ export async function POST(request: Request) {
   if (!parsed.success) return json({ error: "Dados do pedido inválidos", code: "invalid" }, 400);
 
   try {
-    const order = await createPixOrder(parsed.data, idempotencyKey);
+    const order = await createPixOrder(parsed.data, idempotencyKey, {
+      especial: hasEspecialCookie(request.headers.get("cookie")),
+    });
     return json({ order: publicOrder(order) }, 201);
   } catch (error) {
     return errorResponse(error);

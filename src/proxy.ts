@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ACESSO } from "@/content/site";
 import { HEADER_PUBLICO } from "@/lib/acesso";
+import { ESPECIAL, isEspecialCode } from "@/lib/especial";
 
 /**
  * Acesso por convite (ver `ACESSO` em src/content/site.ts). Quem não tem o
@@ -18,9 +19,29 @@ export function proxy(request: NextRequest) {
   // Sempre sobrescreve: um cabeçalho vindo de fora nunca vale.
   const headers = new Headers(request.headers);
   headers.delete(HEADER_PUBLICO);
-  if (!ACESSO.restrito) return NextResponse.next({ request: { headers } });
-
   const { pathname, searchParams } = request.nextUrl;
+
+  // Link especial (src/lib/especial.ts): grava o cookie e volta pra mesma
+  // página sem o código na barra.
+  if (searchParams.has(ESPECIAL.param)) {
+    const url = request.nextUrl.clone();
+    const ok = isEspecialCode(url.searchParams.get(ESPECIAL.param));
+    url.searchParams.delete(ESPECIAL.param);
+    const response = NextResponse.redirect(url);
+    if (ok) {
+      const base = {
+        maxAge: ESPECIAL.maxAgeSeconds,
+        sameSite: "lax" as const,
+        secure: request.nextUrl.protocol === "https:",
+        path: "/",
+      };
+      response.cookies.set(ESPECIAL.cookie, ESPECIAL.code, { ...base, httpOnly: true });
+      response.cookies.set(ESPECIAL.flag, "1", base);
+    }
+    return response;
+  }
+
+  if (!ACESSO.restrito) return NextResponse.next({ request: { headers } });
 
   // Link de convite: grava o cookie e volta pra mesma página sem o código.
   if (searchParams.get("convite") === CODE) {
