@@ -4,18 +4,14 @@ import { clsx } from "clsx";
 import NextLink from "next/link";
 import { ACTIVE_PRODUCTS, splitName, type Product } from "@/lib/catalog";
 import { STORE } from "@/content/site";
-import { Price } from "@/components/ui/Price";
+import { formatBRL } from "@/lib/money";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { useStock } from "@/components/cart/useStock";
 
-/** Só mostra "Restam X" quando o estoque está baixo. */
-const STOCK_BADGE_MAX = 30;
-
 function ProductCard({ product, index }: { product: Product; index: number }) {
-  const { remaining, soldOut } = useStock(product.sku);
+  const { soldOut } = useStock(product.sku);
   const { main, sub } = splitName(product.name);
   const href = `/comprar/${product.slug}`;
-  const low = !soldOut && remaining !== null && remaining > 0 && remaining <= STOCK_BADGE_MAX;
   const badge = product.badge ?? STORE.badge;
   return (
     <li>
@@ -50,32 +46,22 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
           <div className="mt-5 flex flex-1 flex-col font-sans">
             <h2 className="font-rampart text-[clamp(1.7rem,2.6vw,2.2rem)] leading-[1]">{main}</h2>
             {sub && <p className="text-label mt-1 tracking-[0.12em] uppercase opacity-60">{sub}</p>}
-            <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-5">
-              <p className="font-rampart text-[1.9rem] leading-none tabular-nums">
-                <Price cents={product.priceCents} />
+            {/* Preço (fonte comum, menor que o nome) e o botão na mesma linha. */}
+            <div className="mt-auto flex items-center justify-between gap-4 pt-5">
+              <p className="text-[1.35rem] leading-none font-bold tracking-tight tabular-nums">
+                {formatBRL(product.priceCents)}
               </p>
-              {low && (
-                <span className="border-fernandito-verde-medio/30 bg-fernandito-verde-medio/10 text-label inline-flex items-center gap-2 rounded-full border px-3 py-1 tracking-[0.08em] uppercase">
-                  <span
-                    aria-hidden="true"
-                    className="bg-fernandito-verde-medio h-1.5 w-1.5 animate-pulse rounded-full"
-                  />
-                  {remaining === 1
-                    ? STORE.stockLast
-                    : STORE.stockLeft.replace("{n}", String(remaining))}
-                </span>
-              )}
+              <span
+                className={clsx(
+                  "duration-base ease-out-standard inline-flex h-11 shrink-0 items-center justify-center rounded-full px-7 text-[0.95rem] font-bold tracking-[0.02em] transition-colors",
+                  soldOut
+                    ? "border-fernandito-verde-escuro/30 text-fernandito-verde-escuro/70 border-[1.5px]"
+                    : "bg-fernandito-verde-escuro text-fernandito-off-white group-hover:bg-fernandito-verde-medio",
+                )}
+              >
+                {soldOut ? STORE.soldOut : "Comprar"}
+              </span>
             </div>
-            <span
-              className={clsx(
-                "duration-base ease-out-standard mt-4 inline-flex h-12 w-full items-center justify-center rounded-full px-6 text-[0.95rem] font-bold tracking-[0.02em] transition-colors",
-                soldOut
-                  ? "border-fernandito-verde-escuro/30 text-fernandito-verde-escuro/70 border-[1.5px]"
-                  : "bg-fernandito-verde-escuro text-fernandito-off-white group-hover:bg-fernandito-verde-medio",
-              )}
-            >
-              {soldOut ? "Esgotado · ver como foi" : "Ver e comprar"}
-            </span>
           </div>
         </article>
       </NextLink>
