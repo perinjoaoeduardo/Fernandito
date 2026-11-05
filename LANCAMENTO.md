@@ -390,3 +390,11 @@ navegação" no DESIGN_SYSTEM.md.
 - [ ] Bonificação: 1 Kit Pré-Lançamento pra galera da Garfo — falta: CNPJ/CPF e endereço.
 - [ ] Bonificação: 1 Kit Pré-Lançamento pra galera do estúdio do Xisme — falta: CNPJ/CPF e endereço.
 - [ ] Depois de emitir: baixar 2 do estoque do Kit (o contador do site não sabe dessas saídas) e conferir em "Fora do site" no /painel.
+
+## Pendente (futuro): painel pro six pack (pedido em 05/11/2026)
+
+Contexto: os kits de pré-lançamento acabaram (sobram 3 de reserva, vendidos entre amigos). A próxima venda pelo site é o **six pack**, com mais pedidos por dia via transportadora.
+
+- [ ] **"Imprimir tudo" no `/painel`:** um botão que junta, num arquivo só pronto pra imprimir, as **etiquetas** e as **notas fiscais (DANFE)** de todos os pedidos em "Imprimir e postar", em vez de abrir um por um. Ideias: o Melhor Envio já gera **um PDF com várias etiquetas** (`/shipment/print` aceita a lista de envios); as DANFEs vêm do Bling (PDF de cada nota) e o site junta tudo num PDF só (etiqueta + nota de cada pedido, na ordem), opcional "marcar como impresso" pra não sair de novo amanhã.
+- [ ] Organizar o painel pra rotina do six pack (o que preparar hoje: quantos packs separar, por transportadora/ponto de postagem).
+- [ ] Antes de abrir o six pack: **recontar as latas** (vendas manuais de 98 latas não baixaram o Bling: 250 no sistema ≠ real) e acertar o saldo; o pack é composição de 6 latas no Bling.
