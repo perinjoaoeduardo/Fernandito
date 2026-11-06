@@ -7,7 +7,8 @@ import { retryPendingBlingOrders } from "@/lib/bling/orders";
 import { painelAuthed, painelLogin, painelLogout, passwordOk } from "@/lib/painel";
 import { reconcileOpenOrders } from "@/lib/store/checkout";
 import { advanceAllFulfillments, markLocalDelivered, markPosted } from "@/lib/store/fulfillment";
-import { rateLimit } from "@/lib/store/kv";
+import { kvSet, rateLimit } from "@/lib/store/kv";
+import { PRODUCAO_KEY, producaoSchema, type ProducaoData } from "@/lib/producao";
 
 export async function entrar(_prev: { error: string } | null, form: FormData) {
   const h = await headers();
@@ -54,4 +55,16 @@ export async function marcarEntregue(form: FormData) {
   await markLocalDelivered(String(form.get("id") ?? ""));
   // Volta pra mesma lista (filtro, busca e página) em que a pessoa estava.
   redirect(backTo(form));
+}
+
+/** Aba Produção: salva fornecedores/insumos e a receita (cadastro da equipe). */
+export async function salvarProducao(
+  data: ProducaoData,
+): Promise<{ ok: boolean; error?: string; at?: string }> {
+  if (!(await painelAuthed())) return { ok: false, error: "Sessão expirou. Entra de novo." };
+  const parsed = producaoSchema.safeParse(data);
+  if (!parsed.success) return { ok: false, error: "Algum campo ficou inválido." };
+  const at = new Date().toISOString();
+  await kvSet(PRODUCAO_KEY, JSON.stringify({ ...parsed.data, atualizadoEm: at }));
+  return { ok: true, at };
 }
