@@ -54,7 +54,7 @@ export default async function ConfirmadoPage(props: PageProps<"/pedido/[id]/conf
             Pedido confirmado!
           </h1>
           <p className="text-body-lg mt-4 max-w-xl font-sans">
-            Valeu, {order.customer.name.split(/\s+/)[0]}! O pagamento chegou e o teu kit já está na
+            Valeu, {order.customer.name.split(/\s+/)[0]}! O pagamento chegou e o teu pedido já está na
             fila de envio.
           </p>
         </div>
