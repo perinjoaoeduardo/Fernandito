@@ -365,14 +365,43 @@ const c1 = await buy({ note: RECADO });
   const bad = await fetch(`${B}/pedido/naoexiste1/nota`, { redirect: "manual" });
   check("C16 pedido que não existe → 404", bad.status === 404, String(bad.status));
 }
-// C17 six pack: em "Em breve" (comingSoon) o checkout recusa.
-// Quando abrir a venda, voltar ao teste da baixa (2 packs = 12 latas).
+// C17 six pack. Em "Em breve" (comingSoon) o checkout recusa. Aberto: entra
+// no Bling, a baixa sai das latas (6 por pack), no máximo 6 por pedido e o
+// teto do site (37) não passa.
 {
   const err = await buy({ items: [{ sku: "FERN-350-6", qty: 2, unitPriceCents: 9499 }] }).then(
-    () => "",
-    (e) => String(e.message),
+    (id) => ({ id }),
+    (e) => ({ err: String(e.message) }),
   );
-  check("C17 six pack em breve → checkout recusa", err.includes("ainda não está à venda"), err);
+  if (err.err?.includes("ainda não está à venda")) {
+    check("C17 six pack em breve → checkout recusa", true);
+  } else if (err.err) {
+    check("C17 six pack aberto → compra", false, err.err);
+  } else {
+    const id = err.id;
+    const e = await until(id, ["ready", "local"]);
+    const { baixas } = await fetch(`${BL}/_baixas`).then((r) => r.json());
+    const mine = baixas.filter((x) => String(x.observacoes ?? "").includes(id));
+    check("C17 six pack pago → nota/etiqueta sem erro", Boolean(e) && !e.erro, JSON.stringify(e));
+    check(
+      "C17 baixa do six pack sai das latas (2 packs = 12 latas)",
+      mine.length === 1 && mine[0].quantidade === 12,
+      JSON.stringify(mine),
+    );
+    const seven = await buy({ items: [{ sku: "FERN-350-6", qty: 7, unitPriceCents: 9499 }] }).then(
+      () => "",
+      (x) => String(x.message),
+    );
+    check("C17 7 packs num pedido → recusa (máx. 6)", /Máximo de 6/.test(seven), seven);
+    // Já foram 2; mais 35 (5×6 + 5) chega nos 37 do teto.
+    for (const q of [6, 6, 6, 6, 6, 5])
+      await buy({ items: [{ sku: "FERN-350-6", qty: q, unitPriceCents: 9499 }] });
+    const over = await buy({ items: [{ sku: "FERN-350-6", qty: 1, unitPriceCents: 9499 }] }).then(
+      () => "",
+      (x) => String(x.message),
+    );
+    check("C17 depois de 37 packs → 'esgotou'", /esgotou/.test(over), over);
+  }
 }
 // C13 notas feitas à mão no Bling (venda manual e bonificação) entram no painel;
 // as notas dos pedidos do site não entram de novo.
