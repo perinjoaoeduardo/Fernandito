@@ -5,12 +5,17 @@ import { getManualSales, manualSalesStale, syncManualSales } from "@/lib/bling/m
 import { listLeads } from "@/lib/leads";
 import { painelAuthed } from "@/lib/painel";
 import { ALL_SET } from "@/lib/store/checkout";
-import { getFulfillments, type FulfillStage, type Fulfillment } from "@/lib/store/fulfillment";
+import {
+  getFulfillments,
+  maybeAdvanceFulfillments,
+  type FulfillStage,
+  type Fulfillment,
+} from "@/lib/store/fulfillment";
 import { kvGet, kvSet, kvSMembers } from "@/lib/store/kv";
 import { getOrders, type StoredOrder } from "@/lib/store/orders";
 import { blingStock } from "@/lib/bling/orders";
 import { stockRemaining } from "@/lib/store/stock";
-import { atualizar, marcarEntregue, sair } from "./actions";
+import { atualizar, marcarEntregue, marcarPostado, sair } from "./actions";
 import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
 import { SubmitButton } from "./SubmitButton";
@@ -92,8 +97,8 @@ const STAGE: Record<FulfillStage, [string, Tone]> = {
   invoice: ["Emitindo a nota", "amber"],
   label: ["Comprando a etiqueta", "amber"],
   ready: ["Imprimir e postar", "blue"],
-  posted: ["Postado", "green"],
-  delivered: ["Entregue", "green"],
+  posted: ["A caminho (correio)", "green"],
+  delivered: ["Entregue (correio)", "green"],
   local: ["Entregar em mãos", "blue"],
   "local-delivered": ["Entregue (em mãos)", "green"],
 };
@@ -112,14 +117,16 @@ function status(o: StoredOrder, f: Fulfillment | null): [string, Tone] {
 
 const PAGE_SIZE = 20;
 
+// Na ordem do caminho do pedido. "Todos" é o padrão.
 const FILTERS = [
-  ["ativos", "Ativos"],
-  ["imprimir", "Imprimir"],
-  ["entregar", "Entregar (em mãos)"],
-  ["caminho", "A caminho"],
+  ["todos", "Todos"],
+  ["imprimir", "Imprimir (correio)"],
+  ["entregar", "Entregar em mãos"],
+  ["caminho", "A caminho (correio)"],
+  ["entregues-maos", "Entregues em mãos"],
+  ["entregues-correio", "Entregues pelo correio"],
   ["olho", "Precisam de olho"],
   ["estornados", "Estornados"],
-  ["todos", "Todos"],
 ] as const;
 
 export default async function PainelPage(props: PageProps<"/painel">) {
@@ -143,7 +150,10 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const raw = sp.ver;
   const q = (typeof sp.q === "string" ? sp.q : "").trim().slice(0, 80);
   const page = Math.max(1, Number.parseInt(String(sp.p ?? "1"), 10) || 1);
-  const ver = FILTERS.some(([k]) => k === raw) ? String(raw) : "ativos";
+  const ver = FILTERS.some(([k]) => k === raw) ? String(raw) : "todos";
+  // Confere rastreio/nota/etiqueta em segundo plano a cada abertura (no máx.
+  // a cada 2 min): "A caminho" e "Entregue" atualizam sem apertar botão.
+  after(() => maybeAdvanceFulfillments());
 
   const ids = await kvSMembers(ALL_SET);
   const orders = (await getOrders(ids))
@@ -164,9 +174,9 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const toDeliver = active.filter((r) => r.f?.stage === "local");
   const stuck = active.filter((r) => r.f?.error || r.order.status === "manual");
   const inTransit = active.filter((r) => r.f?.stage === "posted");
-  const delivered = active.filter(
-    (r) => r.f?.stage === "delivered" || r.f?.stage === "local-delivered",
-  );
+  const deliveredByHand = active.filter((r) => r.f?.stage === "local-delivered");
+  const deliveredByMail = active.filter((r) => r.f?.stage === "delivered");
+  const delivered = [...deliveredByHand, ...deliveredByMail];
   const revenue = active
     .filter((r) => r.order.status === "paid")
     .reduce((sum, r) => sum + r.order.totalCents, 0);
@@ -178,13 +188,15 @@ export default async function PainelPage(props: PageProps<"/painel">) {
         ? toDeliver
         : ver === "caminho"
           ? inTransit
-          : ver === "olho"
-            ? stuck
-            : ver === "estornados"
-              ? all.filter((r) => r.order.refundedAt)
-              : ver === "todos"
-                ? every
-                : active;
+          : ver === "entregues-maos"
+            ? deliveredByHand
+            : ver === "entregues-correio"
+              ? deliveredByMail
+              : ver === "olho"
+                ? stuck
+                : ver === "estornados"
+                  ? all.filter((r) => r.order.refundedAt)
+                  : every;
 
   // Busca: nome, telefone, cidade, itens, nota, rastreio e código do pedido.
   const norm = (t: string) =>
@@ -220,7 +232,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const href = (o: { ver?: string; p?: number; q?: string }) => {
     const v = o.ver ?? ver;
     const qs = new URLSearchParams();
-    if (v !== "ativos") qs.set("ver", v);
+    if (v !== "todos") qs.set("ver", v);
     const query = o.q ?? q;
     if (query) qs.set("q", query);
     if (o.p && o.p > 1) qs.set("p", String(o.p));
@@ -285,10 +297,11 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     .slice(0, 10);
 
   const counts: Record<string, number> = {
-    ativos: active.length,
     imprimir: toPrint.length,
     entregar: toDeliver.length,
     caminho: inTransit.length,
+    "entregues-maos": deliveredByHand.length,
+    "entregues-correio": deliveredByMail.length,
     olho: stuck.length,
     estornados: all.filter((r) => r.order.refundedAt).length,
     todos: every.length,
@@ -499,6 +512,15 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                           <input type="hidden" name="back" value={href({})} />
                           <SubmitButton variant="primary" size="sm">
                             Marcar como entregue
+                          </SubmitButton>
+                        </form>
+                      )}
+                      {f?.stage === "ready" && (
+                        <form action={marcarPostado}>
+                          <input type="hidden" name="id" value={o.id} />
+                          <input type="hidden" name="back" value={href({})} />
+                          <SubmitButton variant="secondary" size="sm">
+                            Já postei
                           </SubmitButton>
                         </form>
                       )}

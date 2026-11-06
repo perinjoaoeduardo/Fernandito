@@ -16,7 +16,7 @@ export function SearchBox({ ver, q }: { ver: string; q: string }) {
     if (term === last.current) return;
     last.current = term;
     const qs = new URLSearchParams();
-    if (ver !== "ativos") qs.set("ver", ver);
+    if (ver !== "todos") qs.set("ver", ver);
     if (term) qs.set("q", term);
     const url = qs.toString() ? `/painel?${qs}` : "/painel";
     start(() => router.replace(url, { scroll: false }));
