@@ -386,7 +386,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
           scroll={false}
           className="text-label duration-base ease-out-standard hover:text-fernandito-verde-claro inline-flex items-center gap-2 font-sans font-bold tracking-[0.1em] uppercase opacity-90 transition-[color,opacity] hover:opacity-100"
         >
-          <span aria-hidden="true">←</span> Voltar ao kit
+          <span aria-hidden="true">←</span> Voltar à loja
         </NextLink>
         <h1 className="font-rampart mt-3 text-[clamp(1.6rem,8vw,3.5rem)] leading-[1] whitespace-nowrap lg:text-[clamp(2.25rem,3.2vw,3rem)]">
           Finalizar compra
