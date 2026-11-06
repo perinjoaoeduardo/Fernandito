@@ -9,7 +9,7 @@
  * reserva desse lote (contador próprio, teto `cap`), sem tocar no público.
  * Compra, Pix, Bling, nota e etiqueta: tudo igual a um pedido normal.
  *
- * Fechar: trocar o código (env `LINK_ESPECIAL_CODIGO`) ou pôr `cap: 0`.
+ * Fechar: trocar o código (env `LINK_ESPECIAL_CODIGO`) ou pôr `cap: 0` no último lote.
  */
 export const ESPECIAL = {
   param: "acesso",
@@ -20,12 +20,27 @@ export const ESPECIAL = {
   flag: "fernandito_especial_on",
   maxAgeSeconds: 60 * 60 * 24 * 30,
   sku: "FERN-KIT-PRE",
-  /** Kits liberados no link (os que sobraram no estoque). */
-  cap: 4,
 } as const;
 
-/** SKU "virtual" do lote especial no contador de estoque. */
-export const ESPECIAL_SKU = `${ESPECIAL.sku}@especial`;
+/**
+ * Lotes do link, cada um com seu contador (o último é o que vende agora).
+ * Lote novo = contador zerado com o teto exato do que sobrou, sem depender de
+ * quantos o lote anterior vendeu. Os antigos ficam aqui só pra devolver Pix
+ * vencido no contador certo e pro painel contar o que já saiu.
+ *   1º (05/11): 4 kits — 2 vendidos (Gabriel Welter #148, Victor M. #149).
+ *   2º (06/11): os 2 últimos kits pré-venda. Vendeu esses, acabou.
+ */
+export const ESPECIAL_LOTES = [
+  { sku: `${ESPECIAL.sku}@especial`, cap: 4 },
+  { sku: `${ESPECIAL.sku}@especial-2`, cap: 2 },
+] as const;
+
+/** SKU "virtual" do lote especial que vende agora, no contador de estoque. */
+export const ESPECIAL_SKU = ESPECIAL_LOTES[ESPECIAL_LOTES.length - 1].sku;
+
+/** Teto de um lote do link (`null` se o SKU não é de lote). */
+export const especialCap = (sku: string): number | null =>
+  ESPECIAL_LOTES.find((l) => l.sku === sku)?.cap ?? null;
 
 export const isEspecialCode = (value: string | undefined | null) =>
   Boolean(value) && value === ESPECIAL.code;

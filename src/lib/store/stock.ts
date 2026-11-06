@@ -1,6 +1,6 @@
 import "server-only";
 import { getProduct } from "@/lib/catalog";
-import { ESPECIAL, ESPECIAL_SKU } from "@/lib/especial";
+import { ESPECIAL, ESPECIAL_SKU, especialCap } from "@/lib/especial";
 import { IS_PRODUCTION, kvEval, kvGet, kvSet } from "@/lib/store/kv";
 import { raiseAlert } from "@/lib/store/orders";
 
@@ -37,8 +37,7 @@ function decode(value: string): Line[] {
 }
 
 // Teto de um SKU; o lote do link especial (src/lib/especial.ts) tem o seu.
-const capOf = (sku: string) =>
-  sku === ESPECIAL_SKU ? ESPECIAL.cap : (getProduct(sku)?.stockCap ?? null);
+const capOf = (sku: string) => especialCap(sku) ?? getProduct(sku)?.stockCap ?? null;
 
 // Só os produtos com teto entram na conta. Pedido do link especial: o kit
 // reserva do lote especial (contador próprio), não do público.

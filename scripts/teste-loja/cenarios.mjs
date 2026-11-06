@@ -439,7 +439,7 @@ const approve = async (orderId, extra = {}) =>
 }
 
 // S18 link especial (src/lib/especial.ts): com o público esgotado (S17), o
-// link libera só o lote separado (4), sem tocar no estoque público.
+// link libera só o lote separado (o atual tem 2), sem tocar no estoque público.
 {
   const CODE = "y82hz96ccr";
   const wrong = await fetch(`${B}/comprar?acesso=errado`, { redirect: "manual" });
@@ -491,13 +491,13 @@ const approve = async (orderId, extra = {}) =>
   check("S18 sem o link continua esgotado", (await buy(1, false)).code === 409);
   const e0 = await est(true);
   check(
-    "S18 /api/estoque com o link → 4 livres",
-    e0.remaining === 4 && !e0.soldOut,
+    "S18 /api/estoque com o link → 2 livres (lote atual)",
+    e0.remaining === 2 && !e0.soldOut,
     JSON.stringify(e0),
   );
   const pub0 = await livresPublico();
-  const a = await buy(3);
-  check("S18 com o link compra 3", a.code === 201, JSON.stringify(a.data).slice(0, 120));
+  const a = await buy(1);
+  check("S18 com o link compra 1", a.code === 201, JSON.stringify(a.data).slice(0, 120));
   const tooMany = await buy(2);
   check(
     "S18 pedir 2 com só 1 livre → recusa 'Só temos 1'",

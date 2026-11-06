@@ -37,6 +37,8 @@ import { kvGet, kvSet, kvSMembers } from "@/lib/store/kv";
 import { getOrders, type StoredOrder } from "@/lib/store/orders";
 import { blingStock } from "@/lib/bling/orders";
 import { stockRemaining } from "@/lib/store/stock";
+import { ESPECIAL_LOTES } from "@/lib/especial";
+import { getProduct } from "@/lib/catalog";
 import { atualizar, marcarEntregue, marcarPostado, sair } from "./actions";
 import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
@@ -70,15 +72,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Estoque que o painel mostra. O kit é o que importa. Total à venda =
-// 54 vendidos no 1º lote + 108 contados no Bling no relançamento = 162. O site
-// libera só 105 do lote novo (teto `stockCap` em src/lib/catalog.ts = 54 + 105),
-// o resto é reserva. Mudou o lote? Troca aqui.
+// Estoque que o painel mostra. O kit é o que importa. Site público: teto
+// `stockCap` (src/lib/catalog.ts, 159, já esgotado). Depois disso, só o link
+// especial (src/lib/especial.ts), em lotes com contador próprio. Os números
+// saem dos contadores, então não tem conta fixa pra trocar aqui.
 const KIT_SKU = "FERN-KIT-PRE";
-const LOTE_KIT = 105; // liberado no site neste lote (reserva = 108 − 105 = 3)
-const PRIMEIRO_LOTE = 54; // vendidos antes
-const CONTAGEM_BLING = 108; // saldo no relançamento
-const TOTAL_KITS = PRIMEIRO_LOTE + CONTAGEM_BLING;
 // Os outros produtos aparecem só como número (contagem ainda a acertar).
 const OTHER_STOCK = [
   { sku: "FERN-350", name: "Lata" },
@@ -354,15 +352,23 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     kvSMembers("loja:alertas"),
     stockRemaining(KIT_SKU).catch(() => null),
   ]);
-  // Kit. A conta vem do contador do site (`siteLeft` = teto − vendidos − Pix
-  // abertos), que anda junto com a compra; o Bling só baixa depois da nota.
-  //   restam    = livres no site + reserva fora do site (as 8 sobras do lote)
+  // Link especial: livres no lote atual e quantos já saíram de todos os lotes.
+  const especialLeft = await Promise.all(
+    ESPECIAL_LOTES.map((l) => stockRemaining(l.sku).catch(() => null)),
+  );
+  const especialFree = especialLeft[especialLeft.length - 1] ?? 0;
+  const especialUsed = ESPECIAL_LOTES.reduce(
+    (n, l, i) => n + Math.max(0, l.cap - (especialLeft[i] ?? l.cap)),
+    0,
+  );
+  const kitCap = getProduct(KIT_SKU)?.stockCap ?? 0;
+  // Kit. A conta vem dos contadores do site (anda junto com a compra; o Bling
+  // só baixa depois da nota):
+  //   restam    = livres no site público + livres no link especial (limitado ao Bling)
   //   em Pix    = kits reservados em Pix aberto (ainda não pagos)
-  //   vendidos  = total − restam − em Pix
+  //   vendidos  = (teto do site − livres) + saídos pelo link − em Pix
   const kitBling = stockMap?.get(KIT_SKU) ?? null;
-  const kitReserve = CONTAGEM_BLING - LOTE_KIT;
-  const kitFree =
-    siteLeft === null ? null : kitBling === null ? siteLeft : Math.min(siteLeft, kitBling);
+  const kitFree = siteLeft;
   const kitHeld = Math.max(
     0,
     (await getOrders(await kvSMembers("orders:open")))
@@ -371,10 +377,17 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       .filter((i) => i.sku === KIT_SKU)
       .reduce((n, i) => n + i.qty, 0),
   );
-  const kitRest = kitFree === null ? null : kitFree + kitReserve;
-  const kitSold = kitRest === null ? null : Math.max(0, TOTAL_KITS - kitRest - kitHeld);
-  const kitPct = kitRest === null ? 0 : Math.min(100, Math.round((kitRest / TOTAL_KITS) * 100));
-  const kitLow = kitFree !== null && kitFree <= 10;
+  const kitRest =
+    kitFree === null
+      ? null
+      : kitBling === null
+        ? kitFree + especialFree
+        : Math.min(kitFree + especialFree, kitBling);
+  const kitSold = kitFree === null ? null : Math.max(0, kitCap - kitFree + especialUsed - kitHeld);
+  const kitTotal = (kitSold ?? 0) + (kitRest ?? 0) + kitHeld;
+  const kitPct =
+    kitRest === null || kitTotal === 0 ? 0 : Math.min(100, Math.round((kitRest / kitTotal) * 100));
+  const kitLow = kitRest !== null && kitRest <= 10;
   // Alerta só aparece enquanto o pedido ainda está ativo (estornado não conta).
   const refunded = new Set(all.filter((r) => r.order.refundedAt).map((r) => r.order.id));
   const alerts = alertsRaw
@@ -694,7 +707,11 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           label="Kits restantes"
           value={kitRest ?? "—"}
           tone={kitLow ? "fail" : "action"}
-          note={`de ${TOTAL_KITS} · ${kitReserve} de reserva fora do site`}
+          note={
+            kitFree === 0
+              ? `de ${kitTotal} · só pelo link especial`
+              : `de ${kitTotal} · ${especialFree} no link especial`
+          }
           edge={kitPct}
         />
         <Tile
@@ -733,8 +750,8 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                 <td className={TD}>
                   <p className="font-semibold">Kit Fernandito</p>
                   <p className="text-lk-muted text-xs">
-                    No site: {kitFree ?? "—"} {kitFree === 1 ? "livre" : "livres"} (liberados{" "}
-                    {LOTE_KIT} neste lote)
+                    No site: {kitFree ?? "—"} {kitFree === 1 ? "livre" : "livres"} · link especial:{" "}
+                    {especialFree} {especialFree === 1 ? "livre" : "livres"}
                   </p>
                 </td>
                 <td className={`${TD} text-right font-medium`}>{kitBling ?? "—"}</td>
