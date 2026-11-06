@@ -216,6 +216,21 @@ const c1 = await buy({ note: RECADO });
     html.includes('Entregue<span class="sr-only"> (feito)'),
   );
 }
+// C3b situação parada em "released" no Melhor Envio, mas com data de postagem
+// e de entrega: vale a data (algumas transportadoras não andam a situação).
+// Sem aviso: quem confere é a rodada da fila (conferir=1).
+{
+  const id = await buy();
+  await until(id, ["ready", "local"]);
+  const ship = (await ctl(ME)).orders.find((o) => o.tags.some((t) => t.tag === id));
+  await ctl(ME, { set: { id: ship.id, status: "released", posted_at: "2026-11-05 10:00:00" } });
+  await diag(true);
+  check("C3b só a data de postagem → 'A caminho'", (await envio(id))?.etapa === "posted");
+  await ctl(ME, { set: { id: ship.id, delivered_at: "2026-11-06 15:00:00" } });
+  await diag(true);
+  const d = await diag();
+  check("C3b só a data de entrega → entregue e sai da fila", !d.envios.some((e) => e.id === id));
+}
 // C4 sem saldo no Melhor Envio
 {
   await ctl(ME, { flags: { noBalance: true } });

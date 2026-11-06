@@ -73,6 +73,9 @@ export type MeShipment = {
   /** Código do Melhor Rastreio (sempre existe depois de gerar). */
   selfTracking: string | null;
   trackingUrl: string | null;
+  /** Quando a transportadora registrou a postagem / a entrega (se já). */
+  postedAt: string | null;
+  deliveredAt: string | null;
 };
 
 type MeOrder = {
@@ -82,19 +85,34 @@ type MeOrder = {
   self_tracking?: string | null;
   tags?: { tag: string }[];
   generated_at?: string | null;
+  posted_at?: string | null;
+  delivered_at?: string | null;
 };
 
 function toShipment(o: MeOrder): MeShipment {
   const code = o.tracking || o.self_tracking || null;
   // Algumas transportadoras (ex.: J&T) ficam "released" depois de gerar; a
   // data de geração é o que prova que a etiqueta existe.
-  const status = o.status === "released" && o.generated_at ? "generated" : o.status;
+  // Do mesmo jeito, a situação nem sempre anda até "posted"/"delivered": as
+  // datas de postagem e de entrega valem mais que ela.
+  const status =
+    o.status === "canceled"
+      ? o.status
+      : o.delivered_at
+        ? "delivered"
+        : o.posted_at
+          ? "posted"
+          : o.status === "released" && o.generated_at
+            ? "generated"
+            : o.status;
   return {
     id: o.id,
     status,
     tracking: o.tracking ?? null,
     selfTracking: o.self_tracking ?? null,
     trackingUrl: code ? `https://www.melhorrastreio.com.br/rastreio/${code}` : null,
+    postedAt: o.posted_at || null,
+    deliveredAt: o.delivered_at || null,
   };
 }
 
