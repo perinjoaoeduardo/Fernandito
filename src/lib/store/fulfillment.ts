@@ -77,6 +77,8 @@ export type Fulfillment = {
     /** Datas que o Melhor Envio informou (postagem e entrega). */
     postedAt?: string | null;
     deliveredAt?: string | null;
+    /** Última vez que o rastreio foi conferido no Melhor Envio. */
+    checkedAt?: string;
   };
   error: string | null;
   updatedAt: string;
@@ -383,6 +385,7 @@ async function stepTrack(order: StoredOrder, f: Fulfillment) {
   f.label.trackingUrl = shipment.trackingUrl ?? f.label.trackingUrl;
   f.label.postedAt = shipment.postedAt ?? f.label.postedAt ?? null;
   f.label.deliveredAt = shipment.deliveredAt ?? f.label.deliveredAt ?? null;
+  f.label.checkedAt = new Date().toISOString();
   if (shipment.status === "posted") f.stage = "posted";
   if (shipment.status === "delivered") f.stage = "delivered";
   await save(order.id, f);
