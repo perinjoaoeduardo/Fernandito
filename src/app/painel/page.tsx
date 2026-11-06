@@ -45,6 +45,7 @@ import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
 import { SubmitButton } from "./SubmitButton";
 import { Producao } from "./Producao";
+import { EXEMPLO, PRODUCAO_KEY, producaoSchema } from "@/lib/producao";
 import {
   Badge,
   CARD,
@@ -428,6 +429,17 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     list.reduce((sum, m) => sum + m.itens.reduce((n, i) => n + i.quantidade, 0), 0);
 
   const waitlist = (await listLeads().catch(() => [])).filter((l) => l.form === "aviso");
+  // Aba Produção: cadastro salvo no banco (sem nada salvo → exemplos).
+  const producao = await (async () => {
+    if (aba !== "producao") return EXEMPLO;
+    try {
+      const raw = await kvGet(PRODUCAO_KEY);
+      const parsed = raw ? producaoSchema.safeParse(JSON.parse(raw)) : null;
+      return parsed?.success ? parsed.data : EXEMPLO;
+    } catch {
+      return EXEMPLO;
+    }
+  })();
 
   // Vendas: pedidos pagos do site + vendas manuais com nota autorizada.
   // Unidades por produto (site, manual e brindes) e as latas que já saíram.
@@ -1110,7 +1122,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       {aba === "producao" ? (
         <>
           <PageHeader eyebrow="Fornecedores, custos e prazos" title="Produção" actions={actions} />
-          <Producao />
+          <Producao initial={producao} />
         </>
       ) : aba === "estoque" ? (
         estoqueView
