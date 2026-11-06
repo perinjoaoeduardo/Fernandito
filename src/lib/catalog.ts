@@ -128,8 +128,31 @@ export const PRODUCTS: Product[] = [
     // R$ 94,99 (igual ao cadastro no Bling).
     priceCents: 9499,
     images: [
-      { src: null, alt: "Six pack de Fernandito com 6 latas", placeholder: "Foto do six pack" },
-      { src: null, alt: "Latas de Fernandito geladas", placeholder: "Foto: latas" },
+      {
+        src: "/images/sixpack/sixpack-caixas.jpg",
+        alt: "Duas caixas do six pack Fernandito, uma lata saindo da caixa, fundo verde",
+        placeholder: "Foto do six pack",
+      },
+      {
+        src: "/images/sixpack/sixpack-mao.jpg",
+        alt: "Mão tirando uma lata de Fernandito da caixa do six pack",
+        placeholder: "Foto: tirando a lata",
+      },
+      {
+        src: "/images/sixpack/sixpack-de-cima.jpg",
+        alt: "Six pack visto de cima com as 6 latas nas divisórias",
+        placeholder: "Foto: de cima",
+      },
+      {
+        src: "/images/sixpack/sixpack-dupla.jpg",
+        alt: "Dois six packs abertos lado a lado",
+        placeholder: "Foto: dois packs",
+      },
+      {
+        src: "/images/sixpack/sixpack-latas-geladas.jpg",
+        alt: "Duas latas de Fernandito geladas, suadas, em fundo escuro",
+        placeholder: "Foto: latas geladas",
+      },
     ],
     // Até 6 packs por pedido.
     maxQty: 6,
@@ -143,7 +166,7 @@ export const PRODUCTS: Product[] = [
     stockComponents: [{ sku: "FERN-350", qty: 6 }],
     active: true,
     // Vitrine antes da venda: aparece, mas a compra mostra "Em breve".
-    comingSoon: true,
+    comingSoon: false,
   },
 ];
 
