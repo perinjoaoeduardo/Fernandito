@@ -6,8 +6,17 @@ import { NOTIFY_EVENT } from "@/lib/notify";
 import { NOTIFY } from "@/content/site";
 
 const itemDelay = (i: number) => ({ animationDelay: `${0.35 + i * 0.08}s` });
-const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-const isPhone = (v: string) => v.replace(/\D/g, "").length >= 10;
+// Só WhatsApp (com DDD): a lista de espera tem um tipo de contato só.
+const digitsOf = (v: string) => v.replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "");
+const isPhone = (v: string) => /^\d{10,11}$/.test(digitsOf(v));
+/** (51) 99999-9999 enquanto digita. */
+function maskPhone(v: string) {
+  const d = digitsOf(v).slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
 
 /**
  * "Me avisa do próximo lote": mesmo cartão do portão de idade (selo
@@ -55,7 +64,7 @@ export function NotifyModal() {
     event.preventDefault();
     const c = contact.trim();
     if (!name.trim()) return setError("Coloca teu nome.");
-    if (!isEmail(c) && !isPhone(c)) return setError("Coloca um WhatsApp com DDD ou um e-mail.");
+    if (!isPhone(c)) return setError("Coloca teu WhatsApp com DDD.");
     setBusy(true);
     setError(null);
     try {
@@ -64,7 +73,7 @@ export function NotifyModal() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           form: "aviso",
-          fields: { nome: name.trim(), contato: c },
+          fields: { nome: name.trim(), contato: digitsOf(c) },
         }),
       });
       if (!res.ok) throw new Error();
@@ -164,11 +173,12 @@ export function NotifyModal() {
                 style={itemDelay(4)}
                 placeholder={NOTIFY.contact}
                 aria-label={NOTIFY.contact}
-                autoComplete="tel"
-                inputMode="email"
-                maxLength={100}
+                type="tel"
+                autoComplete="tel-national"
+                inputMode="tel"
+                maxLength={16}
                 value={contact}
-                onChange={(e) => setContact(e.target.value)}
+                onChange={(e) => setContact(maskPhone(e.target.value))}
               />
               {error && (
                 <p role="alert" className="text-label text-red-800">

@@ -571,9 +571,9 @@ export const FOOTER = {
 export const NOTIFY = {
   kicker: "Primeiro lote esgotado",
   title: "A gente te avisa quando chegar",
-  text: "Deixa teu nome e WhatsApp (ou e-mail). Quando sair mais, tu fica sabendo antes.",
+  text: "Deixa teu nome e WhatsApp. Quando sair mais, tu fica sabendo antes.",
   name: "Teu nome",
-  contact: "WhatsApp ou e-mail",
+  contact: "WhatsApp com DDD",
   submit: "Me avise",
   skip: "Agora não",
   doneTitle: "Fechado!",

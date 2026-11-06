@@ -19,6 +19,8 @@ import {
   Printer,
   RefreshCw,
   ShoppingBag,
+  Receipt,
+  CupSoda,
   TriangleAlert,
   Truck,
   Undo2,
@@ -38,11 +40,11 @@ import { getOrders, type StoredOrder } from "@/lib/store/orders";
 import { blingStock } from "@/lib/bling/orders";
 import { stockRemaining } from "@/lib/store/stock";
 import { ESPECIAL_LOTES } from "@/lib/especial";
-import { getProduct } from "@/lib/catalog";
 import { atualizar, marcarEntregue, marcarPostado, sair } from "./actions";
 import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
 import { SubmitButton } from "./SubmitButton";
+import { Producao } from "./Producao";
 import {
   Badge,
   CARD,
@@ -53,7 +55,9 @@ import {
   LINK,
   PageHeader,
   SectionTitle,
-  Segmented,
+  FilterGroups,
+  SortHead,
+  StockBar,
   Shell,
   TABLE_WRAP,
   TD,
@@ -77,12 +81,44 @@ export const metadata: Metadata = {
 // especial (src/lib/especial.ts), em lotes com contador próprio. Os números
 // saem dos contadores, então não tem conta fixa pra trocar aqui.
 const KIT_SKU = "FERN-KIT-PRE";
-// Os outros produtos aparecem só como número (contagem ainda a acertar).
-const OTHER_STOCK = [
-  { sku: "FERN-350", name: "Lata" },
-  { sku: "FERN-350-6", name: "Pack 6" },
-  { sku: "FERN-PRESSKIT", name: "Press kit" },
+// Produtos na tela de estoque, na ordem que importa. Preço = o do Bling
+// (06/11). `latas` = quantas latas vão em cada unidade (pra contar as latas
+// que já saíram). Saldo vem do Bling; o six pack é calculado pelas latas.
+const ESTOQUE = [
+  {
+    sku: "FERN-350-6",
+    name: "Six pack",
+    priceCents: 9499,
+    latas: 6,
+    unit: ["pack", "packs"],
+    note: "37 liberados no site + 5 de reserva · em breve",
+  },
+  {
+    sku: "FERN-350",
+    name: "Lata 350ml",
+    priceCents: 1599,
+    latas: 1,
+    unit: ["lata", "latas"],
+    note: "Cada six pack usa 6 latas deste saldo",
+  },
+  {
+    sku: "FERN-KIT-PRE",
+    name: "Kit Fernandito Pré-Lançamento",
+    priceCents: 8990,
+    latas: 2,
+    unit: ["kit", "kits"],
+    note: "Os últimos saem só pelo link especial",
+  },
+  {
+    sku: "FERN-PRESSKIT",
+    name: "Press kit (brinde)",
+    priceCents: 8990,
+    latas: 0,
+    unit: ["kit", "kits"],
+    note: "Só bonificação",
+  },
 ] as const;
+const LATAS: Record<string, number> = Object.fromEntries(ESTOQUE.map((p) => [p.sku, p.latas]));
 
 /**
  * Saldo do Bling com validade de 1 min no banco: o painel não precisa ir ao
@@ -174,15 +210,24 @@ const PAGE_SIZE = 20;
 const FILTERS = [
   ["todos", "Todos"],
   ["imprimir", "Imprimir"],
-  ["entregar", "Entregar em mãos"],
+  ["entregar", "Entregar"],
   ["caminho", "A caminho"],
-  ["entregues-maos", "Entregues em mãos"],
-  ["entregues-correio", "Entregues pelo correio"],
+  ["entregues-maos", "Entregues"],
+  ["entregues-correio", "Entregues"],
   ["olho", "Precisam de olho"],
   ["estornados", "Estornados"],
 ] as const;
 
-const ABAS: Aba[] = ["pedidos", "estoque", "fora", "lista"];
+// Filtros agrupados pelo caminho do pedido.
+const FILTER_LABEL = Object.fromEntries(FILTERS) as Record<(typeof FILTERS)[number][0], string>;
+const FILTER_GROUPS = [
+  { title: "Geral", keys: ["todos"] },
+  { title: "Correio", keys: ["imprimir", "caminho", "entregues-correio"] },
+  { title: "Em mãos", keys: ["entregar", "entregues-maos"] },
+  { title: "Atenção", keys: ["olho", "estornados"] },
+] as const;
+
+const ABAS: Aba[] = ["pedidos", "estoque", "fora", "lista", "producao"];
 
 /** "Bom dia, equipe / sexta-feira, 6 de novembro" (hora de Brasília). */
 function greeting() {
@@ -242,6 +287,10 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const q = (typeof sp.q === "string" ? sp.q : "").trim().slice(0, 80);
   const page = Math.max(1, Number.parseInt(String(sp.p ?? "1"), 10) || 1);
   const ver = FILTERS.some(([k]) => k === raw) ? String(raw) : "todos";
+  const ORDENS = ["cliente", "valor", "pago", "status"] as const;
+  type Ordem = (typeof ORDENS)[number];
+  const ordem: Ordem | null = ORDENS.includes(sp.ordem as Ordem) ? (sp.ordem as Ordem) : null;
+  const dir: "asc" | "desc" = sp.dir === "asc" ? "asc" : "desc";
   // Confere rastreio/nota/etiqueta em segundo plano a cada abertura (no máx.
   // a cada 2 min): "A caminho" e "Entregue" atualizam sem apertar botão.
   after(() => maybeAdvanceFulfillments());
@@ -297,35 +346,68 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       .toLowerCase();
   const needle = norm(q);
   const digits = q.replace(/\D/g, "");
-  const rows = needle
-    ? byFilter.filter(({ order: o, f }) => {
-        const hay = norm(
-          [
-            o.id,
-            o.customer.name,
-            o.customer.phone,
-            o.address.city,
-            o.address.neighborhood,
-            o.address.cep,
-            o.items.map((i) => i.name).join(" "),
-            f?.invoice.number,
-            f?.label.tracking,
-          ].join(" "),
-        );
-        return (
-          hay.includes(needle) || (digits.length >= 4 && hay.replace(/\D/g, "").includes(digits))
-        );
-      })
-    : byFilter;
+  const rows = [
+    ...(needle
+      ? byFilter.filter(({ order: o, f }) => {
+          const hay = norm(
+            [
+              o.id,
+              o.customer.name,
+              o.customer.phone,
+              o.address.city,
+              o.address.neighborhood,
+              o.address.cep,
+              o.items.map((i) => i.name).join(" "),
+              f?.invoice.number,
+              f?.label.tracking,
+            ].join(" "),
+          );
+          return (
+            hay.includes(needle) || (digits.length >= 4 && hay.replace(/\D/g, "").includes(digits))
+          );
+        })
+      : byFilter),
+  ];
+  // Ordenar pela coluna clicada (padrão: mais novo primeiro).
+  const STATUS_RANK: Record<Tone, number> = {
+    fail: 0,
+    action: 1,
+    running: 2,
+    hold: 3,
+    pass: 4,
+    review: 5,
+    muted: 6,
+  };
+  if (ordem) {
+    const by = (r: (typeof rows)[number]) =>
+      ordem === "cliente"
+        ? norm(r.order.customer.name)
+        : ordem === "valor"
+          ? r.order.totalCents
+          : ordem === "pago"
+            ? (r.order.paidAt ?? r.order.createdAt)
+            : STATUS_RANK[r.st.tone] * 100 + r.st.label.length;
+    rows.sort((a, b) => {
+      const x = by(a);
+      const y = by(b);
+      const c = typeof x === "number" ? x - (y as number) : String(x).localeCompare(String(y));
+      return dir === "asc" ? c : -c;
+    });
+  }
   const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const cur = Math.min(page, pages);
   const shown = rows.slice((cur - 1) * PAGE_SIZE, cur * PAGE_SIZE);
-  const href = (o: { ver?: string; p?: number; q?: string }) => {
+  const href = (o: { ver?: string; p?: number; q?: string; ordem?: string; dir?: string }) => {
     const v = o.ver ?? ver;
     const qs = new URLSearchParams();
     if (v !== "todos") qs.set("ver", v);
     const query = o.q ?? q;
     if (query) qs.set("q", query);
+    const ord = o.ordem ?? ordem;
+    if (ord) {
+      qs.set("ordem", ord);
+      qs.set("dir", o.dir ?? dir);
+    }
     if (o.p && o.p > 1) qs.set("p", String(o.p));
     const t = qs.toString();
     return t ? `/painel?${t}` : "/painel";
@@ -347,8 +429,32 @@ export default async function PainelPage(props: PageProps<"/painel">) {
 
   const waitlist = (await listLeads().catch(() => [])).filter((l) => l.form === "aviso");
 
+  // Vendas: pedidos pagos do site + vendas manuais com nota autorizada.
+  // Unidades por produto (site, manual e brindes) e as latas que já saíram.
+  const sitePaid = active.filter((r) => r.order.status === "paid");
+  const manualOk = manualSales.filter((m) => NFE_OK.includes(m.situacao));
+  const unitsBy = (pairs: [string, number][]) => {
+    const map = new Map<string, number>();
+    for (const [sku, n] of pairs) map.set(sku, (map.get(sku) ?? 0) + n);
+    return map;
+  };
+  const soldUnits = unitsBy([
+    ...sitePaid.flatMap((r) => r.order.items.map((i) => [i.sku, i.qty] as [string, number])),
+    ...manualOk.flatMap((m) => m.itens.map((i) => [i.codigo, i.quantidade] as [string, number])),
+  ]);
+  const giftUnits = unitsBy(
+    bonus.flatMap((m) => m.itens.map((i) => [i.codigo, i.quantidade] as [string, number])),
+  );
+  const latasOf = (map: Map<string, number>) =>
+    [...map].reduce((n, [sku, qty]) => n + (LATAS[sku] ?? 0) * qty, 0);
+  const salesCount = sitePaid.length + manualOk.length;
+  const totalRevenue = revenue + manualRevenue;
+  const ticket = salesCount ? Math.round(totalRevenue / salesCount) : 0;
+  const latasSold = latasOf(soldUnits);
+  const latasGift = latasOf(giftUnits);
+
   const [stockMap, alertsRaw, siteLeft] = await Promise.all([
-    cachedBlingStock([KIT_SKU, ...OTHER_STOCK.map((p) => p.sku)]),
+    cachedBlingStock(ESTOQUE.map((p) => p.sku)),
     kvSMembers("loja:alertas"),
     stockRemaining(KIT_SKU).catch(() => null),
   ]);
@@ -357,11 +463,6 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     ESPECIAL_LOTES.map((l) => stockRemaining(l.sku).catch(() => null)),
   );
   const especialFree = especialLeft[especialLeft.length - 1] ?? 0;
-  const especialUsed = ESPECIAL_LOTES.reduce(
-    (n, l, i) => n + Math.max(0, l.cap - (especialLeft[i] ?? l.cap)),
-    0,
-  );
-  const kitCap = getProduct(KIT_SKU)?.stockCap ?? 0;
   // Kit. A conta vem dos contadores do site (anda junto com a compra; o Bling
   // só baixa depois da nota):
   //   restam    = livres no site público + livres no link especial (limitado ao Bling)
@@ -369,25 +470,6 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   //   vendidos  = (teto do site − livres) + saídos pelo link − em Pix
   const kitBling = stockMap?.get(KIT_SKU) ?? null;
   const kitFree = siteLeft;
-  const kitHeld = Math.max(
-    0,
-    (await getOrders(await kvSMembers("orders:open")))
-      .filter((o): o is StoredOrder => Boolean(o) && o!.status === "pending")
-      .flatMap((o) => o.items)
-      .filter((i) => i.sku === KIT_SKU)
-      .reduce((n, i) => n + i.qty, 0),
-  );
-  const kitRest =
-    kitFree === null
-      ? null
-      : kitBling === null
-        ? kitFree + especialFree
-        : Math.min(kitFree + especialFree, kitBling);
-  const kitSold = kitFree === null ? null : Math.max(0, kitCap - kitFree + especialUsed - kitHeld);
-  const kitTotal = (kitSold ?? 0) + (kitRest ?? 0) + kitHeld;
-  const kitPct =
-    kitRest === null || kitTotal === 0 ? 0 : Math.min(100, Math.round((kitRest / kitTotal) * 100));
-  const kitLow = kitRest !== null && kitRest <= 10;
   // Alerta só aparece enquanto o pedido ainda está ativo (estornado não conta).
   const refunded = new Set(all.filter((r) => r.order.refundedAt).map((r) => r.order.id));
   const alerts = alertsRaw
@@ -597,20 +679,42 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           href={href({ ver: ver === "olho" ? "todos" : "olho", p: 1 })}
           selected={ver === "olho"}
         />
+        <Tile
+          icon={Banknote}
+          label="Faturado"
+          value={brl(totalRevenue)}
+          note={`site ${brl(revenue)} · manual ${brl(manualRevenue)}`}
+        />
+        <Tile
+          icon={ShoppingBag}
+          label="Vendas"
+          value={salesCount}
+          note={`${sitePaid.length} no site · ${manualOk.length} manuais`}
+        />
+        <Tile icon={Receipt} label="Ticket médio" value={brl(ticket)} note="Faturado ÷ vendas" />
+        <Tile
+          icon={CupSoda}
+          label="Latas vendidas"
+          value={latasSold}
+          note={latasGift ? `+${latasGift} em brindes` : "Kit = 2 latas · six pack = 6"}
+        />
       </KpiStrip>
 
       <section className="flex flex-col gap-4">
         <SectionTitle title="Pedidos" count={rows.length} />
         <div className="flex flex-col gap-3">
           <SearchBox ver={ver} q={q} />
-          <Segmented
+          <FilterGroups
             label="Filtrar pedidos"
-            items={FILTERS.map(([key, label]) => ({
-              key,
-              label,
-              count: counts[key],
-              href: href({ ver: key, p: 1 }),
-              active: ver === key,
+            groups={FILTER_GROUPS.map((g) => ({
+              title: g.title,
+              items: g.keys.map((key) => ({
+                key,
+                label: FILTER_LABEL[key],
+                count: counts[key],
+                href: href({ ver: key, p: 1 }),
+                active: ver === key,
+              })),
             }))}
           />
         </div>
@@ -624,10 +728,27 @@ export default async function PainelPage(props: PageProps<"/painel">) {
               <table className="w-full table-fixed text-sm">
                 <thead>
                   <tr>
-                    <th className={`${TH} w-[34%]`}>Cliente</th>
-                    <th className={`${TH} w-[10%] text-right`}>Valor</th>
-                    <th className={`${TH} w-[10%]`}>Pago</th>
-                    <th className={`${TH} w-[24%]`}>Status</th>
+                    {(
+                      [
+                        ["cliente", "Cliente", "w-[34%]", "left", "asc"],
+                        ["valor", "Valor", "w-[10%]", "right", "desc"],
+                        ["pago", "Pago", "w-[10%]", "left", "desc"],
+                        ["status", "Status", "w-[24%]", "left", "asc"],
+                      ] as const
+                    ).map(([key, label, w, align, first]) => (
+                      <SortHead
+                        key={key}
+                        label={label}
+                        align={align}
+                        className={w}
+                        dir={ordem === key ? dir : undefined}
+                        href={href({
+                          ordem: key,
+                          dir: ordem === key ? (dir === "asc" ? "desc" : "asc") : first,
+                          p: 1,
+                        })}
+                      />
+                    ))}
                     <th className={TH}>
                       <span className="sr-only">Ações</span>
                     </th>
@@ -703,78 +824,109 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       <PageHeader eyebrow={greeting()} title="Estoque e vendas" actions={actions} />
       <KpiStrip cols={4}>
         <Tile
-          icon={Boxes}
-          label="Kits restantes"
-          value={kitRest ?? "—"}
-          tone={kitLow ? "fail" : "action"}
-          note={
-            kitFree === 0
-              ? `de ${kitTotal} · só pelo link especial`
-              : `de ${kitTotal} · ${especialFree} no link especial`
-          }
-          edge={kitPct}
-        />
-        <Tile
           icon={ShoppingBag}
-          label="Kits vendidos"
-          value={kitSold ?? "—"}
-          note={kitHeld > 0 ? `${kitHeld} em Pix aberto` : "Nenhum Pix aberto"}
+          label="Vendas"
+          value={salesCount}
+          note={`${sitePaid.length} no site · ${manualOk.length} manuais`}
         />
         <Tile
           icon={Banknote}
           label="Faturado"
-          value={brl(revenue + manualRevenue)}
+          value={brl(totalRevenue)}
           note={`site ${brl(revenue)} · manual ${brl(manualRevenue)}`}
         />
+        <Tile icon={Receipt} label="Ticket médio" value={brl(ticket)} note="Faturado ÷ vendas" />
         <Tile
-          icon={CircleCheck}
-          label="Entregues"
-          value={delivered.length}
-          tone="pass"
-          note={`${inTransit.length} a caminho`}
+          icon={CupSoda}
+          label="Latas vendidas"
+          value={latasSold}
+          note={latasGift ? `+${latasGift} em brindes` : "Kit = 2 latas · six pack = 6"}
         />
       </KpiStrip>
 
       <section className="flex flex-col gap-4">
-        <SectionTitle title="Saldo no Bling" />
-        <div className={TABLE_WRAP}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr>
-                <th className={TH}>Produto</th>
-                <th className={`${TH} text-right`}>Saldo</th>
-              </tr>
-            </thead>
-            <tbody className="divide-lk-border divide-y">
-              <tr>
-                <td className={TD}>
-                  <p className="font-semibold">Kit Fernandito</p>
-                  <p className="text-lk-muted text-xs">
-                    No site: {kitFree ?? "—"} {kitFree === 1 ? "livre" : "livres"} · link especial:{" "}
-                    {especialFree} {especialFree === 1 ? "livre" : "livres"}
+        <SectionTitle
+          title="Produtos"
+          count={ESTOQUE.length}
+          aside={
+            <span className="text-lk-muted flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+              <span className="flex items-center gap-1.5">
+                <span className="bg-lk-action size-2.5 rounded-full" /> Vendidos
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="bg-lk-review size-2.5 rounded-full" /> Brindes
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-full bg-[#b9c4ca]" /> Em estoque
+              </span>
+            </span>
+          }
+        />
+        <ul className={`${TABLE_WRAP} divide-lk-border divide-y`}>
+          {ESTOQUE.map((p) => {
+            const sold = soldUnits.get(p.sku) ?? 0;
+            const gift = giftUnits.get(p.sku) ?? 0;
+            const left = stockMap?.get(p.sku) ?? null;
+            const word = (n: number) => (n === 1 ? p.unit[0] : p.unit[1]);
+            return (
+              <li
+                key={p.sku}
+                className="grid gap-4 px-5 py-5 lg:grid-cols-[minmax(16rem,1fr)_minmax(0,2fr)_9rem] lg:items-center lg:gap-8"
+              >
+                <div className="min-w-0">
+                  <p className="font-semibold">{p.name}</p>
+                  <p className="text-lk-muted mt-0.5 text-xs">
+                    {brl(p.priceCents)} · <Code>{p.sku}</Code>
                   </p>
-                </td>
-                <td className={`${TD} text-right font-medium`}>{kitBling ?? "—"}</td>
-              </tr>
-              {OTHER_STOCK.map((p) => (
-                <tr key={p.sku}>
-                  <td className={TD}>
-                    <p className="font-semibold">{p.name}</p>
-                    <Code>{p.sku}</Code>
-                  </td>
-                  <td className={`${TD} text-right font-medium`}>{stockMap?.get(p.sku) ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  <p className="text-lk-ink3 mt-1 text-xs">
+                    {p.sku === KIT_SKU
+                      ? `Site esgotado · link especial: ${especialFree} ${especialFree === 1 ? "livre" : "livres"}`
+                      : p.note}
+                  </p>
+                </div>
+                <div className="flex min-w-0 flex-col gap-2">
+                  <StockBar sold={sold} gift={gift} left={Math.max(0, left ?? 0)} />
+                  <p className="text-lk-muted flex flex-wrap gap-x-4 text-xs tabular-nums">
+                    <span>
+                      <span className="text-lk-ink font-medium">{sold}</span> vendidos
+                    </span>
+                    {gift > 0 && (
+                      <span>
+                        <span className="text-lk-ink font-medium">{gift}</span> em brindes
+                      </span>
+                    )}
+                    <span>
+                      <span className="text-lk-ink font-medium">{left ?? "—"}</span> em estoque
+                    </span>
+                  </p>
+                </div>
+                <div className="lg:text-right">
+                  <p
+                    className={`text-[28px] leading-none font-semibold tracking-[-0.02em] tabular-nums ${
+                      left === 0 ? "text-lk-muted/45" : "text-lk-action-strong"
+                    }`}
+                  >
+                    {left ?? "—"}
+                  </p>
+                  <p className="text-lk-muted mt-1 text-xs">
+                    {left === null ? "Bling sem resposta" : `${word(left)} no Bling`}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="text-lk-ink3 text-xs">
+          Vendidos = pedidos pagos do site + vendas manuais com nota. Brindes = bonificações. O
+          saldo é o do Bling (atualiza a cada minuto).
+        </p>
       </section>
     </>
   );
 
   const foraView = (
     <>
-      <PageHeader eyebrow="Lidas das notas do Bling" title="Fora do site" actions={actions} />
+      <PageHeader eyebrow="Lidas das notas do Bling" title="Vendas manuais" actions={actions} />
       <KpiStrip cols={3}>
         <Tile
           icon={ShoppingBag}
@@ -870,6 +1022,15 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     </>
   );
 
+  // Lista de espera: 25 por página, mais novo primeiro.
+  const LIST_PAGE = 25;
+  const listPages = Math.max(1, Math.ceil(waitlist.length / LIST_PAGE));
+  const listCur = Math.min(listPages, Math.max(1, Number.parseInt(String(sp.lp ?? "1"), 10) || 1));
+  const listShown = [...waitlist]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice((listCur - 1) * LIST_PAGE, listCur * LIST_PAGE);
+  const listHref = (n: number) => (n > 1 ? `/painel?aba=lista&lp=${n}` : "/painel?aba=lista");
+
   const listaView = (
     <>
       <PageHeader
@@ -893,7 +1054,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                 </tr>
               </thead>
               <tbody className="divide-lk-border divide-y">
-                {waitlist.map((l) => {
+                {listShown.map((l) => {
                   const c = l.fields.contato ?? "";
                   const link = c.includes("@") ? `mailto:${c}` : waLink(c);
                   return (
@@ -901,7 +1062,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                       <td className={`${TD} font-semibold`}>{l.fields.nome || "—"}</td>
                       <td className={TD}>
                         <a className={LINK} href={link} {...ext}>
-                          {c}
+                          {c.includes("@") ? c : phone(c)}
                         </a>
                       </td>
                       <td className={`${TD} text-lk-muted`}>
@@ -915,6 +1076,28 @@ export default async function PainelPage(props: PageProps<"/painel">) {
             </table>
           </div>
         )}
+        {listPages > 1 && (
+          <nav aria-label="Páginas" className="flex items-center justify-between gap-3 text-sm">
+            {listCur > 1 ? (
+              <Link href={listHref(listCur - 1)} className={btn("secondary")}>
+                ← Anterior
+              </Link>
+            ) : (
+              <span />
+            )}
+            <span className="text-lk-muted">
+              {(listCur - 1) * LIST_PAGE + 1}–{Math.min(listCur * LIST_PAGE, waitlist.length)} de{" "}
+              {waitlist.length} · página {listCur} de {listPages}
+            </span>
+            {listCur < listPages ? (
+              <Link href={listHref(listCur + 1)} className={btn("secondary")}>
+                Próxima →
+              </Link>
+            ) : (
+              <span />
+            )}
+          </nav>
+        )}
       </section>
     </>
   );
@@ -924,13 +1107,20 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       aba={aba}
       counts={{ pedidos: toPrint.length + toDeliver.length + stuck.length, lista: waitlist.length }}
     >
-      {aba === "estoque"
-        ? estoqueView
-        : aba === "fora"
-          ? foraView
-          : aba === "lista"
-            ? listaView
-            : pedidosView}
+      {aba === "producao" ? (
+        <>
+          <PageHeader eyebrow="Fornecedores, custos e prazos" title="Produção" actions={actions} />
+          <Producao />
+        </>
+      ) : aba === "estoque" ? (
+        estoqueView
+      ) : aba === "fora" ? (
+        foraView
+      ) : aba === "lista" ? (
+        listaView
+      ) : (
+        pedidosView
+      )}
     </Frame>
   );
 }
