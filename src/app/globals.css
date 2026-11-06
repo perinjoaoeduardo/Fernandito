@@ -524,3 +524,50 @@ body:has([data-pix-page]) [data-cart-ui] {
     overflow-x: hidden;
   }
 }
+
+/* ── Painel (src/app/painel): visual do Lakeshore Funding (repositório
+   perinjoaoeduardo/lakeshore-funding, src/styles/tokens.css). Cores com
+   prefixo `lk-` pra não misturar com as do site. Papel de cada uma:
+   petrol = ação e o que espera por ti; azul = em andamento; âmbar = com a
+   transportadora; verde = entregue; vermelho = problema. Nunca só cor:
+   sempre cor + ícone + palavra. */
+@theme {
+  --color-lk-page: #ffffff;
+  --color-lk-paper: #f3f5f4;
+  --color-lk-ink: #18222e;
+  --color-lk-muted: #4a5866;
+  --color-lk-ink3: #7a8794;
+  --color-lk-soft: #e8ecee;
+  --color-lk-border: #d9dfe3;
+  --color-lk-input: #c9d1d6;
+
+  --color-lk-action: #018195;
+  --color-lk-action-hover: #016d7e;
+  --color-lk-action-strong: #056675;
+  --color-lk-action-subtle: #ecfafe;
+  --color-lk-action-border: #b4e4f1;
+
+  --color-lk-side: #0c2e35;
+  --color-lk-side-fg: #f3f5f4;
+  --color-lk-side-muted: #a8c0c3;
+  --color-lk-side-hover: #163b42;
+  --color-lk-side-selected: #061f24;
+  --color-lk-lagoon: #0fc1b4;
+  --color-lk-sand: #d8cfbc;
+  --color-lk-petrol: #17454f;
+
+  --color-lk-pass: #36781f;
+  --color-lk-pass-bg: #eaf3e2;
+  --color-lk-fail: #b3261e;
+  --color-lk-fail-bg: #fbeae8;
+  --color-lk-running: #2457c5;
+  --color-lk-running-bg: #edf3fd;
+  --color-lk-hold: #9a5b00;
+  --color-lk-hold-bg: #fdf1dc;
+  --color-lk-review: #5b3fbf;
+  --color-lk-review-bg: #eeeafb;
+
+  --font-lk: "Public Sans", system-ui, sans-serif;
+  --font-lk-brand: "Space Grotesk", system-ui, sans-serif;
+  --font-lk-mono: "IBM Plex Mono", ui-monospace, monospace;
+}

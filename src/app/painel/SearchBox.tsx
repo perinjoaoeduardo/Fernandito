@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { btn } from "./ui";
+import { Search, X } from "lucide-react";
+import { FOCUS } from "./ui";
 
 /** Busca que atualiza a lista enquanto digita (sem clicar em "Buscar"). */
 export function SearchBox({ ver, q }: { ver: string; q: string }) {
@@ -36,36 +37,41 @@ export function SearchBox({ ver, q }: { ver: string; q: string }) {
         e.preventDefault();
         go(value);
       }}
-      className="flex gap-2"
+      className="w-full xl:max-w-md"
     >
-      <div className="relative min-w-0 flex-1">
+      <div className="relative min-w-0">
+        <Search
+          aria-hidden
+          className="text-lk-muted pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2"
+        />
         <input
           type="search"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="Buscar nome, telefone, cidade, nota, rastreio ou código"
+          placeholder="Buscar nome, cidade, nota ou rastreio"
           aria-label="Buscar pedidos"
           autoComplete="off"
-          className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 pr-24 text-sm shadow-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10"
+          className="bg-lk-soft/70 text-lk-ink placeholder:text-lk-muted focus:border-lk-action focus:ring-lk-action/15 h-10 w-full rounded-lg border border-transparent pr-24 pl-10 text-sm outline-none focus:bg-white focus:ring-4 [&::-webkit-search-cancel-button]:hidden"
         />
         {pending && (
-          <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-zinc-400">
+          <span className="text-lk-ink3 pointer-events-none absolute top-1/2 right-10 -translate-y-1/2 text-xs">
             Buscando…
           </span>
         )}
+        {value && (
+          <button
+            type="button"
+            aria-label="Limpar busca"
+            onClick={() => {
+              setValue("");
+              go("");
+            }}
+            className={`text-lk-muted hover:bg-lk-soft hover:text-lk-ink absolute top-1/2 right-2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md ${FOCUS} focus-visible:ring-offset-0`}
+          >
+            <X aria-hidden className="size-4" />
+          </button>
+        )}
       </div>
-      {value && (
-        <button
-          type="button"
-          onClick={() => {
-            setValue("");
-            go("");
-          }}
-          className={btn("secondary")}
-        >
-          Limpar
-        </button>
-      )}
     </form>
   );
 }

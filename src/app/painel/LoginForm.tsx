@@ -15,14 +15,14 @@ export function LoginForm() {
         autoFocus
         required
         placeholder="Senha"
-        className="h-10 rounded-md border border-zinc-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10"
+        className="border-lk-input focus:border-lk-action focus:ring-lk-action/15 h-10 rounded-lg border bg-white px-3 text-sm outline-none focus:ring-4"
       />
-      <label className="flex items-center gap-2 text-sm text-zinc-600">
+      <label className="text-lk-muted flex items-center gap-2 text-sm">
         <input
           type="checkbox"
           name="lembrar"
           defaultChecked
-          className="h-4 w-4 rounded border-zinc-300 accent-zinc-900"
+          className="border-lk-input accent-lk-action h-4 w-4 rounded"
         />
         Manter conectado neste aparelho (30 dias)
       </label>
@@ -33,7 +33,7 @@ export function LoginForm() {
       >
         {pending ? "Entrando…" : "Entrar"}
       </button>
-      {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state?.error && <p className="text-lk-fail text-sm">{state.error}</p>}
     </form>
   );
 }

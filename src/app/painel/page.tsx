@@ -1,6 +1,28 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { after, connection } from "next/server";
+import type { LucideIcon } from "lucide-react";
+import {
+  Banknote,
+  BellRing,
+  Boxes,
+  CircleCheck,
+  Clock,
+  Download,
+  FileText,
+  Gift,
+  Hand,
+  LoaderCircle,
+  LogOut,
+  MapPin,
+  PackageCheck,
+  Printer,
+  RefreshCw,
+  ShoppingBag,
+  TriangleAlert,
+  Truck,
+  Undo2,
+} from "lucide-react";
 import { getManualSales, manualSalesStale, syncManualSales } from "@/lib/bling/manual";
 import { listLeads } from "@/lib/leads";
 import { painelAuthed } from "@/lib/painel";
@@ -20,17 +42,23 @@ import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
 import { SubmitButton } from "./SubmitButton";
 import {
-  ActionCard,
   Badge,
   CARD,
+  Code,
   Empty,
-  Figure,
-  Fold,
+  Frame,
+  KpiStrip,
   LINK,
-  SectionHead,
+  PageHeader,
+  SectionTitle,
+  Segmented,
   Shell,
+  TABLE_WRAP,
+  TD,
+  TH,
+  Tile,
   btn,
-  Icon,
+  type Aba,
   type Tone,
 } from "./ui";
 
@@ -97,14 +125,19 @@ const when = (iso: string | null) =>
       })
     : "—";
 
-const STAGE: Record<FulfillStage, [string, Tone]> = {
-  invoice: ["Emitindo a nota", "amber"],
-  label: ["Comprando a etiqueta", "amber"],
-  ready: ["Imprimir e postar", "blue"],
-  posted: ["A caminho (correio)", "green"],
-  delivered: ["Entregue (correio)", "green"],
-  local: ["Entregar em mãos", "blue"],
-  "local-delivered": ["Entregue (em mãos)", "green"],
+type St = { label: string; tone: Tone; icon: LucideIcon };
+
+// Estados fixos (cor + ícone + palavra, iguais em todo o painel): petrol =
+// espera por ti; azul = o sistema trabalhando; âmbar = com a transportadora;
+// verde = entregue; vermelho = problema.
+const STAGE: Record<FulfillStage, St> = {
+  invoice: { label: "Emitindo a nota", tone: "running", icon: LoaderCircle },
+  label: { label: "Comprando a etiqueta", tone: "running", icon: LoaderCircle },
+  ready: { label: "Imprimir e postar", tone: "action", icon: Printer },
+  posted: { label: "A caminho", tone: "hold", icon: Truck },
+  delivered: { label: "Entregue pelo correio", tone: "pass", icon: CircleCheck },
+  local: { label: "Entregar em mãos", tone: "action", icon: Hand },
+  "local-delivered": { label: "Entregue em mãos", tone: "pass", icon: CircleCheck },
 };
 
 // Situação do envio como o Melhor Envio responde (diagnóstico no painel).
@@ -123,13 +156,18 @@ const ME_STATUS: Record<string, string> = {
 /** Entregue em mãos: a etiqueta (se houve) foi cancelada, então não mostra botão nem rastreio. */
 const byHand = (f: Fulfillment) => f.stage === "local-delivered";
 
-function status(o: StoredOrder, f: Fulfillment | null): [string, Tone] {
-  if (o.refundedAt) return ["Estornado", "zinc"];
-  if (o.status === "manual") return ["Pix manual: conferir", "red"];
-  if (o.status !== "paid") return ["Aguardando Pix", "zinc"];
-  if (f?.error) return ["Precisa de olho", "red"];
+function status(o: StoredOrder, f: Fulfillment | null): St {
+  if (o.refundedAt) return { label: "Estornado", tone: "muted", icon: Undo2 };
+  if (o.status === "manual")
+    return { label: "Pix manual: conferir", tone: "fail", icon: TriangleAlert };
+  if (o.status !== "paid") return { label: "Aguardando Pix", tone: "muted", icon: Clock };
+  if (f?.error) return { label: "Precisa de olho", tone: "fail", icon: TriangleAlert };
   if (f) return STAGE[f.stage];
-  return [o.bling?.orderId ? "Na fila de envio" : "Entrando no Bling", "amber"];
+  return {
+    label: o.bling?.orderId ? "Na fila de envio" : "Entrando no Bling",
+    tone: "running",
+    icon: LoaderCircle,
+  };
 }
 
 const PAGE_SIZE = 20;
@@ -137,14 +175,40 @@ const PAGE_SIZE = 20;
 // Na ordem do caminho do pedido. "Todos" é o padrão.
 const FILTERS = [
   ["todos", "Todos"],
-  ["imprimir", "Imprimir (correio)"],
+  ["imprimir", "Imprimir"],
   ["entregar", "Entregar em mãos"],
-  ["caminho", "A caminho (correio)"],
+  ["caminho", "A caminho"],
   ["entregues-maos", "Entregues em mãos"],
   ["entregues-correio", "Entregues pelo correio"],
   ["olho", "Precisam de olho"],
   ["estornados", "Estornados"],
 ] as const;
+
+const ABAS: Aba[] = ["pedidos", "estoque", "fora", "lista"];
+
+/** "Bom dia, equipe / sexta-feira, 6 de novembro" (hora de Brasília). */
+function greeting() {
+  const now = new Date();
+  const hour = Number(
+    now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false }),
+  );
+  const hi = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+  const date = now.toLocaleDateString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+  return (
+    <>
+      <span className="text-lk-ink font-medium">{hi}, equipe</span>
+      <span aria-hidden className="text-lk-border mx-2">
+        /
+      </span>
+      {date}
+    </>
+  );
+}
 
 export default async function PainelPage(props: PageProps<"/painel">) {
   await connection();
@@ -152,10 +216,21 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   if (!(await painelAuthed())) {
     return (
       <Shell>
-        <main className="mx-auto max-w-sm px-6 pt-28">
-          <div className={`${CARD} p-6`}>
-            <h1 className="text-lg font-semibold tracking-tight">Painel Fernandito</h1>
-            <p className="mt-1 text-sm text-zinc-500">Só pra equipe. Entra com a senha.</p>
+        <main className="bg-lk-paper flex min-h-full items-center justify-center px-6 py-16">
+          <div className={`${CARD} w-full max-w-sm p-7 shadow-[0_1px_2px_rgb(24_34_46/0.04)]`}>
+            <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo/fernandito-selo.webp" alt="" className="size-10 rounded-full" />
+              <div>
+                <p className="font-lk-brand text-xl leading-none font-semibold tracking-[-0.03em]">
+                  Fernandito
+                </p>
+                <p className="font-lk-mono text-lk-action-strong mt-1.5 text-[10px] leading-none font-medium tracking-[0.18em] uppercase">
+                  Painel da loja
+                </p>
+              </div>
+            </div>
+            <p className="text-lk-muted mt-6 text-sm">Só pra equipe. Entra com a senha.</p>
             <LoginForm />
           </div>
         </main>
@@ -164,6 +239,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   }
 
   const sp = await props.searchParams;
+  const aba: Aba = ABAS.includes(sp.aba as Aba) ? (sp.aba as Aba) : "pedidos";
   const raw = sp.ver;
   const q = (typeof sp.q === "string" ? sp.q : "").trim().slice(0, 80);
   const page = Math.max(1, Number.parseInt(String(sp.p ?? "1"), 10) || 1);
@@ -327,403 +403,517 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     `https://wa.me/55${digits.replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "")}`;
   const ext = { target: "_blank", rel: "noopener noreferrer" } as const;
 
-  return (
-    <Shell>
-      <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8 xl:max-w-[1680px] xl:px-12 xl:py-10">
-        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200 pb-6">
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Pedidos Fernandito</h1>
-          <div className="flex flex-wrap items-center gap-2">
-            <form action={atualizar}>
-              <SubmitButton variant="primary" pending="Atualizando…">
-                <Icon name="refresh" />
-                Atualizar agora
-              </SubmitButton>
-            </form>
-            <a href="/painel/planilha" className={btn("secondary")}>
-              <Icon name="download" />
-              Baixar planilha
-            </a>
-            <form action={sair}>
-              <button className={btn("ghost")}>
-                <Icon name="logout" />
-                Sair
-              </button>
-            </form>
-          </div>
-        </header>
+  type Row = (typeof every)[number];
+  const first = (list: Row[]) => list[list.length - 1]?.order.customer.name.split(/\s+/)[0];
 
-        {alerts.length > 0 && (
-          <section className="rounded-xl border border-red-200 bg-red-50/60 p-4 text-sm shadow-sm">
-            <h2 className="font-semibold text-red-800">Alertas</h2>
-            <ul className="mt-2 space-y-1.5 text-red-900">
-              {alerts.map((a) => (
-                <li key={a.at + a.orderId}>
-                  <span className="text-red-700/80">{when(a.at)}</span>
-                  <span className="mx-1.5 rounded bg-red-100 px-1.5 py-0.5 font-mono text-xs">
-                    {a.orderId}
-                  </span>
-                  {a.problem}
+  const actions = (
+    <>
+      <form action={atualizar}>
+        <SubmitButton variant="primary" pending="Atualizando…">
+          <RefreshCw aria-hidden />
+          Atualizar agora
+        </SubmitButton>
+      </form>
+      <a href="/painel/planilha" className={btn("secondary")}>
+        <Download aria-hidden />
+        Baixar planilha
+      </a>
+      <form action={sair}>
+        <button className={btn("ghost")}>
+          <LogOut aria-hidden />
+          Sair
+        </button>
+      </form>
+    </>
+  );
+
+  const alertBox = alerts.length > 0 && (
+    <section
+      aria-label="Alertas"
+      className="border-lk-fail/25 bg-lk-fail-bg text-lk-fail rounded-xl border px-5 py-4 text-sm"
+    >
+      <p className="flex items-center gap-2 font-semibold">
+        <TriangleAlert aria-hidden className="size-4" />
+        {alerts.length === 1 ? "1 alerta" : `${alerts.length} alertas`}
+      </p>
+      <ul className="text-lk-ink mt-2 space-y-1.5">
+        {alerts.map((a) => (
+          <li key={a.at + a.orderId} className="flex flex-wrap items-baseline gap-x-2">
+            <span className="text-lk-muted text-xs">{when(a.at)}</span>
+            <Code>{a.orderId}</Code>
+            <span>{a.problem}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+
+  // ── Peças de uma linha de pedido (tabela no computador, cartão no celular) ──
+  const cliente = ({ order: o }: Row) => (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <p className="text-lk-ink truncate font-semibold">{o.customer.name}</p>
+      <p className="text-lk-muted text-xs">
+        {o.items.map((i) => `${i.qty}x ${i.name}`).join(" + ")} · {o.address.city}/{o.address.uf}
+      </p>
+      <p className="text-lk-ink3 text-xs">
+        {o.address.street}, {o.address.number}
+        {o.address.complement ? ` (${o.address.complement})` : ""} · {o.address.neighborhood} · CEP{" "}
+        {o.address.cep} ·{" "}
+        <a className={`${LINK} font-normal`} href={waLink(o.customer.phone)} {...ext}>
+          {phone(o.customer.phone)}
+        </a>
+      </p>
+      {o.note && (
+        <p className="bg-lk-hold-bg text-lk-hold mt-1.5 rounded-md px-2.5 py-1.5 text-xs">
+          <span className="font-medium">Recado:</span> {o.note}
+        </p>
+      )}
+    </div>
+  );
+
+  const estado = ({ order: o, f, st }: Row) => (
+    <div className="flex min-w-0 flex-col items-start gap-1.5">
+      <Badge tone={st.tone} icon={st.icon}>
+        {st.label}
+      </Badge>
+      {f?.error && <p className="text-lk-fail text-xs">{f.error}</p>}
+      {o.status === "paid" && !o.bling?.orderId && o.bling?.error && (
+        <p className="text-lk-fail text-xs">Não entrou no Bling: {o.bling.error}</p>
+      )}
+      {o.simulated && <p className="text-lk-ink3 text-xs">Pedido de teste (Pix simulado)</p>}
+      {f?.label.meId && (f.stage === "ready" || f.stage === "posted") && (
+        <p className="text-lk-ink3 text-xs">
+          Melhor Envio: {ME_STATUS[f.label.status ?? ""] ?? f.label.status ?? "—"}
+          {f.label.postedAt ? ` · postado ${when(f.label.postedAt)}` : ""}
+          {f.label.postedByHand ? ' · "Já postei" marcado' : ""}
+          {` · conferido ${f.label.checkedAt ? when(f.label.checkedAt) : "ainda não"}`}
+        </p>
+      )}
+      <p className="flex flex-wrap gap-x-3">
+        {f?.label.tracking && !byHand(f) && <Code>{f.label.tracking}</Code>}
+        <a href={`/pedido/${o.id}/confirmado`} {...ext} className="hover:underline">
+          <Code>#{o.id}</Code>
+        </a>
+      </p>
+    </div>
+  );
+
+  const acoes = ({ order: o, f }: Row) => (
+    <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+      {f?.stage === "local" && (
+        <form action={marcarEntregue}>
+          <input type="hidden" name="id" value={o.id} />
+          <input type="hidden" name="back" value={href({})} />
+          <SubmitButton variant="primary" size="sm">
+            <PackageCheck aria-hidden />
+            Marcar entregue
+          </SubmitButton>
+        </form>
+      )}
+      {f?.label.printUrl && !byHand(f) && (
+        <a
+          className={btn(f.stage === "ready" ? "primary" : "secondary", "sm")}
+          href={f.label.printUrl}
+          {...ext}
+        >
+          <Printer aria-hidden />
+          Etiqueta
+        </a>
+      )}
+      {f?.stage === "ready" && (
+        <form action={marcarPostado}>
+          <input type="hidden" name="id" value={o.id} />
+          <input type="hidden" name="back" value={href({})} />
+          <SubmitButton variant="secondary" size="sm">
+            <Truck aria-hidden />
+            Já postei
+          </SubmitButton>
+        </form>
+      )}
+      {f?.invoice.danfeUrl && (
+        <a className={btn("ghost", "sm")} href={f.invoice.danfeUrl} {...ext}>
+          <FileText aria-hidden />
+          Nota {f.invoice.number ?? ""}
+        </a>
+      )}
+      {f?.label.trackingUrl && !byHand(f) && (
+        <a className={btn("ghost", "sm")} href={f.label.trackingUrl} {...ext}>
+          <MapPin aria-hidden />
+          Rastrear
+        </a>
+      )}
+    </div>
+  );
+
+  const pedidosView = (
+    <>
+      <PageHeader eyebrow={greeting()} title="Pedidos Fernandito" actions={actions} />
+      {alertBox}
+      <KpiStrip cols={4}>
+        <Tile
+          icon={Printer}
+          label="Imprimir e postar"
+          value={toPrint.length}
+          note={toPrint.length ? `Mais antigo: ${first(toPrint)}` : "Tudo impresso"}
+          href={href({ ver: ver === "imprimir" ? "todos" : "imprimir", p: 1 })}
+          selected={ver === "imprimir"}
+        />
+        <Tile
+          icon={Hand}
+          label="Entregar em mãos"
+          value={toDeliver.length}
+          note={toDeliver.length ? `Mais antigo: ${first(toDeliver)}` : "Nada pra entregar"}
+          href={href({ ver: ver === "entregar" ? "todos" : "entregar", p: 1 })}
+          selected={ver === "entregar"}
+        />
+        <Tile
+          icon={Truck}
+          label="A caminho"
+          value={inTransit.length}
+          tone="hold"
+          note={`${delivered.length} entregues até agora`}
+          href={href({ ver: ver === "caminho" ? "todos" : "caminho", p: 1 })}
+          selected={ver === "caminho"}
+        />
+        <Tile
+          icon={TriangleAlert}
+          label="Precisam de olho"
+          value={stuck.length}
+          tone="fail"
+          note={stuck.length ? "Abre pra ver o motivo" : "Tudo certo"}
+          href={href({ ver: ver === "olho" ? "todos" : "olho", p: 1 })}
+          selected={ver === "olho"}
+        />
+      </KpiStrip>
+
+      <section className="flex flex-col gap-4">
+        <SectionTitle title="Pedidos" count={rows.length} />
+        <div className="flex flex-col gap-3">
+          <SearchBox ver={ver} q={q} />
+          <Segmented
+            label="Filtrar pedidos"
+            items={FILTERS.map(([key, label]) => ({
+              key,
+              label,
+              count: counts[key],
+              href: href({ ver: key, p: 1 }),
+              active: ver === key,
+            }))}
+          />
+        </div>
+
+        {rows.length === 0 ? (
+          <Empty>{q ? "Nenhum pedido bate com a busca." : "Nada por aqui."}</Empty>
+        ) : (
+          <>
+            {/* Computador: tabela. */}
+            <div className={`${TABLE_WRAP} hidden lg:block`}>
+              <table className="w-full table-fixed text-sm">
+                <thead>
+                  <tr>
+                    <th className={`${TH} w-[34%]`}>Cliente</th>
+                    <th className={`${TH} w-[10%] text-right`}>Valor</th>
+                    <th className={`${TH} w-[10%]`}>Pago</th>
+                    <th className={`${TH} w-[24%]`}>Status</th>
+                    <th className={TH}>
+                      <span className="sr-only">Ações</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-lk-border divide-y">
+                  {shown.map((r) => (
+                    <tr
+                      key={r.order.id}
+                      className={`hover:bg-lk-paper/60 transition-colors duration-100 ${r.order.refundedAt ? "opacity-60" : ""}`}
+                    >
+                      <td className={TD}>{cliente(r)}</td>
+                      <td className={`${TD} text-right`}>
+                        <p className="font-medium">{brl(r.order.totalCents)}</p>
+                        <p className="text-lk-muted text-xs">{r.order.shipping.carrier}</p>
+                      </td>
+                      <td className={`${TD} text-lk-muted`}>{when(r.order.paidAt)}</td>
+                      <td className={TD}>{estado(r)}</td>
+                      <td className={TD}>{acoes(r)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Celular e tablet: lista de cartões. */}
+            <ul className={`${TABLE_WRAP} divide-lk-border divide-y lg:hidden`}>
+              {shown.map((r) => (
+                <li
+                  key={r.order.id}
+                  className={`flex flex-col gap-3 px-4 py-4 ${r.order.refundedAt ? "opacity-60" : ""}`}
+                >
+                  {cliente(r)}
+                  <p className="text-lk-muted text-xs">
+                    <span className="text-lk-ink font-medium">{brl(r.order.totalCents)}</span> ·{" "}
+                    {r.order.shipping.carrier} · pago {when(r.order.paidAt)}
+                  </p>
+                  {estado(r)}
+                  {acoes(r)}
                 </li>
               ))}
             </ul>
-          </section>
+          </>
         )}
 
-        {/* Telas grandes: resumo numa coluna fixa à esquerda, pedidos à direita. */}
-        <div className="grid gap-8 xl:grid-cols-[minmax(22rem,26rem)_minmax(0,1fr)] xl:items-start">
-          <aside className="flex flex-col gap-8 xl:sticky xl:top-8">
-            <section className="flex flex-col gap-3">
-              <SectionHead title="Fazer agora" />
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                <ActionCard
-                  label="Imprimir"
-                  value={toPrint.length}
-                  href="/painel?ver=imprimir"
-                  tone="blue"
-                />
-                <ActionCard
-                  label="Entregar"
-                  value={toDeliver.length}
-                  href="/painel?ver=entregar"
-                  tone="blue"
-                />
-                <ActionCard
-                  label="Precisam de olho"
-                  value={stuck.length}
-                  href="/painel?ver=olho"
-                  tone="red"
-                />
-              </div>
-            </section>
+        {pages > 1 && (
+          <nav aria-label="Páginas" className="flex items-center justify-between gap-3 text-sm">
+            {cur > 1 ? (
+              <Link href={href({ p: cur - 1 })} className={btn("secondary")}>
+                ← Anterior
+              </Link>
+            ) : (
+              <span />
+            )}
+            <span className="text-lk-muted">
+              Página {cur} de {pages}
+            </span>
+            {cur < pages ? (
+              <Link href={href({ p: cur + 1 })} className={btn("secondary")}>
+                Próxima →
+              </Link>
+            ) : (
+              <span />
+            )}
+          </nav>
+        )}
+      </section>
+    </>
+  );
 
-            <section className="flex flex-col gap-3">
-              <SectionHead
-                title="Estoque do kit"
-                hint={`Total pra vender: ${PRIMEIRO_LOTE} do 1º lote + ${CONTAGEM_BLING} contados = ${TOTAL_KITS}.`}
-              />
-              <div className={`${CARD} p-5`}>
-                <div className="flex items-baseline justify-between gap-3">
-                  <p>
-                    <span
-                      className={`text-3xl font-semibold tracking-tight ${kitLow ? "text-red-600" : ""}`}
-                    >
-                      {kitRest ?? "—"}
-                    </span>{" "}
-                    <span className="text-sm text-zinc-500">restam de {TOTAL_KITS}</span>
+  const estoqueView = (
+    <>
+      <PageHeader eyebrow={greeting()} title="Estoque e vendas" actions={actions} />
+      <KpiStrip cols={4}>
+        <Tile
+          icon={Boxes}
+          label="Kits restantes"
+          value={kitRest ?? "—"}
+          tone={kitLow ? "fail" : "action"}
+          note={`de ${TOTAL_KITS} · ${kitReserve} de reserva fora do site`}
+          edge={kitPct}
+        />
+        <Tile
+          icon={ShoppingBag}
+          label="Kits vendidos"
+          value={kitSold ?? "—"}
+          note={kitHeld > 0 ? `${kitHeld} em Pix aberto` : "Nenhum Pix aberto"}
+        />
+        <Tile
+          icon={Banknote}
+          label="Faturado"
+          value={brl(revenue + manualRevenue)}
+          note={`site ${brl(revenue)} · manual ${brl(manualRevenue)}`}
+        />
+        <Tile
+          icon={CircleCheck}
+          label="Entregues"
+          value={delivered.length}
+          tone="pass"
+          note={`${inTransit.length} a caminho`}
+        />
+      </KpiStrip>
+
+      <section className="flex flex-col gap-4">
+        <SectionTitle title="Saldo no Bling" />
+        <div className={TABLE_WRAP}>
+          <table className="w-full text-sm">
+            <thead>
+              <tr>
+                <th className={TH}>Produto</th>
+                <th className={`${TH} text-right`}>Saldo</th>
+              </tr>
+            </thead>
+            <tbody className="divide-lk-border divide-y">
+              <tr>
+                <td className={TD}>
+                  <p className="font-semibold">Kit Fernandito</p>
+                  <p className="text-lk-muted text-xs">
+                    No site: {kitFree ?? "—"} {kitFree === 1 ? "livre" : "livres"} (liberados{" "}
+                    {LOTE_KIT} neste lote)
                   </p>
-                  <p className="text-sm text-zinc-500">
-                    {kitSold !== null ? `${kitSold} vendidos` : ""}
-                  </p>
-                </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-zinc-100">
-                  <div
-                    className={`h-full rounded-full ${kitLow ? "bg-red-500" : "bg-zinc-900"}`}
-                    style={{ width: `${kitPct}%` }}
-                  />
-                </div>
-                <p className="mt-3 text-xs text-zinc-500">
-                  No site: {kitFree ?? "—"} {kitFree === 1 ? "livre" : "livres"} (liberados{" "}
-                  {LOTE_KIT} neste lote) · reserva fora do site: {kitReserve}
-                  {kitHeld > 0 ? ` · ${kitHeld} em Pix aberto (reservados, ainda não pagos)` : ""}
-                </p>
-                <p className="mt-1 text-xs text-zinc-400">
-                  {`Bling: ${kitBling ?? "—"} · `}
-                  {OTHER_STOCK.map((p) => `${p.name} ${stockMap?.get(p.sku) ?? "—"}`).join(" · ")}
-                </p>
-              </div>
-            </section>
-
-            <section>
-              <div
-                className={`${CARD} grid grid-cols-2 divide-x divide-zinc-100 sm:grid-cols-3 xl:grid-cols-2`}
-              >
-                <Figure label="A caminho" value={inTransit.length} />
-                <Figure label="Entregues" value={delivered.length} />
-                <div className="col-span-2 border-t border-zinc-100 sm:col-span-1 sm:border-t-0 xl:col-span-2 xl:border-t xl:border-l-0">
-                  <Figure
-                    label="Faturado"
-                    value={brl(revenue + manualRevenue)}
-                    hint={`site ${brl(revenue)} · manual ${brl(manualRevenue)}`}
-                  />
-                </div>
-              </div>
-            </section>
-          </aside>
-
-          <div className="flex min-w-0 flex-col gap-8">
-            <section className="flex flex-col gap-3">
-              <SectionHead
-                title="Pedidos"
-                aside={`${rows.length} ${rows.length === 1 ? "pedido" : "pedidos"}${q ? " na busca" : ""}`}
-              />
-              <SearchBox ver={ver} q={q} />
-              <nav
-                aria-label="Filtrar pedidos"
-                className="flex flex-wrap gap-1 self-start rounded-lg bg-zinc-100 p-1 text-sm"
-              >
-                {FILTERS.map(([key, label]) => (
-                  <Link
-                    key={key}
-                    href={href({ ver: key })}
-                    aria-current={ver === key ? "page" : undefined}
-                    className={`rounded-md px-3 py-1.5 font-medium transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900 ${
-                      ver === key
-                        ? "bg-white text-zinc-900 shadow-sm"
-                        : "text-zinc-500 hover:text-zinc-900"
-                    }`}
-                  >
-                    {label} <span className="text-zinc-400">{counts[key]}</span>
-                  </Link>
-                ))}
-              </nav>
-
-              {rows.length === 0 ? (
-                <Empty>{q ? "Nenhum pedido bate com a busca." : "Nada por aqui."}</Empty>
-              ) : (
-                <ul className={`${CARD} divide-y divide-zinc-100 overflow-hidden`}>
-                  {shown.map(({ order: o, f, st }) => (
-                    <li
-                      key={o.id}
-                      className={`grid gap-4 px-5 py-4 md:grid-cols-[1fr_16rem] 2xl:grid-cols-[1fr_22rem] 2xl:px-6 ${
-                        o.refundedAt ? "opacity-60" : ""
-                      }`}
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold">{o.customer.name}</p>
-                        <p className="mt-0.5 text-sm text-zinc-700">
-                          {o.items.map((i) => `${i.qty}x ${i.name}`).join(" + ")}
-                        </p>
-                        <p className="text-sm text-zinc-500">
-                          <span className="font-medium text-zinc-900">{brl(o.totalCents)}</span> ·{" "}
-                          {o.shipping.carrier} · {when(o.paidAt)}
-                        </p>
-                        <p className="mt-2 text-sm text-zinc-500">
-                          {o.address.street}, {o.address.number}
-                          {o.address.complement ? ` (${o.address.complement})` : ""} ·{" "}
-                          {o.address.neighborhood} · {o.address.city}/{o.address.uf} · CEP{" "}
-                          {o.address.cep}
-                        </p>
-                        <p className="text-sm">
-                          <a className={LINK} href={waLink(o.customer.phone)} {...ext}>
-                            {phone(o.customer.phone)}
-                          </a>
-                        </p>
-                        {o.note && (
-                          <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                            <p className="text-xs font-medium text-amber-700">Recado do cliente</p>
-                            <p className="mt-0.5 whitespace-pre-line">{o.note}</p>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex flex-col items-start gap-2 md:items-end">
-                        <Badge tone={st[1]}>{st[0]}</Badge>
-                        {f?.error && (
-                          <p className="text-xs text-red-600 md:text-right">{f.error}</p>
-                        )}
-                        {o.status === "paid" && !o.bling?.orderId && o.bling?.error && (
-                          <p className="text-xs text-red-600 md:text-right">
-                            Não entrou no Bling: {o.bling.error}
-                          </p>
-                        )}
-                        {o.simulated && (
-                          <p className="text-xs text-zinc-400 md:text-right">
-                            Pedido de teste (Pix simulado)
-                          </p>
-                        )}
-                        <div className="flex flex-wrap gap-2 md:justify-end">
-                          {f?.stage === "local" && (
-                            <form action={marcarEntregue}>
-                              <input type="hidden" name="id" value={o.id} />
-                              <input type="hidden" name="back" value={href({})} />
-                              <SubmitButton variant="primary" size="sm">
-                                Marcar como entregue
-                              </SubmitButton>
-                            </form>
-                          )}
-                          {f?.stage === "ready" && (
-                            <form action={marcarPostado}>
-                              <input type="hidden" name="id" value={o.id} />
-                              <input type="hidden" name="back" value={href({})} />
-                              <SubmitButton variant="secondary" size="sm">
-                                Já postei
-                              </SubmitButton>
-                            </form>
-                          )}
-                          {f?.label.printUrl && !byHand(f) && (
-                            <a
-                              className={btn(f.stage === "ready" ? "primary" : "secondary", "sm")}
-                              href={f.label.printUrl}
-                              {...ext}
-                            >
-                              Imprimir etiqueta
-                            </a>
-                          )}
-                          {f?.invoice.danfeUrl && (
-                            <a
-                              className={btn("secondary", "sm")}
-                              href={f.invoice.danfeUrl}
-                              {...ext}
-                            >
-                              Nota {f.invoice.number ?? "(DANFE)"}
-                            </a>
-                          )}
-                          {f?.label.trackingUrl && !byHand(f) && (
-                            <a
-                              className={btn("secondary", "sm")}
-                              href={f.label.trackingUrl}
-                              {...ext}
-                            >
-                              Rastrear
-                            </a>
-                          )}
-                        </div>
-                        {f?.label.meId && (f.stage === "ready" || f.stage === "posted") && (
-                          <p className="text-xs text-zinc-400 md:text-right">
-                            Melhor Envio: {ME_STATUS[f.label.status ?? ""] ?? f.label.status ?? "—"}
-                            {f.label.postedAt ? ` · postado ${when(f.label.postedAt)}` : ""}
-                            {f.label.postedByHand ? ' · "Já postei" marcado' : ""}
-                            {` · conferido ${f.label.checkedAt ? when(f.label.checkedAt) : "ainda não"}`}
-                          </p>
-                        )}
-                        <p className="text-xs text-zinc-400 md:text-right">
-                          {f?.label.tracking && !byHand(f) && (
-                            <span className="mr-2">{f.label.tracking}</span>
-                          )}
-                          {!f?.invoice.danfeUrl && f?.invoice.number && (
-                            <span className="mr-2">Nota {f.invoice.number}</span>
-                          )}
-                          <a
-                            className="font-mono hover:text-zinc-700"
-                            href={`/pedido/${o.id}/confirmado`}
-                            {...ext}
-                          >
-                            {o.id}
-                          </a>
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {pages > 1 && (
-                <nav
-                  aria-label="Páginas"
-                  className="flex items-center justify-between gap-3 text-sm"
-                >
-                  {cur > 1 ? (
-                    <Link href={href({ p: cur - 1 })} className={btn("secondary")}>
-                      ← Anterior
-                    </Link>
-                  ) : (
-                    <span />
-                  )}
-                  <span className="text-zinc-500">
-                    Página {cur} de {pages}
-                  </span>
-                  {cur < pages ? (
-                    <Link href={href({ p: cur + 1 })} className={btn("secondary")}>
-                      Próxima →
-                    </Link>
-                  ) : (
-                    <span />
-                  )}
-                </nav>
-              )}
-            </section>
-
-            <section className="flex flex-col gap-3">
-              <Fold
-                title="Avisar do próximo lote"
-                summary={`${waitlist.length} ${waitlist.length === 1 ? "contato" : "contatos"} na lista de espera`}
-              >
-                {waitlist.length === 0 ? (
-                  <p className="p-6 text-center text-sm text-zinc-500">Ninguém na lista ainda.</p>
-                ) : (
-                  <ul className="divide-y divide-zinc-100">
-                    {waitlist.map((l) => {
-                      const c = l.fields.contato ?? "";
-                      const href = c.includes("@") ? `mailto:${c}` : waLink(c);
-                      return (
-                        <li
-                          key={l.id}
-                          className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm"
-                        >
-                          <span className="font-medium">{l.fields.nome || "—"}</span>
-                          <span className="flex items-center gap-4">
-                            <a className={LINK} href={href} {...ext}>
-                              {c}
-                            </a>
-                            <span className="text-zinc-400">{when(l.createdAt)}</span>
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </Fold>
-
-              <Fold
-                title="Fora do site"
-                summary={`${manualSales.length} vendas · ${brl(manualRevenue)} · ${bonus.length} bonificações (${units(bonus)} itens) — lidas das notas do Bling`}
-              >
-                {manual?.error && (
-                  <p className="px-5 pt-3 text-xs text-red-600">
-                    Última conferência falhou: {manual.error}
-                  </p>
-                )}
-                {(manual?.sales.length ?? 0) === 0 ? (
-                  <p className="p-6 text-center text-sm text-zinc-500">
-                    Nenhuma nota fora do site nos últimos 6 meses.
-                  </p>
-                ) : (
-                  <ul className="divide-y divide-zinc-100">
-                    {manual!.sales.map((m) => (
-                      <li
-                        key={m.id}
-                        className="grid gap-2 px-5 py-3.5 text-sm md:grid-cols-[1.4fr_1.6fr_1fr_0.8fr] md:items-center md:gap-4"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate font-medium">{m.cliente || "—"}</p>
-                          <p className="text-zinc-500">
-                            {m.cidade ? `${m.cidade}/${m.uf} · ` : ""}
-                            {m.data ? when(m.data.replace(" ", "T") + "-03:00") : "—"}
-                          </p>
-                          {m.nfPara && (
-                            <p className="truncate text-xs text-zinc-400">
-                              Nota em nome de {m.nfPara}
-                            </p>
-                          )}
-                        </div>
-                        <p className="text-zinc-600">
-                          {m.itens.map((i) => `${i.quantidade}x ${i.descricao}`).join(" + ")}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge tone={m.tipo === "bonificacao" ? "amber" : "green"}>
-                            {m.tipo === "bonificacao" ? "Bonificação" : "Venda manual"}
-                          </Badge>
-                          {!NFE_OK.includes(m.situacao) && <Badge tone="zinc">Nota pendente</Badge>}
-                        </div>
-                        <div className="flex items-center justify-between gap-3 md:justify-end">
-                          {m.danfeUrl ? (
-                            <a className={`${LINK} whitespace-nowrap`} href={m.danfeUrl} {...ext}>
-                              NF {m.numero}
-                            </a>
-                          ) : (
-                            <span className="whitespace-nowrap text-zinc-500">NF {m.numero}</span>
-                          )}
-                          <span className="font-medium tabular-nums">{brl(m.totalCents)}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Fold>
-            </section>
-          </div>
+                </td>
+                <td className={`${TD} text-right font-medium`}>{kitBling ?? "—"}</td>
+              </tr>
+              {OTHER_STOCK.map((p) => (
+                <tr key={p.sku}>
+                  <td className={TD}>
+                    <p className="font-semibold">{p.name}</p>
+                    <Code>{p.sku}</Code>
+                  </td>
+                  <td className={`${TD} text-right font-medium`}>{stockMap?.get(p.sku) ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </main>
-    </Shell>
+      </section>
+    </>
+  );
+
+  const foraView = (
+    <>
+      <PageHeader eyebrow="Lidas das notas do Bling" title="Fora do site" actions={actions} />
+      <KpiStrip cols={3}>
+        <Tile
+          icon={ShoppingBag}
+          label="Vendas manuais"
+          value={manualSales.length}
+          note={brl(manualRevenue)}
+        />
+        <Tile
+          icon={Gift}
+          label="Bonificações"
+          value={bonus.length}
+          tone="review"
+          note={`${units(bonus)} itens`}
+        />
+        <Tile
+          icon={Clock}
+          label="Notas pendentes"
+          value={(manual?.sales ?? []).filter((m) => !NFE_OK.includes(m.situacao)).length}
+          tone="hold"
+          note="Ainda sem autorização"
+        />
+      </KpiStrip>
+      {manual?.error && (
+        <p className="text-lk-fail text-xs">Última conferência falhou: {manual.error}</p>
+      )}
+      <section className="flex flex-col gap-4">
+        <SectionTitle title="Notas" count={manual?.sales.length ?? 0} />
+        {(manual?.sales.length ?? 0) === 0 ? (
+          <Empty>Nenhuma nota fora do site nos últimos 6 meses.</Empty>
+        ) : (
+          <div className={`${TABLE_WRAP} overflow-x-auto`}>
+            <table className="w-full min-w-[720px] text-sm">
+              <thead>
+                <tr>
+                  <th className={`${TH} w-[30%]`}>Cliente</th>
+                  <th className={TH}>Itens</th>
+                  <th className={TH}>Tipo</th>
+                  <th className={TH}>Nota</th>
+                  <th className={`${TH} text-right`}>Valor</th>
+                </tr>
+              </thead>
+              <tbody className="divide-lk-border divide-y">
+                {manual!.sales.map((m) => (
+                  <tr key={m.id} className="hover:bg-lk-paper/60">
+                    <td className={TD}>
+                      <p className="font-semibold">{m.cliente || "—"}</p>
+                      <p className="text-lk-muted text-xs">
+                        {m.cidade ? `${m.cidade}/${m.uf} · ` : ""}
+                        {m.data ? when(m.data.replace(" ", "T") + "-03:00") : "—"}
+                      </p>
+                      {m.nfPara && (
+                        <p className="text-lk-ink3 text-xs">Nota em nome de {m.nfPara}</p>
+                      )}
+                    </td>
+                    <td className={`${TD} text-lk-muted`}>
+                      {m.itens.map((i) => `${i.quantidade}x ${i.descricao}`).join(" + ")}
+                    </td>
+                    <td className={TD}>
+                      <div className="flex flex-wrap gap-1.5">
+                        {m.tipo === "bonificacao" ? (
+                          <Badge tone="review" icon={Gift}>
+                            Bonificação
+                          </Badge>
+                        ) : (
+                          <Badge tone="pass" icon={ShoppingBag}>
+                            Venda manual
+                          </Badge>
+                        )}
+                        {!NFE_OK.includes(m.situacao) && (
+                          <Badge tone="hold" icon={Clock}>
+                            Nota pendente
+                          </Badge>
+                        )}
+                      </div>
+                    </td>
+                    <td className={TD}>
+                      {m.danfeUrl ? (
+                        <a className={LINK} href={m.danfeUrl} {...ext}>
+                          NF {m.numero}
+                        </a>
+                      ) : (
+                        <span className="text-lk-muted">NF {m.numero}</span>
+                      )}
+                    </td>
+                    <td className={`${TD} text-right font-medium`}>{brl(m.totalCents)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </>
+  );
+
+  const listaView = (
+    <>
+      <PageHeader
+        eyebrow="Quem pediu aviso do próximo lote"
+        title="Lista de espera"
+        actions={actions}
+      />
+      <section className="flex flex-col gap-4">
+        <SectionTitle title="Contatos" count={waitlist.length} />
+        {waitlist.length === 0 ? (
+          <Empty>Ninguém na lista ainda.</Empty>
+        ) : (
+          <div className={`${TABLE_WRAP} overflow-x-auto`}>
+            <table className="w-full min-w-[560px] text-sm">
+              <thead>
+                <tr>
+                  <th className={TH}>Nome</th>
+                  <th className={TH}>Contato</th>
+                  <th className={TH}>Interesse</th>
+                  <th className={`${TH} text-right`}>Quando</th>
+                </tr>
+              </thead>
+              <tbody className="divide-lk-border divide-y">
+                {waitlist.map((l) => {
+                  const c = l.fields.contato ?? "";
+                  const link = c.includes("@") ? `mailto:${c}` : waLink(c);
+                  return (
+                    <tr key={l.id} className="hover:bg-lk-paper/60">
+                      <td className={`${TD} font-semibold`}>{l.fields.nome || "—"}</td>
+                      <td className={TD}>
+                        <a className={LINK} href={link} {...ext}>
+                          {c}
+                        </a>
+                      </td>
+                      <td className={`${TD} text-lk-muted`}>
+                        {l.fields.produto ? <Code>{l.fields.produto}</Code> : "Próximo lote"}
+                      </td>
+                      <td className={`${TD} text-lk-muted text-right`}>{when(l.createdAt)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </>
+  );
+
+  return (
+    <Frame
+      aba={aba}
+      counts={{ pedidos: toPrint.length + toDeliver.length + stuck.length, lista: waitlist.length }}
+    >
+      {aba === "estoque"
+        ? estoqueView
+        : aba === "fora"
+          ? foraView
+          : aba === "lista"
+            ? listaView
+            : pedidosView}
+    </Frame>
   );
 }
