@@ -33,6 +33,9 @@ import {
   type Tone,
 } from "./ui";
 
+// "Atualizar agora" confere a fila toda no Melhor Envio: dá tempo pra isso.
+export const maxDuration = 60;
+
 export const metadata: Metadata = {
   title: "Painel",
   robots: { index: false, follow: false },
@@ -101,6 +104,17 @@ const STAGE: Record<FulfillStage, [string, Tone]> = {
   delivered: ["Entregue (correio)", "green"],
   local: ["Entregar em mãos", "blue"],
   "local-delivered": ["Entregue (em mãos)", "green"],
+};
+
+// Situação do envio como o Melhor Envio responde (diagnóstico no painel).
+const ME_STATUS: Record<string, string> = {
+  pending: "no carrinho",
+  released: "paga, sem etiqueta",
+  generated: "etiqueta gerada, sem registro de postagem",
+  posted: "postado",
+  delivered: "entregue",
+  canceled: "cancelada",
+  undelivered: "não entregue",
 };
 
 /** Entregue em mãos: a etiqueta (se houve) foi cancelada, então não mostra botão nem rastreio. */
@@ -544,6 +558,14 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                         </a>
                       )}
                     </div>
+                    {f?.label.meId && (f.stage === "ready" || f.stage === "posted") && (
+                      <p className="text-xs text-zinc-400 md:text-right">
+                        Melhor Envio: {ME_STATUS[f.label.status ?? ""] ?? f.label.status ?? "—"}
+                        {f.label.postedAt ? ` · postado ${when(f.label.postedAt)}` : ""}
+                        {f.label.postedByHand ? ' · "Já postei" marcado' : ""}
+                        {` · conferido ${f.label.checkedAt ? when(f.label.checkedAt) : "ainda não"}`}
+                      </p>
+                    )}
                     <p className="text-xs text-zinc-400 md:text-right">
                       {f?.label.tracking && !byHand(f) && (
                         <span className="mr-2">{f.label.tracking}</span>
