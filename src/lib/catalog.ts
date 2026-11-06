@@ -107,8 +107,8 @@ export const PRODUCTS: Product[] = [
     shipping: { weightKg: 1.2, widthCm: 19, heightCm: 6.5, lengthCm: 19 },
     // O teto conta os já vendidos: 54 da 1ª leva + 105 liberados (100 em 30/10,
     // +4 em 31/10, +1 em 1/11) = 159. O Bling começou com 108 (contagem
-    // física): sobram 3 de reserva fora do site. Pra liberar mais: sobe este
-    // número (sem passar do saldo do Bling).
+    // física). Site público esgotado; os últimos kits saem só pelo link
+    // especial (src/lib/especial.ts, lotes próprios). Em 06/11: 2 no link.
     stockCap: 159,
     active: true,
   },
