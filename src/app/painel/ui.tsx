@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { Boxes, FileText, Inbox, BellRing } from "lucide-react";
+import { Boxes, FileText, Inbox, BellRing, Factory } from "lucide-react";
 
 // Peças do painel, no visual do Lakeshore Funding (docs/design-rules.md e
 // docs/rules/* daquele repositório). Regras que valem aqui:
@@ -87,13 +87,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
 // ── Menu lateral (docs/rules/sidebar.md do Lakeshore) ─────────────────────
 
-export type Aba = "pedidos" | "estoque" | "fora" | "lista";
+export type Aba = "pedidos" | "estoque" | "fora" | "lista" | "producao";
 
 const NAV: { aba: Aba; label: string; icon: LucideIcon }[] = [
   { aba: "pedidos", label: "Pedidos", icon: Inbox },
   { aba: "estoque", label: "Estoque e vendas", icon: Boxes },
-  { aba: "fora", label: "Fora do site", icon: FileText },
+  { aba: "fora", label: "Vendas manuais", icon: FileText },
   { aba: "lista", label: "Lista de espera", icon: BellRing },
+  { aba: "producao", label: "Produção", icon: Factory },
 ];
 
 const abaHref = (aba: Aba) => (aba === "pedidos" ? "/painel" : `/painel?aba=${aba}`);
@@ -421,4 +422,103 @@ export function Empty({ children }: { children: React.ReactNode }) {
 /** Código (pedido, rastreio, nota): IBM Plex Mono 13 px. */
 export function Code({ children }: { children: React.ReactNode }) {
   return <span className="font-lk-mono text-lk-muted text-[12.5px]">{children}</span>;
+}
+
+// ── Filtros agrupados ──────────────────────────────────────────────────────
+
+type FilterItem = { key: string; label: string; count?: number; href: string; active: boolean };
+
+/**
+ * Filtros em grupos (Correio · Em mãos · Atenção): cada grupo é um bloco de
+ * abas segmentadas com o nome em cima, todos lado a lado num cartão só.
+ */
+export function FilterGroups({
+  label,
+  groups,
+}: {
+  label: string;
+  groups: { title: string; items: FilterItem[] }[];
+}) {
+  return (
+    <nav aria-label={label} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+      <div className="border-lk-border inline-flex items-end gap-x-5 gap-y-3 rounded-xl border bg-white p-3 max-sm:flex-wrap">
+        {groups.map((g) => (
+          <div key={g.title} className="flex flex-col gap-1.5">
+            <span className="text-lk-ink3 px-1 text-[11px] font-medium">{g.title}</span>
+            <div className="bg-lk-soft inline-flex gap-0.5 rounded-lg p-1">
+              {g.items.map((it) => (
+                <Link
+                  key={it.key}
+                  href={it.href}
+                  aria-current={it.active ? "page" : undefined}
+                  className={`inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-[13px] whitespace-nowrap transition-colors duration-100 ${FOCUS} focus-visible:ring-offset-0 ${
+                    it.active
+                      ? "text-lk-ink bg-white font-medium shadow-[0_1px_2px_rgb(24_34_46/0.08)]"
+                      : "text-lk-muted hover:text-lk-ink"
+                  }`}
+                >
+                  {it.label}
+                  {it.count !== undefined && (
+                    <span
+                      className={`tabular-nums ${it.active ? "text-lk-muted" : "text-lk-ink3"}`}
+                    >
+                      {it.count}
+                    </span>
+                  )}
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
+/** Cabeçalho que ordena: clique alterna ↓ ↑; o ativo mostra a seta. */
+export function SortHead({
+  label,
+  href,
+  dir,
+  align = "left",
+  className = "",
+}: {
+  label: string;
+  href: string;
+  /** Direção atual se esta coluna é a ordenada. */
+  dir?: "asc" | "desc";
+  align?: "left" | "right";
+  className?: string;
+}) {
+  return (
+    <th
+      className={`${TH} ${align === "right" ? "text-right" : ""} ${className}`}
+      aria-sort={dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none"}
+    >
+      <Link
+        href={href}
+        className={`group hover:text-lk-ink inline-flex items-center gap-1 rounded-sm ${FOCUS} focus-visible:ring-offset-0 ${
+          dir ? "text-lk-ink" : ""
+        }`}
+      >
+        {label}
+        <span aria-hidden className={dir ? "" : "opacity-0 group-hover:opacity-50"}>
+          {dir === "asc" ? "↑" : "↓"}
+        </span>
+      </Link>
+    </th>
+  );
+}
+
+/** Barra empilhada de estoque: vendidos · brindes · restam. */
+export function StockBar({ sold, gift, left }: { sold: number; gift: number; left: number }) {
+  const total = sold + gift + left;
+  const pct = (n: number) => (total ? `${(n / total) * 100}%` : "0%");
+  return (
+    <div className="bg-lk-soft flex h-2.5 w-full overflow-hidden rounded-full" aria-hidden>
+      <span className="bg-lk-action block h-full" style={{ width: pct(sold) }} />
+      <span className="bg-lk-review block h-full" style={{ width: pct(gift) }} />
+      <span className="block h-full bg-[#b9c4ca]" style={{ width: pct(left) }} />
+    </div>
+  );
 }

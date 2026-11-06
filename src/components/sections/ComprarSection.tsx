@@ -210,7 +210,7 @@ export function ComprarSection({
       ? openNotify({
           kicker: "Em breve",
           title: "A gente te avisa quando abrir",
-          text: `Deixa teu nome e WhatsApp (ou e-mail). Quando o ${(product.shortName ?? title).toLowerCase()} entrar à venda, tu fica sabendo antes.`,
+          text: `Deixa teu nome e WhatsApp. Quando o ${(product.shortName ?? title).toLowerCase()} entrar à venda, tu fica sabendo antes.`,
           produto: product.sku,
         })
       : openNotify();

@@ -525,4 +525,17 @@ const approve = async (orderId, extra = {}) =>
   check("S18 /api/estoque público segue esgotado", pub.soldOut === true, JSON.stringify(pub));
 }
 
+// S19 lista de espera: só WhatsApp com DDD (e-mail recusado, número limpo).
+{
+  const lead = (contato) =>
+    fetch(`${B}/api/leads`, {
+      method: "POST",
+      headers: H(),
+      body: JSON.stringify({ form: "aviso", fields: { nome: "Ana", contato } }),
+    });
+  check("S19 aviso com e-mail → recusado", (await lead("ana@example.com")).status === 400);
+  check("S19 aviso sem DDD → recusado", (await lead("99999-0000")).status === 400);
+  check("S19 aviso com WhatsApp → salvo", (await lead("(51) 99999-0000")).status === 200);
+}
+
 console.log(`\n${results.filter((r) => r.ok).length}/${results.length} ok`);

@@ -10,6 +10,14 @@ export async function POST(request: Request) {
       return json({ error: "Muitas tentativas" }, 429);
     const parsed = leadSchema.safeParse(JSON.parse(await request.text()));
     if (!parsed.success) return json({ error: "Dados inválidos" }, 400);
+    // Lista de espera: só WhatsApp com DDD (um tipo de contato só no painel).
+    if (parsed.data.form === "aviso") {
+      const phone = (parsed.data.fields.contato ?? "")
+        .replace(/\D/g, "")
+        .replace(/^55(?=\d{10,11}$)/, "");
+      if (!/^\d{10,11}$/.test(phone)) return json({ error: "WhatsApp inválido" }, 400);
+      parsed.data.fields.contato = phone;
+    }
     await saveLead(parsed.data);
     return json({ ok: true });
   } catch (error) {
