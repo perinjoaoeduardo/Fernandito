@@ -30,6 +30,7 @@ import {
   SectionHead,
   Shell,
   btn,
+  Icon,
   type Tone,
 } from "./ui";
 
@@ -329,24 +330,24 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   return (
     <Shell>
       <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8 xl:max-w-[1680px] xl:px-12 xl:py-10">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Pedidos</h1>
-            <p className="text-sm text-zinc-500">
-              Pagamento, nota, etiqueta e rastreio num lugar só.
-            </p>
-          </div>
+        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200 pb-6">
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Pedidos Fernandito</h1>
           <div className="flex flex-wrap items-center gap-2">
+            <form action={atualizar}>
+              <SubmitButton variant="primary" pending="Atualizando…">
+                <Icon name="refresh" />
+                Atualizar agora
+              </SubmitButton>
+            </form>
             <a href="/painel/planilha" className={btn("secondary")}>
+              <Icon name="download" />
               Baixar planilha
             </a>
             <form action={sair}>
-              <button className={btn("secondary")}>Sair</button>
-            </form>
-            <form action={atualizar}>
-              <SubmitButton variant="primary" pending="Atualizando…">
-                Atualizar agora
-              </SubmitButton>
+              <button className={btn("ghost")}>
+                <Icon name="logout" />
+                Sair
+              </button>
             </form>
           </div>
         </header>
@@ -433,7 +434,9 @@ export default async function PainelPage(props: PageProps<"/painel">) {
             </section>
 
             <section>
-              <div className={`${CARD} grid grid-cols-2 divide-x divide-zinc-100 sm:grid-cols-3 xl:grid-cols-2`}>
+              <div
+                className={`${CARD} grid grid-cols-2 divide-x divide-zinc-100 sm:grid-cols-3 xl:grid-cols-2`}
+              >
                 <Figure label="A caminho" value={inTransit.length} />
                 <Figure label="Entregues" value={delivered.length} />
                 <div className="col-span-2 border-t border-zinc-100 sm:col-span-1 sm:border-t-0 xl:col-span-2 xl:border-t xl:border-l-0">

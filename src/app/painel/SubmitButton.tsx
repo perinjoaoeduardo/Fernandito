@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
-import { btn } from "./ui";
+import { btn, type BtnVariant } from "./ui";
 
 /** Botão de formulário com retorno ao toque: desabilita e troca o texto enquanto envia. */
 export function SubmitButton({
@@ -12,7 +12,7 @@ export function SubmitButton({
 }: {
   children: React.ReactNode;
   pending?: string;
-  variant?: "primary" | "secondary";
+  variant?: BtnVariant;
   size?: "md" | "sm";
 }) {
   const { pending } = useFormStatus();

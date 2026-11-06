@@ -50,16 +50,64 @@ export function Shell({ children }: { children: React.ReactNode }) {
 export const CARD = "rounded-xl border border-zinc-200 bg-white shadow-sm";
 const FOCUS =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900";
-const BTN_BASE = `inline-flex items-center justify-center rounded-md text-sm font-medium whitespace-nowrap transition-colors ${FOCUS}`;
+const BTN_BASE = `inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors [&_svg]:size-4 [&_svg]:shrink-0 ${FOCUS}`;
 
-/** Botão: `primary` (a ação principal), `secondary` (as demais). */
-export function btn(variant: "primary" | "secondary" = "secondary", size: "md" | "sm" = "md") {
+export type BtnVariant = "primary" | "secondary" | "ghost";
+
+/** Botão: `primary` (a ação principal), `secondary` (as demais), `ghost` (discreto, ex.: Sair). */
+export function btn(variant: BtnVariant = "secondary", size: "md" | "sm" = "md") {
   const h = size === "md" ? "h-9 px-4" : "h-8 px-3 text-xs";
   return `${BTN_BASE} ${h} ${
     variant === "primary"
       ? "bg-zinc-900 text-white shadow-sm hover:bg-zinc-800"
-      : "border border-zinc-200 bg-white text-zinc-900 shadow-sm hover:bg-zinc-100"
+      : variant === "ghost"
+        ? "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+        : "border border-zinc-200 bg-white text-zinc-900 shadow-sm hover:bg-zinc-100"
   }`;
+}
+
+// Ícones no traço do lucide (24×24, linha 2), desenhados aqui pra não puxar
+// uma biblioteca só pra três ícones.
+const ICONS = {
+  refresh: (
+    <>
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+      <path d="M8 16H3v5" />
+    </>
+  ),
+  download: (
+    <>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M12 15V3" />
+    </>
+  ),
+  logout: (
+    <>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="m16 17 5-5-5-5" />
+      <path d="M21 12H9" />
+    </>
+  ),
+};
+
+export function Icon({ name, className = "" }: { name: keyof typeof ICONS; className?: string }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      {ICONS[name]}
+    </svg>
+  );
 }
 
 export const LINK =
