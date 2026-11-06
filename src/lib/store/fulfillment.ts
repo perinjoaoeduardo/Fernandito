@@ -74,6 +74,9 @@ export type Fulfillment = {
     savedInBling: boolean;
     /** Marcado "Já postei" no painel antes do Melhor Envio confirmar a postagem. */
     postedByHand?: string;
+    /** Datas que o Melhor Envio informou (postagem e entrega). */
+    postedAt?: string | null;
+    deliveredAt?: string | null;
   };
   error: string | null;
   updatedAt: string;
@@ -378,6 +381,8 @@ async function stepTrack(order: StoredOrder, f: Fulfillment) {
   f.label.status = shipment.status;
   f.label.tracking = shipment.tracking ?? shipment.selfTracking ?? f.label.tracking;
   f.label.trackingUrl = shipment.trackingUrl ?? f.label.trackingUrl;
+  f.label.postedAt = shipment.postedAt ?? f.label.postedAt ?? null;
+  f.label.deliveredAt = shipment.deliveredAt ?? f.label.deliveredAt ?? null;
   if (shipment.status === "posted") f.stage = "posted";
   if (shipment.status === "delivered") f.stage = "delivered";
   await save(order.id, f);
@@ -474,14 +479,30 @@ export async function fulfillNow(orderId: string) {
   return getFulfillment(orderId);
 }
 
-/** Todos da fila (cron, painel e de vez em quando nas requisições do site). */
-export async function advanceAllFulfillments() {
+/**
+ * Todos da fila (cron, painel e de vez em quando nas requisições do site).
+ * Fila grande: primeiro os conferidos há mais tempo, 3 de cada vez e com
+ * limite de tempo — assim uma rodada que corta no meio não deixa sempre os
+ * mesmos de fora (a próxima continua de onde parou).
+ */
+export async function advanceAllFulfillments({ budgetMs = 40_000 } = {}) {
   const ids = await kvSMembers(QUEUE);
+  const current = await getFulfillments(ids);
+  const ordered = ids
+    .map((id, i) => ({ id, at: current[i]?.updatedAt ?? "" }))
+    .sort((a, b) => a.at.localeCompare(b.at))
+    .map((x) => x.id);
+  const started = Date.now();
   const results: { id: string; stage: string; error: string | null }[] = [];
-  for (const id of ids) {
-    const f = await advanceFulfillment(id);
-    results.push({ id, stage: f?.stage ?? "-", error: f?.error ?? null });
-  }
+  let next = 0;
+  const worker = async () => {
+    while (next < ordered.length && Date.now() - started < budgetMs) {
+      const id = ordered[next++];
+      const f = await advanceFulfillment(id);
+      results.push({ id, stage: f?.stage ?? "-", error: f?.error ?? null });
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
   return results;
 }
 
