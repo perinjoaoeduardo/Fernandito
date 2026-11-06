@@ -7,6 +7,7 @@ import {
   findShipmentByTag,
   generateLabel,
   getShipment,
+  trackShipment,
   labelPrintUrl,
   payWithBalance,
 } from "@/lib/melhor-envio-label";
@@ -379,7 +380,7 @@ async function saveTrackingInBling(order: StoredOrder, f: Fulfillment) {
 
 async function stepTrack(order: StoredOrder, f: Fulfillment) {
   if (!f.label.meId) return false;
-  const shipment = await getShipment(f.label.meId);
+  const shipment = await trackShipment(f.label.meId);
   f.label.status = shipment.status;
   f.label.tracking = shipment.tracking ?? shipment.selfTracking ?? f.label.tracking;
   f.label.trackingUrl = shipment.trackingUrl ?? f.label.trackingUrl;

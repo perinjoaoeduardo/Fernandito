@@ -231,6 +231,18 @@ const c1 = await buy({ note: RECADO });
   const d = await diag();
   check("C3b só a data de entrega → entregue e sai da fila", !d.envios.some((e) => e.id === id));
 }
+// C3c a ficha do envio segue "released" sem data, mas o rastreio ao vivo
+// (transportadora) já tem a coleta/postagem → "A caminho".
+{
+  const id = await buy();
+  await until(id, ["ready", "local"]);
+  const ship = (await ctl(ME)).orders.find((o) => o.tags.some((t) => t.tag === id));
+  await ctl(ME, {
+    set: { id: ship.id, live: { status: "posted", posted_at: "2026-11-06 09:00:00" } },
+  });
+  await diag(true);
+  check("C3c rastreio ao vivo com postagem → 'A caminho'", (await envio(id))?.etapa === "posted");
+}
 // C4 sem saldo no Melhor Envio
 {
   await ctl(ME, { flags: { noBalance: true } });

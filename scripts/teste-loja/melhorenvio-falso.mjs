@@ -38,15 +38,49 @@ http
     // flags.variasOpcoes: cotação com as 4 transportadoras (pra ver a tela de frete).
     if (p === "/shipment/calculate" && flags.variasOpcoes)
       return send(res, 200, [
-        { id: 3, name: ".Package", price: "25.90", company: { name: "Jadlog" }, delivery_range: { min: 4, max: 6 } },
-        { id: 33, name: "Standard", price: "21.04", company: { name: "J&T Express" }, delivery_range: { min: 5, max: 7 } },
-        { id: 31, name: "Express", price: "29.50", company: { name: "Loggi" }, delivery_range: { min: 2, max: 3 } },
-        { id: 12, name: "éFácil", price: "38.70", company: { name: "LATAM Cargo" }, delivery_range: { min: 1, max: 2 } },
+        {
+          id: 3,
+          name: ".Package",
+          price: "25.90",
+          company: { name: "Jadlog" },
+          delivery_range: { min: 4, max: 6 },
+        },
+        {
+          id: 33,
+          name: "Standard",
+          price: "21.04",
+          company: { name: "J&T Express" },
+          delivery_range: { min: 5, max: 7 },
+        },
+        {
+          id: 31,
+          name: "Express",
+          price: "29.50",
+          company: { name: "Loggi" },
+          delivery_range: { min: 2, max: 3 },
+        },
+        {
+          id: 12,
+          name: "éFácil",
+          price: "38.70",
+          company: { name: "LATAM Cargo" },
+          delivery_range: { min: 1, max: 2 },
+        },
       ]);
     if (p === "/shipment/calculate")
       return send(res, 200, [
         { id: 3, name: ".Package", price: "25.90", company: { name: "Jadlog" } },
       ]);
+    // Rastreio ao vivo: o que a transportadora já informou (`live` no envio,
+    // posto pelo teste), mesmo com a ficha /orders/<id> ainda atrasada.
+    if (p === "/shipment/tracking") {
+      const out = {};
+      for (const id of body.orders ?? []) {
+        const o = orders.get(id);
+        if (o) out[id] = { id, status: o.status, tracking: o.tracking ?? null, ...(o.live ?? {}) };
+      }
+      return send(res, 200, out);
+    }
     if (p === "/orders/search") {
       const q = url.searchParams.get("q");
       const found = [...orders.values()].filter((o) => o.tags.some((t) => t.tag === q));

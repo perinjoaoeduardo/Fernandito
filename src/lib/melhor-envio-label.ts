@@ -131,6 +131,36 @@ export async function getShipment(id: string): Promise<MeShipment> {
   return toShipment(await me<MeOrder>(`/orders/${encodeURIComponent(id)}`));
 }
 
+/**
+ * Rastreio "ao vivo" (`/shipment/tracking`): o Melhor Envio consulta a
+ * transportadora na hora. A ficha do envio (`/orders/<id>`) às vezes fica
+ * dias sem mostrar a coleta/postagem que o rastreio já tem. Junta os dois:
+ * vale o mais adiantado. Rastreio fora do ar → fica só a ficha.
+ */
+export async function trackShipment(id: string): Promise<MeShipment> {
+  const base = await getShipment(id);
+  const live = await me<Record<string, Partial<MeOrder>> | null>("/shipment/tracking", {
+    orders: [id],
+  }).catch((error: Error) => {
+    console.warn(`[envio] rastreio ao vivo falhou (${id}):`, error.message);
+    return null;
+  });
+  const t = live?.[id];
+  if (!t) return base;
+  const merged = toShipment({
+    id,
+    status: t.status ?? base.status,
+    tracking: t.tracking ?? base.tracking,
+    self_tracking: base.selfTracking,
+    posted_at: t.posted_at || base.postedAt,
+    delivered_at: t.delivered_at || base.deliveredAt,
+    generated_at: t.generated_at,
+  });
+  const rank = (s: string) =>
+    ["pending", "released", "generated", "posted", "delivered"].indexOf(s);
+  return rank(merged.status) >= rank(base.status) ? merged : base;
+}
+
 /** Serviço liberado mais barato pro CEP (quando o pedido foi pela tabela fixa). */
 async function cheapestService(input: LabelInput): Promise<number> {
   const services = await me<
