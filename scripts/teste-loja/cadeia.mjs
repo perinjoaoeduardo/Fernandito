@@ -241,6 +241,16 @@ const c1 = await buy({ note: RECADO });
   await diag(true);
   check("C3c rastreio ao vivo com postagem → 'A caminho'", (await envio(id))?.etapa === "posted");
 }
+// C3d situação "received" (recebido no ponto de coleta, como a Loggi
+// responde) → "A caminho".
+{
+  const id = await buy();
+  await until(id, ["ready", "local"]);
+  const ship = (await ctl(ME)).orders.find((o) => o.tags.some((t) => t.tag === id));
+  await ctl(ME, { set: { id: ship.id, status: "received" } });
+  await diag(true);
+  check("C3d 'received' no Melhor Envio → 'A caminho'", (await envio(id))?.etapa === "posted");
+}
 // C4 sem saldo no Melhor Envio
 {
   await ctl(ME, { flags: { noBalance: true } });

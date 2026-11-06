@@ -89,6 +89,11 @@ type MeOrder = {
   delivered_at?: string | null;
 };
 
+// Situações do Melhor Envio que querem dizer "já saiu da nossa mão": recebido
+// no ponto de coleta/agência ("received", ex.: Loggi), coletado, em trânsito.
+// Pro site, tudo isso é "A caminho" (posted).
+const ME_IN_TRANSIT = ["posted", "received", "collected", "shipped", "in_transit", "dispatched"];
+
 function toShipment(o: MeOrder): MeShipment {
   const code = o.tracking || o.self_tracking || null;
   // Algumas transportadoras (ex.: J&T) ficam "released" depois de gerar; a
@@ -104,7 +109,9 @@ function toShipment(o: MeOrder): MeShipment {
           ? "posted"
           : o.status === "released" && o.generated_at
             ? "generated"
-            : o.status;
+            : ME_IN_TRANSIT.includes(o.status)
+              ? "posted"
+              : o.status;
   return {
     id: o.id,
     status,

@@ -112,6 +112,8 @@ const ME_STATUS: Record<string, string> = {
   released: "paga, sem etiqueta",
   generated: "etiqueta gerada, sem registro de postagem",
   posted: "postado",
+  received: "recebido no ponto de coleta",
+  collected: "coletado",
   delivered: "entregue",
   canceled: "cancelada",
   undelivered: "não entregue",
