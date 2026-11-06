@@ -72,6 +72,8 @@ export type Fulfillment = {
     trackingUrl: string | null;
     printUrl: string | null;
     savedInBling: boolean;
+    /** Marcado "Já postei" no painel antes do Melhor Envio confirmar a postagem. */
+    postedByHand?: string;
   };
   error: string | null;
   updatedAt: string;
@@ -391,6 +393,22 @@ async function stepTrack(order: StoredOrder, f: Fulfillment) {
  */
 async function stepLocal() {
   return true;
+}
+
+/**
+ * "Já postei" no painel: o pacote foi pros Correios, mas o Melhor Envio só
+ * marca "postado" quando a transportadora bipa (pode levar até um dia). Tira
+ * de "Imprimir" e põe em "A caminho" já; o rastreio continua sendo conferido
+ * e vira "Entregue" sozinho.
+ */
+export async function markPosted(orderId: string) {
+  const f = await getFulfillment(orderId);
+  if (!f || f.stage !== "ready") return null;
+  f.stage = "posted";
+  f.label.postedByHand = new Date().toISOString();
+  f.error = null;
+  await save(orderId, f);
+  return f;
 }
 
 /** Marca a entrega própria como feita (botão do painel ou `&acao=entregue`). */
