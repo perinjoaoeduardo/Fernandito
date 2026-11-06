@@ -328,7 +328,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
 
   return (
     <Shell>
-      <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+      <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8 xl:max-w-[1680px] xl:px-12 xl:py-10">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Pedidos</h1>
@@ -368,336 +368,358 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           </section>
         )}
 
-        <section className="flex flex-col gap-3">
-          <SectionHead title="Fazer agora" />
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            <ActionCard
-              label="Imprimir"
-              value={toPrint.length}
-              href="/painel?ver=imprimir"
-              tone="blue"
-            />
-            <ActionCard
-              label="Entregar"
-              value={toDeliver.length}
-              href="/painel?ver=entregar"
-              tone="blue"
-            />
-            <ActionCard
-              label="Precisam de olho"
-              value={stuck.length}
-              href="/painel?ver=olho"
-              tone="red"
-            />
-          </div>
-        </section>
+        {/* Telas grandes: resumo numa coluna fixa à esquerda, pedidos à direita. */}
+        <div className="grid gap-8 xl:grid-cols-[minmax(22rem,26rem)_minmax(0,1fr)] xl:items-start">
+          <aside className="flex flex-col gap-8 xl:sticky xl:top-8">
+            <section className="flex flex-col gap-3">
+              <SectionHead title="Fazer agora" />
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <ActionCard
+                  label="Imprimir"
+                  value={toPrint.length}
+                  href="/painel?ver=imprimir"
+                  tone="blue"
+                />
+                <ActionCard
+                  label="Entregar"
+                  value={toDeliver.length}
+                  href="/painel?ver=entregar"
+                  tone="blue"
+                />
+                <ActionCard
+                  label="Precisam de olho"
+                  value={stuck.length}
+                  href="/painel?ver=olho"
+                  tone="red"
+                />
+              </div>
+            </section>
 
-        <section className="flex flex-col gap-3">
-          <SectionHead
-            title="Estoque do kit"
-            hint={`Total pra vender: ${PRIMEIRO_LOTE} do 1º lote + ${CONTAGEM_BLING} contados = ${TOTAL_KITS}.`}
-          />
-          <div className={`${CARD} p-5`}>
-            <div className="flex items-baseline justify-between gap-3">
-              <p>
-                <span
-                  className={`text-3xl font-semibold tracking-tight ${kitLow ? "text-red-600" : ""}`}
-                >
-                  {kitRest ?? "—"}
-                </span>{" "}
-                <span className="text-sm text-zinc-500">restam de {TOTAL_KITS}</span>
-              </p>
-              <p className="text-sm text-zinc-500">
-                {kitSold !== null ? `${kitSold} vendidos` : ""}
-              </p>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-zinc-100">
-              <div
-                className={`h-full rounded-full ${kitLow ? "bg-red-500" : "bg-zinc-900"}`}
-                style={{ width: `${kitPct}%` }}
+            <section className="flex flex-col gap-3">
+              <SectionHead
+                title="Estoque do kit"
+                hint={`Total pra vender: ${PRIMEIRO_LOTE} do 1º lote + ${CONTAGEM_BLING} contados = ${TOTAL_KITS}.`}
               />
-            </div>
-            <p className="mt-3 text-xs text-zinc-500">
-              No site: {kitFree ?? "—"} {kitFree === 1 ? "livre" : "livres"} (liberados {LOTE_KIT}{" "}
-              neste lote) · reserva fora do site: {kitReserve}
-              {kitHeld > 0 ? ` · ${kitHeld} em Pix aberto (reservados, ainda não pagos)` : ""}
-            </p>
-            <p className="mt-1 text-xs text-zinc-400">
-              {`Bling: ${kitBling ?? "—"} · `}
-              {OTHER_STOCK.map((p) => `${p.name} ${stockMap?.get(p.sku) ?? "—"}`).join(" · ")}
-            </p>
-          </div>
-        </section>
-
-        <section>
-          <div className={`${CARD} grid grid-cols-2 divide-x divide-zinc-100 sm:grid-cols-3`}>
-            <Figure label="A caminho" value={inTransit.length} />
-            <Figure label="Entregues" value={delivered.length} />
-            <div className="col-span-2 border-t border-zinc-100 sm:col-span-1 sm:border-t-0">
-              <Figure
-                label="Faturado"
-                value={brl(revenue + manualRevenue)}
-                hint={`site ${brl(revenue)} · manual ${brl(manualRevenue)}`}
-              />
-            </div>
-          </div>
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <SectionHead
-            title="Pedidos"
-            aside={`${rows.length} ${rows.length === 1 ? "pedido" : "pedidos"}${q ? " na busca" : ""}`}
-          />
-          <SearchBox ver={ver} q={q} />
-          <nav
-            aria-label="Filtrar pedidos"
-            className="flex flex-wrap gap-1 self-start rounded-lg bg-zinc-100 p-1 text-sm"
-          >
-            {FILTERS.map(([key, label]) => (
-              <Link
-                key={key}
-                href={href({ ver: key })}
-                aria-current={ver === key ? "page" : undefined}
-                className={`rounded-md px-3 py-1.5 font-medium transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900 ${
-                  ver === key
-                    ? "bg-white text-zinc-900 shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-900"
-                }`}
-              >
-                {label} <span className="text-zinc-400">{counts[key]}</span>
-              </Link>
-            ))}
-          </nav>
-
-          {rows.length === 0 ? (
-            <Empty>{q ? "Nenhum pedido bate com a busca." : "Nada por aqui."}</Empty>
-          ) : (
-            <ul className={`${CARD} divide-y divide-zinc-100 overflow-hidden`}>
-              {shown.map(({ order: o, f, st }) => (
-                <li
-                  key={o.id}
-                  className={`grid gap-4 px-5 py-4 md:grid-cols-[1fr_16rem] ${
-                    o.refundedAt ? "opacity-60" : ""
-                  }`}
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold">{o.customer.name}</p>
-                    <p className="mt-0.5 text-sm text-zinc-700">
-                      {o.items.map((i) => `${i.qty}x ${i.name}`).join(" + ")}
-                    </p>
-                    <p className="text-sm text-zinc-500">
-                      <span className="font-medium text-zinc-900">{brl(o.totalCents)}</span> ·{" "}
-                      {o.shipping.carrier} · {when(o.paidAt)}
-                    </p>
-                    <p className="mt-2 text-sm text-zinc-500">
-                      {o.address.street}, {o.address.number}
-                      {o.address.complement ? ` (${o.address.complement})` : ""} ·{" "}
-                      {o.address.neighborhood} · {o.address.city}/{o.address.uf} · CEP{" "}
-                      {o.address.cep}
-                    </p>
-                    <p className="text-sm">
-                      <a className={LINK} href={waLink(o.customer.phone)} {...ext}>
-                        {phone(o.customer.phone)}
-                      </a>
-                    </p>
-                    {o.note && (
-                      <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                        <p className="text-xs font-medium text-amber-700">Recado do cliente</p>
-                        <p className="mt-0.5 whitespace-pre-line">{o.note}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col items-start gap-2 md:items-end">
-                    <Badge tone={st[1]}>{st[0]}</Badge>
-                    {f?.error && <p className="text-xs text-red-600 md:text-right">{f.error}</p>}
-                    {o.status === "paid" && !o.bling?.orderId && o.bling?.error && (
-                      <p className="text-xs text-red-600 md:text-right">
-                        Não entrou no Bling: {o.bling.error}
-                      </p>
-                    )}
-                    {o.simulated && (
-                      <p className="text-xs text-zinc-400 md:text-right">
-                        Pedido de teste (Pix simulado)
-                      </p>
-                    )}
-                    <div className="flex flex-wrap gap-2 md:justify-end">
-                      {f?.stage === "local" && (
-                        <form action={marcarEntregue}>
-                          <input type="hidden" name="id" value={o.id} />
-                          <input type="hidden" name="back" value={href({})} />
-                          <SubmitButton variant="primary" size="sm">
-                            Marcar como entregue
-                          </SubmitButton>
-                        </form>
-                      )}
-                      {f?.stage === "ready" && (
-                        <form action={marcarPostado}>
-                          <input type="hidden" name="id" value={o.id} />
-                          <input type="hidden" name="back" value={href({})} />
-                          <SubmitButton variant="secondary" size="sm">
-                            Já postei
-                          </SubmitButton>
-                        </form>
-                      )}
-                      {f?.label.printUrl && !byHand(f) && (
-                        <a
-                          className={btn(f.stage === "ready" ? "primary" : "secondary", "sm")}
-                          href={f.label.printUrl}
-                          {...ext}
-                        >
-                          Imprimir etiqueta
-                        </a>
-                      )}
-                      {f?.invoice.danfeUrl && (
-                        <a className={btn("secondary", "sm")} href={f.invoice.danfeUrl} {...ext}>
-                          Nota {f.invoice.number ?? "(DANFE)"}
-                        </a>
-                      )}
-                      {f?.label.trackingUrl && !byHand(f) && (
-                        <a className={btn("secondary", "sm")} href={f.label.trackingUrl} {...ext}>
-                          Rastrear
-                        </a>
-                      )}
-                    </div>
-                    {f?.label.meId && (f.stage === "ready" || f.stage === "posted") && (
-                      <p className="text-xs text-zinc-400 md:text-right">
-                        Melhor Envio: {ME_STATUS[f.label.status ?? ""] ?? f.label.status ?? "—"}
-                        {f.label.postedAt ? ` · postado ${when(f.label.postedAt)}` : ""}
-                        {f.label.postedByHand ? ' · "Já postei" marcado' : ""}
-                        {` · conferido ${f.label.checkedAt ? when(f.label.checkedAt) : "ainda não"}`}
-                      </p>
-                    )}
-                    <p className="text-xs text-zinc-400 md:text-right">
-                      {f?.label.tracking && !byHand(f) && (
-                        <span className="mr-2">{f.label.tracking}</span>
-                      )}
-                      {!f?.invoice.danfeUrl && f?.invoice.number && (
-                        <span className="mr-2">Nota {f.invoice.number}</span>
-                      )}
-                      <a
-                        className="font-mono hover:text-zinc-700"
-                        href={`/pedido/${o.id}/confirmado`}
-                        {...ext}
-                      >
-                        {o.id}
-                      </a>
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {pages > 1 && (
-            <nav aria-label="Páginas" className="flex items-center justify-between gap-3 text-sm">
-              {cur > 1 ? (
-                <Link href={href({ p: cur - 1 })} className={btn("secondary")}>
-                  ← Anterior
-                </Link>
-              ) : (
-                <span />
-              )}
-              <span className="text-zinc-500">
-                Página {cur} de {pages}
-              </span>
-              {cur < pages ? (
-                <Link href={href({ p: cur + 1 })} className={btn("secondary")}>
-                  Próxima →
-                </Link>
-              ) : (
-                <span />
-              )}
-            </nav>
-          )}
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <Fold
-            title="Avisar do próximo lote"
-            summary={`${waitlist.length} ${waitlist.length === 1 ? "contato" : "contatos"} na lista de espera`}
-          >
-            {waitlist.length === 0 ? (
-              <p className="p-6 text-center text-sm text-zinc-500">Ninguém na lista ainda.</p>
-            ) : (
-              <ul className="divide-y divide-zinc-100">
-                {waitlist.map((l) => {
-                  const c = l.fields.contato ?? "";
-                  const href = c.includes("@") ? `mailto:${c}` : waLink(c);
-                  return (
-                    <li
-                      key={l.id}
-                      className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm"
+              <div className={`${CARD} p-5`}>
+                <div className="flex items-baseline justify-between gap-3">
+                  <p>
+                    <span
+                      className={`text-3xl font-semibold tracking-tight ${kitLow ? "text-red-600" : ""}`}
                     >
-                      <span className="font-medium">{l.fields.nome || "—"}</span>
-                      <span className="flex items-center gap-4">
-                        <a className={LINK} href={href} {...ext}>
-                          {c}
-                        </a>
-                        <span className="text-zinc-400">{when(l.createdAt)}</span>
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Fold>
+                      {kitRest ?? "—"}
+                    </span>{" "}
+                    <span className="text-sm text-zinc-500">restam de {TOTAL_KITS}</span>
+                  </p>
+                  <p className="text-sm text-zinc-500">
+                    {kitSold !== null ? `${kitSold} vendidos` : ""}
+                  </p>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-zinc-100">
+                  <div
+                    className={`h-full rounded-full ${kitLow ? "bg-red-500" : "bg-zinc-900"}`}
+                    style={{ width: `${kitPct}%` }}
+                  />
+                </div>
+                <p className="mt-3 text-xs text-zinc-500">
+                  No site: {kitFree ?? "—"} {kitFree === 1 ? "livre" : "livres"} (liberados{" "}
+                  {LOTE_KIT} neste lote) · reserva fora do site: {kitReserve}
+                  {kitHeld > 0 ? ` · ${kitHeld} em Pix aberto (reservados, ainda não pagos)` : ""}
+                </p>
+                <p className="mt-1 text-xs text-zinc-400">
+                  {`Bling: ${kitBling ?? "—"} · `}
+                  {OTHER_STOCK.map((p) => `${p.name} ${stockMap?.get(p.sku) ?? "—"}`).join(" · ")}
+                </p>
+              </div>
+            </section>
 
-          <Fold
-            title="Fora do site"
-            summary={`${manualSales.length} vendas · ${brl(manualRevenue)} · ${bonus.length} bonificações (${units(bonus)} itens) — lidas das notas do Bling`}
-          >
-            {manual?.error && (
-              <p className="px-5 pt-3 text-xs text-red-600">
-                Última conferência falhou: {manual.error}
-              </p>
-            )}
-            {(manual?.sales.length ?? 0) === 0 ? (
-              <p className="p-6 text-center text-sm text-zinc-500">
-                Nenhuma nota fora do site nos últimos 6 meses.
-              </p>
-            ) : (
-              <ul className="divide-y divide-zinc-100">
-                {manual!.sales.map((m) => (
-                  <li
-                    key={m.id}
-                    className="grid gap-2 px-5 py-3.5 text-sm md:grid-cols-[1.4fr_1.6fr_1fr_0.8fr] md:items-center md:gap-4"
+            <section>
+              <div className={`${CARD} grid grid-cols-2 divide-x divide-zinc-100 sm:grid-cols-3 xl:grid-cols-2`}>
+                <Figure label="A caminho" value={inTransit.length} />
+                <Figure label="Entregues" value={delivered.length} />
+                <div className="col-span-2 border-t border-zinc-100 sm:col-span-1 sm:border-t-0 xl:col-span-2 xl:border-t xl:border-l-0">
+                  <Figure
+                    label="Faturado"
+                    value={brl(revenue + manualRevenue)}
+                    hint={`site ${brl(revenue)} · manual ${brl(manualRevenue)}`}
+                  />
+                </div>
+              </div>
+            </section>
+          </aside>
+
+          <div className="flex min-w-0 flex-col gap-8">
+            <section className="flex flex-col gap-3">
+              <SectionHead
+                title="Pedidos"
+                aside={`${rows.length} ${rows.length === 1 ? "pedido" : "pedidos"}${q ? " na busca" : ""}`}
+              />
+              <SearchBox ver={ver} q={q} />
+              <nav
+                aria-label="Filtrar pedidos"
+                className="flex flex-wrap gap-1 self-start rounded-lg bg-zinc-100 p-1 text-sm"
+              >
+                {FILTERS.map(([key, label]) => (
+                  <Link
+                    key={key}
+                    href={href({ ver: key })}
+                    aria-current={ver === key ? "page" : undefined}
+                    className={`rounded-md px-3 py-1.5 font-medium transition-colors focus-visible:outline-2 focus-visible:outline-zinc-900 ${
+                      ver === key
+                        ? "bg-white text-zinc-900 shadow-sm"
+                        : "text-zinc-500 hover:text-zinc-900"
+                    }`}
                   >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{m.cliente || "—"}</p>
-                      <p className="text-zinc-500">
-                        {m.cidade ? `${m.cidade}/${m.uf} · ` : ""}
-                        {m.data ? when(m.data.replace(" ", "T") + "-03:00") : "—"}
-                      </p>
-                      {m.nfPara && (
-                        <p className="truncate text-xs text-zinc-400">Nota em nome de {m.nfPara}</p>
-                      )}
-                    </div>
-                    <p className="text-zinc-600">
-                      {m.itens.map((i) => `${i.quantidade}x ${i.descricao}`).join(" + ")}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge tone={m.tipo === "bonificacao" ? "amber" : "green"}>
-                        {m.tipo === "bonificacao" ? "Bonificação" : "Venda manual"}
-                      </Badge>
-                      {!NFE_OK.includes(m.situacao) && <Badge tone="zinc">Nota pendente</Badge>}
-                    </div>
-                    <div className="flex items-center justify-between gap-3 md:justify-end">
-                      {m.danfeUrl ? (
-                        <a className={`${LINK} whitespace-nowrap`} href={m.danfeUrl} {...ext}>
-                          NF {m.numero}
-                        </a>
-                      ) : (
-                        <span className="whitespace-nowrap text-zinc-500">NF {m.numero}</span>
-                      )}
-                      <span className="font-medium tabular-nums">{brl(m.totalCents)}</span>
-                    </div>
-                  </li>
+                    {label} <span className="text-zinc-400">{counts[key]}</span>
+                  </Link>
                 ))}
-              </ul>
-            )}
-          </Fold>
-        </section>
+              </nav>
+
+              {rows.length === 0 ? (
+                <Empty>{q ? "Nenhum pedido bate com a busca." : "Nada por aqui."}</Empty>
+              ) : (
+                <ul className={`${CARD} divide-y divide-zinc-100 overflow-hidden`}>
+                  {shown.map(({ order: o, f, st }) => (
+                    <li
+                      key={o.id}
+                      className={`grid gap-4 px-5 py-4 md:grid-cols-[1fr_16rem] 2xl:grid-cols-[1fr_22rem] 2xl:px-6 ${
+                        o.refundedAt ? "opacity-60" : ""
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold">{o.customer.name}</p>
+                        <p className="mt-0.5 text-sm text-zinc-700">
+                          {o.items.map((i) => `${i.qty}x ${i.name}`).join(" + ")}
+                        </p>
+                        <p className="text-sm text-zinc-500">
+                          <span className="font-medium text-zinc-900">{brl(o.totalCents)}</span> ·{" "}
+                          {o.shipping.carrier} · {when(o.paidAt)}
+                        </p>
+                        <p className="mt-2 text-sm text-zinc-500">
+                          {o.address.street}, {o.address.number}
+                          {o.address.complement ? ` (${o.address.complement})` : ""} ·{" "}
+                          {o.address.neighborhood} · {o.address.city}/{o.address.uf} · CEP{" "}
+                          {o.address.cep}
+                        </p>
+                        <p className="text-sm">
+                          <a className={LINK} href={waLink(o.customer.phone)} {...ext}>
+                            {phone(o.customer.phone)}
+                          </a>
+                        </p>
+                        {o.note && (
+                          <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                            <p className="text-xs font-medium text-amber-700">Recado do cliente</p>
+                            <p className="mt-0.5 whitespace-pre-line">{o.note}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col items-start gap-2 md:items-end">
+                        <Badge tone={st[1]}>{st[0]}</Badge>
+                        {f?.error && (
+                          <p className="text-xs text-red-600 md:text-right">{f.error}</p>
+                        )}
+                        {o.status === "paid" && !o.bling?.orderId && o.bling?.error && (
+                          <p className="text-xs text-red-600 md:text-right">
+                            Não entrou no Bling: {o.bling.error}
+                          </p>
+                        )}
+                        {o.simulated && (
+                          <p className="text-xs text-zinc-400 md:text-right">
+                            Pedido de teste (Pix simulado)
+                          </p>
+                        )}
+                        <div className="flex flex-wrap gap-2 md:justify-end">
+                          {f?.stage === "local" && (
+                            <form action={marcarEntregue}>
+                              <input type="hidden" name="id" value={o.id} />
+                              <input type="hidden" name="back" value={href({})} />
+                              <SubmitButton variant="primary" size="sm">
+                                Marcar como entregue
+                              </SubmitButton>
+                            </form>
+                          )}
+                          {f?.stage === "ready" && (
+                            <form action={marcarPostado}>
+                              <input type="hidden" name="id" value={o.id} />
+                              <input type="hidden" name="back" value={href({})} />
+                              <SubmitButton variant="secondary" size="sm">
+                                Já postei
+                              </SubmitButton>
+                            </form>
+                          )}
+                          {f?.label.printUrl && !byHand(f) && (
+                            <a
+                              className={btn(f.stage === "ready" ? "primary" : "secondary", "sm")}
+                              href={f.label.printUrl}
+                              {...ext}
+                            >
+                              Imprimir etiqueta
+                            </a>
+                          )}
+                          {f?.invoice.danfeUrl && (
+                            <a
+                              className={btn("secondary", "sm")}
+                              href={f.invoice.danfeUrl}
+                              {...ext}
+                            >
+                              Nota {f.invoice.number ?? "(DANFE)"}
+                            </a>
+                          )}
+                          {f?.label.trackingUrl && !byHand(f) && (
+                            <a
+                              className={btn("secondary", "sm")}
+                              href={f.label.trackingUrl}
+                              {...ext}
+                            >
+                              Rastrear
+                            </a>
+                          )}
+                        </div>
+                        {f?.label.meId && (f.stage === "ready" || f.stage === "posted") && (
+                          <p className="text-xs text-zinc-400 md:text-right">
+                            Melhor Envio: {ME_STATUS[f.label.status ?? ""] ?? f.label.status ?? "—"}
+                            {f.label.postedAt ? ` · postado ${when(f.label.postedAt)}` : ""}
+                            {f.label.postedByHand ? ' · "Já postei" marcado' : ""}
+                            {` · conferido ${f.label.checkedAt ? when(f.label.checkedAt) : "ainda não"}`}
+                          </p>
+                        )}
+                        <p className="text-xs text-zinc-400 md:text-right">
+                          {f?.label.tracking && !byHand(f) && (
+                            <span className="mr-2">{f.label.tracking}</span>
+                          )}
+                          {!f?.invoice.danfeUrl && f?.invoice.number && (
+                            <span className="mr-2">Nota {f.invoice.number}</span>
+                          )}
+                          <a
+                            className="font-mono hover:text-zinc-700"
+                            href={`/pedido/${o.id}/confirmado`}
+                            {...ext}
+                          >
+                            {o.id}
+                          </a>
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {pages > 1 && (
+                <nav
+                  aria-label="Páginas"
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  {cur > 1 ? (
+                    <Link href={href({ p: cur - 1 })} className={btn("secondary")}>
+                      ← Anterior
+                    </Link>
+                  ) : (
+                    <span />
+                  )}
+                  <span className="text-zinc-500">
+                    Página {cur} de {pages}
+                  </span>
+                  {cur < pages ? (
+                    <Link href={href({ p: cur + 1 })} className={btn("secondary")}>
+                      Próxima →
+                    </Link>
+                  ) : (
+                    <span />
+                  )}
+                </nav>
+              )}
+            </section>
+
+            <section className="flex flex-col gap-3">
+              <Fold
+                title="Avisar do próximo lote"
+                summary={`${waitlist.length} ${waitlist.length === 1 ? "contato" : "contatos"} na lista de espera`}
+              >
+                {waitlist.length === 0 ? (
+                  <p className="p-6 text-center text-sm text-zinc-500">Ninguém na lista ainda.</p>
+                ) : (
+                  <ul className="divide-y divide-zinc-100">
+                    {waitlist.map((l) => {
+                      const c = l.fields.contato ?? "";
+                      const href = c.includes("@") ? `mailto:${c}` : waLink(c);
+                      return (
+                        <li
+                          key={l.id}
+                          className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm"
+                        >
+                          <span className="font-medium">{l.fields.nome || "—"}</span>
+                          <span className="flex items-center gap-4">
+                            <a className={LINK} href={href} {...ext}>
+                              {c}
+                            </a>
+                            <span className="text-zinc-400">{when(l.createdAt)}</span>
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </Fold>
+
+              <Fold
+                title="Fora do site"
+                summary={`${manualSales.length} vendas · ${brl(manualRevenue)} · ${bonus.length} bonificações (${units(bonus)} itens) — lidas das notas do Bling`}
+              >
+                {manual?.error && (
+                  <p className="px-5 pt-3 text-xs text-red-600">
+                    Última conferência falhou: {manual.error}
+                  </p>
+                )}
+                {(manual?.sales.length ?? 0) === 0 ? (
+                  <p className="p-6 text-center text-sm text-zinc-500">
+                    Nenhuma nota fora do site nos últimos 6 meses.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-zinc-100">
+                    {manual!.sales.map((m) => (
+                      <li
+                        key={m.id}
+                        className="grid gap-2 px-5 py-3.5 text-sm md:grid-cols-[1.4fr_1.6fr_1fr_0.8fr] md:items-center md:gap-4"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{m.cliente || "—"}</p>
+                          <p className="text-zinc-500">
+                            {m.cidade ? `${m.cidade}/${m.uf} · ` : ""}
+                            {m.data ? when(m.data.replace(" ", "T") + "-03:00") : "—"}
+                          </p>
+                          {m.nfPara && (
+                            <p className="truncate text-xs text-zinc-400">
+                              Nota em nome de {m.nfPara}
+                            </p>
+                          )}
+                        </div>
+                        <p className="text-zinc-600">
+                          {m.itens.map((i) => `${i.quantidade}x ${i.descricao}`).join(" + ")}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge tone={m.tipo === "bonificacao" ? "amber" : "green"}>
+                            {m.tipo === "bonificacao" ? "Bonificação" : "Venda manual"}
+                          </Badge>
+                          {!NFE_OK.includes(m.situacao) && <Badge tone="zinc">Nota pendente</Badge>}
+                        </div>
+                        <div className="flex items-center justify-between gap-3 md:justify-end">
+                          {m.danfeUrl ? (
+                            <a className={`${LINK} whitespace-nowrap`} href={m.danfeUrl} {...ext}>
+                              NF {m.numero}
+                            </a>
+                          ) : (
+                            <span className="whitespace-nowrap text-zinc-500">NF {m.numero}</span>
+                          )}
+                          <span className="font-medium tabular-nums">{brl(m.totalCents)}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Fold>
+            </section>
+          </div>
+        </div>
       </main>
     </Shell>
   );
