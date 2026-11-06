@@ -40,6 +40,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
       data-lenis-prevent
       className="painel fixed inset-0 z-[500] overflow-y-auto bg-zinc-50 font-[system-ui,-apple-system,'Segoe_UI',Roboto,sans-serif] text-zinc-900 antialiased [color-scheme:light]"
     >
+      {/* Full HD pra cima: tudo um pouco maior (o painel é medido em rem). */}
+      <style>{"@media (min-width: 1600px) { html:has(.painel) { font-size: 17px } }"}</style>
       {children}
     </div>
   );
