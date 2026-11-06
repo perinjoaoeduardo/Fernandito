@@ -135,8 +135,10 @@ export const PRODUCTS: Product[] = [
     maxQty: 6,
     // Igual ao cadastro no Bling: caixa 24 × 14 × 16,5 cm, 2,5 kg.
     shipping: { weightKg: 2.5, widthCm: 24, heightCm: 16.5, lengthCm: 14 },
-    // TESTE: teto provisório até a contagem das latas.
-    stockCap: 20,
+    // Contagem de 06/11: 252 latas = 42 packs. O site libera 37 e deixa 5 de
+    // reserva. Pack que sai do site conta aqui; venda por fora não (o Bling
+    // limita junto: vale o menor). Pra liberar mais: sobe este número.
+    stockCap: 37,
     // No Bling o pack é composição de 6 latas: a baixa sai das latas.
     stockComponents: [{ sku: "FERN-350", qty: 6 }],
     active: true,
