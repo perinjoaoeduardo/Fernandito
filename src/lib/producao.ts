@@ -198,8 +198,10 @@ export const loteItemSchema = z.object({
   chegouEm: dia,
   recebido: z.number().min(0).max(1e9).nullable(),
   pagoCents: z.number().int().min(0).max(1e12).nullable(),
-  /** A chegada já entrou no estoque (movimento lançado). */
+  /** A chegada já entrou no estoque (movimento lançado; modelo antigo). */
   noEstoque: z.boolean().default(false),
+  /** Custo real do consumo (saída do estoque pelo custo médio), gravado ao concluir. */
+  custoRealCents: z.number().min(0).max(1e13).nullable().default(null),
 });
 
 export const loteSchema = z.object({
@@ -271,11 +273,57 @@ export const movimentoSchema = z.object({
   /** Saldo depois do movimento. */
   saldoQtd: z.number().min(0).max(1e9),
   saldoValorCents: z.number().min(0).max(1e13),
-  /** De onde veio ("Lote L002: chegada", "Contagem", "Pedido 4º"…). */
+  /** De onde veio ("PC-0004 · LNF", "Lote L002: consumo", "Contagem"…). */
   origem: z.string().max(80),
+  /** Documento de material (MD-00001), como no SAP. */
+  doc: z.string().max(20).default(""),
+  /** Pedido de compra da entrada (PC-0004). */
+  pc: z.string().max(20).nullable().default(null),
   /** Chave pra juntar correções do mesmo item (lote:item, compra). */
   ref: z.string().max(80).nullable(),
   obs: z.string().max(300),
+});
+
+/** Item do pedido de compra (um insumo). */
+export const pcItemSchema = z.object({
+  insumoId: z.string().max(40),
+  /** Nome e unidade no momento do pedido. */
+  insumo: z.string().max(80),
+  unidade: z.string().max(30),
+  qtd: z.number().positive().max(1e9),
+  /** Valor dos itens, sem o frete (centavos). */
+  valorCents: z.number().int().min(0).max(1e12),
+  /** Quanto já entrou (soma dos recebimentos). */
+  recebido: z.number().min(0).max(1e9).default(0),
+});
+
+/** Entrada de mercadoria (o MIGO 101): pode ser parcial. */
+export const recebimentoSchema = z.object({
+  doc: z.string().max(20),
+  data: dia,
+  itens: z.array(
+    z.object({ idx: z.number().int().min(0).max(99), qtd: z.number().min(0).max(1e9) }),
+  ),
+  obs: z.string().max(300).default(""),
+});
+
+/** Pedido de compra (o ME21N): um fornecedor, vários insumos, número próprio. */
+export const pedidoCompraSchema = z.object({
+  id: z.string().min(1).max(40),
+  numero: z.string().max(20),
+  fornecedor: z.string().trim().max(80),
+  data: dia,
+  /** Prometido pelo fornecedor. */
+  previstoEm: dia,
+  /** Frete do pedido inteiro: dividido entre os itens pelo valor. */
+  freteCents: z.number().int().min(0).max(1e12),
+  itens: z.array(pcItemSchema).min(1).max(30),
+  recebimentos: z.array(recebimentoSchema).max(60).default([]),
+  /** Encerrado sem receber o resto (o que falta não conta mais como "em pedido"). */
+  encerrado: z.boolean().default(false),
+  /** De antes do controle de estoque: recebido sem movimento (já está no saldo inicial). */
+  legado: z.boolean().default(false),
+  obs: z.string().max(300).default(""),
 });
 
 export const producaoSchema = z.object({
@@ -286,6 +334,7 @@ export const producaoSchema = z.object({
   lotes: z.array(loteSchema).max(300).default([]),
   compras: z.array(compraSchema).max(2000).default([]),
   movimentos: z.array(movimentoSchema).max(3000).default([]),
+  pedidos: z.array(pedidoCompraSchema).max(1000).default([]),
   /** Importações de dados já aplicadas (cada uma roda uma vez só). */
   importacoes: z.array(z.string().max(60)).max(50).default([]),
   atualizadoEm: z.string().optional(),
@@ -300,6 +349,8 @@ export type LoteItem = z.infer<typeof loteItemSchema>;
 export type Lote = z.infer<typeof loteSchema>;
 export type Compra = z.infer<typeof compraSchema>;
 export type Movimento = z.infer<typeof movimentoSchema>;
+export type PedidoCompra = z.infer<typeof pedidoCompraSchema>;
+export type PcItem = z.infer<typeof pcItemSchema>;
 export type ProducaoData = z.infer<typeof producaoSchema>;
 
 export const PRODUCAO_KEY = "producao:dados";
@@ -625,25 +676,31 @@ export function proximoCodigo(lotes: Lote[]) {
 }
 
 /**
- * Estoque de cada insumo já reservado pelos lotes abertos: o que o lote
- * tira do estoque + o que já chegou pra ele (até o que ele consome).
+ * Reserva dos lotes abertos (o "consumo previsto"): cada lote reserva tudo
+ * que vai consumir de cada insumo, como a reserva do SAP. Serviço não conta.
  */
 export function reservas(lotes: Lote[]) {
   const map = new Map<string, number>();
   for (const l of lotes.filter(loteAberto))
-    for (const it of l.itens) {
-      const chegou = it.noEstoque
-        ? Math.min(it.recebido ?? it.comprar, Math.max(0, it.precisa - it.doEstoque))
-        : 0;
-      map.set(it.insumoId, (map.get(it.insumoId) ?? 0) + it.doEstoque + chegou);
-    }
+    for (const it of l.itens)
+      if (it.categoria !== "Serviço")
+        map.set(it.insumoId, (map.get(it.insumoId) ?? 0) + it.precisa);
   return map;
 }
 
-/** Estoque que sobra pra um lote novo (cadastrado − reservado). */
+/**
+ * O que sobra pra um lote novo: estoque − reservado pelos lotes abertos +
+ * o que ainda vai chegar dos pedidos de compra em aberto.
+ */
 export function disponiveis(data: ProducaoData) {
   const res = reservas(data.lotes);
-  return new Map(data.insumos.map((i) => [i.id, Math.max(0, i.estoque - (res.get(i.id) ?? 0))]));
+  const ped = emPedidoPorInsumo(data);
+  return new Map(
+    data.insumos.map((i) => [
+      i.id,
+      Math.max(0, i.estoque - (res.get(i.id) ?? 0) + (ped.get(i.id) ?? 0)),
+    ]),
+  );
 }
 
 /** Congela o plano atual num lote novo. */
@@ -690,6 +747,7 @@ export function criarLote(data: ProducaoData, linhas: LinhaPlano[], id: string):
           recebido: null,
           pagoCents: null,
           noEstoque: false,
+          custoRealCents: null,
         };
       }),
     envaseEm: null,
@@ -756,7 +814,7 @@ export function totaisLote(l: Lote, hoje = hojeBR()) {
   const boasReal = l.latasBoas;
   const lataReal =
     boasReal && boasReal > 0
-      ? Math.round(soma(lata, (it) => it.precisa * unitReal(it)) / boasReal)
+      ? Math.round(soma(lata, (it) => it.custoRealCents ?? it.precisa * unitReal(it)) / boasReal)
       : null;
 
   // Produção prevista: o envase, se já tem data; senão, a última chegada dos
@@ -836,21 +894,35 @@ export function indicadores(lotes: Lote[]) {
   };
 }
 
-/** Pontualidade de cada fornecedor, pelas chegadas registradas nos lotes. */
-export function pontualidade(lotes: Lote[]) {
+/**
+ * Pontualidade de cada fornecedor (pelo nome), pelos pedidos de compra:
+ * cada recebimento comparado com a data prometida do pedido.
+ */
+export function pontualidade(data: ProducaoData) {
   const map = new Map<string, { entregas: number; noPrazo: number; atrasoTotal: number }>();
-  for (const l of lotes)
-    for (const it of l.itens) {
-      if (!it.fornecedorId || !it.chegouEm || !it.previstoEm) continue;
-      const atraso = diasEntre(it.previstoEm, it.chegouEm);
-      const p = map.get(it.fornecedorId) ?? { entregas: 0, noPrazo: 0, atrasoTotal: 0 };
+  for (const pc of data.pedidos) {
+    if (!pc.previstoEm) continue;
+    for (const r of pc.recebimentos) {
+      if (!r.data) continue;
+      const atraso = diasEntre(pc.previstoEm, r.data);
+      const k = chaveFornecedor(pc.fornecedor);
+      const p = map.get(k) ?? { entregas: 0, noPrazo: 0, atrasoTotal: 0 };
       p.entregas++;
       if (atraso <= 0) p.noPrazo++;
       p.atrasoTotal += Math.max(0, atraso);
-      map.set(it.fornecedorId, p);
+      map.set(k, p);
     }
+  }
   return map;
 }
+
+/** Chave pra juntar o mesmo fornecedor escrito de jeitos diferentes. */
+export const chaveFornecedor = (nome: string) =>
+  nome
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
 
 // ── Histórico de compras ────────────────────────────────────────────────────
 
@@ -871,59 +943,64 @@ export type LinhaCompra = {
   unitCents: number;
 };
 
-/** Compras de um insumo: as registradas + as dos lotes (com chegada ou valor pago). */
+/**
+ * Compras recebidas de um insumo (os "últimos pedidos"): cada recebimento
+ * de pedido de compra, com a parte do frete. Pedido antigo (legado) sem data
+ * de recebimento conta pela ordem.
+ */
 export function comprasDo(data: ProducaoData, insumoId: string): LinhaCompra[] {
-  const registradas: LinhaCompra[] = data.compras
-    .filter((c) => c.insumoId === insumoId && c.status !== "pedido")
-    .map((c) => ({
-      id: c.id,
-      lote: null,
-      pedido: c.pedido,
-      data: c.data,
-      ordem: c.ordem,
-      fornecedorId: c.fornecedorId,
-      fornecedor: c.fornecedor,
-      quantidade: c.quantidade,
-      totalCents: c.valorCents + c.freteCents,
-      freteCents: c.freteCents,
-      unitCents: (c.valorCents + c.freteCents) / c.quantidade,
-    }));
-  const deLotes: LinhaCompra[] = data.lotes
-    .filter((l) => l.etapa !== "cancelado")
-    .flatMap((l) =>
-      l.itens
-        .filter(
-          (it) =>
-            it.insumoId === insumoId &&
-            it.categoria !== "Serviço" &&
-            it.comprar > 0 &&
-            (it.chegouEm || it.pagoCents !== null),
-        )
-        .map((it) => {
-          const quantidade = it.recebido ?? it.comprar;
-          const totalCents = it.pagoCents ?? it.desembolsoCents;
-          return {
-            id: `${l.id}:${it.insumoId}`,
-            lote: l.codigo,
-            pedido: `Lote ${l.codigo}`,
-            data: it.chegouEm ?? it.pedidoEm,
-            ordem: 1e6,
-            fornecedorId: it.fornecedorId,
-            fornecedor: it.fornecedor,
-            quantidade,
-            totalCents,
-            freteCents: null,
-            unitCents: quantidade > 0 ? totalCents / quantidade : 0,
-          };
-        }),
-    );
-  // Registradas na ordem do pedido (ou por data, se as duas têm); as dos
-  // lotes depois, por data.
-  return [...registradas, ...deLotes].sort((a, b) => {
-    if (a.data && b.data) return a.data.localeCompare(b.data) || a.ordem - b.ordem;
-    if (!a.lote && !b.lote) return a.ordem - b.ordem;
-    return (a.lote ? 1 : 0) - (b.lote ? 1 : 0);
+  const linhas: LinhaCompra[] = [];
+  data.pedidos.forEach((pc, ordem) => {
+    pc.itens.forEach((it, idx) => {
+      if (it.insumoId !== insumoId) return;
+      const unit = unitPedido(pc, idx);
+      for (const r of pc.recebimentos)
+        for (const x of r.itens.filter((y) => y.idx === idx && y.qtd > 0)) {
+          const total = Math.round(unit * x.qtd);
+          linhas.push({
+            id: `${pc.id}:${idx}:${r.doc}`,
+            lote: null,
+            pedido: pc.numero,
+            data: r.data ?? pc.data,
+            ordem,
+            fornecedorId: null,
+            fornecedor: pc.fornecedor,
+            quantidade: x.qtd,
+            totalCents: total,
+            freteCents: Math.round(fretePorUnidade(pc, idx) * x.qtd),
+            unitCents: unit,
+          });
+        }
+    });
   });
+  // Lotes antigos (antes dos pedidos de compra) com compra registrada no próprio lote.
+  for (const l of data.lotes.filter((x) => x.etapa !== "cancelado"))
+    for (const it of l.itens)
+      if (
+        it.insumoId === insumoId &&
+        it.categoria !== "Serviço" &&
+        it.comprar > 0 &&
+        it.pagoCents !== null &&
+        l.historico
+      ) {
+        const q = it.recebido ?? it.comprar;
+        linhas.push({
+          id: `${l.id}:${it.insumoId}`,
+          lote: l.codigo,
+          pedido: `Lote ${l.codigo}`,
+          data: it.chegouEm ?? it.pedidoEm,
+          ordem: -1,
+          fornecedorId: it.fornecedorId,
+          fornecedor: it.fornecedor,
+          quantidade: q,
+          totalCents: it.pagoCents,
+          freteCents: null,
+          unitCents: q > 0 ? it.pagoCents / q : 0,
+        });
+      }
+  return linhas.sort((a, b) =>
+    a.data && b.data ? a.data.localeCompare(b.data) || a.ordem - b.ordem : a.ordem - b.ordem,
+  );
 }
 
 /** Custo médio (com frete) de tudo que já foi comprado do insumo. */
@@ -1412,6 +1489,7 @@ export function importarCustosLote1(data: ProducaoData): ProducaoData | null {
     recebido: null,
     pagoCents: null,
     noEstoque: false,
+    custoRealCents: null,
     ...x,
   });
   const refriPct = data.receita.refriPct || 80;
@@ -1557,6 +1635,7 @@ export function aplicarImportacoes(data: ProducaoData): ProducaoData | null {
     importarLote1,
     importarCustosLote1,
     importarSobraFernetLote1,
+    migrarParaPedidos,
     implantarEstoque,
     receberFernetPendente,
   ]) {
@@ -1589,7 +1668,7 @@ export function custoMedioMovel(i: Insumo) {
 /** Preço de referência: custo médio, senão a última entrada, senão a cotação principal. */
 export function precoReferencia(data: ProducaoData, i: Insumo) {
   const cm = custoMedioMovel(i);
-  if (cm !== null) return cm;
+  if (cm !== null && cm > 0) return cm;
   const ultima = [...data.movimentos]
     .reverse()
     .find((m) => m.insumoId === i.id && m.qtd > 0 && m.valorCents > 0);
@@ -1611,7 +1690,17 @@ export type NovoMovimento = {
   ref?: string | null;
   mesclar?: boolean;
   obs?: string;
+  /** Documento de material (o mesmo pra todas as linhas de um recebimento). */
+  doc?: string;
+  /** Pedido de compra da entrada. */
+  pc?: string | null;
 };
+
+/** Próximo documento de material: MD-00001, MD-00002… */
+export function proximoDoc(data: ProducaoData) {
+  const n = Math.max(0, ...data.movimentos.map((m) => Number(/^MD-(\d+)$/.exec(m.doc)?.[1] ?? 0)));
+  return `MD-${String(n + 1).padStart(5, "0")}`;
+}
 
 /** Lança um movimento e atualiza estoque e valor do insumo. Serviço não tem estoque. */
 export function movimentar(data: ProducaoData, m: NovoMovimento): ProducaoData {
@@ -1678,6 +1767,8 @@ export function movimentar(data: ProducaoData, m: NovoMovimento): ProducaoData {
     saldoQtd: r3(novoQtd),
     saldoValorCents: Math.round(novoValor),
     origem: m.origem.slice(0, 80),
+    doc: m.doc ?? proximoDoc(data),
+    pc: m.pc ?? null,
     ref: m.ref ?? null,
     obs: `${m.obs ?? ""}${faltou}`.trim().slice(0, 300),
   };
@@ -1727,280 +1818,112 @@ export function contagem(
   });
 }
 
-const qtdChegou = (it: LoteItem) => it.recebido ?? it.comprar;
-const valorChegou = (it: LoteItem) => it.pagoCents ?? it.desembolsoCents;
-
 /**
- * Muda um insumo do lote e acerta o estoque: marcou a chegada → entrada;
- * tirou a chegada → estorno; mudou quantidade ou valor depois de chegar →
- * correção (juntada numa só por item e dia).
- */
-export function atualizarItemLote(
-  data: ProducaoData,
-  loteId: string,
-  k: number,
-  patch: Partial<LoteItem>,
-): ProducaoData {
-  const l = data.lotes.find((x) => x.id === loteId);
-  const velho = l?.itens[k];
-  if (!l || !velho) return data;
-  let novo: LoteItem = { ...velho, ...patch };
-  let d = data;
-  const ref = `${l.id}:${velho.insumoId}`;
-  const servico = velho.categoria === "Serviço";
-  if (!servico && novo.comprar > 0) {
-    if (!velho.noEstoque && novo.chegouEm) {
-      d = movimentar(d, {
-        insumoId: novo.insumoId,
-        tipo: "entrada",
-        qtd: qtdChegou(novo),
-        valorCents: valorChegou(novo),
-        data: novo.chegouEm,
-        origem: `Lote ${l.codigo}: chegada (${novo.fornecedor || "fornecedor"})`,
-        ref,
-      });
-      novo = { ...novo, noEstoque: true };
-    } else if (velho.noEstoque && !novo.chegouEm) {
-      d = movimentar(d, {
-        insumoId: novo.insumoId,
-        tipo: "ajuste",
-        qtd: -qtdChegou(velho),
-        valorCents: -valorChegou(velho),
-        origem: `Lote ${l.codigo}: chegada desfeita`,
-        ref,
-      });
-      novo = { ...novo, noEstoque: false };
-    } else if (velho.noEstoque) {
-      const dq = qtdChegou(novo) - qtdChegou(velho);
-      const dv = valorChegou(novo) - valorChegou(velho);
-      if (dq || dv)
-        d = movimentar(d, {
-          insumoId: novo.insumoId,
-          tipo: "ajuste",
-          qtd: dq,
-          valorCents: dv,
-          origem: `Lote ${l.codigo}: correção da chegada`,
-          ref,
-          mesclar: true,
-        });
-    }
-  }
-  return {
-    ...d,
-    lotes: d.lotes.map((x) =>
-      x.id === l.id ? { ...x, itens: x.itens.map((it, j) => (j === k ? novo : it)) } : x,
-    ),
-  };
-}
-
-/**
- * Concluir o lote: o que ainda não tinha entrado entra (chegada na
- * conclusão) e sai o consumo do lote. Recebe o lote já com etapa e datas.
+ * Concluir o lote: sai do estoque o consumo de cada insumo (pelo custo
+ * médio, o "261" do SAP), e o custo real fica gravado no item. Serviço não
+ * tem estoque: o custo é o pago (ou o previsto). Recebe o lote já com
+ * etapa e datas.
  */
 export function baixarLote(data: ProducaoData, l: Lote): ProducaoData {
   let d = data;
-  const dia = l.prontoEm ?? hojeBR();
+  const dia = l.envaseEm ?? l.prontoEm ?? hojeBR();
+  const doc = proximoDoc(d);
   const itens = l.itens.map((it) => {
-    if (it.categoria === "Serviço") return it;
-    let x = it;
-    if (it.comprar > 0 && !it.noEstoque) {
-      d = movimentar(d, {
-        insumoId: it.insumoId,
-        tipo: "entrada",
-        qtd: qtdChegou(it),
-        valorCents: valorChegou(it),
-        data: it.chegouEm ?? dia,
-        origem: `Lote ${l.codigo}: chegada`,
-        ref: `${l.id}:${it.insumoId}`,
-      });
-      x = { ...x, noEstoque: true };
-    }
-    if (it.precisa > 0)
-      d = movimentar(d, {
-        insumoId: it.insumoId,
-        tipo: "saida",
-        qtd: it.precisa,
-        data: l.envaseEm ?? dia,
-        origem: `Lote ${l.codigo}: consumo`,
-        ref: `${l.id}:${it.insumoId}:consumo`,
-      });
-    return x;
+    if (it.categoria === "Serviço")
+      return { ...it, custoRealCents: it.pagoCents ?? it.desembolsoCents };
+    if (it.precisa <= 0) return { ...it, custoRealCents: 0 };
+    const insumo = d.insumos.find((x) => x.id === it.insumoId);
+    // O que o estoque não cobria também foi usado: vale o preço de referência.
+    const faltou = insumo ? Math.max(0, it.precisa - insumo.estoque) : 0;
+    const custoFalta = insumo && faltou > 0 ? faltou * precoReferencia(d, insumo) : 0;
+    const antes = d.movimentos.length;
+    d = movimentar(d, {
+      insumoId: it.insumoId,
+      tipo: "saida",
+      qtd: it.precisa,
+      data: dia,
+      origem: `Lote ${l.codigo}: consumo`,
+      ref: `${l.id}:${it.insumoId}:consumo`,
+      doc,
+    });
+    const mov = d.movimentos.length > antes ? d.movimentos[d.movimentos.length - 1] : null;
+    return { ...it, custoRealCents: Math.round((mov ? -mov.valorCents : 0) + custoFalta) };
   });
   return { ...d, lotes: d.lotes.map((x) => (x.id === l.id ? { ...l, itens } : x)) };
 }
 
-/** Cancelar: o que já chegou fica no estoque (só libera a reserva). */
+/** Cancelar: só libera a reserva (compras são dos pedidos, não do lote). */
 export function cancelarLote(data: ProducaoData, l: Lote): ProducaoData {
-  let d = data;
-  const itens = l.itens.map((it) => {
-    if (it.categoria === "Serviço" || it.comprar <= 0 || it.noEstoque || !it.chegouEm) return it;
-    d = movimentar(d, {
-      insumoId: it.insumoId,
-      tipo: "entrada",
-      qtd: qtdChegou(it),
-      valorCents: valorChegou(it),
-      data: it.chegouEm,
-      origem: `Lote ${l.codigo}: chegada (lote cancelado)`,
-      ref: `${l.id}:${it.insumoId}`,
-    });
-    return { ...it, noEstoque: true };
-  });
   return {
-    ...d,
-    lotes: d.lotes.map((x) => (x.id === l.id ? { ...l, etapa: "cancelado" as const, itens } : x)),
+    ...data,
+    lotes: data.lotes.map((x) => (x.id === l.id ? { ...l, etapa: "cancelado" as const } : x)),
   };
-}
-
-const totalCompra = (c: Compra) => c.valorCents + c.freteCents;
-
-/**
- * Salva um pedido avulso: recebido (novo, ou que estava em aberto) → entrada;
- * voltou pra "pedido" → estorno; mudou quantidade/valor depois de entrar →
- * correção. Compras antigas (antes do controle) não mexem no estoque.
- */
-export function salvarCompra(data: ProducaoData, c: Compra): ProducaoData {
-  const antes = data.compras.find((x) => x.id === c.id);
-  let d = data;
-  let novo = c;
-  const origem = `Pedido ${c.pedido || "avulso"} (${c.fornecedor || "fornecedor"})`;
-  if (c.status === "recebido" && !antes?.noEstoque && (!antes || antes.status === "pedido")) {
-    d = movimentar(d, {
-      insumoId: c.insumoId,
-      tipo: "entrada",
-      qtd: c.quantidade,
-      valorCents: totalCompra(c),
-      data: c.data ?? hojeBR(),
-      origem,
-      ref: `compra:${c.id}`,
-    });
-    novo = { ...c, noEstoque: true };
-  } else if (c.status === "pedido" && antes?.noEstoque) {
-    d = movimentar(d, {
-      insumoId: c.insumoId,
-      tipo: "ajuste",
-      qtd: -antes.quantidade,
-      valorCents: -totalCompra(antes),
-      origem: `${origem}: recebimento desfeito`,
-      ref: `compra:${c.id}`,
-    });
-    novo = { ...c, noEstoque: false };
-  } else if (antes?.noEstoque) {
-    const dq = c.quantidade - antes.quantidade;
-    const dv = totalCompra(c) - totalCompra(antes);
-    if (dq || dv)
-      d = movimentar(d, {
-        insumoId: c.insumoId,
-        tipo: "ajuste",
-        qtd: dq,
-        valorCents: dv,
-        origem: `${origem}: correção`,
-        ref: `compra:${c.id}`,
-        mesclar: true,
-      });
-    novo = { ...c, noEstoque: true };
-  }
-  return {
-    ...d,
-    compras: antes ? d.compras.map((x) => (x.id === c.id ? novo : x)) : [...d.compras, novo],
-  };
-}
-
-/** Exclui um pedido avulso; se já tinha entrado no estoque, estorna. */
-export function excluirCompra(data: ProducaoData, id: string): ProducaoData {
-  const c = data.compras.find((x) => x.id === id);
-  if (!c) return data;
-  let d = data;
-  if (c.noEstoque)
-    d = movimentar(d, {
-      insumoId: c.insumoId,
-      tipo: "ajuste",
-      qtd: -c.quantidade,
-      valorCents: -totalCompra(c),
-      origem: `Pedido ${c.pedido || "avulso"} excluído`,
-      ref: `compra:${c.id}`,
-    });
-  return { ...d, compras: d.compras.filter((x) => x.id !== id) };
 }
 
 export type PedidoAberto = {
   id: string;
-  origem: "avulso" | "lote";
-  rotulo: string;
+  pcId: string;
+  numero: string;
   fornecedor: string;
+  /** O que falta receber. */
   qtd: number;
   valorCents: number;
   pedidoEm: string | null;
   previstoEm: string | null;
-  /** Lote planejado: ainda não pedido (com o "pedir até"). */
-  aPedir?: boolean;
-  compraId?: string;
 };
 
-/** Pedidos em aberto de um insumo: avulsos, de lotes já pedidos e de lotes planejados (a pedir). */
+/** Itens de pedidos de compra ainda a receber, de um insumo (o mais cedo primeiro). */
 export function pedidosAbertos(data: ProducaoData, insumoId: string): PedidoAberto[] {
-  const avulsos: PedidoAberto[] = data.compras
-    .filter((c) => c.insumoId === insumoId && c.status === "pedido")
-    .map((c) => ({
-      id: `compra:${c.id}`,
-      compraId: c.id,
-      origem: "avulso",
-      rotulo: c.pedido || "Pedido avulso",
-      fornecedor: c.fornecedor,
-      qtd: c.quantidade,
-      valorCents: totalCompra(c),
-      pedidoEm: c.data,
-      previstoEm: c.previstoEm,
-    }));
-  const deLotes: PedidoAberto[] = data.lotes.filter(loteAberto).flatMap((l) => {
-    const t = totaisLote(l);
-    return l.itens
-      .filter(
-        (it) =>
-          it.insumoId === insumoId &&
-          it.categoria !== "Serviço" &&
-          it.comprar > 0 &&
-          !it.chegouEm &&
-          !it.noEstoque,
-      )
-      .map((it) => ({
-        id: `${l.id}:${it.insumoId}`,
-        origem: "lote" as const,
-        rotulo: `Lote ${l.codigo}`,
-        fornecedor: it.fornecedor,
-        qtd: it.comprar,
-        valorCents: it.desembolsoCents,
-        pedidoEm: it.pedidoEm,
-        previstoEm: it.pedidoEm
-          ? (it.previstoEm ?? somarDias(it.pedidoEm, it.prazoDias))
-          : somarDias(t.meta, -it.prazoDias),
-        aPedir: !it.pedidoEm,
-      }));
-  });
-  return [...avulsos, ...deLotes].sort((a, b) =>
-    (a.previstoEm ?? "9999").localeCompare(b.previstoEm ?? "9999"),
-  );
+  return data.pedidos
+    .filter((pc) => !pc.encerrado)
+    .flatMap((pc) =>
+      pc.itens
+        .map((it, idx) => ({ it, idx }))
+        .filter(({ it }) => it.insumoId === insumoId && restante(it) > 0)
+        .map(({ it, idx }) => ({
+          id: `${pc.id}:${idx}`,
+          pcId: pc.id,
+          numero: pc.numero,
+          fornecedor: pc.fornecedor,
+          qtd: restante(it),
+          valorCents: Math.round(unitPedido(pc, idx) * restante(it)),
+          pedidoEm: pc.data,
+          previstoEm: pc.previstoEm,
+        })),
+    )
+    .sort((a, b) => (a.previstoEm ?? "9999").localeCompare(b.previstoEm ?? "9999"));
 }
 
-export type SituacaoEstoque = "ok" | "abaixo" | "sem" | "atrasado";
+export type SituacaoEstoque = "ok" | "abaixo" | "falta" | "sem" | "atrasado";
 
-/** A posição de um insumo (o MMBE): estoque, reservado, livre, em pedido, projetado, valor. */
+/**
+ * A posição de um insumo (o MMBE + MD04 do SAP): estoque, reservado pelos
+ * lotes, em pedido, projetado e a sugestão de compra (respeitando o mínimo
+ * e o múltiplo do fornecedor principal).
+ */
 export function posicao(data: ProducaoData, i: Insumo, hoje = hojeBR()) {
-  const reservado = Math.min(i.estoque, reservas(data.lotes).get(i.id) ?? 0);
+  const reservado = reservas(data.lotes).get(i.id) ?? 0;
   const abertos = pedidosAbertos(data, i.id);
-  const pedidos = abertos.filter((p) => !p.aPedir);
-  const emPedido = pedidos.reduce((n, p) => n + p.qtd, 0);
-  const proxima = pedidos.find((p) => p.previstoEm)?.previstoEm ?? null;
-  const atrasado = pedidos.some((p) => p.previstoEm && p.previstoEm < hoje);
+  const emPedido = abertos.reduce((n, p) => n + p.qtd, 0);
+  const proxima = abertos.find((p) => p.previstoEm)?.previstoEm ?? null;
+  const atrasado = abertos.some((p) => p.previstoEm && p.previstoEm < hoje);
   const projetado = i.estoque - reservado + emPedido;
+  // Comprar: o que falta pros lotes + pra voltar ao mínimo.
+  const falta = Math.max(0, i.estoqueMinimo - projetado, -projetado);
+  const principal = principalDe(i);
+  const sugestao =
+    falta > 0 ? (principal ? cotar(principal, falta, compraInteira(i.unidade)) : null) : null;
   const ultimas = comprasDo(data, i.id);
   const ultimo = ultimas[ultimas.length - 1] ?? null;
   const situacao: SituacaoEstoque = atrasado
     ? "atrasado"
-    : i.estoque <= 0 && emPedido <= 0
-      ? "sem"
+    : projetado < 0
+      ? "falta"
       : i.estoqueMinimo > 0 && projetado < i.estoqueMinimo
         ? "abaixo"
-        : "ok";
+        : i.estoque <= 0 && emPedido <= 0
+          ? "sem"
+          : "ok";
   return {
     estoque: i.estoque,
     reservado,
@@ -2009,6 +1932,10 @@ export function posicao(data: ProducaoData, i: Insumo, hoje = hojeBR()) {
     proxima,
     atrasado,
     projetado,
+    falta,
+    sugestao: sugestao ? sugestao.comprar : falta > 0 ? falta : 0,
+    sugestaoValorCents: sugestao?.totalCents ?? null,
+    fornecedorSugerido: principal?.nome ?? null,
     valorCents: i.valorEstoqueCents,
     custoMedio: custoMedioMovel(i),
     ultimoPreco: ultimo?.unitCents ?? null,
@@ -2016,6 +1943,225 @@ export function posicao(data: ProducaoData, i: Insumo, hoje = hojeBR()) {
     situacao,
     abertos,
   };
+}
+
+// ── Pedidos de compra (como no SAP: ME21N / MIGO / ME2N) ────────────────────
+
+/** Próximo número de pedido: PC-0001, PC-0002… (um só pra todos os insumos). */
+export function proximoPC(data: ProducaoData) {
+  const n = Math.max(0, ...data.pedidos.map((p) => Number(/^PC-(\d+)$/.exec(p.numero)?.[1] ?? 0)));
+  return `PC-${String(n + 1).padStart(4, "0")}`;
+}
+
+/** O que falta receber de um item. */
+export const restante = (it: PcItem) => Math.max(0, it.qtd - it.recebido);
+
+/** Frete por unidade do item (o frete do pedido dividido pelo valor dos itens). */
+export function fretePorUnidade(pc: PedidoCompra, idx: number) {
+  const total = pc.itens.reduce((n, x) => n + x.valorCents, 0);
+  const it = pc.itens[idx];
+  if (!it || it.qtd <= 0) return 0;
+  const parte =
+    total > 0 ? (pc.freteCents * it.valorCents) / total : pc.freteCents / pc.itens.length;
+  return parte / it.qtd;
+}
+
+/** Custo de cada unidade do item, com a parte do frete. */
+export function unitPedido(pc: PedidoCompra, idx: number) {
+  const it = pc.itens[idx];
+  if (!it || it.qtd <= 0) return 0;
+  return it.valorCents / it.qtd + fretePorUnidade(pc, idx);
+}
+
+export type SituacaoPedido = "aberto" | "parcial" | "recebido" | "encerrado" | "atrasado";
+
+export function situacaoPedido(pc: PedidoCompra, hoje = hojeBR()): SituacaoPedido {
+  const falta = pc.itens.some((it) => restante(it) > 0);
+  if (!falta) return "recebido";
+  if (pc.encerrado) return "encerrado";
+  if (pc.previstoEm && pc.previstoEm < hoje) return "atrasado";
+  return pc.itens.some((it) => it.recebido > 0) ? "parcial" : "aberto";
+}
+
+/** Total do pedido (itens + frete). */
+export const totalPedido = (pc: PedidoCompra) =>
+  pc.itens.reduce((n, it) => n + it.valorCents, 0) + pc.freteCents;
+
+/** Quanto de cada insumo ainda vai chegar dos pedidos em aberto. */
+export function emPedidoPorInsumo(data: ProducaoData) {
+  const map = new Map<string, number>();
+  for (const pc of data.pedidos)
+    if (!pc.encerrado)
+      for (const it of pc.itens) map.set(it.insumoId, (map.get(it.insumoId) ?? 0) + restante(it));
+  return map;
+}
+
+/**
+ * Cria ou altera um pedido de compra (cabeçalho e itens). Pedido novo ganha
+ * o número. Item já recebido não pode ficar com menos que o recebido.
+ */
+export function salvarPedido(data: ProducaoData, pc: PedidoCompra): ProducaoData {
+  const antes = data.pedidos.find((x) => x.id === pc.id);
+  const itens = pc.itens.map((it) => {
+    const insumo = data.insumos.find((i) => i.id === it.insumoId);
+    return {
+      ...it,
+      insumo: insumo?.insumo ?? it.insumo,
+      unidade: insumo?.unidade ?? it.unidade,
+      qtd: Math.max(it.qtd, it.recebido),
+    };
+  });
+  const novo = { ...pc, itens, numero: antes?.numero ?? (pc.numero || proximoPC(data)) };
+  return {
+    ...data,
+    pedidos: antes ? data.pedidos.map((x) => (x.id === pc.id ? novo : x)) : [...data.pedidos, novo],
+  };
+}
+
+/**
+ * Entrada de mercadoria (MIGO 101): lança o que chegou de cada item,
+ * entra no estoque pelo custo do pedido (com a parte do frete) e gera um
+ * documento de material pro recebimento todo.
+ */
+export function receberPedido(
+  data: ProducaoData,
+  pcId: string,
+  dia: string,
+  linhas: { idx: number; qtd: number }[],
+  obs = "",
+): ProducaoData {
+  const pc = data.pedidos.find((x) => x.id === pcId);
+  const validas = linhas.filter((l) => l.qtd > 0 && pc?.itens[l.idx]);
+  if (!pc || !validas.length) return data;
+  const doc = proximoDoc(data);
+  let d = data;
+  for (const l of validas) {
+    const it = pc.itens[l.idx];
+    d = movimentar(d, {
+      insumoId: it.insumoId,
+      tipo: "entrada",
+      qtd: l.qtd,
+      valorCents: Math.round(unitPedido(pc, l.idx) * l.qtd),
+      data: dia,
+      origem: `${pc.numero} · ${pc.fornecedor || "fornecedor"}`,
+      ref: `${pc.id}:${l.idx}`,
+      doc,
+      pc: pc.numero,
+    });
+  }
+  const novo: PedidoCompra = {
+    ...pc,
+    itens: pc.itens.map((it, idx) => ({
+      ...it,
+      recebido: it.recebido + validas.filter((l) => l.idx === idx).reduce((n, l) => n + l.qtd, 0),
+    })),
+    recebimentos: [...pc.recebimentos, { doc, data: dia, itens: validas, obs }],
+  };
+  return { ...d, pedidos: d.pedidos.map((x) => (x.id === pc.id ? novo : x)) };
+}
+
+/** Estorno de um recebimento (o 102): sai do estoque o que ele pôs. */
+export function estornarRecebimento(data: ProducaoData, pcId: string, doc: string): ProducaoData {
+  const pc = data.pedidos.find((x) => x.id === pcId);
+  const r = pc?.recebimentos.find((x) => x.doc === doc);
+  if (!pc || !r) return data;
+  let d = data;
+  const novoDoc = proximoDoc(d);
+  if (!pc.legado)
+    for (const l of r.itens) {
+      const it = pc.itens[l.idx];
+      if (!it || l.qtd <= 0) continue;
+      d = movimentar(d, {
+        insumoId: it.insumoId,
+        tipo: "ajuste",
+        qtd: -l.qtd,
+        valorCents: -Math.round(unitPedido(pc, l.idx) * l.qtd),
+        origem: `${pc.numero}: estorno da entrada ${doc}`,
+        ref: `${pc.id}:${l.idx}`,
+        doc: novoDoc,
+        pc: pc.numero,
+      });
+    }
+  const novo: PedidoCompra = {
+    ...pc,
+    itens: pc.itens.map((it, idx) => ({
+      ...it,
+      recebido: Math.max(
+        0,
+        it.recebido - r.itens.filter((l) => l.idx === idx).reduce((n, l) => n + l.qtd, 0),
+      ),
+    })),
+    recebimentos: pc.recebimentos.filter((x) => x.doc !== doc),
+  };
+  return { ...d, pedidos: d.pedidos.map((x) => (x.id === pc.id ? novo : x)) };
+}
+
+/** Exclui um pedido sem recebimento. */
+export function excluirPedido(data: ProducaoData, pcId: string): ProducaoData {
+  const pc = data.pedidos.find((x) => x.id === pcId);
+  if (!pc || pc.recebimentos.length) return data;
+  return { ...data, pedidos: data.pedidos.filter((x) => x.id !== pcId) };
+}
+
+// ── Cobertura dos lotes (o MRP: necessidade × estoque × pedidos) ───────────
+
+export type CoberturaItem = {
+  /** Sai do estoque que já está aqui. */
+  doEstoque: number;
+  /** Vem de pedidos em aberto. */
+  dePedidos: number;
+  /** Pedidos usados e a chegada do último. */
+  pcs: string[];
+  chegaEm: string | null;
+  /** Falta comprar (sem pedido). */
+  falta: number;
+};
+
+/**
+ * Distribui estoque e pedidos em aberto entre os lotes abertos, na ordem
+ * da data de produção: o primeiro lote pega o estoque, depois os pedidos
+ * pela data de chegada. O que não cobre é o que falta comprar.
+ */
+export function coberturaLotes(data: ProducaoData, hoje = hojeBR()) {
+  const res = new Map<string, Map<string, CoberturaItem>>();
+  const abertos = data.lotes
+    .filter(loteAberto)
+    .map((l) => ({ l, meta: totaisLote(l, hoje).meta }))
+    .sort(
+      (a, b) =>
+        a.meta.localeCompare(b.meta) ||
+        a.l.codigo.localeCompare(b.l.codigo, undefined, { numeric: true }),
+    );
+  for (const i of data.insumos) {
+    if (i.categoria === "Serviço") continue;
+    let estoque = i.estoque;
+    const pedidos = pedidosAbertos(data, i.id).map((p) => ({ ...p }));
+    for (const { l } of abertos) {
+      for (const it of l.itens.filter((x) => x.insumoId === i.id && x.categoria !== "Serviço")) {
+        let precisa = it.precisa;
+        const doEstoque = Math.min(estoque, precisa);
+        estoque -= doEstoque;
+        precisa -= doEstoque;
+        let dePedidos = 0;
+        const pcs: string[] = [];
+        let chegaEm: string | null = null;
+        for (const p of pedidos) {
+          if (precisa <= 1e-9) break;
+          if (p.qtd <= 0) continue;
+          const usa = Math.min(p.qtd, precisa);
+          p.qtd -= usa;
+          precisa -= usa;
+          dePedidos += usa;
+          if (!pcs.includes(p.numero)) pcs.push(p.numero);
+          if (p.previstoEm && (!chegaEm || p.previstoEm > chegaEm)) chegaEm = p.previstoEm;
+        }
+        const m = res.get(l.id) ?? new Map<string, CoberturaItem>();
+        m.set(it.insumoId, { doEstoque, dePedidos, pcs, chegaEm, falta: Math.max(0, precisa) });
+        res.set(l.id, m);
+      }
+    }
+  }
+  return res;
 }
 
 const IMPORT_ESTOQUE = "estoque-implantacao-2026-11";
@@ -2044,6 +2190,8 @@ export function implantarEstoque(data: ProducaoData): ProducaoData | null {
       saldoQtd: i.estoque,
       saldoValorCents: valor,
       origem: "Implantação do controle de estoque",
+      doc: "",
+      pc: null,
       ref: null,
       obs: media !== null ? "Valor pelo custo médio das compras" : "Valor pela cotação principal",
     });
@@ -2061,29 +2209,160 @@ const IMPORT_FERNET_ENTREGUE = "fernet-pedidos-entregues-2026-11";
 
 /**
  * Todo fernet que estava "a receber" já foi entregue (avisado pela equipe):
- * pedidos avulsos viram recebidos e insumos de lotes já pedidos ganham a
- * chegada — os dois entram no estoque pelo valor do pedido. Data: a
- * prometida, se já passou; senão, hoje.
+ * os itens de fernet dos pedidos de compra em aberto recebem o que falta.
+ * Data: a prometida, se já passou; senão, hoje.
  */
 export function receberFernetPendente(data: ProducaoData): ProducaoData | null {
   if (data.importacoes.includes(IMPORT_FERNET_ENTREGUE)) return null;
   const hoje = hojeBR();
-  const quando = (previsto: string | null) => (previsto && previsto <= hoje ? previsto : hoje);
-  const fernet = data.insumos.filter((i) => /fernet/.test(semAcento(i.insumo)));
+  const fernet = new Set(
+    data.insumos.filter((i) => /fernet/.test(semAcento(i.insumo))).map((i) => i.id),
+  );
   let d = { ...data, importacoes: [...data.importacoes, IMPORT_FERNET_ENTREGUE] };
-  for (const f of fernet) {
-    for (const c of d.compras.filter((x) => x.insumoId === f.id && x.status === "pedido"))
-      d = salvarCompra(d, { ...c, status: "recebido", data: quando(c.previstoEm) });
-    for (const l of d.lotes.filter(loteAberto))
-      l.itens.forEach((it, k) => {
-        if (it.insumoId === f.id && it.comprar > 0 && it.pedidoEm && !it.chegouEm && !it.noEstoque)
-          d = atualizarItemLote(d, l.id, k, {
-            chegouEm: quando(it.previstoEm),
-            recebido: it.recebido ?? it.comprar,
-          });
-      });
+  for (const pc of d.pedidos.filter((x) => !x.encerrado && !x.legado)) {
+    const linhas = pc.itens
+      .map((it, idx) => ({ idx, qtd: fernet.has(it.insumoId) ? restante(it) : 0 }))
+      .filter((l) => l.qtd > 0);
+    if (linhas.length)
+      d = receberPedido(
+        d,
+        pc.id,
+        pc.previstoEm && pc.previstoEm <= hoje ? pc.previstoEm : hoje,
+        linhas,
+        "Entregue (confirmado pela equipe)",
+      );
   }
   return d;
+}
+
+const IMPORT_PEDIDOS = "compras-viram-pedidos-2026-11";
+
+/**
+ * Passa as compras pro modelo de pedidos de compra (PC-0001…):
+ * - compras registradas: as do mesmo pedido (nome, fornecedor, ordem/data)
+ *   viram um pedido com vários itens e o frete somado. Recebidas antes do
+ *   controle de estoque = legado (sem movimento); recebidas depois já têm
+ *   o movimento (só ganham o número). A receber = pedido em aberto.
+ * - insumos de lotes abertos já pedidos e ainda não chegados viram pedidos
+ *   em aberto (um por lote e fornecedor); os lotes voltam a ser só
+ *   necessidade (etapa "planejado").
+ * - movimentos ganham número de documento (MD-00001…) e o nº do pedido.
+ */
+export function migrarParaPedidos(data: ProducaoData): ProducaoData | null {
+  if (data.importacoes.includes(IMPORT_PEDIDOS)) return null;
+  const grupos = new Map<string, Compra[]>();
+  // Antigas (de antes do controle de estoque) primeiro: os pedidos da LNF são PC-0001 a PC-0003.
+  const antiga = (c: Compra) => (c.status === "recebido" && !c.noEstoque ? 0 : 1);
+  const ordenadas = [...data.compras].sort(
+    (a, b) =>
+      antiga(a) - antiga(b) || a.ordem - b.ordem || (a.data ?? "").localeCompare(b.data ?? ""),
+  );
+  for (const c of ordenadas) {
+    const k = [c.pedido, chaveFornecedor(c.fornecedor), c.ordem, c.data ?? "", c.status].join("|");
+    grupos.set(k, [...(grupos.get(k) ?? []), c]);
+  }
+  let n = Math.max(0, ...data.pedidos.map((p) => Number(/^PC-(\d+)$/.exec(p.numero)?.[1] ?? 0)));
+  const num = () => `PC-${String(++n).padStart(4, "0")}`;
+  const novos: PedidoCompra[] = [];
+  const pcDaCompra = new Map<string, string>();
+  for (const cs of grupos.values()) {
+    const c0 = cs[0];
+    const numero = num();
+    const recebido = c0.status === "recebido";
+    const legado = recebido && cs.every((c) => !c.noEstoque);
+    cs.forEach((c) => pcDaCompra.set(c.id, numero));
+    novos.push({
+      id: `pc-${c0.id}`.slice(0, 40),
+      numero,
+      fornecedor: c0.fornecedor,
+      data: c0.data,
+      previstoEm: c0.previstoEm,
+      freteCents: cs.reduce((s, c) => s + c.freteCents, 0),
+      itens: cs.map((c) => {
+        const insumo = data.insumos.find((i) => i.id === c.insumoId);
+        return {
+          insumoId: c.insumoId,
+          insumo: insumo?.insumo ?? "Insumo",
+          unidade: insumo?.unidade ?? "",
+          qtd: c.quantidade,
+          valorCents: c.valorCents,
+          recebido: recebido ? c.quantidade : 0,
+        };
+      }),
+      recebimentos: recebido
+        ? [
+            {
+              doc: legado ? "" : "MIGRADO",
+              data: c0.data,
+              itens: cs.map((c, idx) => ({ idx, qtd: c.quantidade })),
+              obs: legado ? "Antes do controle de estoque (já no saldo inicial)" : "",
+            },
+          ]
+        : [],
+      encerrado: false,
+      legado,
+      obs: [c0.pedido && !/^\d+º pedido$/.test(c0.pedido) ? c0.pedido : "", ...cs.map((c) => c.obs)]
+        .filter(Boolean)
+        .join(" · ")
+        .slice(0, 300),
+    });
+  }
+  // Lotes abertos: o que foi pedido e não chegou vira pedido em aberto.
+  const lotes = data.lotes.map((l) => {
+    if (!loteAberto(l)) return l;
+    const porForn = new Map<string, LoteItem[]>();
+    for (const it of l.itens)
+      if (
+        it.categoria !== "Serviço" &&
+        it.comprar > 0 &&
+        it.pedidoEm &&
+        !it.chegouEm &&
+        !it.noEstoque
+      )
+        porForn.set(it.fornecedor, [...(porForn.get(it.fornecedor) ?? []), it]);
+    for (const [forn, its] of porForn)
+      novos.push({
+        id: `pc-${l.id}-${chaveFornecedor(forn).replace(/\W+/g, "-")}`.slice(0, 40),
+        numero: num(),
+        fornecedor: forn,
+        data: its[0].pedidoEm,
+        previstoEm:
+          its
+            .map((x) => x.previstoEm)
+            .filter(Boolean)
+            .sort()
+            .pop() ?? null,
+        freteCents: 0,
+        itens: its.map((it) => ({
+          insumoId: it.insumoId,
+          insumo: it.insumo,
+          unidade: it.unidade,
+          qtd: it.comprar,
+          valorCents: it.desembolsoCents,
+          recebido: 0,
+        })),
+        recebimentos: [],
+        encerrado: false,
+        legado: false,
+        obs: `Pedido do lote ${l.codigo}`,
+      });
+    return l.etapa === "pedido" ? { ...l, etapa: "planejado" as const } : l;
+  });
+  // Documento de material nos movimentos (na ordem em que aconteceram).
+  let md = 0;
+  const movimentos = data.movimentos.map((m) => ({
+    ...m,
+    doc: m.doc || `MD-${String(++md).padStart(5, "0")}`,
+    pc: m.pc ?? (m.ref?.startsWith("compra:") ? (pcDaCompra.get(m.ref.slice(7)) ?? null) : null),
+  }));
+  return {
+    ...data,
+    pedidos: [...data.pedidos, ...novos],
+    compras: [],
+    lotes,
+    movimentos,
+    importacoes: [...data.importacoes, IMPORT_PEDIDOS],
+  };
 }
 
 // ── Exemplos (ponto de partida pra editar ou apagar) ────────────────────────
@@ -2117,6 +2396,7 @@ export const EXEMPLO: ProducaoData = {
   lotes: [],
   compras: [],
   movimentos: [],
+  pedidos: [],
   importacoes: [],
   insumos: [
     {

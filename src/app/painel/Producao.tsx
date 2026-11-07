@@ -6,6 +6,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   PackageCheck,
+  Undo2,
   CalendarClock,
   Coins,
   Factory,
@@ -28,9 +29,18 @@ import {
   contagem,
   criarInsumoComEstoque,
   criarLote,
-  excluirCompra,
+  chaveFornecedor,
+  faixaDe,
+  proximoPC,
+  estornarRecebimento,
+  excluirPedido,
   posicao,
-  salvarCompra,
+  receberPedido,
+  restante,
+  salvarPedido,
+  situacaoPedido,
+  totalPedido,
+  unitPedido,
   custoMedio,
   disponiveis,
   pontualidade,
@@ -44,7 +54,7 @@ import {
   principalDe,
   resumo,
   somarDias,
-  type Compra,
+  type PedidoCompra,
   type Fornecedor,
   type Insumo,
   type LinhaCompra,
@@ -121,7 +131,8 @@ const NOVO_FORNECEDOR = (): Fornecedor => ({
 type Editing =
   | { kind: "insumo"; item: Insumo; isNew: boolean }
   | { kind: "fornecedor"; insumo: Insumo; item: Fornecedor; isNew: boolean }
-  | { kind: "compra"; insumo: Insumo; item: Compra; isNew: boolean }
+  | { kind: "pedido"; pc: PedidoCompra; isNew: boolean }
+  | { kind: "receber"; pcId: string }
   | { kind: "contagem"; insumo: Insumo };
 
 /** Custo de uma unidade com até 3 casas (R$ 1,026). */
@@ -166,7 +177,7 @@ export function Producao({
   // O lote novo só conta com o estoque que os lotes abertos não reservaram.
   const disp = useMemo(() => disponiveis(data), [data]);
   const reservado = useMemo(() => reservas(data.lotes), [data.lotes]);
-  const pont = useMemo(() => pontualidade(data.lotes), [data.lotes]);
+  const pont = useMemo(() => pontualidade(data), [data]);
   const linhas = useMemo(() => planejar(data, disp), [data, disp]);
   const r = useMemo(() => resumo(data, linhas), [data, linhas]);
   const hoje = hojeBR();
@@ -236,47 +247,77 @@ export function Producao({
     setEditing(null);
   };
   const usarFornecedor = (insumo: Insumo, id: string) => putInsumo({ ...insumo, principal: id });
-  const novaCompra = (insumo: Insumo, status: Compra["status"]): Compra => {
-    const p = principalDe(insumo);
-    const ordem = Math.max(
-      0,
-      ...data.compras.filter((c) => c.insumoId === insumo.id).map((c) => c.ordem),
+  // ── Pedidos de compra (PC-0001…) ──
+  /** Pedido novo, já com os itens (ex.: a sugestão de compra de um fornecedor). */
+  const novoPedido = (fornecedor: string, itens: PedidoCompra["itens"], prazoDias = 0) =>
+    setEditing({
+      kind: "pedido",
+      isNew: true,
+      pc: {
+        id: novoId("pc"),
+        numero: "",
+        fornecedor,
+        data: hoje,
+        previstoEm: somarDias(hoje, prazoDias),
+        freteCents: 0,
+        itens: itens.length
+          ? itens
+          : [
+              {
+                insumoId: insumos[0]?.id ?? "",
+                insumo: "",
+                unidade: "",
+                qtd: 1,
+                valorCents: 0,
+                recebido: 0,
+              },
+            ],
+        recebimentos: [],
+        encerrado: false,
+        legado: false,
+        obs: "",
+      },
+    });
+  /** Pedido de um insumo só, com o fornecedor principal e a sugestão (ou 1). */
+  const pedirInsumo = (i: Insumo, qtd?: number) => {
+    const p = principalDe(i);
+    const q = qtd && qtd > 0 ? qtd : 1;
+    const c = p ? cotar(p, q, compraInteira(i.unidade)) : null;
+    novoPedido(
+      p?.nome ?? "",
+      [
+        {
+          insumoId: i.id,
+          insumo: i.insumo,
+          unidade: i.unidade,
+          qtd: c?.comprar ?? q,
+          valorCents: c ? Math.round(c.comprar * c.faixa.precoCents) : 0,
+          recebido: 0,
+        },
+      ],
+      p?.prazoDias ?? 0,
     );
-    return {
-      id: novoId("c"),
-      insumoId: insumo.id,
-      fornecedorId: p?.id ?? null,
-      fornecedor: p?.nome ?? "",
-      pedido: `${ordem + 1}º pedido`,
-      data: hoje,
-      ordem: ordem + 1,
-      quantidade: 1,
-      valorCents: 0,
-      freteCents: 0,
-      obs: "",
-      status,
-      previstoEm: status === "pedido" ? somarDias(hoje, p?.prazoDias ?? 0) : null,
-      noEstoque: false,
-    };
   };
-  // Pedido avulso: recebido entra no estoque; voltar/excluir estorna.
-  const saveCompra = (c: Compra) => {
-    persist(salvarCompra(data, c));
+  const savePedido = (pc: PedidoCompra) => {
+    persist(salvarPedido(data, pc));
     setEditing(null);
   };
-  const removeCompra = (id: string) => {
-    const c = data.compras.find((x) => x.id === id);
-    const aviso = c?.noEstoque
-      ? "Excluir este pedido? O que ele pôs no estoque sai (estorno)."
-      : "Excluir este pedido do histórico?";
-    if (!window.confirm(aviso)) return;
-    persist(excluirCompra(data, id));
+  const pcReceber =
+    editing?.kind === "receber" ? (data.pedidos.find((x) => x.id === editing.pcId) ?? null) : null;
+  const receberPc = (dia: string, linhas: { idx: number; qtd: number }[], obs: string) => {
+    if (!pcReceber) return;
+    persist(receberPedido(data, pcReceber.id, dia, linhas, obs));
     setEditing(null);
   };
-  const receber = (compraId: string) => {
-    const c = data.compras.find((x) => x.id === compraId);
-    if (!c) return;
-    persist(salvarCompra(data, { ...c, status: "recebido", data: hoje }));
+  const estornarPc = (doc: string) => {
+    if (!pcReceber) return;
+    if (!window.confirm(`Estornar a entrada ${doc}? O que ela pôs no estoque sai.`)) return;
+    persist(estornarRecebimento(data, pcReceber.id, doc));
+  };
+  const deletePedido = (pcId: string) => {
+    if (!window.confirm("Excluir este pedido de compra?")) return;
+    persist(excluirPedido(data, pcId));
+    setEditing(null);
   };
   const proximo = proximoCodigo(data.lotes);
   const podeCriar = r.receitaOk && r.boas > 0;
@@ -315,7 +356,15 @@ export function Producao({
       />
 
       {/* ── Estoque de insumos (visão geral, como o MMBE do SAP) ── */}
-      <EstoqueGeral data={data} hoje={hoje} />
+      <EstoqueGeral data={data} hoje={hoje} onPedir={novoPedido} />
+
+      {/* ── Pedidos de compra (ME2N) ── */}
+      <PedidosCompra
+        data={data}
+        hoje={hoje}
+        onNovo={() => novoPedido("", [])}
+        onAbrir={(pcId) => setEditing({ kind: "receber", pcId })}
+      />
 
       {/* ── Planejar novo lote ── */}
       <Secao
@@ -748,29 +797,16 @@ export function Producao({
             compras={comprasDo(data, l.i.id)}
             pos={posicao(data, l.i, hoje)}
             movimentos={data.movimentos.filter((m) => m.insumoId === l.i.id)}
-            onAddCompra={() =>
-              setEditing({
-                kind: "compra",
-                insumo: l.i,
-                item: novaCompra(l.i, "recebido"),
-                isNew: true,
-              })
-            }
-            onNovoPedido={() =>
-              setEditing({
-                kind: "compra",
-                insumo: l.i,
-                item: novaCompra(l.i, "pedido"),
-                isNew: true,
-              })
-            }
-            onReceber={receber}
+            lotesQueUsam={data.lotes
+              .filter((x) => x.etapa !== "concluido" && x.etapa !== "cancelado")
+              .flatMap((x) =>
+                x.itens
+                  .filter((it) => it.insumoId === l.i.id && it.precisa > 0)
+                  .map((it) => ({ codigo: x.codigo, qtd: it.precisa, data: x.plano.prontoAte })),
+              )}
+            onNovoPedido={() => pedirInsumo(l.i, posicao(data, l.i, hoje).sugestao)}
+            onReceber={(pcId) => setEditing({ kind: "receber", pcId })}
             onContagem={() => setEditing({ kind: "contagem", insumo: l.i })}
-            onEditCompra={(id) => {
-              const c = data.compras.find((x) => x.id === id);
-              if (c)
-                setEditing({ kind: "compra", insumo: l.i, item: structuredClone(c), isNew: false });
-            }}
             onEdit={() => setEditing({ kind: "insumo", item: structuredClone(l.i), isNew: false })}
             onAddFornecedor={() =>
               setEditing({ kind: "fornecedor", insumo: l.i, item: NOVO_FORNECEDOR(), isNew: true })
@@ -812,14 +848,27 @@ export function Producao({
           }}
         />
       )}
-      {editing?.kind === "compra" && (
-        <CompraEditor
-          item={editing.item}
-          insumo={editing.insumo}
+      {editing?.kind === "pedido" && (
+        <PedidoEditor
+          pc={editing.pc}
           isNew={editing.isNew}
+          insumos={insumos}
+          proximo={proximoPC(data)}
           onCancel={() => setEditing(null)}
-          onSave={saveCompra}
-          onDelete={() => removeCompra(editing.item.id)}
+          onSave={savePedido}
+          onDelete={() => deletePedido(editing.pc.id)}
+        />
+      )}
+      {pcReceber && (
+        <ReceberEditor
+          pc={pcReceber}
+          hoje={hoje}
+          onCancel={() => setEditing(null)}
+          onReceber={receberPc}
+          onEstornar={estornarPc}
+          onEditar={() =>
+            setEditing({ kind: "pedido", pc: structuredClone(pcReceber), isNew: false })
+          }
         />
       )}
       {editing?.kind === "fornecedor" && (
@@ -1048,11 +1097,10 @@ function InsumoCard({
   compras,
   pos,
   movimentos,
-  onAddCompra,
+  lotesQueUsam,
   onNovoPedido,
   onReceber,
   onContagem,
-  onEditCompra,
   onEdit,
   onAddFornecedor,
   onEditFornecedor,
@@ -1060,17 +1108,17 @@ function InsumoCard({
 }: {
   linha: ReturnType<typeof planejar>[number];
   hoje: string;
-  /** Entregas registradas nos lotes, por fornecedor. */
+  /** Entregas dos pedidos de compra, por fornecedor. */
   pont: ReturnType<typeof pontualidade>;
   reservado: number;
   compras: LinhaCompra[];
   pos: ReturnType<typeof posicao>;
   movimentos: Movimento[];
-  onAddCompra: () => void;
+  /** Lotes abertos que vão consumir este insumo. */
+  lotesQueUsam: { codigo: string; qtd: number; data: string | null }[];
   onNovoPedido: () => void;
-  onReceber: (compraId: string) => void;
+  onReceber: (pcId: string) => void;
   onContagem: () => void;
-  onEditCompra: (id: string) => void;
   onEdit: () => void;
   onAddFornecedor: () => void;
   onEditFornecedor: (f: Fornecedor) => void;
@@ -1155,6 +1203,7 @@ function InsumoCard({
           i={i}
           pos={pos}
           hoje={hoje}
+          lotesQueUsam={lotesQueUsam}
           onNovoPedido={onNovoPedido}
           onReceber={onReceber}
           onContagem={onContagem}
@@ -1220,7 +1269,7 @@ function InsumoCard({
                               : `Cotado há ${idade} ${idade === 1 ? "dia" : "dias"}${idade > 90 ? " · conferir preço" : ""}`}
                         </p>
                         {(() => {
-                          const p = pont.get(f.id);
+                          const p = pont.get(chaveFornecedor(f.nome));
                           if (!p) return null;
                           const media =
                             p.entregas > p.noPrazo ? p.atrasoTotal / (p.entregas - p.noPrazo) : 0;
@@ -1318,24 +1367,56 @@ function InsumoCard({
             </table>
           </div>
         ))}
-      {aberto && (
-        <HistoricoCompras i={i} compras={compras} onAdd={onAddCompra} onEdit={onEditCompra} />
-      )}
+      {aberto && <HistoricoCompras i={i} compras={compras} />}
       {aberto && i.categoria !== "Serviço" && <Movimentacoes i={i} movimentos={movimentos} />}
     </div>
   );
 }
 
-/** Todos os insumos numa tabela: estoque, reservado, em pedido, projetado, valor. */
-function EstoqueGeral({ data, hoje }: { data: ProducaoData; hoje: string }) {
+/**
+ * Todos os insumos numa tabela (o MMBE/MD04 do SAP): estoque, reservado
+ * pros lotes, em pedido, projetado, a sugestão de compra e o valor.
+ */
+function EstoqueGeral({
+  data,
+  hoje,
+  onPedir,
+}: {
+  data: ProducaoData;
+  hoje: string;
+  onPedir: (fornecedor: string, itens: PedidoCompra["itens"], prazoDias?: number) => void;
+}) {
   const linhas = data.insumos
     .filter((i) => i.categoria !== "Serviço")
     .map((i) => ({ i, p: posicao(data, i, hoje) }));
   const total = linhas.reduce((n, l) => n + l.p.valorCents, 0);
-  // Atenção: abaixo do mínimo ou pedido atrasado (sem estoque e sem mínimo é normal: compra por lote).
-  const alerta = linhas.filter(
-    (l) => l.p.situacao === "abaixo" || l.p.situacao === "atrasado",
+  const alerta = linhas.filter((l) =>
+    ["abaixo", "atrasado", "falta"].includes(l.p.situacao),
   ).length;
+  // Pedir: junta no mesmo pedido tudo que tem sugestão com o mesmo fornecedor principal.
+  const pedir = (forn: string) => {
+    const doForn = linhas.filter(
+      (l) =>
+        l.p.sugestao > 0 && chaveFornecedor(l.p.fornecedorSugerido ?? "") === chaveFornecedor(forn),
+    );
+    const prazo = Math.max(0, ...doForn.map((l) => principalDe(l.i)?.prazoDias ?? 0));
+    onPedir(
+      forn,
+      doForn.map((l) => {
+        const p = principalDe(l.i);
+        const preco = p ? faixaDe(p.faixas, l.p.sugestao).precoCents : 0;
+        return {
+          insumoId: l.i.id,
+          insumo: l.i.insumo,
+          unidade: l.i.unidade,
+          qtd: l.p.sugestao,
+          valorCents: Math.round(l.p.sugestao * preco),
+          recebido: 0,
+        };
+      }),
+      prazo,
+    );
+  };
   return (
     <Secao
       id="estoque"
@@ -1355,17 +1436,18 @@ function EstoqueGeral({ data, hoje }: { data: ProducaoData; hoje: string }) {
       }
     >
       <div className={`${TABLE_WRAP} overflow-x-auto`}>
-        <table className="w-full min-w-[1000px] table-fixed text-sm">
+        <table className="w-full min-w-[960px] table-fixed text-sm">
           <thead>
             <tr>
-              <th className={`${TH} w-[19%]`}>Insumo</th>
-              <th className={`${TH} w-[14%] text-right`}>Em estoque</th>
-              <th className={`${TH} w-[13%] text-right`}>Em pedido</th>
-              <th className={`${TH} w-[11%] text-right`}>Projetado</th>
-              <th className={`${TH} w-[9%] text-right`}>Mínimo</th>
-              <th className={`${TH} w-[10%] text-right`}>Custo médio</th>
-              <th className={`${TH} w-[11%] text-right`}>Valor</th>
-              <th className={`${TH} w-[13%]`}>Situação</th>
+              <th className={`${TH} w-[15%]`}>Insumo</th>
+              <th className={`${TH} w-[9%] text-right`}>Em estoque</th>
+              <th className={`${TH} w-[9%] text-right`}>Reservado</th>
+              <th className={`${TH} w-[10%] text-right`}>Em pedido</th>
+              <th className={`${TH} w-[9%] text-right`}>Projetado</th>
+              <th className={`${TH} w-[15%]`}>Comprar</th>
+              <th className={`${TH} w-[9%] text-right`}>Custo médio</th>
+              <th className={`${TH} w-[10%] text-right`}>Valor</th>
+              <th className={`${TH} w-[14%]`}>Situação</th>
             </tr>
           </thead>
           <tbody className="divide-lk-border divide-y">
@@ -1377,15 +1459,12 @@ function EstoqueGeral({ data, hoje }: { data: ProducaoData; hoje: string }) {
                     <p className="font-semibold">{i.insumo}</p>
                     <p className="text-lk-muted text-xs">
                       {i.categoria} · {i.unidade}
+                      {p.minimo > 0 ? ` · mín. ${num(p.minimo)}` : ""}
                     </p>
                   </td>
+                  <td className={`${TD} text-right font-medium tabular-nums`}>{num(p.estoque)}</td>
                   <td className={`${TD} text-right tabular-nums`}>
-                    <p className="font-medium">{num(p.estoque)}</p>
-                    {p.reservado > 0 && (
-                      <p className="text-lk-muted text-xs">
-                        {num(p.livre)} livre · {num(p.reservado)} reserv.
-                      </p>
-                    )}
+                    {p.reservado > 0 ? num(p.reservado) : <span className="text-lk-muted">—</span>}
                   </td>
                   <td className={`${TD} text-right tabular-nums`}>
                     {p.emPedido > 0 ? (
@@ -1402,12 +1481,32 @@ function EstoqueGeral({ data, hoje }: { data: ProducaoData; hoje: string }) {
                     )}
                   </td>
                   <td
-                    className={`${TD} text-right tabular-nums ${p.minimo > 0 && p.projetado < p.minimo ? "text-lk-hold font-medium" : ""}`}
+                    className={`${TD} text-right tabular-nums ${p.projetado < 0 ? "text-lk-fail font-medium" : p.minimo > 0 && p.projetado < p.minimo ? "text-lk-hold font-medium" : ""}`}
                   >
                     {num(p.projetado)}
                   </td>
-                  <td className={`${TD} text-lk-muted text-right tabular-nums`}>
-                    {p.minimo > 0 ? num(p.minimo) : "—"}
+                  <td className={TD}>
+                    {p.sugestao > 0 ? (
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="tabular-nums">
+                          {num(p.sugestao)}{" "}
+                          <span className="text-lk-muted text-xs">{i.unidade}</span>
+                        </span>
+                        {p.fornecedorSugerido ? (
+                          <button
+                            type="button"
+                            className="text-lk-action-strong text-xs font-medium hover:underline"
+                            onClick={() => pedir(p.fornecedorSugerido!)}
+                          >
+                            Pedir à {p.fornecedorSugerido}
+                          </button>
+                        ) : (
+                          <span className="text-lk-fail text-xs">sem fornecedor</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-lk-muted">—</span>
+                    )}
                   </td>
                   <td className={`${TD} text-right tabular-nums`}>
                     {p.custoMedio === null ? "—" : unit(p.custoMedio)}
@@ -1424,7 +1523,7 @@ function EstoqueGeral({ data, hoje }: { data: ProducaoData; hoje: string }) {
           </tbody>
           <tfoot>
             <tr className="border-lk-border bg-lk-paper border-t">
-              <td className={`${TD} font-semibold`} colSpan={6}>
+              <td className={`${TD} font-semibold`} colSpan={7}>
                 Total
               </td>
               <td className={`${TD} text-right font-semibold tabular-nums`}>{brl(total)}</td>
@@ -1434,12 +1533,549 @@ function EstoqueGeral({ data, hoje }: { data: ProducaoData; hoje: string }) {
         </table>
       </div>
       <p className={HINT}>
-        Projetado = estoque − reservado pros lotes em andamento + em pedido. Valor pelo custo médio
-        móvel: cada entrada recalcula o custo médio, cada saída tira valor por ele. O estoque muda
-        por movimento (chegada, consumo do lote, contagem): veja a ficha de cada insumo em
-        &quot;Insumos e fornecedores&quot;.
+        Reservado = o que os lotes em andamento vão consumir. Projetado = estoque − reservado + em
+        pedido. Comprar = o que falta pros lotes e pra voltar ao mínimo, no lote de compra do
+        fornecedor principal (mínimo e múltiplo); &quot;Pedir&quot; abre um pedido com todos os
+        itens desse fornecedor. Valor pelo custo médio móvel.
       </p>
     </Secao>
+  );
+}
+
+const SIT_PC: Record<
+  ReturnType<typeof situacaoPedido>,
+  { label: string; tone: "pass" | "hold" | "fail" | "muted" | "running" }
+> = {
+  aberto: { label: "Aberto", tone: "running" },
+  parcial: { label: "Recebido em parte", tone: "hold" },
+  recebido: { label: "Recebido", tone: "pass" },
+  encerrado: { label: "Encerrado", tone: "muted" },
+  atrasado: { label: "Atrasado", tone: "fail" },
+};
+
+/** Lista dos pedidos de compra (o ME2N): os em aberto primeiro. */
+function PedidosCompra({
+  data,
+  hoje,
+  onNovo,
+  onAbrir,
+}: {
+  data: ProducaoData;
+  hoje: string;
+  onNovo: () => void;
+  onAbrir: (pcId: string) => void;
+}) {
+  const [todos, setTodos] = useState(false);
+  const lista = [...data.pedidos]
+    .map((pc) => ({ pc, s: situacaoPedido(pc, hoje) }))
+    .sort(
+      (a, b) =>
+        Number(a.s === "recebido" || a.s === "encerrado") -
+          Number(b.s === "recebido" || b.s === "encerrado") ||
+        b.pc.numero.localeCompare(a.pc.numero, undefined, { numeric: true }),
+    );
+  const abertos = lista.filter((x) => x.s !== "recebido" && x.s !== "encerrado");
+  const mostrados = todos ? lista : abertos;
+  return (
+    <Secao
+      id="pedidos"
+      title="Pedidos de compra"
+      count={abertos.length}
+      aside={
+        <span className="flex items-center gap-3">
+          <label className="text-lk-muted flex items-center gap-1.5 text-xs">
+            <input
+              type="checkbox"
+              className="accent-lk-action"
+              checked={todos}
+              onChange={(e) => setTodos(e.target.checked)}
+            />
+            mostrar recebidos ({lista.length - abertos.length})
+          </label>
+          <button type="button" className={btn("primary", "sm")} onClick={onNovo}>
+            <Plus aria-hidden />
+            Novo pedido
+          </button>
+        </span>
+      }
+    >
+      {mostrados.length === 0 ? (
+        <Empty>
+          {lista.length ? "Nenhum pedido em aberto." : "Nenhum pedido de compra ainda."}
+        </Empty>
+      ) : (
+        <div className={`${TABLE_WRAP} overflow-x-auto`}>
+          <table className="w-full min-w-[1000px] table-fixed text-sm">
+            <thead>
+              <tr>
+                <th className={`${TH} w-[10%]`}>Pedido</th>
+                <th className={`${TH} w-[14%]`}>Fornecedor</th>
+                <th className={`${TH} w-[28%]`}>Itens (recebido / pedido)</th>
+                <th className={`${TH} w-[10%]`}>Pedido em</th>
+                <th className={`${TH} w-[10%]`}>Chega</th>
+                <th className={`${TH} w-[11%] text-right`}>Valor</th>
+                <th className={`${TH} w-[17%]`}>Situação</th>
+              </tr>
+            </thead>
+            <tbody className="divide-lk-border divide-y">
+              {mostrados.map(({ pc, s }) => {
+                const sit = SIT_PC[s];
+                return (
+                  <tr
+                    key={pc.id}
+                    className="hover:bg-lk-paper/60 cursor-pointer"
+                    onClick={() => onAbrir(pc.id)}
+                  >
+                    <td className={TD}>
+                      <button
+                        type="button"
+                        className="font-lk-mono text-lk-action-strong font-medium hover:underline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAbrir(pc.id);
+                        }}
+                      >
+                        {pc.numero}
+                      </button>
+                    </td>
+                    <td className={TD}>{pc.fornecedor || "—"}</td>
+                    <td className={TD}>
+                      <ul className="flex flex-col gap-0.5 text-xs">
+                        {pc.itens.map((it, k) => (
+                          <li key={k} className="tabular-nums">
+                            <span className="text-lk-ink font-medium">{it.insumo}</span>{" "}
+                            <span className="text-lk-muted">
+                              {num(it.recebido)} / {num(it.qtd)} {it.unidade}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </td>
+                    <td className={`${TD} whitespace-nowrap tabular-nums`}>
+                      {pc.data ? dia(pc.data) : "—"}
+                    </td>
+                    <td className={`${TD} whitespace-nowrap tabular-nums`}>
+                      {pc.previstoEm ? dia(pc.previstoEm) : "—"}
+                    </td>
+                    <td className={`${TD} text-right tabular-nums`}>{brl(totalPedido(pc))}</td>
+                    <td className={TD}>
+                      <Badge tone={sit.tone}>{sit.label}</Badge>
+                      {pc.legado && (
+                        <p className="text-lk-muted mt-1 text-xs">antes do controle de estoque</p>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className={HINT}>
+        Cada pedido tem um número (PC-0001…), um fornecedor e um ou mais insumos; o frete é do
+        pedido e se divide entre os itens pelo valor. Clique no pedido pra receber (entrada no
+        estoque, pode ser em partes), estornar uma entrada ou editar.
+      </p>
+    </Secao>
+  );
+}
+
+/** Criar/editar um pedido de compra (o ME21N/ME22N). */
+function PedidoEditor({
+  pc,
+  isNew,
+  insumos,
+  proximo,
+  onCancel,
+  onSave,
+  onDelete,
+}: {
+  pc: PedidoCompra;
+  isNew: boolean;
+  insumos: Insumo[];
+  proximo: string;
+  onCancel: () => void;
+  onSave: (pc: PedidoCompra) => void;
+  onDelete: () => void;
+}) {
+  const [f, setF] = useState(pc);
+  const [valores, setValores] = useState(
+    pc.itens.map((it) => (it.valorCents ? fromCents(it.valorCents) : "")),
+  );
+  const [frete, setFrete] = useState(pc.freteCents ? fromCents(pc.freteCents) : "");
+  const set = <K extends keyof PedidoCompra>(k: K, v: PedidoCompra[K]) =>
+    setF((p) => ({ ...p, [k]: v }));
+  const setItem = (k: number, patch: Partial<PedidoCompra["itens"][number]>) =>
+    setF((p) => ({ ...p, itens: p.itens.map((it, j) => (j === k ? { ...it, ...patch } : it)) }));
+  const fornecedores = [
+    ...new Set(insumos.flatMap((i) => i.fornecedores.map((x) => x.nome)).filter(Boolean)),
+  ];
+  // Preço da cotação desse fornecedor pro insumo (sugestão quando o valor está vazio).
+  const sugerido = (insumoId: string, qtd: number) => {
+    const i = insumos.find((x) => x.id === insumoId);
+    const c = i?.fornecedores.find(
+      (x) => chaveFornecedor(x.nome) === chaveFornecedor(f.fornecedor),
+    );
+    return c ? Math.round(qtd * faixaDe(c.faixas, qtd).precoCents) : 0;
+  };
+  const itensFinal = f.itens.map((it, k) => ({
+    ...it,
+    valorCents: valores[k] ? toCents(valores[k]) : sugerido(it.insumoId, it.qtd),
+  }));
+  const total = itensFinal.reduce((n, it) => n + it.valorCents, 0) + toCents(frete);
+  const ok =
+    f.fornecedor.trim().length > 0 &&
+    f.itens.length > 0 &&
+    f.itens.every((it) => it.insumoId && it.qtd > 0);
+  const recebeu = pc.recebimentos.length > 0;
+  return (
+    <Drawer
+      title={isNew ? `Novo pedido de compra · ${proximo}` : `Editar ${pc.numero}`}
+      isNew={isNew || recebeu}
+      ok={ok}
+      onCancel={onCancel}
+      onSave={() => onSave({ ...f, itens: itensFinal, freteCents: toCents(frete) })}
+      onDelete={onDelete}
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className={`${LABEL} sm:col-span-2`}>
+          <span className="font-medium">Fornecedor</span>
+          <input
+            className={INPUT}
+            list="fornecedores-pc"
+            value={f.fornecedor}
+            onChange={(e) => set("fornecedor", e.target.value)}
+            placeholder="Nome do fornecedor"
+          />
+          <datalist id="fornecedores-pc">
+            {fornecedores.map((n) => (
+              <option key={n} value={n} />
+            ))}
+          </datalist>
+        </label>
+        <label className={LABEL}>
+          <span className="font-medium">Data do pedido</span>
+          <input
+            type="date"
+            className={INPUT}
+            value={f.data ?? ""}
+            onChange={(e) => set("data", e.target.value || null)}
+          />
+        </label>
+        <label className={LABEL}>
+          <span className="font-medium">Chega em (prometido)</span>
+          <input
+            type="date"
+            className={INPUT}
+            value={f.previstoEm ?? ""}
+            onChange={(e) => set("previstoEm", e.target.value || null)}
+          />
+        </label>
+      </div>
+
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-1.5 text-sm font-medium">Itens</legend>
+        {f.itens.map((it, k) => {
+          const insumo = insumos.find((i) => i.id === it.insumoId);
+          const sug = sugerido(it.insumoId, it.qtd);
+          return (
+            <div
+              key={k}
+              className="border-lk-border flex flex-wrap items-end gap-2 rounded-lg border p-3"
+            >
+              <label className={`${LABEL} min-w-44 flex-1`}>
+                <span className="text-xs">Insumo</span>
+                <select
+                  className={INPUT}
+                  value={it.insumoId}
+                  disabled={it.recebido > 0}
+                  onChange={(e) => setItem(k, { insumoId: e.target.value })}
+                >
+                  {insumos
+                    .filter((i) => i.categoria !== "Serviço")
+                    .map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.insumo}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label className={`${LABEL} w-28`}>
+                <span className="text-xs">Quantidade</span>
+                <input
+                  type="number"
+                  min={it.recebido}
+                  step="any"
+                  className={`${INPUT} text-right tabular-nums`}
+                  value={it.qtd}
+                  onChange={(e) =>
+                    setItem(k, { qtd: Math.max(it.recebido, Number(e.target.value) || 0) })
+                  }
+                />
+              </label>
+              <span className="text-lk-muted pb-2.5 text-xs">{insumo?.unidade}</span>
+              <label className={`${LABEL} w-32`}>
+                <span className="text-xs">Valor (sem frete)</span>
+                <input
+                  inputMode="decimal"
+                  className={`${INPUT} text-right tabular-nums`}
+                  value={valores[k] ?? ""}
+                  placeholder={sug ? fromCents(sug) : "0,00"}
+                  onChange={(e) =>
+                    setValores((v) => v.map((x, j) => (j === k ? e.target.value : x)))
+                  }
+                />
+              </label>
+              {it.recebido === 0 && f.itens.length > 1 && (
+                <button
+                  type="button"
+                  aria-label="Tirar item"
+                  className={btn("ghost", "sm")}
+                  onClick={() => {
+                    setF((p) => ({ ...p, itens: p.itens.filter((_, j) => j !== k) }));
+                    setValores((v) => v.filter((_, j) => j !== k));
+                  }}
+                >
+                  <X aria-hidden />
+                </button>
+              )}
+              {it.recebido > 0 && (
+                <span className="text-lk-muted w-full text-xs">
+                  Já recebido: {num(it.recebido)} {insumo?.unidade}
+                </span>
+              )}
+            </div>
+          );
+        })}
+        <button
+          type="button"
+          className={`${btn("secondary", "sm")} self-start`}
+          onClick={() => {
+            const i = insumos.find((x) => x.categoria !== "Serviço");
+            setF((p) => ({
+              ...p,
+              itens: [
+                ...p.itens,
+                {
+                  insumoId: i?.id ?? "",
+                  insumo: "",
+                  unidade: "",
+                  qtd: 1,
+                  valorCents: 0,
+                  recebido: 0,
+                },
+              ],
+            }));
+            setValores((v) => [...v, ""]);
+          }}
+        >
+          <Plus aria-hidden />
+          Adicionar item
+        </button>
+        <p className={HINT}>
+          Valor em branco usa o preço da cotação desse fornecedor (o cinza no campo).
+        </p>
+      </fieldset>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className={LABEL}>
+          <span className="font-medium">Frete do pedido</span>
+          <span className="flex items-center gap-2">
+            <span className="text-lk-muted">R$</span>
+            <input
+              inputMode="decimal"
+              className={`${INPUT} w-full text-right tabular-nums`}
+              value={frete}
+              onChange={(e) => setFrete(e.target.value)}
+              placeholder="0,00"
+            />
+          </span>
+          <span className={HINT}>Dividido entre os itens pelo valor</span>
+        </label>
+        <div className={LABEL}>
+          <span className="font-medium">Total do pedido</span>
+          <span className="flex h-10 items-center text-base font-semibold tabular-nums">
+            {brl(total)}
+          </span>
+        </div>
+      </div>
+      {!isNew && pc.itens.some((it) => restante(it) > 0) && recebeu && (
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={f.encerrado}
+            onChange={(e) => set("encerrado", e.target.checked)}
+            className="accent-lk-action mt-0.5 size-4"
+          />
+          <span>
+            Encerrar: o fornecedor não vai entregar o resto
+            <span className={`${HINT} block`}>
+              O que falta deixa de contar como &quot;em pedido&quot;.
+            </span>
+          </span>
+        </label>
+      )}
+      <label className={LABEL}>
+        <span className="font-medium">Observações</span>
+        <textarea
+          className={`${INPUT} h-20 py-2`}
+          value={f.obs}
+          maxLength={300}
+          onChange={(e) => set("obs", e.target.value)}
+          placeholder="Condição de pagamento, nota fiscal, contato…"
+        />
+      </label>
+      {recebeu && !isNew && (
+        <p className={HINT}>Pedido com entrada não pode ser excluído: estorne as entradas antes.</p>
+      )}
+    </Drawer>
+  );
+}
+
+/** Entrada de mercadoria (o MIGO): o que chegou de cada item, e os estornos. */
+function ReceberEditor({
+  pc,
+  hoje,
+  onCancel,
+  onReceber,
+  onEstornar,
+  onEditar,
+}: {
+  pc: PedidoCompra;
+  hoje: string;
+  onCancel: () => void;
+  onReceber: (dia: string, linhas: { idx: number; qtd: number }[], obs: string) => void;
+  onEstornar: (doc: string) => void;
+  onEditar: () => void;
+}) {
+  const [quando, setQuando] = useState(pc.previstoEm && pc.previstoEm < hoje ? hoje : hoje);
+  const [qtds, setQtds] = useState(pc.itens.map((it) => restante(it)));
+  const [obs, setObs] = useState("");
+  const aberto = pc.itens.some((it) => restante(it) > 0) && !pc.encerrado;
+  const linhas = qtds.map((qtd, idx) => ({ idx, qtd })).filter((l) => l.qtd > 0);
+  const s = SIT_PC[situacaoPedido(pc, hoje)];
+  return (
+    <Drawer
+      title={`${pc.numero} · ${pc.fornecedor || "fornecedor"}`}
+      isNew
+      ok={aberto && linhas.length > 0}
+      onCancel={onCancel}
+      onSave={() => onReceber(quando, linhas, obs)}
+      onDelete={() => {}}
+    >
+      <p className="flex flex-wrap items-center gap-2 text-sm">
+        <Badge tone={s.tone}>{s.label}</Badge>
+        <span className="text-lk-muted">
+          pedido {pc.data ? dia(pc.data) : "—"} · chega {pc.previstoEm ? dia(pc.previstoEm) : "—"} ·{" "}
+          {brl(totalPedido(pc))}
+          {pc.freteCents > 0 ? ` (frete ${brl(pc.freteCents)})` : ""}
+        </span>
+        <button type="button" className={`${btn("ghost", "sm")} ml-auto`} onClick={onEditar}>
+          <Pencil aria-hidden />
+          Editar pedido
+        </button>
+      </p>
+      {aberto ? (
+        <>
+          <p className="text-sm font-semibold">Entrada de mercadoria</p>
+          <label className={LABEL}>
+            <span className="font-medium">Recebido em</span>
+            <input
+              type="date"
+              className={`${INPUT} w-44`}
+              value={quando}
+              onChange={(e) => setQuando(e.target.value || hoje)}
+            />
+          </label>
+          <div className="flex flex-col gap-2">
+            {pc.itens.map((it, k) => (
+              <div
+                key={k}
+                className="border-lk-border flex flex-wrap items-center gap-3 rounded-lg border p-3 text-sm"
+              >
+                <div className="min-w-40 flex-1">
+                  <p className="font-medium">{it.insumo}</p>
+                  <p className="text-lk-muted text-xs tabular-nums">
+                    pedido {num(it.qtd)} · recebido {num(it.recebido)} · falta {num(restante(it))}{" "}
+                    {it.unidade}
+                    {" · "}
+                    {unit(unitPedido(pc, k))}/{it.unidade} com frete
+                  </p>
+                </div>
+                <label className="flex items-center gap-2">
+                  <span className="text-lk-muted text-xs">chegou</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="any"
+                    disabled={restante(it) <= 0}
+                    aria-label={`${it.insumo}: quantidade que chegou`}
+                    className={`${MINI} w-28 text-right`}
+                    value={qtds[k]}
+                    onChange={(e) =>
+                      setQtds((q) =>
+                        q.map((x, j) => (j === k ? Math.max(0, Number(e.target.value) || 0) : x)),
+                      )
+                    }
+                  />
+                </label>
+              </div>
+            ))}
+          </div>
+          <label className={LABEL}>
+            <span className="font-medium">Observação</span>
+            <input
+              className={INPUT}
+              value={obs}
+              maxLength={300}
+              onChange={(e) => setObs(e.target.value)}
+              placeholder="Nº da nota, avaria, entrega parcial…"
+            />
+          </label>
+          <p className={HINT}>
+            Salvar lança a entrada no estoque (um documento de material pra todo o recebimento) e
+            recalcula o custo médio. Pode receber em partes.
+          </p>
+        </>
+      ) : (
+        <p className="text-lk-muted text-sm">
+          {pc.encerrado ? "Pedido encerrado." : "Tudo recebido."} Nada a dar entrada.
+        </p>
+      )}
+      {pc.recebimentos.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-semibold">Entradas</p>
+          {pc.recebimentos.map((r) => (
+            <div
+              key={r.doc || r.data || "legado"}
+              className="flex flex-wrap items-center gap-3 text-sm"
+            >
+              <span className="font-lk-mono text-xs">{r.doc || "—"}</span>
+              <span className="text-lk-muted">{r.data ? dia(r.data) : "sem data"}</span>
+              <span className="flex-1 text-xs">
+                {r.itens
+                  .map(
+                    (x) =>
+                      `${num(x.qtd)} ${pc.itens[x.idx]?.unidade ?? ""} ${pc.itens[x.idx]?.insumo ?? ""}`,
+                  )
+                  .join(" · ")}
+                {r.obs ? ` — ${r.obs}` : ""}
+              </span>
+              {!pc.legado && r.doc && r.doc !== "MIGRADO" && (
+                <button
+                  type="button"
+                  className={`${btn("ghost", "sm")} text-lk-fail`}
+                  onClick={() => onEstornar(r.doc)}
+                >
+                  <Undo2 aria-hidden />
+                  Estornar
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </Drawer>
   );
 }
 
@@ -1448,6 +2084,7 @@ const SITUACAO: Record<
   { label: string; tone: "pass" | "hold" | "fail" | "muted" }
 > = {
   ok: { label: "OK", tone: "pass" },
+  falta: { label: "Falta pros lotes", tone: "fail" },
   abaixo: { label: "Abaixo do mínimo", tone: "hold" },
   sem: { label: "Sem estoque", tone: "muted" },
   atrasado: { label: "Pedido atrasado", tone: "fail" },
@@ -1464,11 +2101,12 @@ function Num({ label, value, note }: { label: string; value: string; note?: stri
   );
 }
 
-/** Ficha do material: posição de estoque, valor e os próximos pedidos. */
+/** Ficha do material: posição de estoque, valor, pedidos em aberto e o que os lotes vão usar. */
 function FichaEstoque({
   i,
   pos,
   hoje,
+  lotesQueUsam,
   onNovoPedido,
   onReceber,
   onContagem,
@@ -1476,8 +2114,9 @@ function FichaEstoque({
   i: Insumo;
   pos: ReturnType<typeof posicao>;
   hoje: string;
+  lotesQueUsam: { codigo: string; qtd: number; data: string | null }[];
   onNovoPedido: () => void;
-  onReceber: (compraId: string) => void;
+  onReceber: (pcId: string) => void;
   onContagem: () => void;
 }) {
   const sit = SITUACAO[pos.situacao];
@@ -1488,6 +2127,12 @@ function FichaEstoque({
         <p className="flex items-center gap-2 text-sm">
           <span className="font-semibold">Estoque</span>
           <Badge tone={sit.tone}>{sit.label}</Badge>
+          {pos.sugestao > 0 && (
+            <span className="text-lk-hold text-xs">
+              comprar {num(pos.sugestao)} {un}
+              {pos.fornecedorSugerido ? ` (${pos.fornecedorSugerido})` : ""}
+            </span>
+          )}
         </p>
         <span className="flex gap-2">
           <button type="button" className={btn("ghost", "sm")} onClick={onContagem}>
@@ -1496,7 +2141,7 @@ function FichaEstoque({
           </button>
           <button type="button" className={btn("secondary", "sm")} onClick={onNovoPedido}>
             <ShoppingCart aria-hidden />
-            Novo pedido
+            Novo pedido de compra
           </button>
         </span>
       </div>
@@ -1504,11 +2149,7 @@ function FichaEstoque({
         <Num
           label="Em estoque"
           value={`${num(pos.estoque)} ${un}`}
-          note={
-            pos.reservado > 0
-              ? `${num(pos.livre)} livre · ${num(pos.reservado)} reservado`
-              : "tudo livre"
-          }
+          note={pos.reservado > 0 ? `${num(pos.reservado)} reservado pros lotes` : "nada reservado"}
         />
         <Num
           label="Em pedido"
@@ -1536,66 +2177,55 @@ function FichaEstoque({
           }
         />
       </div>
+      {lotesQueUsam.length > 0 && (
+        <p className="text-lk-muted px-5 pb-3 text-xs">
+          Reservado pros lotes:{" "}
+          {lotesQueUsam
+            .map((l) => `${l.codigo} ${num(l.qtd)} ${un}${l.data ? ` (${dia(l.data)})` : ""}`)
+            .join(" · ")}
+        </p>
+      )}
       <div className="border-lk-border border-t">
         <p className="px-5 py-3 text-sm">
-          <span className="font-semibold">Próximos pedidos</span>
+          <span className="font-semibold">Pedidos em aberto</span>
           <span className="text-lk-muted"> · {pos.abertos.length}</span>
-          {pos.abertos.length === 0 && (
-            <span className="text-lk-muted"> · nenhum pedido em aberto</span>
-          )}
+          {pos.abertos.length === 0 && <span className="text-lk-muted"> · nada a receber</span>}
         </p>
         {pos.abertos.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] table-fixed text-sm">
               <thead>
                 <tr>
-                  <th className={`${TH} w-[20%]`}>Pedido</th>
-                  <th className={`${TH} w-[16%]`}>Fornecedor</th>
-                  <th className={`${TH} w-[13%] text-right`}>Quantidade</th>
+                  <th className={`${TH} w-[14%]`}>Pedido</th>
+                  <th className={`${TH} w-[20%]`}>Fornecedor</th>
+                  <th className={`${TH} w-[15%] text-right`}>Falta receber</th>
                   <th className={`${TH} w-[14%] text-right`}>Valor</th>
-                  <th className={`${TH} w-[13%]`}>Pedido em</th>
+                  <th className={`${TH} w-[12%]`}>Pedido em</th>
                   <th className={`${TH} w-[13%]`}>Chega</th>
-                  <th className={`${TH} w-[11%]`}>
+                  <th className={`${TH} w-[12%]`}>
                     <span className="sr-only">Ações</span>
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-lk-border divide-y">
                 {pos.abertos.map((p) => {
-                  const atraso = p.previstoEm && !p.aPedir ? diasEntre(p.previstoEm, hoje) : 0;
+                  const atraso = p.previstoEm ? diasEntre(p.previstoEm, hoje) : 0;
                   return (
                     <tr key={p.id}>
-                      <td className={TD}>
-                        <p className="font-medium">{p.rotulo}</p>
-                        <p className="text-lk-muted text-xs">
-                          {p.origem === "avulso"
-                            ? "pedido avulso"
-                            : p.aPedir
-                              ? "lote planejado"
-                              : "pedido do lote"}
-                        </p>
-                      </td>
+                      <td className={`${TD} font-lk-mono font-medium`}>{p.numero}</td>
                       <td className={TD}>{p.fornecedor || "—"}</td>
-                      <td className={`${TD} text-right tabular-nums`}>{num(p.qtd)}</td>
-                      <td className={`${TD} text-right tabular-nums`}>{brl(p.valorCents)}</td>
-                      <td className={`${TD} tabular-nums`}>
-                        {p.aPedir ? (
-                          <Badge tone="hold">
-                            pedir até {p.previstoEm ? dia(p.previstoEm) : "—"}
-                          </Badge>
-                        ) : p.pedidoEm ? (
-                          dia(p.pedidoEm)
-                        ) : (
-                          "—"
-                        )}
+                      <td className={`${TD} text-right tabular-nums`}>
+                        {num(p.qtd)} <span className="text-lk-muted text-xs">{un}</span>
                       </td>
-                      <td className={`${TD} tabular-nums`}>
-                        {p.aPedir ? (
-                          <span className="text-lk-muted text-xs">depois do pedido</span>
-                        ) : p.previstoEm ? (
+                      <td className={`${TD} text-right tabular-nums`}>{brl(p.valorCents)}</td>
+                      <td className={`${TD} whitespace-nowrap tabular-nums`}>
+                        {p.pedidoEm ? dia(p.pedidoEm) : "—"}
+                      </td>
+                      <td className={`${TD} whitespace-nowrap tabular-nums`}>
+                        {p.previstoEm ? (
                           atraso > 0 ? (
                             <Badge tone="fail">
-                              {dia(p.previstoEm)} · {atraso} d atrasado
+                              {dia(p.previstoEm)} · {atraso} d atraso
                             </Badge>
                           ) : (
                             dia(p.previstoEm)
@@ -1605,17 +2235,14 @@ function FichaEstoque({
                         )}
                       </td>
                       <td className={`${TD} text-right`}>
-                        {p.compraId && (
-                          <button
-                            type="button"
-                            className={btn("secondary", "sm")}
-                            onClick={() => onReceber(p.compraId!)}
-                            title="Marca como recebido hoje e põe no estoque"
-                          >
-                            <PackageCheck aria-hidden />
-                            Receber
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          className={btn("secondary", "sm")}
+                          onClick={() => onReceber(p.pcId)}
+                        >
+                          <PackageCheck aria-hidden />
+                          Receber
+                        </button>
                       </td>
                     </tr>
                   );
@@ -1778,17 +2405,7 @@ function ContagemEditor({
 }
 
 /** Compras já feitas do insumo: registradas à mão + as dos lotes. */
-function HistoricoCompras({
-  i,
-  compras,
-  onAdd,
-  onEdit,
-}: {
-  i: Insumo;
-  compras: LinhaCompra[];
-  onAdd: () => void;
-  onEdit: (id: string) => void;
-}) {
+function HistoricoCompras({ i, compras }: { i: Insumo; compras: LinhaCompra[] }) {
   if (i.categoria === "Serviço" && compras.length === 0) return null;
   const media = custoMedio(compras);
   const ultimo = compras[compras.length - 1];
@@ -1812,10 +2429,6 @@ function HistoricoCompras({
             </span>
           )}
         </p>
-        <button type="button" className={btn("ghost", "sm")} onClick={onAdd}>
-          <Plus aria-hidden />
-          Registrar compra
-        </button>
       </div>
       {compras.length > 0 && (
         <div className="overflow-x-auto">
@@ -1823,24 +2436,22 @@ function HistoricoCompras({
             <thead>
               <tr>
                 <th className={`${TH} w-[20%]`}>Pedido</th>
-                <th className={`${TH} w-[16%]`}>Fornecedor</th>
-                <th className={`${TH} w-[13%] text-right`}>Quantidade</th>
-                <th className={`${TH} w-[15%] text-right`}>Valor</th>
-                <th className={`${TH} w-[13%] text-right`}>Frete</th>
-                <th className={`${TH} w-[15%] text-right`}>Por {i.unidade}</th>
-                <th className={`${TH} w-[8%]`}>
-                  <span className="sr-only">Editar</span>
-                </th>
+                <th className={`${TH} w-[20%]`}>Fornecedor</th>
+                <th className={`${TH} w-[14%] text-right`}>Quantidade</th>
+                <th className={`${TH} w-[16%] text-right`}>Valor</th>
+                <th className={`${TH} w-[14%] text-right`}>Frete</th>
+                <th className={`${TH} w-[16%] text-right`}>Por {i.unidade}</th>
               </tr>
             </thead>
             <tbody className="divide-lk-border divide-y">
               {compras.map((c) => (
                 <tr key={c.id}>
                   <td className={TD}>
-                    <p className="font-medium">{c.pedido}</p>
+                    <p className={c.lote ? "font-medium" : "font-lk-mono font-medium"}>
+                      {c.pedido}
+                    </p>
                     <p className="text-lk-muted text-xs">
-                      {c.data ? dia(c.data) : "sem data"}
-                      {c.lote ? " · pelo lote" : ""}
+                      {c.data ? `recebido ${dia(c.data)}` : "sem data"}
                     </p>
                   </td>
                   <td className={TD}>{c.fornecedor || "—"}</td>
@@ -1860,19 +2471,6 @@ function HistoricoCompras({
                   <td className={`${TD} text-right font-medium tabular-nums`}>
                     {unit(c.unitCents)}
                   </td>
-                  <td className={`${TD} text-right`}>
-                    {c.lote === null && (
-                      <button
-                        type="button"
-                        className={btn("ghost", "sm")}
-                        onClick={() => onEdit(c.id)}
-                        aria-label={`Editar ${c.pedido}`}
-                        title="Editar compra"
-                      >
-                        <Pencil aria-hidden />
-                      </button>
-                    )}
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1880,168 +2478,6 @@ function HistoricoCompras({
         </div>
       )}
     </div>
-  );
-}
-
-function CompraEditor({
-  item,
-  insumo,
-  isNew,
-  onCancel,
-  onSave,
-  onDelete,
-}: {
-  item: Compra;
-  insumo: Insumo;
-  isNew: boolean;
-  onCancel: () => void;
-  onSave: (c: Compra) => void;
-  onDelete: () => void;
-}) {
-  const [f, setF] = useState(item);
-  const [valor, setValor] = useState(item.valorCents ? fromCents(item.valorCents) : "");
-  const [frete, setFrete] = useState(item.freteCents ? fromCents(item.freteCents) : "");
-  const set = <K extends keyof Compra>(k: K, v: Compra[K]) => setF((p) => ({ ...p, [k]: v }));
-  const un = insumo.unidade || "unidades";
-  const total = toCents(valor) + toCents(frete);
-  const ok = f.quantidade > 0 && toCents(valor) > 0;
-  return (
-    <Drawer
-      title={`${isNew ? (item.status === "pedido" ? "Novo pedido" : "Registrar compra") : "Editar pedido"} · ${insumo.insumo}`}
-      isNew={isNew}
-      ok={ok}
-      onCancel={onCancel}
-      onSave={() => onSave({ ...f, valorCents: toCents(valor), freteCents: toCents(frete) })}
-      onDelete={onDelete}
-    >
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className={`${LABEL} sm:col-span-2`}>
-          <span className="font-medium">Situação</span>
-          <select
-            className={INPUT}
-            value={f.status}
-            onChange={(e) => set("status", e.target.value as Compra["status"])}
-          >
-            <option value="pedido">Pedido feito, a receber</option>
-            <option value="recebido">Recebido (entra no estoque)</option>
-          </select>
-          {!isNew && item.status === "recebido" && f.status === "pedido" && item.noEstoque && (
-            <span className="text-lk-hold text-xs">
-              Voltar pra &quot;a receber&quot; tira do estoque o que este pedido pôs.
-            </span>
-          )}
-        </label>
-        <label className={LABEL}>
-          <span className="font-medium">Pedido</span>
-          <input
-            className={INPUT}
-            value={f.pedido}
-            onChange={(e) => set("pedido", e.target.value)}
-            placeholder="1º pedido, nº da nota…"
-          />
-        </label>
-        <label className={LABEL}>
-          <span className="font-medium">
-            {f.status === "pedido" ? "Data do pedido" : "Data do recebimento"}
-          </span>
-          <input
-            type="date"
-            className={INPUT}
-            value={f.data ?? ""}
-            onChange={(e) => set("data", e.target.value || null)}
-          />
-          <span className={HINT}>Sem data: fica na ordem do pedido</span>
-        </label>
-        {f.status === "pedido" && (
-          <label className={LABEL}>
-            <span className="font-medium">Chega em (prometido)</span>
-            <input
-              type="date"
-              className={INPUT}
-              value={f.previstoEm ?? ""}
-              onChange={(e) => set("previstoEm", e.target.value || null)}
-            />
-            <span className={HINT}>Conta pra pontualidade e &quot;em pedido&quot;</span>
-          </label>
-        )}
-        <label className={LABEL}>
-          <span className="font-medium">Fornecedor</span>
-          <select
-            className={INPUT}
-            value={f.fornecedorId ?? ""}
-            onChange={(e) => {
-              const forn = insumo.fornecedores.find((x) => x.id === e.target.value);
-              setF((p) => ({
-                ...p,
-                fornecedorId: forn?.id ?? null,
-                fornecedor: forn?.nome ?? p.fornecedor,
-              }));
-            }}
-          >
-            <option value="">{f.fornecedorId ? "Outro" : f.fornecedor || "Escolher…"}</option>
-            {insumo.fornecedores.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.nome || "Sem nome"}
-              </option>
-            ))}
-          </select>
-        </label>
-        <NumField
-          label="Quantidade"
-          value={f.quantidade}
-          onChange={(n) => set("quantidade", n)}
-          hint={un}
-        />
-        <label className={LABEL}>
-          <span className="font-medium">Valor dos itens</span>
-          <span className="flex items-center gap-2">
-            <span className="text-lk-muted">R$</span>
-            <input
-              inputMode="decimal"
-              className={`${INPUT} w-full text-right tabular-nums`}
-              value={valor}
-              onChange={(e) => setValor(e.target.value)}
-              placeholder="0,00"
-            />
-          </span>
-          <span className={HINT}>Sem o frete</span>
-        </label>
-        <label className={LABEL}>
-          <span className="font-medium">Frete</span>
-          <span className="flex items-center gap-2">
-            <span className="text-lk-muted">R$</span>
-            <input
-              inputMode="decimal"
-              className={`${INPUT} w-full text-right tabular-nums`}
-              value={frete}
-              onChange={(e) => setFrete(e.target.value)}
-              placeholder="0,00"
-            />
-          </span>
-          <span className={HINT}>Se o frete foi junto com outro insumo, só a parte deste</span>
-        </label>
-      </div>
-      {f.quantidade > 0 && total > 0 && (
-        <p className="text-sm">
-          Sai <span className="font-semibold">{unit(total / f.quantidade)}</span> por {un}, com
-          frete.
-        </p>
-      )}
-      <label className={LABEL}>
-        <span className="font-medium">Observações</span>
-        <textarea
-          className={`${INPUT} h-20 py-2`}
-          value={f.obs}
-          maxLength={300}
-          onChange={(e) => set("obs", e.target.value)}
-        />
-      </label>
-      <p className={HINT}>
-        Recebido entra no estoque e recalcula o custo médio (compras antigas, de antes do controle
-        de estoque, não mexem nele). Pedido a receber aparece em &quot;Próximos pedidos&quot;.
-        Compras feitas dentro de um lote entram sozinhas.
-      </p>
-    </Drawer>
   );
 }
 

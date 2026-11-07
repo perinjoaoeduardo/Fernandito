@@ -10,26 +10,24 @@ import {
   Gauge,
   Pencil,
   Coins,
-  ShoppingCart,
   Timer,
   Trash2,
-  Truck,
   Undo2,
 } from "lucide-react";
 import {
   COMPLETO_MIN,
   VALIDADE_MESES,
   diasEntre,
-  atualizarItemLote,
   baixarLote,
   cancelarLote,
+  coberturaLotes,
   indicadores,
   loteAberto,
-  situacaoItem,
   somarDias,
   somarMeses,
   totaisLote,
   trocarFornecedor,
+  type CoberturaItem,
   type Etapa,
   type Lote,
   type LoteItem,
@@ -39,16 +37,18 @@ import { Drawer, HINT, INPUT, LABEL, MINI, Secao, brl, dia, num, pct } from "./p
 import { Badge, Empty, KpiStrip, TABLE_WRAP, TD, TH, Tile, btn, type Tone } from "./ui";
 
 /**
- * Lotes de produção: cada lote congela o plano (quanto, de quem, quanto
- * custa, quando fica pronto) e registra o que aconteceu (pedidos, chegadas,
- * envase, latas boas, custo pago). Dos concluídos saem os indicadores:
- * rendimento, perda real, custo real × planejado, lotes no prazo e a
- * pontualidade dos fornecedores.
+ * Lotes de produção = necessidade (como a ordem de produção do SAP): o lote
+ * diz quanto vai consumir de cada insumo e reserva isso no estoque. Ele não
+ * compra: as compras são os pedidos de compra (PC-0001…), e a cobertura
+ * mostra de onde vem cada insumo (estoque, pedido em aberto ou falta
+ * comprar). Ao concluir, sai do estoque o consumo, pelo custo médio. Dos
+ * concluídos saem os indicadores: rendimento, perda, custo real × plano e
+ * lotes no prazo.
  */
 
 const ETAPA: Record<Etapa, { label: string; tone: Tone; icon: LucideIcon }> = {
   planejado: { label: "Planejado", tone: "muted", icon: ClipboardList },
-  pedido: { label: "Insumos pedidos", tone: "running", icon: Truck },
+  pedido: { label: "Planejado", tone: "muted", icon: ClipboardList },
   envasando: { label: "Envasando", tone: "action", icon: Factory },
   concluido: { label: "Concluído", tone: "pass", icon: CircleCheck },
   cancelado: { label: "Cancelado", tone: "muted", icon: Ban },
@@ -65,7 +65,7 @@ type Change = (next: ProducaoData, soon?: boolean) => void;
 export function LotesKpis({ data, hoje }: { data: ProducaoData; hoje: string }) {
   const ind = indicadores(data.lotes);
   const abertos = data.lotes.filter(loteAberto);
-  const prox = proximoMarco(abertos, hoje);
+  const prox = proximoMarco(data, abertos, hoje);
   const u = ind.ultimo;
   const varPct =
     u && !u.l.historico && u.t.lataReal !== null && u.t.lataPlan
@@ -117,20 +117,23 @@ export function LotesKpis({ data, hoje }: { data: ProducaoData; hoje: string }) 
 }
 
 /** A próxima coisa que vai acontecer nos lotes abertos. */
-function proximoMarco(abertos: Lote[], hoje: string) {
+function proximoMarco(data: ProducaoData, abertos: Lote[], hoje: string) {
   const l = [...abertos].sort((a, b) =>
     totaisLote(a, hoje).meta.localeCompare(totaisLote(b, hoje).meta),
   )[0];
   if (!l) return null;
-  if (l.etapa === "planejado") return `${l.codigo}: fazer os pedidos`;
   if (l.etapa === "envasando") return `${l.codigo}: envasando`;
-  const pend = l.itens
-    .filter((it) => !it.depois && it.comprar > 0 && !it.chegouEm && it.previstoEm)
-    .sort((a, b) => a.previstoEm!.localeCompare(b.previstoEm!))[0];
-  if (!pend) return `${l.codigo}: insumos chegaram, começar envase`;
-  return pend.previstoEm! < hoje
-    ? `${l.codigo}: ${pend.insumo} atrasado`
-    : `${l.codigo}: ${pend.insumo} chega ${dia(pend.previstoEm!)}`;
+  const cob = [...(coberturaLotes(data, hoje).get(l.id)?.values() ?? [])];
+  const falta = cob.filter((c) => c.falta > 1e-9).length;
+  if (falta) return `${l.codigo}: falta comprar ${falta} ${falta === 1 ? "insumo" : "insumos"}`;
+  const chega = cob
+    .map((c) => c.chegaEm)
+    .filter(Boolean)
+    .sort()
+    .pop();
+  return chega && chega > hoje
+    ? `${l.codigo}: insumos chegam até ${dia(chega)}`
+    : `${l.codigo}: insumos em estoque, pronto pra envasar`;
 }
 
 /** Lotes abertos (cartões) e o histórico (tabela). */
@@ -150,11 +153,12 @@ export function Lotes({
   const fechados = data.lotes
     .filter((l) => !loteAberto(l))
     .sort((a, b) => b.codigo.localeCompare(a.codigo, undefined, { numeric: true }));
+  const cobertura = coberturaLotes(data, hoje);
 
   const setLote = (l: Lote, soon = false, insumos = data.insumos) =>
     onChange({ ...data, insumos, lotes: data.lotes.map((x) => (x.id === l.id ? l : x)) }, soon);
   const excluir = (l: Lote) => {
-    if (!window.confirm(`Excluir o ${l.codigo}? Ele ainda não tem pedido feito.`)) return;
+    if (!window.confirm(`Excluir o ${l.codigo}? A reserva dos insumos é liberada.`)) return;
     onChange({ ...data, lotes: data.lotes.filter((x) => x.id !== l.id) });
   };
 
@@ -170,6 +174,7 @@ export function Lotes({
               l={l}
               data={data}
               hoje={hoje}
+              cob={cobertura.get(l.id) ?? new Map()}
               setLote={setLote}
               onChange={onChange}
               onExcluir={() => excluir(l)}
@@ -183,8 +188,8 @@ export function Lotes({
           <Historico lotes={fechados} hoje={hoje} onEdit={(l) => setEditando(structuredClone(l))} />
           <p className={HINT}>
             Rendimento = latas boas ÷ latas boas planejadas. Perda = latas envasadas que não saíram
-            boas. Custo real = o que foi pago ÷ o que chegou, nas quantidades que o lote usou, por
-            lata boa. No prazo = envasado até a data de produção e com pelo menos{" "}
+            boas. Custo real = o consumo de cada insumo pelo custo médio do estoque + o serviço
+            pago, por lata boa. No prazo = envasado até a data de produção e com pelo menos{" "}
             {pct(COMPLETO_MIN * 100)} das latas boas.
           </p>
         </Secao>
@@ -208,6 +213,7 @@ function LoteCard({
   l,
   data,
   hoje,
+  cob,
   setLote,
   onChange,
   onExcluir,
@@ -215,49 +221,33 @@ function LoteCard({
   l: Lote;
   data: ProducaoData;
   hoje: string;
-  setLote: (l: Lote, soon?: boolean, insumos?: ProducaoData["insumos"]) => void;
-  /** Mudanças que mexem no estoque (chegada, conclusão, cancelamento). */
+  /** De onde vem cada insumo (estoque, pedido, falta). */
+  cob: Map<string, CoberturaItem>;
+  setLote: (l: Lote, soon?: boolean) => void;
+  /** Mudanças que mexem no estoque (conclusão). */
   onChange: Change;
   onExcluir: () => void;
 }) {
   const t = totaisLote(l, hoje);
   const e = ETAPA[l.etapa];
-  // Insumo do lote: a chegada entra no estoque (e o estorno/correção também).
-  const setItem = (k: number, patch: Partial<LoteItem>, soon = true) =>
-    onChange(atualizarItemLote(data, l.id, k, patch), soon);
+  const planejado = l.etapa === "planejado" || l.etapa === "pedido";
+  const cobs = [...cob.values()];
+  const faltam = l.itens.filter((it) => (cob.get(it.insumoId)?.falta ?? 0) > 1e-9);
+  // Dá pra produzir quando tudo está coberto: no dia em que chega o último pedido.
+  const chega =
+    cobs
+      .map((c) => c.chegaEm)
+      .filter(Boolean)
+      .sort()
+      .pop() ?? null;
+  const possivel = faltam.length ? null : chega && chega > hoje ? chega : hoje;
+  const atraso = possivel ? diasEntre(t.meta, possivel) : null;
 
-  const pedir = () => {
-    const insumosProntos = l.itens
-      .filter((it) => !it.depois && it.comprar > 0)
-      .reduce((a, it) => {
-        const d = somarDias(hoje, it.prazoDias);
-        return d > a ? d : a;
-      }, hoje);
-    setLote({
-      ...l,
-      etapa: "pedido",
-      itens: l.itens.map((it) =>
-        it.comprar <= 0 && !it.depois
-          ? it
-          : {
-              ...it,
-              pedidoEm: it.pedidoEm ?? hoje,
-              // Serviço (envase): termina o prazo dele depois que os insumos chegam.
-              previstoEm:
-                it.previstoEm ??
-                (it.depois
-                  ? somarDias(insumosProntos, it.prazoDias)
-                  : somarDias(it.pedidoEm ?? hoje, it.prazoDias)),
-            },
-      ),
-    });
-  };
   const envasar = () => {
-    const faltam = l.itens.filter((it) => !it.depois && it.comprar > 0 && !it.chegouEm);
     if (
       faltam.length &&
       !window.confirm(
-        `Ainda sem chegada marcada: ${faltam.map((it) => it.insumo).join(", ")}. Começar o envase mesmo assim?`,
+        `Ainda falta comprar: ${faltam.map((it) => it.insumo).join(", ")}. Começar o envase mesmo assim?`,
       )
     )
       return;
@@ -271,34 +261,26 @@ function LoteCard({
       !window.confirm(
         `Concluir o ${l.codigo} com ${num(l.latasBoas, 0)} latas boas?\n\n` +
           `• Validade: ${diaAno(validade)} (envase + ${VALIDADE_MESES} meses)\n` +
-          `• Estoque dos insumos: entra o que ainda não tinha chegado e sai o consumo do lote (pelo custo médio).`,
+          `• Sai do estoque o consumo de cada insumo, pelo custo médio.`,
       )
     )
       return;
-    const fechado: Lote = {
-      ...l,
-      etapa: "concluido",
-      envaseEm: envase,
-      prontoEm: l.prontoEm ?? hoje,
-      validade,
-      itens: l.itens.map((it) =>
-        it.comprar > 0 || it.depois
-          ? { ...it, chegouEm: it.chegouEm ?? (it.depois ? (l.prontoEm ?? hoje) : null) }
-          : it,
-      ),
-    };
-    onChange(baixarLote(data, fechado));
+    onChange(
+      baixarLote(data, {
+        ...l,
+        etapa: "concluido",
+        envaseEm: envase,
+        prontoEm: l.prontoEm ?? hoje,
+        validade,
+      }),
+    );
   };
   const cancelar = () => {
-    if (
-      !window.confirm(
-        `Cancelar o ${l.codigo}? O que já chegou fica no estoque dos insumos e a reserva é liberada.`,
-      )
-    )
-      return;
+    if (!window.confirm(`Cancelar o ${l.codigo}? A reserva dos insumos é liberada.`)) return;
     onChange(cancelarLote(data, l));
   };
-  const voltar = () => setLote({ ...l, etapa: l.etapa === "envasando" ? "pedido" : "planejado" });
+  const setItem = (k: number, patch: Partial<LoteItem>) =>
+    setLote({ ...l, itens: l.itens.map((it, j) => (j === k ? { ...it, ...patch } : it)) }, true);
 
   return (
     <div className={TABLE_WRAP}>
@@ -309,13 +291,18 @@ function LoteCard({
             <Badge tone={e.tone} icon={e.icon}>
               {e.label}
             </Badge>
-            {t.atraso > 0 ? (
-              <Badge tone="fail">
-                Produção {t.atraso} {t.atraso === 1 ? "dia" : "dias"} depois da data
-              </Badge>
-            ) : (
-              <Badge tone="pass">Produção na data</Badge>
-            )}
+            {planejado &&
+              (faltam.length ? (
+                <Badge tone="hold">
+                  Falta comprar {faltam.length} {faltam.length === 1 ? "insumo" : "insumos"}
+                </Badge>
+              ) : atraso !== null && atraso > 0 ? (
+                <Badge tone="fail">
+                  Insumos chegam {atraso} {atraso === 1 ? "dia" : "dias"} depois da data
+                </Badge>
+              ) : (
+                <Badge tone="pass">Insumos cobertos</Badge>
+              ))}
           </p>
           <p className="text-lk-muted text-xs">
             {num(l.plano.litros, 0)} L · {num(l.envasadas, 0)} envasadas · {num(l.boas, 0)} latas
@@ -323,7 +310,7 @@ function LoteCard({
           </p>
           <p className="text-lk-ink3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
             Data de produção:
-            {l.etapa === "planejado" ? (
+            {planejado ? (
               <input
                 type="date"
                 className={MINI}
@@ -336,20 +323,24 @@ function LoteCard({
             ) : (
               <span className="text-lk-ink font-medium">{dia(t.meta)}</span>
             )}
-            {!l.plano.prontoAte && l.etapa === "planejado" && (
-              <span>(sem data: vale {dia(t.meta)}, o mais cedo possível)</span>
+            {!l.plano.prontoAte && planejado && <span>(sem data: vale {dia(t.meta)})</span>}
+            {planejado && (
+              <span>
+                · dá pra produzir{" "}
+                <span className="text-lk-ink font-medium">
+                  {possivel
+                    ? possivel === hoje
+                      ? "já"
+                      : `em ${dia(possivel)}`
+                    : "depois das compras"}
+                </span>
+              </span>
             )}
-            <span>
-              · produção prevista{" "}
-              <span className="text-lk-ink font-medium">{dia(t.producaoPrevista)}</span>
-            </span>
-            <span>· pronto {dia(t.prontoPrevisto)}</span>
             <span>· custo planejado {t.lataPlan === null ? "—" : `${brl(t.lataPlan)}/lata`}</span>
-            <span>· compra {brl(t.desembolso)}</span>
           </p>
         </div>
         <span className="flex flex-wrap gap-2">
-          {l.etapa === "planejado" && (
+          {planejado && (
             <>
               <button
                 type="button"
@@ -359,13 +350,13 @@ function LoteCard({
                 <Trash2 aria-hidden />
                 Excluir
               </button>
-              <button type="button" className={btn("primary", "sm")} onClick={pedir}>
-                <ShoppingCart aria-hidden />
-                Pedidos feitos
+              <button type="button" className={btn("primary", "sm")} onClick={envasar}>
+                <Factory aria-hidden />
+                Começar envase
               </button>
             </>
           )}
-          {(l.etapa === "pedido" || l.etapa === "envasando") && (
+          {l.etapa === "envasando" && (
             <>
               <button
                 type="button"
@@ -375,39 +366,39 @@ function LoteCard({
                 <Ban aria-hidden />
                 Cancelar lote
               </button>
-              <button type="button" className={btn("secondary", "sm")} onClick={voltar}>
+              <button
+                type="button"
+                className={btn("secondary", "sm")}
+                onClick={() => setLote({ ...l, etapa: "planejado" })}
+              >
                 <Undo2 aria-hidden />
                 Voltar etapa
               </button>
+              <button
+                type="button"
+                className={btn("primary", "sm")}
+                disabled={l.latasBoas === null}
+                title={l.latasBoas === null ? "Preenche as latas boas primeiro" : undefined}
+                onClick={concluir}
+              >
+                <CircleCheck aria-hidden />
+                Concluir lote
+              </button>
             </>
-          )}
-          {l.etapa === "pedido" && (
-            <button type="button" className={btn("primary", "sm")} onClick={envasar}>
-              <Factory aria-hidden />
-              Começar envase
-            </button>
-          )}
-          {l.etapa === "envasando" && (
-            <button
-              type="button"
-              className={btn("primary", "sm")}
-              disabled={l.latasBoas === null}
-              title={l.latasBoas === null ? "Preenche as latas boas primeiro" : undefined}
-              onClick={concluir}
-            >
-              <CircleCheck aria-hidden />
-              Concluir lote
-            </button>
           )}
         </span>
       </div>
 
       <div className="border-lk-border overflow-x-auto border-t">
-        {l.etapa === "planejado" ? (
-          <TabelaPlanejado l={l} data={data} hoje={hoje} meta={t.meta} setLote={setLote} />
-        ) : (
-          <TabelaPedidos l={l} hoje={hoje} setItem={setItem} />
-        )}
+        <TabelaCobertura
+          l={l}
+          data={data}
+          hoje={hoje}
+          meta={t.meta}
+          cob={cob}
+          setLote={setLote}
+          setItem={setItem}
+        />
       </div>
 
       {l.etapa === "envasando" && (
@@ -481,239 +472,174 @@ function LoteCard({
   );
 }
 
-/** Lote planejado: ainda dá pra trocar o fornecedor de cada insumo. */
-function TabelaPlanejado({
+/**
+ * O que o lote consome e de onde vem: do estoque, de pedidos de compra em
+ * aberto (com a chegada) ou falta comprar (com o "pedir até"). O serviço
+ * (envase) tem fornecedor e valor do próprio lote.
+ */
+function TabelaCobertura({
   l,
   data,
   hoje,
   meta,
+  cob,
   setLote,
+  setItem,
 }: {
   l: Lote;
   data: ProducaoData;
   hoje: string;
   meta: string;
+  cob: Map<string, CoberturaItem>;
   setLote: (l: Lote, soon?: boolean) => void;
+  setItem: (k: number, patch: Partial<LoteItem>) => void;
 }) {
   return (
-    <table className="w-full min-w-[960px] text-sm">
+    <table className="w-full min-w-[960px] table-fixed text-sm">
       <thead>
         <tr>
-          <th className={TH}>Insumo</th>
-          <th className={TH}>Fornecedor</th>
-          <th className={`${TH} text-right`}>Precisa</th>
-          <th className={`${TH} text-right`}>Do estoque</th>
-          <th className={`${TH} text-right`}>Comprar</th>
-          <th className={`${TH} text-right`}>Desembolso</th>
-          <th className={`${TH} text-right`}>Prazo</th>
-          <th className={`${TH} text-right`}>Pedir até</th>
+          <th className={`${TH} w-[20%]`}>Insumo</th>
+          <th className={`${TH} w-[13%] text-right`}>Consome</th>
+          <th className={`${TH} w-[13%] text-right`}>Do estoque</th>
+          <th className={`${TH} w-[22%]`}>De pedidos</th>
+          <th className={`${TH} w-[18%]`}>Falta comprar</th>
+          <th className={`${TH} w-[14%] text-right`}>Custo previsto</th>
         </tr>
       </thead>
       <tbody className="divide-lk-border divide-y">
         {l.itens.map((it, k) => {
           const insumo = data.insumos.find((i) => i.id === it.insumoId);
-          const compra = it.comprar > 0 || it.depois;
-          const ate = !compra ? null : it.depois ? meta : somarDias(meta, -it.prazoDias);
-          const passou = ate !== null && ate < hoje;
-          return (
-            <tr key={it.insumoId}>
-              <td className={`${TD} font-semibold`}>{it.insumo}</td>
-              <td className={TD}>
-                {insumo && insumo.fornecedores.length > 1 ? (
-                  <select
-                    className={`${MINI} max-w-56`}
-                    value={it.fornecedorId ?? ""}
-                    onChange={(ev) => {
-                      const f = insumo.fornecedores.find((x) => x.id === ev.target.value);
-                      if (!f) return;
-                      setLote({
-                        ...l,
-                        itens: l.itens.map((x, j) => (j === k ? trocarFornecedor(x, f) : x)),
-                      });
-                    }}
-                  >
-                    {insumo.fornecedores.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.nome || "Sem nome"}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <span className="text-lk-muted">{it.fornecedor || "Sem fornecedor"}</span>
-                )}
-              </td>
-              <td className={`${TD} text-right tabular-nums`}>
-                {num(it.precisa)} <span className="text-lk-muted text-xs">{it.unidade}</span>
-              </td>
-              <td className={`${TD} text-right tabular-nums`}>
-                {it.doEstoque > 0 ? num(it.doEstoque) : "—"}
-              </td>
-              <td className={`${TD} text-right tabular-nums`}>
-                {it.comprar > 0 ? num(it.comprar) : <span className="text-lk-pass">nada</span>}
-              </td>
-              <td className={`${TD} text-right tabular-nums`}>
-                {it.desembolsoCents > 0 ? brl(it.desembolsoCents) : "—"}
-              </td>
-              <td className={`${TD} text-right whitespace-nowrap tabular-nums`}>
-                {compra ? `${it.prazoDias} dias` : "—"}
-              </td>
-              <td className={`${TD} text-right whitespace-nowrap tabular-nums`}>
-                {ate === null ? (
-                  <span className="text-lk-muted">—</span>
-                ) : passou ? (
-                  <Badge tone="fail">{dia(ate)} · passou</Badge>
-                ) : (
-                  dia(ate)
-                )}
-                {it.depois && ate !== null && (
-                  <p className="text-lk-muted text-xs">dia do envase</p>
-                )}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  );
-}
-
-const SIT: Record<string, { tone: Tone; text: (d: number) => string }> = {
-  chegou: { tone: "pass", text: (d) => (d > 0 ? `Chegou ${d} d atrasado` : "Chegou no prazo") },
-  "no-prazo": { tone: "running", text: () => "Aguardando" },
-  atrasado: { tone: "fail", text: (d) => `Atrasado ${d} d` },
-  "a-pedir": { tone: "hold", text: () => "Sem pedido" },
-  estoque: { tone: "muted", text: () => "Do estoque" },
-};
-
-/** Lote em andamento: datas de pedido e chegada, quanto chegou e quanto pagou. */
-function TabelaPedidos({
-  l,
-  hoje,
-  setItem,
-}: {
-  l: Lote;
-  hoje: string;
-  setItem: (k: number, patch: Partial<LoteItem>, soon?: boolean) => void;
-}) {
-  const CELL = `${TD} px-2!`;
-  const date = (k: number, key: "pedidoEm" | "previstoEm" | "chegouEm", v: string | null) => (
-    <input
-      type="date"
-      aria-label={key}
-      className={`${MINI} w-full min-w-0`}
-      value={v ?? ""}
-      onChange={(ev) => {
-        const d = ev.target.value || null;
-        const it = l.itens[k];
-        // Mudou o dia do pedido: a data prometida acompanha (prazo do fornecedor).
-        setItem(
-          k,
-          key === "pedidoEm" && d
-            ? { pedidoEm: d, previstoEm: somarDias(d, it.prazoDias) }
-            : { [key]: d },
-        );
-      }}
-    />
-  );
-  return (
-    <table className="w-full min-w-[1000px] table-fixed text-sm">
-      <thead>
-        <tr>
-          <th className={`${TH} w-[17%]`}>Insumo</th>
-          <th className={`${TH} w-[10%] text-right`}>Comprar</th>
-          <th className={`${TH} w-[15%] px-2!`}>Pedido em</th>
-          <th className={`${TH} w-[15%] px-2!`}>Prometido p/</th>
-          <th className={`${TH} w-[15%] px-2!`}>Chegou em</th>
-          <th className={`${TH} w-[13%] px-2!`}>Recebido · pago R$</th>
-          <th className={`${TH} w-[15%]`}>Situação</th>
-        </tr>
-      </thead>
-      <tbody className="divide-lk-border divide-y">
-        {l.itens.map((it, k) => {
-          const sit = situacaoItem(it, hoje);
-          const s = SIT[sit.s];
-          if (sit.s === "estoque")
+          const custo = Math.round(it.precisa * it.unitCents);
+          if (it.categoria === "Serviço")
             return (
               <tr key={it.insumoId}>
                 <td className={TD}>
                   <p className="font-semibold">{it.insumo}</p>
+                  <p className="text-lk-muted text-xs">serviço do lote</p>
                 </td>
-                <td className={`${TD} text-lk-muted`} colSpan={5}>
-                  {num(it.precisa)} {it.unidade} saem do estoque
+                <td className={`${TD} text-right tabular-nums`}>
+                  {num(it.precisa)} <span className="text-lk-muted text-xs">{it.unidade}</span>
+                </td>
+                <td className={TD} colSpan={2}>
+                  {insumo && insumo.fornecedores.length > 1 && l.etapa !== "envasando" ? (
+                    <select
+                      className={`${MINI} max-w-56`}
+                      value={it.fornecedorId ?? ""}
+                      onChange={(ev) => {
+                        const f = insumo.fornecedores.find((x) => x.id === ev.target.value);
+                        if (!f) return;
+                        setLote({
+                          ...l,
+                          itens: l.itens.map((x, j) => (j === k ? trocarFornecedor(x, f) : x)),
+                        });
+                      }}
+                    >
+                      {insumo.fornecedores.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.nome || "Sem nome"}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="text-lk-muted">{it.fornecedor || "Sem fornecedor"}</span>
+                  )}
+                  <span className="text-lk-muted text-xs">
+                    {" "}
+                    · marcar até {dia(somarDias(meta, -it.prazoDias))}
+                  </span>
                 </td>
                 <td className={TD}>
-                  <Badge tone={s.tone}>{s.text(sit.dias)}</Badge>
+                  {l.etapa === "envasando" ? (
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      aria-label={`${it.insumo}: valor pago`}
+                      title="Valor pago pelo serviço (R$)"
+                      placeholder={`pago (R$ ${(it.desembolsoCents / 100).toFixed(2)})`}
+                      className={`${MINI} w-full min-w-0 text-right`}
+                      value={it.pagoCents === null ? "" : it.pagoCents / 100}
+                      onChange={(ev) =>
+                        setItem(k, {
+                          pagoCents:
+                            ev.target.value === ""
+                              ? null
+                              : Math.max(0, Math.round(Number(ev.target.value) * 100)),
+                        })
+                      }
+                    />
+                  ) : (
+                    <span className="text-lk-muted text-xs">valor no envase</span>
+                  )}
+                </td>
+                <td className={`${TD} text-right tabular-nums`}>
+                  {brl(it.pagoCents ?? it.desembolsoCents)}
                 </td>
               </tr>
             );
+          const c = cob.get(it.insumoId);
+          const pedirAte = insumo
+            ? somarDias(meta, -(principalDoInsumo(insumo)?.prazoDias ?? 0))
+            : null;
           return (
             <tr key={it.insumoId}>
               <td className={TD}>
                 <p className="font-semibold">{it.insumo}</p>
                 <p className="text-lk-muted text-xs">
-                  {it.fornecedor || "Sem fornecedor"} · {it.prazoDias} d
+                  em estoque {num(insumo?.estoque ?? 0)} {it.unidade}
                 </p>
               </td>
               <td className={`${TD} text-right tabular-nums`}>
-                {num(it.comprar)}
-                <p className="text-lk-muted text-xs">{it.unidade}</p>
-                <p className="text-lk-muted text-xs">{brl(it.desembolsoCents)}</p>
+                {num(it.precisa)} <span className="text-lk-muted text-xs">{it.unidade}</span>
               </td>
-              <td className={CELL}>{date(k, "pedidoEm", it.pedidoEm)}</td>
-              <td className={CELL}>{date(k, "previstoEm", it.previstoEm)}</td>
-              <td className={CELL}>
-                {date(k, "chegouEm", it.chegouEm)}
-                {!it.chegouEm && (
-                  <button
-                    type="button"
-                    className="text-lk-action-strong mt-1 block text-xs hover:underline"
-                    onClick={() =>
-                      setItem(k, { chegouEm: hoje, recebido: it.recebido ?? it.comprar }, false)
-                    }
-                  >
-                    {it.depois ? "Feito hoje" : "Chegou hoje"}
-                  </button>
+              <td className={`${TD} text-right tabular-nums`}>
+                {c && c.doEstoque > 1e-9 ? (
+                  num(c.doEstoque)
+                ) : (
+                  <span className="text-lk-muted">—</span>
                 )}
               </td>
-              <td className={`${CELL} space-y-1`}>
-                <input
-                  type="number"
-                  min={0}
-                  step="any"
-                  aria-label={`${it.insumo}: quantidade recebida`}
-                  title="Quantidade recebida"
-                  placeholder={num(it.comprar)}
-                  className={`${MINI} w-full min-w-0 text-right`}
-                  value={it.recebido ?? ""}
-                  onChange={(ev) =>
-                    setItem(k, {
-                      recebido:
-                        ev.target.value === "" ? null : Math.max(0, Number(ev.target.value)),
-                    })
-                  }
-                />
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  aria-label={`${it.insumo}: valor pago em reais`}
-                  title="Valor pago (R$), com frete"
-                  placeholder={`R$ ${(it.desembolsoCents / 100).toFixed(2)}`}
-                  className={`${MINI} w-full min-w-0 text-right`}
-                  value={it.pagoCents === null ? "" : it.pagoCents / 100}
-                  onChange={(ev) =>
-                    setItem(k, {
-                      pagoCents:
-                        ev.target.value === ""
-                          ? null
-                          : Math.max(0, Math.round(Number(ev.target.value) * 100)),
-                    })
-                  }
-                />
+              <td className={TD}>
+                {c && c.dePedidos > 1e-9 ? (
+                  <>
+                    <span className="tabular-nums">{num(c.dePedidos)}</span>{" "}
+                    <span className="font-lk-mono text-xs">{c.pcs.join(", ")}</span>
+                    {c.chegaEm && (
+                      <p
+                        className={`text-xs ${c.chegaEm < hoje ? "text-lk-fail" : c.chegaEm > meta ? "text-lk-hold" : "text-lk-muted"}`}
+                      >
+                        chega {dia(c.chegaEm)}
+                        {c.chegaEm < hoje
+                          ? " (atrasado)"
+                          : c.chegaEm > meta
+                            ? " (depois da data)"
+                            : ""}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-lk-muted">—</span>
+                )}
               </td>
               <td className={TD}>
-                <Badge tone={s.tone}>{s.text(sit.dias)}</Badge>
+                {c && c.falta > 1e-9 ? (
+                  <>
+                    <Badge tone={pedirAte && pedirAte < hoje ? "fail" : "hold"}>
+                      {num(c.falta)} {it.unidade}
+                    </Badge>
+                    {pedirAte && (
+                      <p
+                        className={`text-xs ${pedirAte < hoje ? "text-lk-fail" : "text-lk-muted"}`}
+                      >
+                        pedir até {dia(pedirAte)}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <Badge tone="pass">coberto</Badge>
+                )}
               </td>
+              <td className={`${TD} text-right tabular-nums`}>{brl(custo)}</td>
             </tr>
           );
         })}
@@ -721,6 +647,9 @@ function TabelaPedidos({
     </table>
   );
 }
+
+const principalDoInsumo = (i: ProducaoData["insumos"][number]) =>
+  i.fornecedores.find((f) => f.id === i.principal) ?? i.fornecedores[0] ?? null;
 
 /** Tabela dos lotes concluídos/cancelados: planejado × real. */
 function Historico({
