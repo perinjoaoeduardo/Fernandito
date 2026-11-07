@@ -1625,6 +1625,30 @@ export function importarSobraFernetLote1(data: ProducaoData): ProducaoData | nul
   };
 }
 
+const IMPORT_FERNET_LEGADO = "fernet-legado-entra-estoque-2026-11";
+
+/**
+ * Os pedidos de fernet registrados quando "registrar compra" não mexia no
+ * estoque viraram pedidos "antes do controle" e ficaram fora do estoque
+ * (a equipe confirmou que foram entregues). Dá entrada neles. Os da LNF
+ * (latas e coroas) já estão no saldo inicial e não entram.
+ */
+export function entrarFernetLegado(data: ProducaoData): ProducaoData | null {
+  if (data.importacoes.includes(IMPORT_FERNET_LEGADO)) return null;
+  const fernet = new Set(
+    data.insumos.filter((i) => /fernet/.test(semAcento(i.insumo))).map((i) => i.id),
+  );
+  let d = { ...data, importacoes: [...data.importacoes, IMPORT_FERNET_LEGADO] };
+  for (const pc of d.pedidos)
+    if (
+      pc.legado &&
+      !pc.id.startsWith("pc-lnf-") &&
+      pc.itens.some((it) => fernet.has(it.insumoId) && it.recebido > 0)
+    )
+      d = entrarLegado(d, pc.id);
+  return d;
+}
+
 /** Normaliza e roda as importações que faltam. `null` = nada mudou. */
 export function aplicarImportacoes(data: ProducaoData): ProducaoData | null {
   let atual = normalizar(data);
@@ -1638,6 +1662,7 @@ export function aplicarImportacoes(data: ProducaoData): ProducaoData | null {
     migrarParaPedidos,
     implantarEstoque,
     receberFernetPendente,
+    entrarFernetLegado,
   ]) {
     const r = imp(atual);
     if (r) {
@@ -2092,6 +2117,43 @@ export function estornarRecebimento(data: ProducaoData, pcId: string, doc: strin
       ),
     })),
     recebimentos: pc.recebimentos.filter((x) => x.doc !== doc),
+  };
+  return { ...d, pedidos: d.pedidos.map((x) => (x.id === pc.id ? novo : x)) };
+}
+
+/**
+ * Pedido "antes do controle de estoque" que na verdade nunca entrou no
+ * estoque (ex.: compra registrada quando o registro não mexia no estoque):
+ * lança agora a entrada do que foi recebido, pelo custo do pedido.
+ */
+export function entrarLegado(data: ProducaoData, pcId: string): ProducaoData {
+  const pc = data.pedidos.find((x) => x.id === pcId);
+  if (!pc || !pc.legado) return data;
+  const doc = proximoDoc(data);
+  let d = data;
+  const dia = pc.recebimentos.find((r) => r.data)?.data ?? pc.data ?? hojeBR();
+  pc.itens.forEach((it, idx) => {
+    if (it.recebido <= 0) return;
+    d = movimentar(d, {
+      insumoId: it.insumoId,
+      tipo: "entrada",
+      qtd: it.recebido,
+      valorCents: Math.round(unitPedido(pc, idx) * it.recebido),
+      data: dia,
+      origem: `${pc.numero} · ${pc.fornecedor || "fornecedor"} (entrada lançada depois)`,
+      ref: `${pc.id}:${idx}`,
+      doc,
+      pc: pc.numero,
+    });
+  });
+  const novo: PedidoCompra = {
+    ...pc,
+    legado: false,
+    recebimentos: pc.recebimentos.map((r) => ({
+      ...r,
+      doc: r.doc && r.doc !== "MIGRADO" ? r.doc : doc,
+      obs: "Entrada no estoque lançada depois",
+    })),
   };
   return { ...d, pedidos: d.pedidos.map((x) => (x.id === pc.id ? novo : x)) };
 }

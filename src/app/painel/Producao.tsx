@@ -32,6 +32,7 @@ import {
   chaveFornecedor,
   faixaDe,
   proximoPC,
+  entrarLegado,
   estornarRecebimento,
   excluirPedido,
   posicao,
@@ -866,6 +867,15 @@ export function Producao({
           onCancel={() => setEditing(null)}
           onReceber={receberPc}
           onEstornar={estornarPc}
+          onEntrarLegado={() => {
+            if (
+              !window.confirm(
+                `Dar entrada no estoque do que o ${pcReceber.numero} recebeu? Use só se essas quantidades ainda não estão no estoque.`,
+              )
+            )
+              return;
+            persist(entrarLegado(data, pcReceber.id));
+          }}
           onEditar={() =>
             setEditing({ kind: "pedido", pc: structuredClone(pcReceber), isNew: false })
           }
@@ -1939,6 +1949,7 @@ function ReceberEditor({
   onCancel,
   onReceber,
   onEstornar,
+  onEntrarLegado,
   onEditar,
 }: {
   pc: PedidoCompra;
@@ -1946,6 +1957,7 @@ function ReceberEditor({
   onCancel: () => void;
   onReceber: (dia: string, linhas: { idx: number; qtd: number }[], obs: string) => void;
   onEstornar: (doc: string) => void;
+  onEntrarLegado: () => void;
   onEditar: () => void;
 }) {
   const [quando, setQuando] = useState(pc.previstoEm && pc.previstoEm < hoje ? hoje : hoje);
@@ -1975,6 +1987,22 @@ function ReceberEditor({
           Editar pedido
         </button>
       </p>
+      {pc.legado && (
+        <div className="border-lk-hold/25 bg-lk-hold-bg flex flex-col gap-2 rounded-lg border p-3 text-sm">
+          <p className="text-lk-hold">
+            Pedido de antes do controle de estoque: o recebido dele <b>não</b> foi somado no estoque
+            (considerado já contado no saldo inicial). Se não estava contado, dê entrada agora.
+          </p>
+          <button
+            type="button"
+            className={`${btn("secondary", "sm")} self-start`}
+            onClick={onEntrarLegado}
+          >
+            <PackageCheck aria-hidden />
+            Dar entrada no estoque
+          </button>
+        </div>
+      )}
       {aberto ? (
         <>
           <p className="text-sm font-semibold">Entrada de mercadoria</p>
