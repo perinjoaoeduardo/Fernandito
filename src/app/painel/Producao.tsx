@@ -755,16 +755,16 @@ function InsumoCard({
         </p>
       ) : (
         <div className="border-lk-border overflow-x-auto border-t">
-          <table className="w-full min-w-[980px] text-sm">
+          <table className="w-full min-w-[980px] table-fixed text-sm">
             <thead>
               <tr>
-                <th className={TH}>Fornecedor</th>
-                <th className={TH}>Preço por quantidade</th>
-                <th className={`${TH} text-right`}>Mínimo</th>
-                <th className={`${TH} text-right`}>Prazo</th>
-                <th className={`${TH} text-right`}>Frete</th>
-                <th className={`${TH} text-right`}>Neste lote</th>
-                <th className={TH}>
+                <th className={`${TH} w-[21%]`}>Fornecedor</th>
+                <th className={`${TH} w-[22%]`}>Preço por quantidade</th>
+                <th className={`${TH} w-[12%] text-right`}>Mínimo</th>
+                <th className={`${TH} w-[8%] text-right`}>Prazo</th>
+                <th className={`${TH} w-[8%] text-right`}>Frete</th>
+                <th className={`${TH} w-[13%] text-right`}>Neste lote</th>
+                <th className={`${TH} w-[16%]`}>
                   <span className="sr-only">Ações</span>
                 </th>
               </tr>
@@ -777,7 +777,7 @@ function InsumoCard({
                 return (
                   <tr key={f.id} className={eh ? "bg-lk-paper/60" : "hover:bg-lk-paper/60"}>
                     <td className={TD}>
-                      <p className="flex items-center gap-1.5 font-semibold">
+                      <p className="flex flex-wrap items-center gap-x-1.5 font-semibold">
                         {eh && (
                           <Star
                             aria-label="Principal"
@@ -812,7 +812,7 @@ function InsumoCard({
                           .map((x, k, all) => {
                             const next = all[k + 1];
                             return (
-                              <li key={`${x.de}-${k}`} className="text-xs whitespace-nowrap">
+                              <li key={`${x.de}-${k}`} className="text-xs">
                                 <span className="text-lk-muted">
                                   {next
                                     ? `${num(x.de)} a ${num(next.de - 1)}`
@@ -858,7 +858,7 @@ function InsumoCard({
                       )}
                     </td>
                     <td className={`${TD} text-right`}>
-                      <span className="flex justify-end gap-1">
+                      <span className="flex flex-wrap justify-end gap-1">
                         {!eh && (
                           <button
                             type="button"
@@ -873,9 +873,10 @@ function InsumoCard({
                           type="button"
                           className={btn("ghost", "sm")}
                           onClick={() => onEditFornecedor(f)}
+                          aria-label={`Editar cotação de ${f.nome || "fornecedor"}`}
+                          title="Editar cotação"
                         >
                           <Pencil aria-hidden />
-                          Editar
                         </button>
                       </span>
                     </td>
