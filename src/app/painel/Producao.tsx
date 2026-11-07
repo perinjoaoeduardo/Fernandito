@@ -16,7 +16,9 @@ import {
 import {
   CATEGORIAS,
   LATA_ML,
+  comprasDo,
   criarLote,
+  custoMedio,
   disponiveis,
   pontualidade,
   proximoCodigo,
@@ -29,8 +31,10 @@ import {
   principalDe,
   resumo,
   somarDias,
+  type Compra,
   type Fornecedor,
   type Insumo,
+  type LinhaCompra,
   type Plano,
   type ProducaoData,
 } from "@/lib/producao";
@@ -94,7 +98,17 @@ const NOVO_FORNECEDOR = (): Fornecedor => ({
 
 type Editing =
   | { kind: "insumo"; item: Insumo; isNew: boolean }
-  | { kind: "fornecedor"; insumo: Insumo; item: Fornecedor; isNew: boolean };
+  | { kind: "fornecedor"; insumo: Insumo; item: Fornecedor; isNew: boolean }
+  | { kind: "compra"; insumo: Insumo; item: Compra; isNew: boolean };
+
+/** Custo de uma unidade com até 3 casas (R$ 1,026). */
+const unit = (cents: number) =>
+  (cents / 100).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 3,
+  });
 
 export function Producao({
   initial,
@@ -180,6 +194,40 @@ export function Producao({
     setEditing(null);
   };
   const usarFornecedor = (insumo: Insumo, id: string) => putInsumo({ ...insumo, principal: id });
+  const novaCompra = (insumo: Insumo): Compra => {
+    const p = principalDe(insumo);
+    const ordem = Math.max(
+      0,
+      ...data.compras.filter((c) => c.insumoId === insumo.id).map((c) => c.ordem),
+    );
+    return {
+      id: novoId("c"),
+      insumoId: insumo.id,
+      fornecedorId: p?.id ?? null,
+      fornecedor: p?.nome ?? "",
+      pedido: `${ordem + 1}º pedido`,
+      data: hoje,
+      ordem: ordem + 1,
+      quantidade: 1,
+      valorCents: 0,
+      freteCents: 0,
+      obs: "",
+    };
+  };
+  const saveCompra = (c: Compra) => {
+    const exists = data.compras.some((x) => x.id === c.id);
+    persist({
+      ...data,
+      compras: exists ? data.compras.map((x) => (x.id === c.id ? c : x)) : [...data.compras, c],
+    });
+    setEditing(null);
+  };
+  const removeCompra = (id: string) => {
+    if (!window.confirm("Excluir esta compra do histórico? (O estoque do insumo não muda.)"))
+      return;
+    persist({ ...data, compras: data.compras.filter((x) => x.id !== id) });
+    setEditing(null);
+  };
   const proximo = proximoCodigo(data.lotes);
   const podeCriar = r.receitaOk && r.boas > 0;
   const criar = () => {
@@ -684,6 +732,15 @@ export function Producao({
             hoje={hoje}
             pont={pont}
             reservado={reservado.get(l.i.id) ?? 0}
+            compras={comprasDo(data, l.i.id)}
+            onAddCompra={() =>
+              setEditing({ kind: "compra", insumo: l.i, item: novaCompra(l.i), isNew: true })
+            }
+            onEditCompra={(id) => {
+              const c = data.compras.find((x) => x.id === id);
+              if (c)
+                setEditing({ kind: "compra", insumo: l.i, item: structuredClone(c), isNew: false });
+            }}
             onEdit={() => setEditing({ kind: "insumo", item: structuredClone(l.i), isNew: false })}
             onAddFornecedor={() =>
               setEditing({ kind: "fornecedor", insumo: l.i, item: NOVO_FORNECEDOR(), isNew: true })
@@ -714,6 +771,16 @@ export function Producao({
           onDelete={() => removeInsumo(editing.item.id)}
         />
       )}
+      {editing?.kind === "compra" && (
+        <CompraEditor
+          item={editing.item}
+          insumo={editing.insumo}
+          isNew={editing.isNew}
+          onCancel={() => setEditing(null)}
+          onSave={saveCompra}
+          onDelete={() => removeCompra(editing.item.id)}
+        />
+      )}
       {editing?.kind === "fornecedor" && (
         <FornecedorEditor
           item={editing.item}
@@ -734,6 +801,9 @@ function InsumoCard({
   hoje,
   pont,
   reservado,
+  compras,
+  onAddCompra,
+  onEditCompra,
   onEdit,
   onAddFornecedor,
   onEditFornecedor,
@@ -744,6 +814,9 @@ function InsumoCard({
   /** Entregas registradas nos lotes, por fornecedor. */
   pont: ReturnType<typeof pontualidade>;
   reservado: number;
+  compras: LinhaCompra[];
+  onAddCompra: () => void;
+  onEditCompra: (id: string) => void;
   onEdit: () => void;
   onAddFornecedor: () => void;
   onEditFornecedor: (f: Fornecedor) => void;
@@ -942,7 +1015,245 @@ function InsumoCard({
           </table>
         </div>
       )}
+      <HistoricoCompras i={i} compras={compras} onAdd={onAddCompra} onEdit={onEditCompra} />
     </div>
+  );
+}
+
+/** Compras já feitas do insumo: registradas à mão + as dos lotes. */
+function HistoricoCompras({
+  i,
+  compras,
+  onAdd,
+  onEdit,
+}: {
+  i: Insumo;
+  compras: LinhaCompra[];
+  onAdd: () => void;
+  onEdit: (id: string) => void;
+}) {
+  if (i.categoria === "Serviço" && compras.length === 0) return null;
+  const media = custoMedio(compras);
+  const ultimo = compras[compras.length - 1];
+  return (
+    <div className="border-lk-border border-t">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+        <p className="text-sm">
+          <span className="font-semibold">Compras</span>
+          <span className="text-lk-muted"> · {compras.length}</span>
+          {media.unitCents !== null && (
+            <span className="text-lk-muted text-xs">
+              {"  "}· custo médio{" "}
+              <span className="text-lk-ink font-medium">{unit(media.unitCents)}</span> por{" "}
+              {i.unidade} com frete ({num(media.qtd, 0)} un., {brl(media.total)})
+              {ultimo && compras.length > 1 && (
+                <>
+                  {" "}
+                  · último <span className="text-lk-ink font-medium">{unit(ultimo.unitCents)}</span>
+                </>
+              )}
+            </span>
+          )}
+        </p>
+        <button type="button" className={btn("ghost", "sm")} onClick={onAdd}>
+          <Plus aria-hidden />
+          Registrar compra
+        </button>
+      </div>
+      {compras.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[820px] table-fixed text-sm">
+            <thead>
+              <tr>
+                <th className={`${TH} w-[20%]`}>Pedido</th>
+                <th className={`${TH} w-[16%]`}>Fornecedor</th>
+                <th className={`${TH} w-[13%] text-right`}>Quantidade</th>
+                <th className={`${TH} w-[15%] text-right`}>Valor</th>
+                <th className={`${TH} w-[13%] text-right`}>Frete</th>
+                <th className={`${TH} w-[15%] text-right`}>Por {i.unidade}</th>
+                <th className={`${TH} w-[8%]`}>
+                  <span className="sr-only">Editar</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-lk-border divide-y">
+              {compras.map((c) => (
+                <tr key={c.id}>
+                  <td className={TD}>
+                    <p className="font-medium">{c.pedido}</p>
+                    <p className="text-lk-muted text-xs">
+                      {c.data ? dia(c.data) : "sem data"}
+                      {c.lote ? " · pelo lote" : ""}
+                    </p>
+                  </td>
+                  <td className={TD}>{c.fornecedor || "—"}</td>
+                  <td className={`${TD} text-right tabular-nums`}>{num(c.quantidade)}</td>
+                  <td className={`${TD} text-right tabular-nums`}>
+                    {brl(c.totalCents - (c.freteCents ?? 0))}
+                  </td>
+                  <td className={`${TD} text-right tabular-nums`}>
+                    {c.freteCents === null ? (
+                      <span className="text-lk-muted text-xs">no valor</span>
+                    ) : c.freteCents > 0 ? (
+                      brl(c.freteCents)
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className={`${TD} text-right font-medium tabular-nums`}>
+                    {unit(c.unitCents)}
+                  </td>
+                  <td className={`${TD} text-right`}>
+                    {c.lote === null && (
+                      <button
+                        type="button"
+                        className={btn("ghost", "sm")}
+                        onClick={() => onEdit(c.id)}
+                        aria-label={`Editar ${c.pedido}`}
+                        title="Editar compra"
+                      >
+                        <Pencil aria-hidden />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CompraEditor({
+  item,
+  insumo,
+  isNew,
+  onCancel,
+  onSave,
+  onDelete,
+}: {
+  item: Compra;
+  insumo: Insumo;
+  isNew: boolean;
+  onCancel: () => void;
+  onSave: (c: Compra) => void;
+  onDelete: () => void;
+}) {
+  const [f, setF] = useState(item);
+  const [valor, setValor] = useState(item.valorCents ? fromCents(item.valorCents) : "");
+  const [frete, setFrete] = useState(item.freteCents ? fromCents(item.freteCents) : "");
+  const set = <K extends keyof Compra>(k: K, v: Compra[K]) => setF((p) => ({ ...p, [k]: v }));
+  const un = insumo.unidade || "unidades";
+  const total = toCents(valor) + toCents(frete);
+  const ok = f.quantidade > 0 && toCents(valor) > 0;
+  return (
+    <Drawer
+      title={`${isNew ? "Registrar compra" : "Editar compra"} · ${insumo.insumo}`}
+      isNew={isNew}
+      ok={ok}
+      onCancel={onCancel}
+      onSave={() => onSave({ ...f, valorCents: toCents(valor), freteCents: toCents(frete) })}
+      onDelete={onDelete}
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className={LABEL}>
+          <span className="font-medium">Pedido</span>
+          <input
+            className={INPUT}
+            value={f.pedido}
+            onChange={(e) => set("pedido", e.target.value)}
+            placeholder="1º pedido, nº da nota…"
+          />
+        </label>
+        <label className={LABEL}>
+          <span className="font-medium">Data</span>
+          <input
+            type="date"
+            className={INPUT}
+            value={f.data ?? ""}
+            onChange={(e) => set("data", e.target.value || null)}
+          />
+          <span className={HINT}>Sem data: fica na ordem do pedido</span>
+        </label>
+        <label className={LABEL}>
+          <span className="font-medium">Fornecedor</span>
+          <select
+            className={INPUT}
+            value={f.fornecedorId ?? ""}
+            onChange={(e) => {
+              const forn = insumo.fornecedores.find((x) => x.id === e.target.value);
+              setF((p) => ({
+                ...p,
+                fornecedorId: forn?.id ?? null,
+                fornecedor: forn?.nome ?? p.fornecedor,
+              }));
+            }}
+          >
+            <option value="">{f.fornecedorId ? "Outro" : f.fornecedor || "Escolher…"}</option>
+            {insumo.fornecedores.map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.nome || "Sem nome"}
+              </option>
+            ))}
+          </select>
+        </label>
+        <NumField
+          label="Quantidade"
+          value={f.quantidade}
+          onChange={(n) => set("quantidade", n)}
+          hint={un}
+        />
+        <label className={LABEL}>
+          <span className="font-medium">Valor dos itens</span>
+          <span className="flex items-center gap-2">
+            <span className="text-lk-muted">R$</span>
+            <input
+              inputMode="decimal"
+              className={`${INPUT} w-full text-right tabular-nums`}
+              value={valor}
+              onChange={(e) => setValor(e.target.value)}
+              placeholder="0,00"
+            />
+          </span>
+          <span className={HINT}>Sem o frete</span>
+        </label>
+        <label className={LABEL}>
+          <span className="font-medium">Frete</span>
+          <span className="flex items-center gap-2">
+            <span className="text-lk-muted">R$</span>
+            <input
+              inputMode="decimal"
+              className={`${INPUT} w-full text-right tabular-nums`}
+              value={frete}
+              onChange={(e) => setFrete(e.target.value)}
+              placeholder="0,00"
+            />
+          </span>
+          <span className={HINT}>Se o frete foi junto com outro insumo, só a parte deste</span>
+        </label>
+      </div>
+      {f.quantidade > 0 && total > 0 && (
+        <p className="text-sm">
+          Sai <span className="font-semibold">{unit(total / f.quantidade)}</span> por {un}, com
+          frete.
+        </p>
+      )}
+      <label className={LABEL}>
+        <span className="font-medium">Observações</span>
+        <textarea
+          className={`${INPUT} h-20 py-2`}
+          value={f.obs}
+          maxLength={300}
+          onChange={(e) => set("obs", e.target.value)}
+        />
+      </label>
+      <p className={HINT}>
+        Registrar uma compra aqui não muda o estoque do insumo: ajuste em “Editar insumo” se
+        precisar. Compras feitas dentro de um lote entram no histórico sozinhas.
+      </p>
+    </Drawer>
   );
 }
 

@@ -45,7 +45,13 @@ import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
 import { SubmitButton } from "./SubmitButton";
 import { Producao } from "./Producao";
-import { EXEMPLO, PRODUCAO_KEY, lerProducao } from "@/lib/producao";
+import {
+  EXEMPLO,
+  PRODUCAO_BACKUP_V1,
+  PRODUCAO_KEY,
+  importarComprasLNF,
+  lerProducao,
+} from "@/lib/producao";
 import {
   Badge,
   CARD,
@@ -434,7 +440,17 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     if (aba !== "producao") return EXEMPLO;
     try {
       const raw = await kvGet(PRODUCAO_KEY);
-      return (raw && lerProducao(JSON.parse(raw))) || EXEMPLO;
+      const dados = (raw && lerProducao(JSON.parse(raw))) || EXEMPLO;
+      // Importações de dados (rodam uma vez só e ficam salvas no banco).
+      const importado = importarComprasLNF(dados);
+      if (!importado) return dados;
+      // Falhar ao salvar não pode cair nos exemplos: mostra o importado mesmo assim.
+      if (raw && !raw.includes('"versao":2')) await kvSet(PRODUCAO_BACKUP_V1, raw).catch(() => {});
+      await kvSet(
+        PRODUCAO_KEY,
+        JSON.stringify({ ...importado, atualizadoEm: new Date().toISOString() }),
+      ).catch(() => {});
+      return importado;
     } catch {
       return EXEMPLO;
     }

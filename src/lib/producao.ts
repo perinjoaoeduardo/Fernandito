@@ -151,12 +151,37 @@ export const loteSchema = z.object({
   obs: z.string().max(500),
 });
 
+/**
+ * Compra registrada à mão (fora de um lote): pedidos antigos ou avulsos.
+ * As compras feitas dentro dos lotes entram no histórico sozinhas.
+ */
+export const compraSchema = z.object({
+  id: z.string().min(1).max(40),
+  insumoId: z.string().max(40),
+  fornecedorId: z.string().max(40).nullable(),
+  fornecedor: z.string().trim().max(80),
+  /** Como a equipe chama o pedido ("1º pedido", nº da nota…). */
+  pedido: z.string().trim().max(40),
+  data: dia,
+  /** Ordem dos pedidos sem data (1, 2, 3…). */
+  ordem: z.number().int().min(0).max(1e6),
+  quantidade: z.number().positive().max(1e9),
+  /** Valor dos itens, sem o frete. */
+  valorCents: z.number().int().min(0).max(1e12),
+  /** Parte do frete do pedido que coube a este insumo. */
+  freteCents: z.number().int().min(0).max(1e12),
+  obs: z.string().trim().max(300),
+});
+
 export const producaoSchema = z.object({
   versao: z.literal(2),
   insumos: z.array(insumoSchema).max(100),
   receita: receitaSchema,
   plano: planoSchema,
   lotes: z.array(loteSchema).max(300).default([]),
+  compras: z.array(compraSchema).max(2000).default([]),
+  /** Importações de dados já aplicadas (cada uma roda uma vez só). */
+  importacoes: z.array(z.string().max(60)).max(50).default([]),
   atualizadoEm: z.string().optional(),
 });
 
@@ -167,6 +192,7 @@ export type Plano = z.infer<typeof planoSchema>;
 export type Etapa = (typeof ETAPAS)[number];
 export type LoteItem = z.infer<typeof loteItemSchema>;
 export type Lote = z.infer<typeof loteSchema>;
+export type Compra = z.infer<typeof compraSchema>;
 export type ProducaoData = z.infer<typeof producaoSchema>;
 
 export const PRODUCAO_KEY = "producao:dados";
@@ -259,6 +285,8 @@ export function lerProducao(raw: unknown): ProducaoData | null {
     receita: velho.data.receita,
     plano: PLANO_PADRAO,
     lotes: [],
+    compras: [],
+    importacoes: [],
     atualizadoEm: velho.data.atualizadoEm,
   });
   return parsed.success ? parsed.data : null;
@@ -710,6 +738,258 @@ export function estoqueAoCancelar(insumos: Insumo[], l: Lote) {
   });
 }
 
+// ── Histórico de compras ────────────────────────────────────────────────────
+
+export type LinhaCompra = {
+  id: string;
+  /** `null` = registrada à mão; senão, o código do lote. */
+  lote: string | null;
+  pedido: string;
+  data: string | null;
+  ordem: number;
+  fornecedorId: string | null;
+  fornecedor: string;
+  quantidade: number;
+  /** Total pago, com frete. */
+  totalCents: number;
+  /** Frete (`null` = não separado, compras de lote). */
+  freteCents: number | null;
+  unitCents: number;
+};
+
+/** Compras de um insumo: as registradas + as dos lotes (com chegada ou valor pago). */
+export function comprasDo(data: ProducaoData, insumoId: string): LinhaCompra[] {
+  const registradas: LinhaCompra[] = data.compras
+    .filter((c) => c.insumoId === insumoId)
+    .map((c) => ({
+      id: c.id,
+      lote: null,
+      pedido: c.pedido,
+      data: c.data,
+      ordem: c.ordem,
+      fornecedorId: c.fornecedorId,
+      fornecedor: c.fornecedor,
+      quantidade: c.quantidade,
+      totalCents: c.valorCents + c.freteCents,
+      freteCents: c.freteCents,
+      unitCents: (c.valorCents + c.freteCents) / c.quantidade,
+    }));
+  const deLotes: LinhaCompra[] = data.lotes
+    .filter((l) => l.etapa !== "cancelado")
+    .flatMap((l) =>
+      l.itens
+        .filter(
+          (it) =>
+            it.insumoId === insumoId &&
+            it.categoria !== "Serviço" &&
+            it.comprar > 0 &&
+            (it.chegouEm || it.pagoCents !== null),
+        )
+        .map((it) => {
+          const quantidade = it.recebido ?? it.comprar;
+          const totalCents = it.pagoCents ?? it.desembolsoCents;
+          return {
+            id: `${l.id}:${it.insumoId}`,
+            lote: l.codigo,
+            pedido: `Lote ${l.codigo}`,
+            data: it.chegouEm ?? it.pedidoEm,
+            ordem: 1e6,
+            fornecedorId: it.fornecedorId,
+            fornecedor: it.fornecedor,
+            quantidade,
+            totalCents,
+            freteCents: null,
+            unitCents: quantidade > 0 ? totalCents / quantidade : 0,
+          };
+        }),
+    );
+  // Registradas na ordem do pedido (ou por data, se as duas têm); as dos
+  // lotes depois, por data.
+  return [...registradas, ...deLotes].sort((a, b) => {
+    if (a.data && b.data) return a.data.localeCompare(b.data) || a.ordem - b.ordem;
+    if (!a.lote && !b.lote) return a.ordem - b.ordem;
+    return (a.lote ? 1 : 0) - (b.lote ? 1 : 0);
+  });
+}
+
+/** Custo médio (com frete) de tudo que já foi comprado do insumo. */
+export function custoMedio(linhas: LinhaCompra[]) {
+  const qtd = linhas.reduce((n, l) => n + l.quantidade, 0);
+  const total = linhas.reduce((n, l) => n + l.totalCents, 0);
+  return { qtd, total, unitCents: qtd > 0 ? total / qtd : null };
+}
+
+// ── Importação: pedidos de latas e coroas da LNF (até 11/2026) ──────────────
+
+const IMPORT_LNF = "latas-coroas-lnf-2026-11";
+/** Latas usadas no 1º lote (feito antes do painel): sai do estoque comprado. */
+const LATAS_1O_LOTE = 994;
+const PEDIDOS_LNF = [
+  { n: 1, lata: [1584, 171527], coroa: [1170, 58905], frete: 29500 },
+  { n: 2, lata: [1584, 154069], coroa: [1755, 84970], frete: 13200 },
+  { n: 3, lata: [1584, 154069], coroa: [1755, 84970], frete: 13200 },
+] as const;
+
+const semAcento = (t: string) =>
+  t
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+/**
+ * Lança os 3 pedidos de latas e coroas da LNF: insumos "Lata 350ml" e
+ * "Coroa" (separa o exemplo "Lata 350ml + tampa"), cotação da LNF com o
+ * preço do último pedido, histórico de compras (frete de cada pedido
+ * dividido entre lata e coroa pelo valor) e o estoque que sobrou depois do
+ * 1º lote. Roda uma vez (`importacoes`); `null` = já aplicada.
+ */
+export function importarComprasLNF(data: ProducaoData): ProducaoData | null {
+  if (data.importacoes.includes(IMPORT_LNF)) return null;
+  const nome = (i: Insumo) => semAcento(i.insumo);
+  const insumos = [...data.insumos];
+
+  const pedidos = PEDIDOS_LNF.map((p) => {
+    const freteLata = Math.round((p.frete * p.lata[1]) / (p.lata[1] + p.coroa[1]));
+    return { ...p, freteLata, freteCoroa: p.frete - freteLata };
+  });
+  const ultimo = pedidos[pedidos.length - 1];
+  const soma = (k: "lata" | "coroa") => pedidos.reduce((n, p) => n + p[k][0], 0);
+
+  const cotacao = (
+    id: string,
+    qtd: number,
+    valor: number,
+    frete: number,
+    oque: string,
+  ): Fornecedor => ({
+    id,
+    nome: "LNF",
+    contato: "",
+    faixas: [{ de: 0, precoCents: Math.round(valor / qtd) }],
+    minimo: 0,
+    multiplo: 0,
+    prazoDias: 0,
+    freteCents: frete,
+    cotadoEm: null,
+    obs: `Preço do último pedido (${qtd} ${oque}). Frete do pedido dividido entre latas e coroas pelo valor. Prazo ainda não informado.`,
+  });
+
+  /** Põe/atualiza a cotação da LNF no insumo e deixa ela como principal. */
+  const comLNF = (i: Insumo, f: Fornecedor, estoque: number): Insumo => {
+    const outras = i.fornecedores.filter((x) => !x.exemplo && semAcento(x.nome) !== "lnf");
+    return {
+      ...i,
+      estoque,
+      fornecedores: [f, ...outras],
+      principal: f.id,
+      exemplo: undefined,
+    };
+  };
+
+  // Lata: o insumo de lata que já existe (o exemplo "Lata + tampa" vira só lata).
+  const lataIdx = insumos.findIndex(
+    (i) => /lata/.test(nome(i)) && !/coroa/.test(nome(i)) && i.uso === "lata",
+  );
+  const fLata = cotacao("f-lnf-lata", ultimo.lata[0], ultimo.lata[1], ultimo.freteLata, "latas");
+  const estoqueLata = Math.max(0, soma("lata") - LATAS_1O_LOTE);
+  const baseLata: Insumo =
+    lataIdx >= 0
+      ? insumos[lataIdx]
+      : {
+          id: "lata",
+          insumo: "Lata 350ml",
+          categoria: "Embalagem",
+          unidade: "lata",
+          uso: "lata",
+          qtd: 1,
+          estoque: 0,
+          perdaPct: 1,
+          depois: false,
+          fornecedores: [],
+          principal: null,
+        };
+  const lata = comLNF(
+    {
+      ...baseLata,
+      insumo: /tampa|\+/.test(nome(baseLata)) ? "Lata 350ml" : baseLata.insumo,
+      unidade: baseLata.exemplo ? "lata" : baseLata.unidade,
+    },
+    fLata,
+    estoqueLata,
+  );
+  if (lataIdx >= 0) insumos[lataIdx] = lata;
+  else insumos.push(lata);
+
+  // Coroa (tampa da lata): usa a que existir ou cria logo depois da lata.
+  const coroaIdx = insumos.findIndex(
+    (i) => i.id !== lata.id && /coroa|tampa/.test(nome(i)) && i.uso === "lata",
+  );
+  const fCoroa = cotacao(
+    "f-lnf-coroa",
+    ultimo.coroa[0],
+    ultimo.coroa[1],
+    ultimo.freteCoroa,
+    "coroas",
+  );
+  const estoqueCoroa = Math.max(0, soma("coroa") - LATAS_1O_LOTE);
+  const coroa = comLNF(
+    coroaIdx >= 0
+      ? insumos[coroaIdx]
+      : {
+          id: "coroa",
+          insumo: "Coroa (tampa da lata)",
+          categoria: "Embalagem",
+          unidade: "coroa",
+          uso: "lata",
+          qtd: 1,
+          estoque: 0,
+          perdaPct: 1,
+          depois: false,
+          fornecedores: [],
+          principal: null,
+        },
+    fCoroa,
+    estoqueCoroa,
+  );
+  if (coroaIdx >= 0) insumos[coroaIdx] = coroa;
+  else insumos.splice(insumos.indexOf(lata) + 1, 0, coroa);
+
+  const compras: Compra[] = pedidos.flatMap((p) => [
+    {
+      id: `lnf-${p.n}-lata`,
+      insumoId: lata.id,
+      fornecedorId: fLata.id,
+      fornecedor: "LNF",
+      pedido: `${p.n}º pedido`,
+      data: null,
+      ordem: p.n,
+      quantidade: p.lata[0],
+      valorCents: p.lata[1],
+      freteCents: p.freteLata,
+      obs: `Frete do pedido: R$ ${(p.frete / 100).toFixed(2).replace(".", ",")} (com as coroas)`,
+    },
+    {
+      id: `lnf-${p.n}-coroa`,
+      insumoId: coroa.id,
+      fornecedorId: fCoroa.id,
+      fornecedor: "LNF",
+      pedido: `${p.n}º pedido`,
+      data: null,
+      ordem: p.n,
+      quantidade: p.coroa[0],
+      valorCents: p.coroa[1],
+      freteCents: p.freteCoroa,
+      obs: `Frete do pedido: R$ ${(p.frete / 100).toFixed(2).replace(".", ",")} (com as latas)`,
+    },
+  ]);
+  return {
+    ...data,
+    insumos,
+    compras: [...data.compras.filter((c) => !c.id.startsWith("lnf-")), ...compras],
+    importacoes: [...data.importacoes, IMPORT_LNF],
+  };
+}
+
 // ── Exemplos (ponto de partida pra editar ou apagar) ────────────────────────
 
 const forn = (
@@ -739,6 +1019,8 @@ export const EXEMPLO: ProducaoData = {
   receita: { fernetMl: null, colaMl: null },
   plano: PLANO_PADRAO,
   lotes: [],
+  compras: [],
+  importacoes: [],
   insumos: [
     {
       id: "fernet",
