@@ -1317,12 +1317,14 @@ export function importarLote1(data: ProducaoData): ProducaoData | null {
 }
 
 const IMPORT_LOTE1_CUSTOS = "lote-1-custos-2026-11";
+/** Fernet comprado pro 1º lote (litros, a R$ 35/L). */
+const LOTE1_FERNET_L = 90;
 /** Alcapone: serviço do 1º lote (centavos). */
 const ALCAPONE_L001 = 266431;
 
 /**
  * Custos do 1º lote: latas e coroas pelo preço do 1º pedido da LNF (com
- * frete), fernet a R$ 35/L (20% de 400 L), cola de amostra grátis e o
+ * frete), fernet 90 L a R$ 35/L, cola de amostra grátis e o
  * serviço da Alcapone (envase). Põe a Alcapone como fornecedora do envase
  * (preço por lata entregue no L001) no lugar do exemplo. As latas e coroas
  * saem do estoque (já descontado), então não viram compra do lote; o fernet
@@ -1372,7 +1374,9 @@ export function importarCustosLote1(data: ProducaoData): ProducaoData | null {
     ...x,
   });
   const refriPct = data.receita.refriPct || 80;
-  const litrosFernet = (l1.plano.litros * (100 - refriPct)) / 100;
+  // Fernet comprado pro L001: 90 L (o plano pedia 80 L = 20% de 400 L); o
+  // lote leva o custo de tudo que foi comprado.
+  const litrosFernet = LOTE1_FERNET_L;
   const fFernet = fernet?.fornecedores.find((f) => /bucco/.test(semAcento(f.nome)));
   const fLata = lata?.fornecedores.find((f) => semAcento(f.nome) === "lnf");
   const fCoroa = coroa?.fornecedores.find((f) => semAcento(f.nome) === "lnf");
