@@ -4,6 +4,8 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import {
   ArrowDown,
   ChevronRight,
+  ClipboardCheck,
+  PackageCheck,
   CalendarClock,
   Coins,
   Factory,
@@ -23,7 +25,12 @@ import {
   mlDaParte,
   comprasDo,
   tipoUnidade,
+  contagem,
+  criarInsumoComEstoque,
   criarLote,
+  excluirCompra,
+  posicao,
+  salvarCompra,
   custoMedio,
   disponiveis,
   pontualidade,
@@ -41,6 +48,7 @@ import {
   type Fornecedor,
   type Insumo,
   type LinhaCompra,
+  type Movimento,
   type Plano,
   type ProducaoData,
 } from "@/lib/producao";
@@ -90,6 +98,8 @@ const NOVO_INSUMO = (): Insumo => ({
   parte: "final",
   especificacao: "",
   estoque: 0,
+  valorEstoqueCents: 0,
+  estoqueMinimo: 0,
   perdaPct: 0,
   depois: false,
   fornecedores: [],
@@ -111,7 +121,8 @@ const NOVO_FORNECEDOR = (): Fornecedor => ({
 type Editing =
   | { kind: "insumo"; item: Insumo; isNew: boolean }
   | { kind: "fornecedor"; insumo: Insumo; item: Fornecedor; isNew: boolean }
-  | { kind: "compra"; insumo: Insumo; item: Compra; isNew: boolean };
+  | { kind: "compra"; insumo: Insumo; item: Compra; isNew: boolean }
+  | { kind: "contagem"; insumo: Insumo };
 
 /** Custo de uma unidade com até 3 casas (R$ 1,026). */
 const unit = (cents: number) =>
@@ -180,15 +191,24 @@ export function Producao({
     parte,
   });
 
+  // Estoque e valor só mudam por movimento: o cadastro nunca sobrescreve.
   const putInsumo = (item: Insumo) => {
-    const exists = insumos.some((i) => i.id === item.id);
+    const atual = insumos.find((i) => i.id === item.id);
     persist({
       ...data,
-      insumos: exists ? insumos.map((i) => (i.id === item.id ? item : i)) : [...insumos, item],
+      insumos: atual
+        ? insumos.map((i) =>
+            i.id === item.id
+              ? { ...item, estoque: atual.estoque, valorEstoqueCents: atual.valorEstoqueCents }
+              : i,
+          )
+        : [...insumos, item],
     });
   };
-  const saveInsumo = (item: Insumo) => {
-    putInsumo({ ...item, exemplo: undefined });
+  const saveInsumo = (item: Insumo, custoInicialCents = 0) => {
+    const clean = { ...item, exemplo: undefined };
+    if (insumos.some((i) => i.id === item.id)) putInsumo(clean);
+    else persist(criarInsumoComEstoque(data, clean, custoInicialCents));
     setEditing(null);
   };
   const removeInsumo = (id: string) => {
@@ -216,7 +236,7 @@ export function Producao({
     setEditing(null);
   };
   const usarFornecedor = (insumo: Insumo, id: string) => putInsumo({ ...insumo, principal: id });
-  const novaCompra = (insumo: Insumo): Compra => {
+  const novaCompra = (insumo: Insumo, status: Compra["status"]): Compra => {
     const p = principalDe(insumo);
     const ordem = Math.max(
       0,
@@ -234,21 +254,29 @@ export function Producao({
       valorCents: 0,
       freteCents: 0,
       obs: "",
+      status,
+      previstoEm: status === "pedido" ? somarDias(hoje, p?.prazoDias ?? 0) : null,
+      noEstoque: false,
     };
   };
+  // Pedido avulso: recebido entra no estoque; voltar/excluir estorna.
   const saveCompra = (c: Compra) => {
-    const exists = data.compras.some((x) => x.id === c.id);
-    persist({
-      ...data,
-      compras: exists ? data.compras.map((x) => (x.id === c.id ? c : x)) : [...data.compras, c],
-    });
+    persist(salvarCompra(data, c));
     setEditing(null);
   };
   const removeCompra = (id: string) => {
-    if (!window.confirm("Excluir esta compra do histórico? (O estoque do insumo não muda.)"))
-      return;
-    persist({ ...data, compras: data.compras.filter((x) => x.id !== id) });
+    const c = data.compras.find((x) => x.id === id);
+    const aviso = c?.noEstoque
+      ? "Excluir este pedido? O que ele pôs no estoque sai (estorno)."
+      : "Excluir este pedido do histórico?";
+    if (!window.confirm(aviso)) return;
+    persist(excluirCompra(data, id));
     setEditing(null);
+  };
+  const receber = (compraId: string) => {
+    const c = data.compras.find((x) => x.id === compraId);
+    if (!c) return;
+    persist(salvarCompra(data, { ...c, status: "recebido", data: hoje }));
   };
   const proximo = proximoCodigo(data.lotes);
   const podeCriar = r.receitaOk && r.boas > 0;
@@ -285,6 +313,9 @@ export function Producao({
         hoje={hoje}
         onChange={(next, soon) => (soon ? persistSoon : persist)(next)}
       />
+
+      {/* ── Estoque de insumos (visão geral, como o MMBE do SAP) ── */}
+      <EstoqueGeral data={data} hoje={hoje} />
 
       {/* ── Planejar novo lote ── */}
       <Secao
@@ -715,9 +746,26 @@ export function Producao({
             pont={pont}
             reservado={reservado.get(l.i.id) ?? 0}
             compras={comprasDo(data, l.i.id)}
+            pos={posicao(data, l.i, hoje)}
+            movimentos={data.movimentos.filter((m) => m.insumoId === l.i.id)}
             onAddCompra={() =>
-              setEditing({ kind: "compra", insumo: l.i, item: novaCompra(l.i), isNew: true })
+              setEditing({
+                kind: "compra",
+                insumo: l.i,
+                item: novaCompra(l.i, "recebido"),
+                isNew: true,
+              })
             }
+            onNovoPedido={() =>
+              setEditing({
+                kind: "compra",
+                insumo: l.i,
+                item: novaCompra(l.i, "pedido"),
+                isNew: true,
+              })
+            }
+            onReceber={receber}
+            onContagem={() => setEditing({ kind: "contagem", insumo: l.i })}
             onEditCompra={(id) => {
               const c = data.compras.find((x) => x.id === id);
               if (c)
@@ -751,6 +799,17 @@ export function Producao({
           onCancel={() => setEditing(null)}
           onSave={saveInsumo}
           onDelete={() => removeInsumo(editing.item.id)}
+        />
+      )}
+      {editing?.kind === "contagem" && (
+        <ContagemEditor
+          insumo={insumos.find((i) => i.id === editing.insumo.id) ?? editing.insumo}
+          hoje={hoje}
+          onCancel={() => setEditing(null)}
+          onSave={(contado, dia, obs) => {
+            persist(contagem(data, editing.insumo.id, contado, dia, obs));
+            setEditing(null);
+          }}
         />
       )}
       {editing?.kind === "compra" && (
@@ -987,7 +1046,12 @@ function InsumoCard({
   pont,
   reservado,
   compras,
+  pos,
+  movimentos,
   onAddCompra,
+  onNovoPedido,
+  onReceber,
+  onContagem,
   onEditCompra,
   onEdit,
   onAddFornecedor,
@@ -1000,7 +1064,12 @@ function InsumoCard({
   pont: ReturnType<typeof pontualidade>;
   reservado: number;
   compras: LinhaCompra[];
+  pos: ReturnType<typeof posicao>;
+  movimentos: Movimento[];
   onAddCompra: () => void;
+  onNovoPedido: () => void;
+  onReceber: (compraId: string) => void;
+  onContagem: () => void;
   onEditCompra: (id: string) => void;
   onEdit: () => void;
   onAddFornecedor: () => void;
@@ -1053,7 +1122,11 @@ function InsumoCard({
           </p>
           <p className="text-lk-ink3 mt-1 text-xs">
             Em estoque: <span className="text-lk-ink font-medium">{num(i.estoque)}</span>
+            {i.categoria !== "Serviço" && i.valorEstoqueCents > 0
+              ? ` · ${brl(i.valorEstoqueCents)}`
+              : ""}
             {reservado > 0 ? ` (${num(reservado)} reservado p/ lotes em andamento)` : ""}
+            {pos.emPedido > 0 ? ` · ${num(pos.emPedido)} em pedido` : ""}
             {i.perdaPct > 0 ? ` · perda ${pct(i.perdaPct)}` : ""}
             {i.depois ? " · serviço: começa depois dos outros" : ""}
             {i.fornecedores.length === 1 && " · um fornecedor só"}
@@ -1077,6 +1150,16 @@ function InsumoCard({
           </button>
         </span>
       </div>
+      {aberto && i.categoria !== "Serviço" && (
+        <FichaEstoque
+          i={i}
+          pos={pos}
+          hoje={hoje}
+          onNovoPedido={onNovoPedido}
+          onReceber={onReceber}
+          onContagem={onContagem}
+        />
+      )}
       {aberto &&
         (i.fornecedores.length === 0 ? (
           <p className="border-lk-border text-lk-fail border-t px-5 py-3 text-sm">
@@ -1084,6 +1167,10 @@ function InsumoCard({
           </p>
         ) : (
           <div className="border-lk-border overflow-x-auto border-t">
+            <p className="px-5 py-3 text-sm">
+              <span className="font-semibold">Cotações</span>
+              <span className="text-lk-muted"> · {i.fornecedores.length}</span>
+            </p>
             <table className="w-full min-w-[980px] table-fixed text-sm">
               <thead>
                 <tr>
@@ -1234,7 +1321,459 @@ function InsumoCard({
       {aberto && (
         <HistoricoCompras i={i} compras={compras} onAdd={onAddCompra} onEdit={onEditCompra} />
       )}
+      {aberto && i.categoria !== "Serviço" && <Movimentacoes i={i} movimentos={movimentos} />}
     </div>
+  );
+}
+
+/** Todos os insumos numa tabela: estoque, reservado, em pedido, projetado, valor. */
+function EstoqueGeral({ data, hoje }: { data: ProducaoData; hoje: string }) {
+  const linhas = data.insumos
+    .filter((i) => i.categoria !== "Serviço")
+    .map((i) => ({ i, p: posicao(data, i, hoje) }));
+  const total = linhas.reduce((n, l) => n + l.p.valorCents, 0);
+  // Atenção: abaixo do mínimo ou pedido atrasado (sem estoque e sem mínimo é normal: compra por lote).
+  const alerta = linhas.filter(
+    (l) => l.p.situacao === "abaixo" || l.p.situacao === "atrasado",
+  ).length;
+  return (
+    <Secao
+      id="estoque"
+      defaultOpen
+      title="Estoque de insumos"
+      count={linhas.length}
+      aside={
+        <span className="text-lk-muted text-sm">
+          Valor em estoque: <span className="text-lk-ink font-semibold">{brl(total)}</span>
+          {alerta > 0 && (
+            <span className="text-lk-hold">
+              {" "}
+              · {alerta} {alerta === 1 ? "precisa" : "precisam"} de atenção
+            </span>
+          )}
+        </span>
+      }
+    >
+      <div className={`${TABLE_WRAP} overflow-x-auto`}>
+        <table className="w-full min-w-[1000px] table-fixed text-sm">
+          <thead>
+            <tr>
+              <th className={`${TH} w-[19%]`}>Insumo</th>
+              <th className={`${TH} w-[14%] text-right`}>Em estoque</th>
+              <th className={`${TH} w-[13%] text-right`}>Em pedido</th>
+              <th className={`${TH} w-[11%] text-right`}>Projetado</th>
+              <th className={`${TH} w-[9%] text-right`}>Mínimo</th>
+              <th className={`${TH} w-[10%] text-right`}>Custo médio</th>
+              <th className={`${TH} w-[11%] text-right`}>Valor</th>
+              <th className={`${TH} w-[13%]`}>Situação</th>
+            </tr>
+          </thead>
+          <tbody className="divide-lk-border divide-y">
+            {linhas.map(({ i, p }) => {
+              const sit = SITUACAO[p.situacao];
+              return (
+                <tr key={i.id} className="hover:bg-lk-paper/60">
+                  <td className={TD}>
+                    <p className="font-semibold">{i.insumo}</p>
+                    <p className="text-lk-muted text-xs">
+                      {i.categoria} · {i.unidade}
+                    </p>
+                  </td>
+                  <td className={`${TD} text-right tabular-nums`}>
+                    <p className="font-medium">{num(p.estoque)}</p>
+                    {p.reservado > 0 && (
+                      <p className="text-lk-muted text-xs">
+                        {num(p.livre)} livre · {num(p.reservado)} reserv.
+                      </p>
+                    )}
+                  </td>
+                  <td className={`${TD} text-right tabular-nums`}>
+                    {p.emPedido > 0 ? (
+                      <>
+                        <p>{num(p.emPedido)}</p>
+                        {p.proxima && (
+                          <p className={`text-xs ${p.atrasado ? "text-lk-fail" : "text-lk-muted"}`}>
+                            chega {dia(p.proxima)}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-lk-muted">—</span>
+                    )}
+                  </td>
+                  <td
+                    className={`${TD} text-right tabular-nums ${p.minimo > 0 && p.projetado < p.minimo ? "text-lk-hold font-medium" : ""}`}
+                  >
+                    {num(p.projetado)}
+                  </td>
+                  <td className={`${TD} text-lk-muted text-right tabular-nums`}>
+                    {p.minimo > 0 ? num(p.minimo) : "—"}
+                  </td>
+                  <td className={`${TD} text-right tabular-nums`}>
+                    {p.custoMedio === null ? "—" : unit(p.custoMedio)}
+                  </td>
+                  <td className={`${TD} text-right font-medium tabular-nums`}>
+                    {p.valorCents > 0 ? brl(p.valorCents) : "—"}
+                  </td>
+                  <td className={TD}>
+                    <Badge tone={sit.tone}>{sit.label}</Badge>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="border-lk-border bg-lk-paper border-t">
+              <td className={`${TD} font-semibold`} colSpan={6}>
+                Total
+              </td>
+              <td className={`${TD} text-right font-semibold tabular-nums`}>{brl(total)}</td>
+              <td className={TD} />
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p className={HINT}>
+        Projetado = estoque − reservado pros lotes em andamento + em pedido. Valor pelo custo médio
+        móvel: cada entrada recalcula o custo médio, cada saída tira valor por ele. O estoque muda
+        por movimento (chegada, consumo do lote, contagem): veja a ficha de cada insumo em
+        &quot;Insumos e fornecedores&quot;.
+      </p>
+    </Secao>
+  );
+}
+
+const SITUACAO: Record<
+  ReturnType<typeof posicao>["situacao"],
+  { label: string; tone: "pass" | "hold" | "fail" | "muted" }
+> = {
+  ok: { label: "OK", tone: "pass" },
+  abaixo: { label: "Abaixo do mínimo", tone: "hold" },
+  sem: { label: "Sem estoque", tone: "muted" },
+  atrasado: { label: "Pedido atrasado", tone: "fail" },
+};
+
+/** Um número pequeno da ficha. */
+function Num({ label, value, note }: { label: string; value: string; note?: string }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <span className="text-lk-muted text-xs">{label}</span>
+      <span className="text-lk-ink text-base font-semibold tabular-nums">{value}</span>
+      {note && <span className="text-lk-ink3 truncate text-xs">{note}</span>}
+    </div>
+  );
+}
+
+/** Ficha do material: posição de estoque, valor e os próximos pedidos. */
+function FichaEstoque({
+  i,
+  pos,
+  hoje,
+  onNovoPedido,
+  onReceber,
+  onContagem,
+}: {
+  i: Insumo;
+  pos: ReturnType<typeof posicao>;
+  hoje: string;
+  onNovoPedido: () => void;
+  onReceber: (compraId: string) => void;
+  onContagem: () => void;
+}) {
+  const sit = SITUACAO[pos.situacao];
+  const un = i.unidade;
+  return (
+    <div className="border-lk-border border-t">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4">
+        <p className="flex items-center gap-2 text-sm">
+          <span className="font-semibold">Estoque</span>
+          <Badge tone={sit.tone}>{sit.label}</Badge>
+        </p>
+        <span className="flex gap-2">
+          <button type="button" className={btn("ghost", "sm")} onClick={onContagem}>
+            <ClipboardCheck aria-hidden />
+            Contagem
+          </button>
+          <button type="button" className={btn("secondary", "sm")} onClick={onNovoPedido}>
+            <ShoppingCart aria-hidden />
+            Novo pedido
+          </button>
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-4 px-5 py-4 sm:grid-cols-3 lg:grid-cols-6">
+        <Num
+          label="Em estoque"
+          value={`${num(pos.estoque)} ${un}`}
+          note={
+            pos.reservado > 0
+              ? `${num(pos.livre)} livre · ${num(pos.reservado)} reservado`
+              : "tudo livre"
+          }
+        />
+        <Num
+          label="Em pedido"
+          value={`${num(pos.emPedido)} ${un}`}
+          note={pos.proxima ? `próxima chegada ${dia(pos.proxima)}` : "nada a caminho"}
+        />
+        <Num
+          label="Projetado"
+          value={`${num(pos.projetado)} ${un}`}
+          note={pos.minimo > 0 ? `mínimo ${num(pos.minimo)}` : "estoque − reservado + pedido"}
+        />
+        <Num
+          label="Custo médio"
+          value={pos.custoMedio === null ? "—" : `${unit(pos.custoMedio)}`}
+          note={`por ${un}, com frete`}
+        />
+        <Num label="Valor do estoque" value={brl(pos.valorCents)} note="custo médio × estoque" />
+        <Num
+          label="Último preço"
+          value={pos.ultimoPreco === null ? "—" : unit(pos.ultimoPreco)}
+          note={
+            pos.ultimoPreco !== null && pos.custoMedio !== null && pos.custoMedio > 0
+              ? `${pos.ultimoPreco >= pos.custoMedio ? "+" : ""}${pct(((pos.ultimoPreco - pos.custoMedio) / pos.custoMedio) * 100)} vs médio`
+              : "do último pedido"
+          }
+        />
+      </div>
+      <div className="border-lk-border border-t">
+        <p className="px-5 py-3 text-sm">
+          <span className="font-semibold">Próximos pedidos</span>
+          <span className="text-lk-muted"> · {pos.abertos.length}</span>
+          {pos.abertos.length === 0 && (
+            <span className="text-lk-muted"> · nenhum pedido em aberto</span>
+          )}
+        </p>
+        {pos.abertos.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px] table-fixed text-sm">
+              <thead>
+                <tr>
+                  <th className={`${TH} w-[20%]`}>Pedido</th>
+                  <th className={`${TH} w-[16%]`}>Fornecedor</th>
+                  <th className={`${TH} w-[13%] text-right`}>Quantidade</th>
+                  <th className={`${TH} w-[14%] text-right`}>Valor</th>
+                  <th className={`${TH} w-[13%]`}>Pedido em</th>
+                  <th className={`${TH} w-[13%]`}>Chega</th>
+                  <th className={`${TH} w-[11%]`}>
+                    <span className="sr-only">Ações</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-lk-border divide-y">
+                {pos.abertos.map((p) => {
+                  const atraso = p.previstoEm && !p.aPedir ? diasEntre(p.previstoEm, hoje) : 0;
+                  return (
+                    <tr key={p.id}>
+                      <td className={TD}>
+                        <p className="font-medium">{p.rotulo}</p>
+                        <p className="text-lk-muted text-xs">
+                          {p.origem === "avulso"
+                            ? "pedido avulso"
+                            : p.aPedir
+                              ? "lote planejado"
+                              : "pedido do lote"}
+                        </p>
+                      </td>
+                      <td className={TD}>{p.fornecedor || "—"}</td>
+                      <td className={`${TD} text-right tabular-nums`}>{num(p.qtd)}</td>
+                      <td className={`${TD} text-right tabular-nums`}>{brl(p.valorCents)}</td>
+                      <td className={`${TD} tabular-nums`}>
+                        {p.aPedir ? (
+                          <Badge tone="hold">
+                            pedir até {p.previstoEm ? dia(p.previstoEm) : "—"}
+                          </Badge>
+                        ) : p.pedidoEm ? (
+                          dia(p.pedidoEm)
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className={`${TD} tabular-nums`}>
+                        {p.aPedir ? (
+                          <span className="text-lk-muted text-xs">depois do pedido</span>
+                        ) : p.previstoEm ? (
+                          atraso > 0 ? (
+                            <Badge tone="fail">
+                              {dia(p.previstoEm)} · {atraso} d atrasado
+                            </Badge>
+                          ) : (
+                            dia(p.previstoEm)
+                          )
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className={`${TD} text-right`}>
+                        {p.compraId && (
+                          <button
+                            type="button"
+                            className={btn("secondary", "sm")}
+                            onClick={() => onReceber(p.compraId!)}
+                            title="Marca como recebido hoje e põe no estoque"
+                          >
+                            <PackageCheck aria-hidden />
+                            Receber
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const TIPO_MOV: Record<
+  Movimento["tipo"],
+  { label: string; tone: "pass" | "hold" | "running" | "muted" }
+> = {
+  inicial: { label: "Saldo inicial", tone: "muted" },
+  entrada: { label: "Entrada", tone: "pass" },
+  saida: { label: "Saída", tone: "running" },
+  ajuste: { label: "Ajuste", tone: "hold" },
+};
+
+/** Movimentações do insumo (as mais novas primeiro). */
+function Movimentacoes({ i, movimentos }: { i: Insumo; movimentos: Movimento[] }) {
+  const [todas, setTodas] = useState(false);
+  const lista = [...movimentos].reverse();
+  const mostradas = todas ? lista : lista.slice(0, 8);
+  return (
+    <div className="border-lk-border border-t">
+      <p className="px-5 py-3 text-sm">
+        <span className="font-semibold">Movimentações</span>
+        <span className="text-lk-muted"> · {movimentos.length}</span>
+      </p>
+      {lista.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[820px] table-fixed text-sm">
+            <thead>
+              <tr>
+                <th className={`${TH} w-[11%]`}>Data</th>
+                <th className={`${TH} w-[12%]`}>Tipo</th>
+                <th className={`${TH} w-[29%]`}>Origem</th>
+                <th className={`${TH} w-[12%] text-right`}>Quantidade</th>
+                <th className={`${TH} w-[12%] text-right`}>Valor</th>
+                <th className={`${TH} w-[12%] text-right`}>Saldo</th>
+                <th className={`${TH} w-[12%] text-right`}>Valor do saldo</th>
+              </tr>
+            </thead>
+            <tbody className="divide-lk-border divide-y">
+              {mostradas.map((m) => {
+                const t = TIPO_MOV[m.tipo];
+                return (
+                  <tr key={m.id}>
+                    <td className={`${TD} whitespace-nowrap tabular-nums`}>{dia(m.data)}</td>
+                    <td className={TD}>
+                      <Badge tone={t.tone}>{t.label}</Badge>
+                    </td>
+                    <td className={TD}>
+                      <p>{m.origem}</p>
+                      {m.obs && <p className="text-lk-muted text-xs">{m.obs}</p>}
+                    </td>
+                    <td
+                      className={`${TD} text-right font-medium tabular-nums ${m.qtd < 0 ? "text-lk-fail" : ""}`}
+                    >
+                      {m.qtd > 0 ? "+" : ""}
+                      {num(m.qtd)}
+                    </td>
+                    <td className={`${TD} text-right tabular-nums`}>{brl(m.valorCents)}</td>
+                    <td className={`${TD} text-right tabular-nums`}>
+                      {num(m.saldoQtd)} <span className="text-lk-muted text-xs">{i.unidade}</span>
+                    </td>
+                    <td className={`${TD} text-right tabular-nums`}>{brl(m.saldoValorCents)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {lista.length > 8 && (
+        <button
+          type="button"
+          className="text-lk-action-strong px-5 py-3 text-xs hover:underline"
+          onClick={() => setTodas((v) => !v)}
+        >
+          {todas ? "Mostrar só as últimas" : `Ver todas (${lista.length})`}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Contagem de estoque: o contado vira o estoque (ajuste da diferença). */
+function ContagemEditor({
+  insumo,
+  hoje,
+  onCancel,
+  onSave,
+}: {
+  insumo: Insumo;
+  hoje: string;
+  onCancel: () => void;
+  onSave: (contado: number, dia: string, obs: string) => void;
+}) {
+  const [contado, setContado] = useState(insumo.estoque);
+  const [quando, setQuando] = useState(hoje);
+  const [obs, setObs] = useState("");
+  const dif = contado - insumo.estoque;
+  return (
+    <Drawer
+      title={`Contagem · ${insumo.insumo}`}
+      isNew
+      ok={dif !== 0}
+      onCancel={onCancel}
+      onSave={() => onSave(contado, quando, obs)}
+      onDelete={() => {}}
+    >
+      <p className="text-sm">
+        No sistema:{" "}
+        <span className="font-semibold">
+          {num(insumo.estoque)} {insumo.unidade}
+        </span>
+        {insumo.valorEstoqueCents > 0 ? ` (${brl(insumo.valorEstoqueCents)})` : ""}.
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <NumField
+          label="Quantidade contada"
+          value={contado}
+          onChange={setContado}
+          hint={insumo.unidade}
+        />
+        <label className={LABEL}>
+          <span className="font-medium">Data da contagem</span>
+          <input
+            type="date"
+            className={INPUT}
+            value={quando}
+            onChange={(e) => setQuando(e.target.value || hoje)}
+          />
+        </label>
+      </div>
+      {dif !== 0 && (
+        <p className={`text-sm ${dif < 0 ? "text-lk-fail" : "text-lk-pass"}`}>
+          Ajuste de {dif > 0 ? "+" : ""}
+          {num(dif)} {insumo.unidade}, pelo custo médio.
+        </p>
+      )}
+      <label className={LABEL}>
+        <span className="font-medium">Observação</span>
+        <input
+          className={INPUT}
+          value={obs}
+          maxLength={300}
+          onChange={(e) => setObs(e.target.value)}
+          placeholder="Ex.: contagem mensal, perda na armazenagem"
+        />
+      </label>
+    </Drawer>
   );
 }
 
@@ -1257,7 +1796,7 @@ function HistoricoCompras({
     <div className="border-lk-border border-t">
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
         <p className="text-sm">
-          <span className="font-semibold">Compras</span>
+          <span className="font-semibold">Últimos pedidos</span>
           <span className="text-lk-muted"> · {compras.length}</span>
           {media.unitCents !== null && (
             <span className="text-lk-muted text-xs">
@@ -1368,7 +1907,7 @@ function CompraEditor({
   const ok = f.quantidade > 0 && toCents(valor) > 0;
   return (
     <Drawer
-      title={`${isNew ? "Registrar compra" : "Editar compra"} · ${insumo.insumo}`}
+      title={`${isNew ? (item.status === "pedido" ? "Novo pedido" : "Registrar compra") : "Editar pedido"} · ${insumo.insumo}`}
       isNew={isNew}
       ok={ok}
       onCancel={onCancel}
@@ -1376,6 +1915,22 @@ function CompraEditor({
       onDelete={onDelete}
     >
       <div className="grid gap-4 sm:grid-cols-2">
+        <label className={`${LABEL} sm:col-span-2`}>
+          <span className="font-medium">Situação</span>
+          <select
+            className={INPUT}
+            value={f.status}
+            onChange={(e) => set("status", e.target.value as Compra["status"])}
+          >
+            <option value="pedido">Pedido feito, a receber</option>
+            <option value="recebido">Recebido (entra no estoque)</option>
+          </select>
+          {!isNew && item.status === "recebido" && f.status === "pedido" && item.noEstoque && (
+            <span className="text-lk-hold text-xs">
+              Voltar pra &quot;a receber&quot; tira do estoque o que este pedido pôs.
+            </span>
+          )}
+        </label>
         <label className={LABEL}>
           <span className="font-medium">Pedido</span>
           <input
@@ -1386,7 +1941,9 @@ function CompraEditor({
           />
         </label>
         <label className={LABEL}>
-          <span className="font-medium">Data</span>
+          <span className="font-medium">
+            {f.status === "pedido" ? "Data do pedido" : "Data do recebimento"}
+          </span>
           <input
             type="date"
             className={INPUT}
@@ -1395,6 +1952,18 @@ function CompraEditor({
           />
           <span className={HINT}>Sem data: fica na ordem do pedido</span>
         </label>
+        {f.status === "pedido" && (
+          <label className={LABEL}>
+            <span className="font-medium">Chega em (prometido)</span>
+            <input
+              type="date"
+              className={INPUT}
+              value={f.previstoEm ?? ""}
+              onChange={(e) => set("previstoEm", e.target.value || null)}
+            />
+            <span className={HINT}>Conta pra pontualidade e &quot;em pedido&quot;</span>
+          </label>
+        )}
         <label className={LABEL}>
           <span className="font-medium">Fornecedor</span>
           <select
@@ -1468,8 +2037,9 @@ function CompraEditor({
         />
       </label>
       <p className={HINT}>
-        Registrar uma compra aqui não muda o estoque do insumo: ajuste em “Editar insumo” se
-        precisar. Compras feitas dentro de um lote entram no histórico sozinhas.
+        Recebido entra no estoque e recalcula o custo médio (compras antigas, de antes do controle
+        de estoque, não mexem nele). Pedido a receber aparece em &quot;Próximos pedidos&quot;.
+        Compras feitas dentro de um lote entram sozinhas.
       </p>
     </Drawer>
   );
@@ -1485,7 +2055,7 @@ function InsumoEditor({
   item: Insumo;
   isNew: boolean;
   onCancel: () => void;
-  onSave: (i: Insumo) => void;
+  onSave: (i: Insumo, custoInicialCents?: number) => void;
   onDelete: () => void;
 }) {
   const [f, setF] = useState(item);
@@ -1493,6 +2063,7 @@ function InsumoEditor({
   const conhecidas: readonly string[] = UNIDADES.flatMap((g) => g.itens);
   // Unidade fora da lista (cadastro antigo ou digitada): abre o campo de texto.
   const [outra, setOutra] = useState(!conhecidas.includes(item.unidade));
+  const [custoInicial, setCustoInicial] = useState("");
   const daReceita = f.uso === "receita";
   const ok = f.insumo.trim().length > 0 && f.unidade.trim().length > 0;
   const un = f.unidade || "unidades";
@@ -1503,7 +2074,7 @@ function InsumoEditor({
       isNew={isNew}
       ok={ok}
       onCancel={onCancel}
-      onSave={() => onSave(f)}
+      onSave={() => onSave(f, toCents(custoInicial))}
       onDelete={onDelete}
     >
       <div className="grid gap-4 sm:grid-cols-2">
@@ -1633,11 +2204,46 @@ function InsumoEditor({
             </label>
           </>
         )}
+        {isNew ? (
+          <>
+            <NumField
+              label="Estoque inicial"
+              value={f.estoque}
+              onChange={(n) => set("estoque", n)}
+              hint={`${un} que já estão guardados`}
+            />
+            {f.estoque > 0 && (
+              <label className={LABEL}>
+                <span className="font-medium">Custo de cada {f.unidade || "unidade"}</span>
+                <span className="flex items-center gap-2">
+                  <span className="text-lk-muted">R$</span>
+                  <input
+                    inputMode="decimal"
+                    className={`${INPUT} w-full text-right tabular-nums`}
+                    value={custoInicial}
+                    onChange={(e) => setCustoInicial(e.target.value)}
+                    placeholder="0,00"
+                  />
+                </span>
+                <span className={HINT}>Valoriza o estoque inicial</span>
+              </label>
+            )}
+          </>
+        ) : (
+          <div className={LABEL}>
+            <span className="font-medium">Em estoque</span>
+            <span className="text-lk-ink flex h-10 items-center tabular-nums">
+              {num(item.estoque)} {un}
+              {item.valorEstoqueCents > 0 ? ` · ${brl(item.valorEstoqueCents)}` : ""}
+            </span>
+            <span className={HINT}>Muda por chegada, consumo de lote ou contagem</span>
+          </div>
+        )}
         <NumField
-          label="Em estoque"
-          value={f.estoque}
-          onChange={(n) => set("estoque", n)}
-          hint={`${un} já guardados; descontam da compra`}
+          label="Estoque mínimo"
+          value={f.estoqueMinimo}
+          onChange={(n) => set("estoqueMinimo", n)}
+          hint={`${un}: abaixo disso (projetado) o painel avisa`}
         />
         <NumField
           label="Perda deste insumo (%)"

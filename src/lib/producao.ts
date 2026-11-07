@@ -109,8 +109,15 @@ export const insumoSchema = z.object({
   parte: z.enum(PARTES).default("final"),
   /** Especificação (ex.: "Cristal", "0,6 g/L", "ajustar o pH para 2,5"). */
   especificacao: z.string().trim().max(120).default(""),
-  /** Quanto já tem guardado (na unidade do insumo). */
+  /**
+   * Quanto já tem guardado (na unidade do insumo). Muda por movimento
+   * (chegada, consumo de lote, contagem), que fica em `movimentos`.
+   */
   estoque: z.number().min(0).max(1e9),
+  /** Valor do estoque pelo custo médio móvel (centavos). */
+  valorEstoqueCents: z.number().min(0).max(1e13).default(0),
+  /** Estoque mínimo (ponto de pedido): abaixo disso o painel avisa. */
+  estoqueMinimo: z.number().min(0).max(1e9).default(0),
   /** Compra a mais pra cobrir perda/quebra deste insumo (%). */
   perdaPct: z.number().min(0).max(90),
   /** Envase/serviço: só começa quando os outros insumos chegam. */
@@ -191,6 +198,8 @@ export const loteItemSchema = z.object({
   chegouEm: dia,
   recebido: z.number().min(0).max(1e9).nullable(),
   pagoCents: z.number().int().min(0).max(1e12).nullable(),
+  /** A chegada já entrou no estoque (movimento lançado). */
+  noEstoque: z.boolean().default(false),
 });
 
 export const loteSchema = z.object({
@@ -240,6 +249,33 @@ export const compraSchema = z.object({
   /** Parte do frete do pedido que coube a este insumo. */
   freteCents: z.number().int().min(0).max(1e12),
   obs: z.string().trim().max(300),
+  /** Pedido em aberto (a receber) ou já recebido. */
+  status: z.enum(["pedido", "recebido"]).default("recebido"),
+  /** Pedido em aberto: quando o fornecedor prometeu entregar. */
+  previstoEm: dia.default(null),
+  /** O recebimento já entrou no estoque (compras antigas, de antes do controle, não). */
+  noEstoque: z.boolean().default(false),
+});
+
+/** Movimento de estoque (como no SAP: entrada, saída, ajuste). */
+export const TIPOS_MOV = ["inicial", "entrada", "saida", "ajuste"] as const;
+export const movimentoSchema = z.object({
+  id: z.string().min(1).max(40),
+  insumoId: z.string().max(40),
+  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  tipo: z.enum(TIPOS_MOV),
+  /** Quantidade com sinal: + entra, − sai. */
+  qtd: z.number().min(-1e9).max(1e9),
+  /** Valor com sinal (centavos). */
+  valorCents: z.number().min(-1e13).max(1e13),
+  /** Saldo depois do movimento. */
+  saldoQtd: z.number().min(0).max(1e9),
+  saldoValorCents: z.number().min(0).max(1e13),
+  /** De onde veio ("Lote L002: chegada", "Contagem", "Pedido 4º"…). */
+  origem: z.string().max(80),
+  /** Chave pra juntar correções do mesmo item (lote:item, compra). */
+  ref: z.string().max(80).nullable(),
+  obs: z.string().max(300),
 });
 
 export const producaoSchema = z.object({
@@ -249,6 +285,7 @@ export const producaoSchema = z.object({
   plano: planoSchema,
   lotes: z.array(loteSchema).max(300).default([]),
   compras: z.array(compraSchema).max(2000).default([]),
+  movimentos: z.array(movimentoSchema).max(3000).default([]),
   /** Importações de dados já aplicadas (cada uma roda uma vez só). */
   importacoes: z.array(z.string().max(60)).max(50).default([]),
   atualizadoEm: z.string().optional(),
@@ -262,6 +299,7 @@ export type Etapa = (typeof ETAPAS)[number];
 export type LoteItem = z.infer<typeof loteItemSchema>;
 export type Lote = z.infer<typeof loteSchema>;
 export type Compra = z.infer<typeof compraSchema>;
+export type Movimento = z.infer<typeof movimentoSchema>;
 export type ProducaoData = z.infer<typeof producaoSchema>;
 
 export const PRODUCAO_KEY = "producao:dados";
@@ -343,6 +381,8 @@ export function lerProducao(raw: unknown): ProducaoData | null {
       parte: "final",
       especificacao: "",
       estoque: 0,
+      valorEstoqueCents: 0,
+      estoqueMinimo: 0,
       perdaPct: 0,
       depois: l.depois,
       fornecedores: [forn],
@@ -584,11 +624,19 @@ export function proximoCodigo(lotes: Lote[]) {
   return `L${String(n + 1).padStart(3, "0")}`;
 }
 
-/** Estoque de cada insumo já reservado pelos lotes abertos. */
+/**
+ * Estoque de cada insumo já reservado pelos lotes abertos: o que o lote
+ * tira do estoque + o que já chegou pra ele (até o que ele consome).
+ */
 export function reservas(lotes: Lote[]) {
   const map = new Map<string, number>();
   for (const l of lotes.filter(loteAberto))
-    for (const it of l.itens) map.set(it.insumoId, (map.get(it.insumoId) ?? 0) + it.doEstoque);
+    for (const it of l.itens) {
+      const chegou = it.noEstoque
+        ? Math.min(it.recebido ?? it.comprar, Math.max(0, it.precisa - it.doEstoque))
+        : 0;
+      map.set(it.insumoId, (map.get(it.insumoId) ?? 0) + it.doEstoque + chegou);
+    }
   return map;
 }
 
@@ -641,6 +689,7 @@ export function criarLote(data: ProducaoData, linhas: LinhaPlano[], id: string):
           chegouEm: null,
           recebido: null,
           pagoCents: null,
+          noEstoque: false,
         };
       }),
     envaseEm: null,
@@ -771,7 +820,11 @@ export function indicadores(lotes: Lote[]) {
     comLatas
       .map((l) => ({ l, t: totaisLote(l) }))
       .filter((x) => (x.t.lataReal ?? 0) > 0)
-      .sort((a, b) => quando(b.l).localeCompare(quando(a.l)))[0] ?? null;
+      .sort(
+        (a, b) =>
+          quando(b.l).localeCompare(quando(a.l)) ||
+          b.l.codigo.localeCompare(a.l.codigo, undefined, { numeric: true }),
+      )[0] ?? null;
   return {
     feitos: t,
     rendimento: boasPlan > 0 ? boasReal / boasPlan : null,
@@ -799,31 +852,6 @@ export function pontualidade(lotes: Lote[]) {
   return map;
 }
 
-/**
- * Concluir: o estoque de cada insumo vira estoque − usado + recebido
- * (o que veio a mais por mínimo/múltiplo fica guardado). Serviço não tem estoque.
- */
-export function estoqueAoConcluir(insumos: Insumo[], l: Lote) {
-  return insumos.map((i) => {
-    const its = l.itens.filter((it) => it.insumoId === i.id && it.categoria !== "Serviço");
-    if (!its.length) return i;
-    const delta = its.reduce((n, it) => n + (it.recebido ?? it.comprar) - it.precisa, 0);
-    return { ...i, estoque: Math.max(0, i.estoque + delta) };
-  });
-}
-
-/** Cancelar: o que já chegou entra no estoque (a reserva some sozinha). */
-export function estoqueAoCancelar(insumos: Insumo[], l: Lote) {
-  return insumos.map((i) => {
-    const its = l.itens.filter(
-      (it) => it.insumoId === i.id && it.categoria !== "Serviço" && it.chegouEm,
-    );
-    if (!its.length) return i;
-    const delta = its.reduce((n, it) => n + (it.recebido ?? it.comprar), 0);
-    return { ...i, estoque: i.estoque + delta };
-  });
-}
-
 // ── Histórico de compras ────────────────────────────────────────────────────
 
 export type LinhaCompra = {
@@ -846,7 +874,7 @@ export type LinhaCompra = {
 /** Compras de um insumo: as registradas + as dos lotes (com chegada ou valor pago). */
 export function comprasDo(data: ProducaoData, insumoId: string): LinhaCompra[] {
   const registradas: LinhaCompra[] = data.compras
-    .filter((c) => c.insumoId === insumoId)
+    .filter((c) => c.insumoId === insumoId && c.status !== "pedido")
     .map((c) => ({
       id: c.id,
       lote: null,
@@ -991,6 +1019,8 @@ export function importarComprasLNF(data: ProducaoData): ProducaoData | null {
           parte: "final",
           especificacao: "",
           estoque: 0,
+          valorEstoqueCents: 0,
+          estoqueMinimo: 0,
           perdaPct: 1,
           depois: false,
           fornecedores: [],
@@ -1033,6 +1063,8 @@ export function importarComprasLNF(data: ProducaoData): ProducaoData | null {
           parte: "final",
           especificacao: "",
           estoque: 0,
+          valorEstoqueCents: 0,
+          estoqueMinimo: 0,
           perdaPct: 1,
           depois: false,
           fornecedores: [],
@@ -1057,6 +1089,9 @@ export function importarComprasLNF(data: ProducaoData): ProducaoData | null {
       valorCents: p.lata[1],
       freteCents: p.freteLata,
       obs: `Frete do pedido: R$ ${(p.frete / 100).toFixed(2).replace(".", ",")} (com as coroas)`,
+      status: "recebido" as const,
+      previstoEm: null,
+      noEstoque: false,
     },
     {
       id: `lnf-${p.n}-coroa`,
@@ -1070,6 +1105,9 @@ export function importarComprasLNF(data: ProducaoData): ProducaoData | null {
       valorCents: p.coroa[1],
       freteCents: p.freteCoroa,
       obs: `Frete do pedido: R$ ${(p.frete / 100).toFixed(2).replace(".", ",")} (com as latas)`,
+      status: "recebido" as const,
+      previstoEm: null,
+      noEstoque: false,
     },
   ]);
   return {
@@ -1230,6 +1268,8 @@ export function importarReceita(data: ProducaoData): ProducaoData | null {
             parte: g.parte,
             especificacao: g.especificacao,
             estoque: 0,
+            valorEstoqueCents: 0,
+            estoqueMinimo: 0,
             perdaPct: 0,
             depois: false,
             fornecedores: [],
@@ -1371,6 +1411,7 @@ export function importarCustosLote1(data: ProducaoData): ProducaoData | null {
     chegouEm: null,
     recebido: null,
     pagoCents: null,
+    noEstoque: false,
     ...x,
   });
   const refriPct = data.receita.refriPct || 80;
@@ -1516,6 +1557,7 @@ export function aplicarImportacoes(data: ProducaoData): ProducaoData | null {
     importarLote1,
     importarCustosLote1,
     importarSobraFernetLote1,
+    implantarEstoque,
   ]) {
     const r = imp(atual);
     if (r) {
@@ -1524,6 +1566,494 @@ export function aplicarImportacoes(data: ProducaoData): ProducaoData | null {
     }
   }
   return mudou ? atual : null;
+}
+
+// ── Gestão de estoque (como no SAP) ─────────────────────────────────────────
+//
+// Estoque muda só por movimento: entrada (chegada de compra), saída
+// (consumo do lote), ajuste (contagem, correção) e o saldo inicial da
+// implantação. Valor pelo custo médio móvel: cada entrada recalcula o custo
+// médio; cada saída tira valor por esse custo.
+
+const ehServico = (i: { categoria: string }) => i.categoria === "Serviço";
+let seqMov = 0;
+const idMov = () =>
+  `m${Date.now().toString(36)}${(seqMov++ % 1296).toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+
+/** Custo médio móvel (centavos por unidade); `null` sem estoque. */
+export function custoMedioMovel(i: Insumo) {
+  return i.estoque > 0 ? i.valorEstoqueCents / i.estoque : null;
+}
+
+/** Preço de referência: custo médio, senão a última entrada, senão a cotação principal. */
+export function precoReferencia(data: ProducaoData, i: Insumo) {
+  const cm = custoMedioMovel(i);
+  if (cm !== null) return cm;
+  const ultima = [...data.movimentos]
+    .reverse()
+    .find((m) => m.insumoId === i.id && m.qtd > 0 && m.valorCents > 0);
+  if (ultima) return ultima.valorCents / ultima.qtd;
+  const p = principalDe(i);
+  return p ? faixaDe(p.faixas, 0).precoCents : 0;
+}
+
+export type NovoMovimento = {
+  insumoId: string;
+  tipo: Movimento["tipo"];
+  /** Entrada/saída: quantidade (positiva). Ajuste: com sinal (pode ser 0, só valor). */
+  qtd: number;
+  /** Entrada: valor pago (com frete). Ajuste: valor com sinal (correção). */
+  valorCents?: number;
+  data?: string;
+  origem: string;
+  /** Mesma chave e mesmo dia: a correção se junta à anterior (não vira uma por tecla). */
+  ref?: string | null;
+  mesclar?: boolean;
+  obs?: string;
+};
+
+/** Lança um movimento e atualiza estoque e valor do insumo. Serviço não tem estoque. */
+export function movimentar(data: ProducaoData, m: NovoMovimento): ProducaoData {
+  const i = data.insumos.find((x) => x.id === m.insumoId);
+  if (!i || ehServico(i)) return data;
+  const dia = m.data ?? hojeBR();
+  let dq: number;
+  let dv: number;
+  if (m.tipo === "entrada" || m.tipo === "inicial") {
+    dq = Math.abs(m.qtd);
+    dv = m.valorCents ?? dq * precoReferencia(data, i);
+  } else if (m.tipo === "saida") {
+    dq = -Math.abs(m.qtd);
+    dv = 0; // calculado abaixo pelo custo médio
+  } else {
+    dq = m.qtd;
+    dv = m.valorCents ?? (dq > 0 ? dq * precoReferencia(data, i) : 0);
+  }
+  if (!dq && !dv) return data;
+  // Saída (ou ajuste pra baixo sem valor dado): tira pelo custo médio.
+  if (dq < 0 && (m.tipo === "saida" || m.valorCents === undefined)) {
+    const cm = custoMedioMovel(i) ?? 0;
+    dv = -Math.min(i.valorEstoqueCents, -dq * cm);
+  }
+  const novoQtd = Math.max(0, i.estoque + dq);
+  let novoValor = Math.max(0, i.valorEstoqueCents + dv);
+  if (novoQtd === 0) novoValor = 0;
+  const faltou = i.estoque + dq < 0 ? " (o estoque não cobria tudo)" : "";
+  const r3 = (n: number) => Math.round(n * 1000) / 1000;
+  const insumos = data.insumos.map((x) =>
+    x.id === i.id ? { ...x, estoque: r3(novoQtd), valorEstoqueCents: Math.round(novoValor) } : x,
+  );
+  const ultimo = data.movimentos[data.movimentos.length - 1];
+  if (
+    m.mesclar &&
+    m.ref &&
+    ultimo &&
+    ultimo.ref === m.ref &&
+    ultimo.insumoId === i.id &&
+    ultimo.data === dia &&
+    ultimo.tipo === m.tipo
+  ) {
+    const junto = {
+      ...ultimo,
+      qtd: r3(ultimo.qtd + dq),
+      valorCents: Math.round(ultimo.valorCents + dv),
+      saldoQtd: r3(novoQtd),
+      saldoValorCents: Math.round(novoValor),
+    };
+    const movimentos = data.movimentos.slice(0, -1);
+    return {
+      ...data,
+      insumos,
+      movimentos: junto.qtd || junto.valorCents ? [...movimentos, junto] : movimentos,
+    };
+  }
+  const mov: Movimento = {
+    id: idMov(),
+    insumoId: i.id,
+    data: dia,
+    tipo: m.tipo,
+    qtd: r3(dq),
+    valorCents: Math.round(dv),
+    saldoQtd: r3(novoQtd),
+    saldoValorCents: Math.round(novoValor),
+    origem: m.origem.slice(0, 80),
+    ref: m.ref ?? null,
+    obs: `${m.obs ?? ""}${faltou}`.trim().slice(0, 300),
+  };
+  return { ...data, insumos, movimentos: [...data.movimentos, mov] };
+}
+
+/** Insumo novo com estoque inicial (vira o saldo inicial, ao custo informado). */
+export function criarInsumoComEstoque(
+  data: ProducaoData,
+  i: Insumo,
+  custoUnitCents: number,
+): ProducaoData {
+  const qtd = i.estoque;
+  const base = {
+    ...data,
+    insumos: [...data.insumos, { ...i, estoque: 0, valorEstoqueCents: 0 }],
+  };
+  if (!qtd || ehServico(i)) return base;
+  return movimentar(base, {
+    insumoId: i.id,
+    tipo: "inicial",
+    qtd,
+    valorCents: Math.round(qtd * custoUnitCents),
+    origem: "Estoque inicial (cadastro)",
+  });
+}
+
+/** Contagem: o estoque passa a ser o contado (ajuste da diferença). */
+export function contagem(
+  data: ProducaoData,
+  insumoId: string,
+  contado: number,
+  dia: string,
+  obs: string,
+): ProducaoData {
+  const i = data.insumos.find((x) => x.id === insumoId);
+  if (!i) return data;
+  const dq = contado - i.estoque;
+  if (!dq) return data;
+  return movimentar(data, {
+    insumoId,
+    tipo: "ajuste",
+    qtd: dq,
+    data: dia,
+    origem: "Contagem de estoque",
+    obs: obs || `Contado: ${contado}`,
+  });
+}
+
+const qtdChegou = (it: LoteItem) => it.recebido ?? it.comprar;
+const valorChegou = (it: LoteItem) => it.pagoCents ?? it.desembolsoCents;
+
+/**
+ * Muda um insumo do lote e acerta o estoque: marcou a chegada → entrada;
+ * tirou a chegada → estorno; mudou quantidade ou valor depois de chegar →
+ * correção (juntada numa só por item e dia).
+ */
+export function atualizarItemLote(
+  data: ProducaoData,
+  loteId: string,
+  k: number,
+  patch: Partial<LoteItem>,
+): ProducaoData {
+  const l = data.lotes.find((x) => x.id === loteId);
+  const velho = l?.itens[k];
+  if (!l || !velho) return data;
+  let novo: LoteItem = { ...velho, ...patch };
+  let d = data;
+  const ref = `${l.id}:${velho.insumoId}`;
+  const servico = velho.categoria === "Serviço";
+  if (!servico && novo.comprar > 0) {
+    if (!velho.noEstoque && novo.chegouEm) {
+      d = movimentar(d, {
+        insumoId: novo.insumoId,
+        tipo: "entrada",
+        qtd: qtdChegou(novo),
+        valorCents: valorChegou(novo),
+        data: novo.chegouEm,
+        origem: `Lote ${l.codigo}: chegada (${novo.fornecedor || "fornecedor"})`,
+        ref,
+      });
+      novo = { ...novo, noEstoque: true };
+    } else if (velho.noEstoque && !novo.chegouEm) {
+      d = movimentar(d, {
+        insumoId: novo.insumoId,
+        tipo: "ajuste",
+        qtd: -qtdChegou(velho),
+        valorCents: -valorChegou(velho),
+        origem: `Lote ${l.codigo}: chegada desfeita`,
+        ref,
+      });
+      novo = { ...novo, noEstoque: false };
+    } else if (velho.noEstoque) {
+      const dq = qtdChegou(novo) - qtdChegou(velho);
+      const dv = valorChegou(novo) - valorChegou(velho);
+      if (dq || dv)
+        d = movimentar(d, {
+          insumoId: novo.insumoId,
+          tipo: "ajuste",
+          qtd: dq,
+          valorCents: dv,
+          origem: `Lote ${l.codigo}: correção da chegada`,
+          ref,
+          mesclar: true,
+        });
+    }
+  }
+  return {
+    ...d,
+    lotes: d.lotes.map((x) =>
+      x.id === l.id ? { ...x, itens: x.itens.map((it, j) => (j === k ? novo : it)) } : x,
+    ),
+  };
+}
+
+/**
+ * Concluir o lote: o que ainda não tinha entrado entra (chegada na
+ * conclusão) e sai o consumo do lote. Recebe o lote já com etapa e datas.
+ */
+export function baixarLote(data: ProducaoData, l: Lote): ProducaoData {
+  let d = data;
+  const dia = l.prontoEm ?? hojeBR();
+  const itens = l.itens.map((it) => {
+    if (it.categoria === "Serviço") return it;
+    let x = it;
+    if (it.comprar > 0 && !it.noEstoque) {
+      d = movimentar(d, {
+        insumoId: it.insumoId,
+        tipo: "entrada",
+        qtd: qtdChegou(it),
+        valorCents: valorChegou(it),
+        data: it.chegouEm ?? dia,
+        origem: `Lote ${l.codigo}: chegada`,
+        ref: `${l.id}:${it.insumoId}`,
+      });
+      x = { ...x, noEstoque: true };
+    }
+    if (it.precisa > 0)
+      d = movimentar(d, {
+        insumoId: it.insumoId,
+        tipo: "saida",
+        qtd: it.precisa,
+        data: l.envaseEm ?? dia,
+        origem: `Lote ${l.codigo}: consumo`,
+        ref: `${l.id}:${it.insumoId}:consumo`,
+      });
+    return x;
+  });
+  return { ...d, lotes: d.lotes.map((x) => (x.id === l.id ? { ...l, itens } : x)) };
+}
+
+/** Cancelar: o que já chegou fica no estoque (só libera a reserva). */
+export function cancelarLote(data: ProducaoData, l: Lote): ProducaoData {
+  let d = data;
+  const itens = l.itens.map((it) => {
+    if (it.categoria === "Serviço" || it.comprar <= 0 || it.noEstoque || !it.chegouEm) return it;
+    d = movimentar(d, {
+      insumoId: it.insumoId,
+      tipo: "entrada",
+      qtd: qtdChegou(it),
+      valorCents: valorChegou(it),
+      data: it.chegouEm,
+      origem: `Lote ${l.codigo}: chegada (lote cancelado)`,
+      ref: `${l.id}:${it.insumoId}`,
+    });
+    return { ...it, noEstoque: true };
+  });
+  return {
+    ...d,
+    lotes: d.lotes.map((x) => (x.id === l.id ? { ...l, etapa: "cancelado" as const, itens } : x)),
+  };
+}
+
+const totalCompra = (c: Compra) => c.valorCents + c.freteCents;
+
+/**
+ * Salva um pedido avulso: recebido (novo, ou que estava em aberto) → entrada;
+ * voltou pra "pedido" → estorno; mudou quantidade/valor depois de entrar →
+ * correção. Compras antigas (antes do controle) não mexem no estoque.
+ */
+export function salvarCompra(data: ProducaoData, c: Compra): ProducaoData {
+  const antes = data.compras.find((x) => x.id === c.id);
+  let d = data;
+  let novo = c;
+  const origem = `Pedido ${c.pedido || "avulso"} (${c.fornecedor || "fornecedor"})`;
+  if (c.status === "recebido" && !antes?.noEstoque && (!antes || antes.status === "pedido")) {
+    d = movimentar(d, {
+      insumoId: c.insumoId,
+      tipo: "entrada",
+      qtd: c.quantidade,
+      valorCents: totalCompra(c),
+      data: c.data ?? hojeBR(),
+      origem,
+      ref: `compra:${c.id}`,
+    });
+    novo = { ...c, noEstoque: true };
+  } else if (c.status === "pedido" && antes?.noEstoque) {
+    d = movimentar(d, {
+      insumoId: c.insumoId,
+      tipo: "ajuste",
+      qtd: -antes.quantidade,
+      valorCents: -totalCompra(antes),
+      origem: `${origem}: recebimento desfeito`,
+      ref: `compra:${c.id}`,
+    });
+    novo = { ...c, noEstoque: false };
+  } else if (antes?.noEstoque) {
+    const dq = c.quantidade - antes.quantidade;
+    const dv = totalCompra(c) - totalCompra(antes);
+    if (dq || dv)
+      d = movimentar(d, {
+        insumoId: c.insumoId,
+        tipo: "ajuste",
+        qtd: dq,
+        valorCents: dv,
+        origem: `${origem}: correção`,
+        ref: `compra:${c.id}`,
+        mesclar: true,
+      });
+    novo = { ...c, noEstoque: true };
+  }
+  return {
+    ...d,
+    compras: antes ? d.compras.map((x) => (x.id === c.id ? novo : x)) : [...d.compras, novo],
+  };
+}
+
+/** Exclui um pedido avulso; se já tinha entrado no estoque, estorna. */
+export function excluirCompra(data: ProducaoData, id: string): ProducaoData {
+  const c = data.compras.find((x) => x.id === id);
+  if (!c) return data;
+  let d = data;
+  if (c.noEstoque)
+    d = movimentar(d, {
+      insumoId: c.insumoId,
+      tipo: "ajuste",
+      qtd: -c.quantidade,
+      valorCents: -totalCompra(c),
+      origem: `Pedido ${c.pedido || "avulso"} excluído`,
+      ref: `compra:${c.id}`,
+    });
+  return { ...d, compras: d.compras.filter((x) => x.id !== id) };
+}
+
+export type PedidoAberto = {
+  id: string;
+  origem: "avulso" | "lote";
+  rotulo: string;
+  fornecedor: string;
+  qtd: number;
+  valorCents: number;
+  pedidoEm: string | null;
+  previstoEm: string | null;
+  /** Lote planejado: ainda não pedido (com o "pedir até"). */
+  aPedir?: boolean;
+  compraId?: string;
+};
+
+/** Pedidos em aberto de um insumo: avulsos, de lotes já pedidos e de lotes planejados (a pedir). */
+export function pedidosAbertos(data: ProducaoData, insumoId: string): PedidoAberto[] {
+  const avulsos: PedidoAberto[] = data.compras
+    .filter((c) => c.insumoId === insumoId && c.status === "pedido")
+    .map((c) => ({
+      id: `compra:${c.id}`,
+      compraId: c.id,
+      origem: "avulso",
+      rotulo: c.pedido || "Pedido avulso",
+      fornecedor: c.fornecedor,
+      qtd: c.quantidade,
+      valorCents: totalCompra(c),
+      pedidoEm: c.data,
+      previstoEm: c.previstoEm,
+    }));
+  const deLotes: PedidoAberto[] = data.lotes.filter(loteAberto).flatMap((l) => {
+    const t = totaisLote(l);
+    return l.itens
+      .filter(
+        (it) =>
+          it.insumoId === insumoId &&
+          it.categoria !== "Serviço" &&
+          it.comprar > 0 &&
+          !it.chegouEm &&
+          !it.noEstoque,
+      )
+      .map((it) => ({
+        id: `${l.id}:${it.insumoId}`,
+        origem: "lote" as const,
+        rotulo: `Lote ${l.codigo}`,
+        fornecedor: it.fornecedor,
+        qtd: it.comprar,
+        valorCents: it.desembolsoCents,
+        pedidoEm: it.pedidoEm,
+        previstoEm: it.pedidoEm
+          ? (it.previstoEm ?? somarDias(it.pedidoEm, it.prazoDias))
+          : somarDias(t.meta, -it.prazoDias),
+        aPedir: !it.pedidoEm,
+      }));
+  });
+  return [...avulsos, ...deLotes].sort((a, b) =>
+    (a.previstoEm ?? "9999").localeCompare(b.previstoEm ?? "9999"),
+  );
+}
+
+export type SituacaoEstoque = "ok" | "abaixo" | "sem" | "atrasado";
+
+/** A posição de um insumo (o MMBE): estoque, reservado, livre, em pedido, projetado, valor. */
+export function posicao(data: ProducaoData, i: Insumo, hoje = hojeBR()) {
+  const reservado = Math.min(i.estoque, reservas(data.lotes).get(i.id) ?? 0);
+  const abertos = pedidosAbertos(data, i.id);
+  const pedidos = abertos.filter((p) => !p.aPedir);
+  const emPedido = pedidos.reduce((n, p) => n + p.qtd, 0);
+  const proxima = pedidos.find((p) => p.previstoEm)?.previstoEm ?? null;
+  const atrasado = pedidos.some((p) => p.previstoEm && p.previstoEm < hoje);
+  const projetado = i.estoque - reservado + emPedido;
+  const ultimas = comprasDo(data, i.id);
+  const ultimo = ultimas[ultimas.length - 1] ?? null;
+  const situacao: SituacaoEstoque = atrasado
+    ? "atrasado"
+    : i.estoque <= 0 && emPedido <= 0
+      ? "sem"
+      : i.estoqueMinimo > 0 && projetado < i.estoqueMinimo
+        ? "abaixo"
+        : "ok";
+  return {
+    estoque: i.estoque,
+    reservado,
+    livre: i.estoque - reservado,
+    emPedido,
+    proxima,
+    atrasado,
+    projetado,
+    valorCents: i.valorEstoqueCents,
+    custoMedio: custoMedioMovel(i),
+    ultimoPreco: ultimo?.unitCents ?? null,
+    minimo: i.estoqueMinimo,
+    situacao,
+    abertos,
+  };
+}
+
+const IMPORT_ESTOQUE = "estoque-implantacao-2026-11";
+
+/**
+ * Implantação do controle de estoque: o estoque de hoje vira saldo inicial,
+ * valorizado pelo custo médio das compras registradas (ou pela cotação
+ * principal, se não houver compra).
+ */
+export function implantarEstoque(data: ProducaoData): ProducaoData | null {
+  if (data.importacoes.includes(IMPORT_ESTOQUE)) return null;
+  const dia = hojeBR();
+  const movimentos: Movimento[] = [];
+  const insumos = data.insumos.map((i) => {
+    if (ehServico(i) || i.estoque <= 0 || i.valorEstoqueCents > 0) return i;
+    const media = custoMedio(comprasDo(data, i.id)).unitCents;
+    const unit = media ?? precoReferencia(data, i);
+    const valor = Math.round(i.estoque * unit);
+    movimentos.push({
+      id: idMov(),
+      insumoId: i.id,
+      data: dia,
+      tipo: "inicial",
+      qtd: i.estoque,
+      valorCents: valor,
+      saldoQtd: i.estoque,
+      saldoValorCents: valor,
+      origem: "Implantação do controle de estoque",
+      ref: null,
+      obs: media !== null ? "Valor pelo custo médio das compras" : "Valor pela cotação principal",
+    });
+    return { ...i, valorEstoqueCents: valor };
+  });
+  return {
+    ...data,
+    insumos,
+    movimentos: [...data.movimentos, ...movimentos],
+    importacoes: [...data.importacoes, IMPORT_ESTOQUE],
+  };
 }
 
 // ── Exemplos (ponto de partida pra editar ou apagar) ────────────────────────
@@ -1556,6 +2086,7 @@ export const EXEMPLO: ProducaoData = {
   plano: PLANO_PADRAO,
   lotes: [],
   compras: [],
+  movimentos: [],
   importacoes: [],
   insumos: [
     {
@@ -1568,6 +2099,8 @@ export const EXEMPLO: ProducaoData = {
       parte: "final",
       especificacao: "",
       estoque: 0,
+      valorEstoqueCents: 0,
+      estoqueMinimo: 0,
       perdaPct: 1,
       depois: false,
       fornecedores: [
@@ -1595,6 +2128,8 @@ export const EXEMPLO: ProducaoData = {
       parte: "refri",
       especificacao: "",
       estoque: 0,
+      valorEstoqueCents: 0,
+      estoqueMinimo: 0,
       perdaPct: 1,
       depois: false,
       fornecedores: [forn("f-cola", "Fornecedor B", [{ de: 0, precoCents: 450 }], 200, 7)],
@@ -1611,6 +2146,8 @@ export const EXEMPLO: ProducaoData = {
       parte: "final",
       especificacao: "",
       estoque: 0,
+      valorEstoqueCents: 0,
+      estoqueMinimo: 0,
       perdaPct: 1,
       depois: false,
       fornecedores: [
@@ -1643,6 +2180,8 @@ export const EXEMPLO: ProducaoData = {
       parte: "final",
       especificacao: "",
       estoque: 0,
+      valorEstoqueCents: 0,
+      estoqueMinimo: 0,
       perdaPct: 0,
       depois: false,
       fornecedores: [forn("f-caixa", "Fornecedor D", [{ de: 0, precoCents: 350 }], 500, 12)],
@@ -1659,6 +2198,8 @@ export const EXEMPLO: ProducaoData = {
       parte: "final",
       especificacao: "",
       estoque: 0,
+      valorEstoqueCents: 0,
+      estoqueMinimo: 0,
       perdaPct: 0,
       depois: true,
       fornecedores: [forn("f-envase", "Fornecedor E", [{ de: 0, precoCents: 60 }], 3000, 5)],

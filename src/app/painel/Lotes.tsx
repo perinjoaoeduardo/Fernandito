@@ -20,8 +20,9 @@ import {
   COMPLETO_MIN,
   VALIDADE_MESES,
   diasEntre,
-  estoqueAoCancelar,
-  estoqueAoConcluir,
+  atualizarItemLote,
+  baixarLote,
+  cancelarLote,
   indicadores,
   loteAberto,
   situacaoItem,
@@ -170,6 +171,7 @@ export function Lotes({
               data={data}
               hoje={hoje}
               setLote={setLote}
+              onChange={onChange}
               onExcluir={() => excluir(l)}
             />
           ))
@@ -207,18 +209,22 @@ function LoteCard({
   data,
   hoje,
   setLote,
+  onChange,
   onExcluir,
 }: {
   l: Lote;
   data: ProducaoData;
   hoje: string;
   setLote: (l: Lote, soon?: boolean, insumos?: ProducaoData["insumos"]) => void;
+  /** Mudanças que mexem no estoque (chegada, conclusão, cancelamento). */
+  onChange: Change;
   onExcluir: () => void;
 }) {
   const t = totaisLote(l, hoje);
   const e = ETAPA[l.etapa];
+  // Insumo do lote: a chegada entra no estoque (e o estorno/correção também).
   const setItem = (k: number, patch: Partial<LoteItem>, soon = true) =>
-    setLote({ ...l, itens: l.itens.map((it, j) => (j === k ? { ...it, ...patch } : it)) }, soon);
+    onChange(atualizarItemLote(data, l.id, k, patch), soon);
 
   const pedir = () => {
     const insumosProntos = l.itens
@@ -265,7 +271,7 @@ function LoteCard({
       !window.confirm(
         `Concluir o ${l.codigo} com ${num(l.latasBoas, 0)} latas boas?\n\n` +
           `• Validade: ${diaAno(validade)} (envase + ${VALIDADE_MESES} meses)\n` +
-          `• O estoque dos insumos é atualizado: sai o que o lote usou, entra o que sobrou da compra.`,
+          `• Estoque dos insumos: entra o que ainda não tinha chegado e sai o consumo do lote (pelo custo médio).`,
       )
     )
       return;
@@ -281,16 +287,16 @@ function LoteCard({
           : it,
       ),
     };
-    setLote(fechado, false, estoqueAoConcluir(data.insumos, fechado));
+    onChange(baixarLote(data, fechado));
   };
   const cancelar = () => {
     if (
       !window.confirm(
-        `Cancelar o ${l.codigo}? O que já chegou entra no estoque dos insumos e a reserva é liberada.`,
+        `Cancelar o ${l.codigo}? O que já chegou fica no estoque dos insumos e a reserva é liberada.`,
       )
     )
       return;
-    setLote({ ...l, etapa: "cancelado" }, false, estoqueAoCancelar(data.insumos, l));
+    onChange(cancelarLote(data, l));
   };
   const voltar = () => setLote({ ...l, etapa: l.etapa === "envasando" ? "pedido" : "planejado" });
 
