@@ -755,7 +755,7 @@ export function totaisLote(l: Lote, hoje = hojeBR()) {
 export function indicadores(lotes: Lote[]) {
   // Rendimento e perda: todos os concluídos (o histórico também, se tem plano).
   const comLatas = lotes.filter((l) => l.etapa === "concluido" && l.latasBoas !== null);
-  // Custo real e "no prazo": só os feitos pelo painel (o histórico não tem valores nem datas).
+  // "No prazo": só os feitos pelo painel (o histórico não tem datas).
   const feitos = comLatas
     .filter((l) => !l.historico)
     .sort((a, b) => (b.prontoEm ?? b.criadoEm).localeCompare(a.prontoEm ?? a.criadoEm));
@@ -765,12 +765,19 @@ export function indicadores(lotes: Lote[]) {
   const envasadas = comLatas.reduce((n, l) => n + l.envasadas, 0);
   const perdaPlan = envasadas > 0 ? 1 - boasPlan / envasadas : null;
   const otif = t.filter((x) => x.t.noPrazo && x.t.completo).length;
+  // Custo real: o lote concluído mais recente que tem custo (o histórico entra se tiver).
+  const quando = (l: Lote) => l.prontoEm ?? l.envaseEm ?? l.criadoEm;
+  const ultimo =
+    comLatas
+      .map((l) => ({ l, t: totaisLote(l) }))
+      .filter((x) => (x.t.lataReal ?? 0) > 0)
+      .sort((a, b) => quando(b.l).localeCompare(quando(a.l)))[0] ?? null;
   return {
     feitos: t,
     rendimento: boasPlan > 0 ? boasReal / boasPlan : null,
     perdaReal: envasadas > 0 ? 1 - boasReal / envasadas : null,
     perdaPlan,
-    ultimo: t[0] ?? null,
+    ultimo,
     otif,
     otifPct: t.length ? otif / t.length : null,
   };
@@ -1309,11 +1316,162 @@ export function importarLote1(data: ProducaoData): ProducaoData | null {
   return { ...marcado, lotes: [lote1, ...data.lotes] };
 }
 
+const IMPORT_LOTE1_CUSTOS = "lote-1-custos-2026-11";
+/** Alcapone: serviço do 1º lote (centavos). */
+const ALCAPONE_L001 = 266431;
+
+/**
+ * Custos do 1º lote: latas e coroas pelo preço do 1º pedido da LNF (com
+ * frete), fernet a R$ 35/L (20% de 400 L), cola de amostra grátis e o
+ * serviço da Alcapone (envase). Põe a Alcapone como fornecedora do envase
+ * (preço por lata entregue no L001) no lugar do exemplo. As latas e coroas
+ * saem do estoque (já descontado), então não viram compra do lote; o fernet
+ * e o envase, sim.
+ */
+export function importarCustosLote1(data: ProducaoData): ProducaoData | null {
+  if (data.importacoes.includes(IMPORT_LOTE1_CUSTOS)) return null;
+  const marcado = { ...data, importacoes: [...data.importacoes, IMPORT_LOTE1_CUSTOS] };
+  const l1 = data.lotes.find((l) => l.historico && l.codigo === "L001");
+  if (!l1 || !l1.latasBoas) return marcado;
+  const usadas = l1.latasBoas;
+  const nome = (i: Insumo) => semAcento(i.insumo);
+  const lata = data.insumos.find(
+    (i) => i.uso === "lata" && /lata/.test(nome(i)) && !/coroa/.test(nome(i)),
+  );
+  const coroa = data.insumos.find((i) => i.uso === "lata" && /coroa|tampa/.test(nome(i)));
+  const fernet = data.insumos.find((i) => /fernet/.test(nome(i)));
+  const envase = data.insumos.find((i) => i.depois || i.categoria === "Serviço");
+  const p1 = (k: "lata" | "coroa") => {
+    const p = PEDIDOS_LNF[0];
+    const frete = Math.round((p.frete * p.lata[1]) / (p.lata[1] + p.coroa[1]));
+    return k === "lata"
+      ? (p.lata[1] + frete) / p.lata[0]
+      : (p.coroa[1] + p.frete - frete) / p.coroa[0];
+  };
+  const item = (
+    i: Insumo | undefined,
+    x: Partial<LoteItem> & Pick<LoteItem, "insumo" | "precisa">,
+  ): LoteItem => ({
+    insumoId: i?.id ?? `l001-${semAcento(x.insumo).replace(/\W+/g, "-")}`.slice(0, 40),
+    unidade: i?.unidade ?? "litro",
+    uso: i?.uso ?? "receita",
+    categoria: i?.categoria ?? "Ingrediente",
+    depois: i?.depois ?? false,
+    fornecedorId: null,
+    fornecedor: "",
+    doEstoque: 0,
+    comprar: 0,
+    unitCents: 0,
+    desembolsoCents: 0,
+    prazoDias: 0,
+    pedidoEm: null,
+    previstoEm: null,
+    chegouEm: null,
+    recebido: null,
+    pagoCents: null,
+    ...x,
+  });
+  const refriPct = data.receita.refriPct || 80;
+  const litrosFernet = (l1.plano.litros * (100 - refriPct)) / 100;
+  const fFernet = fernet?.fornecedores.find((f) => /bucco/.test(semAcento(f.nome)));
+  const fLata = lata?.fornecedores.find((f) => semAcento(f.nome) === "lnf");
+  const fCoroa = coroa?.fornecedores.find((f) => semAcento(f.nome) === "lnf");
+
+  // Envase: a Alcapone vira a cotação principal (sai o exemplo).
+  const fAlcapone: Fornecedor = {
+    id: "f-alcapone",
+    nome: "Alcapone",
+    contato: "",
+    faixas: [{ de: 0, precoCents: Math.round(ALCAPONE_L001 / usadas) }],
+    minimo: 0,
+    multiplo: 0,
+    prazoDias: 0,
+    freteCents: 0,
+    cotadoEm: null,
+    obs: `Preço do 1º lote: R$ 2.664,31 pelo serviço, ${usadas} latas entregues. Prazo e forma de cobrança ainda não informados.`,
+  };
+  const insumos = data.insumos.map((i) =>
+    envase && i.id === envase.id
+      ? {
+          ...i,
+          exemplo: undefined,
+          fornecedores: [
+            fAlcapone,
+            ...i.fornecedores.filter((f) => !f.exemplo && f.id !== fAlcapone.id),
+          ],
+          principal: fAlcapone.id,
+        }
+      : i,
+  );
+
+  const itens: LoteItem[] = [
+    item(undefined, {
+      insumo: "Cola (amostra grátis)",
+      unidade: "litro",
+      precisa: (l1.plano.litros * refriPct) / 100,
+      fornecedor: "Amostra grátis",
+    }),
+    item(fernet, {
+      insumo: fernet?.insumo ?? "Fernet",
+      precisa: litrosFernet,
+      comprar: litrosFernet,
+      recebido: litrosFernet,
+      unitCents: 3500,
+      desembolsoCents: Math.round(litrosFernet * 3500),
+      pagoCents: Math.round(litrosFernet * 3500),
+      fornecedorId: fFernet?.id ?? null,
+      fornecedor: fFernet?.nome ?? "Casa Bucco",
+    }),
+    item(lata, {
+      insumo: lata?.insumo ?? "Lata 350ml",
+      precisa: usadas,
+      doEstoque: usadas,
+      unitCents: p1("lata"),
+      fornecedorId: fLata?.id ?? null,
+      fornecedor: "LNF (1º pedido)",
+    }),
+    item(coroa, {
+      insumo: coroa?.insumo ?? "Coroa (tampa da lata)",
+      precisa: usadas,
+      doEstoque: usadas,
+      unitCents: p1("coroa"),
+      fornecedorId: fCoroa?.id ?? null,
+      fornecedor: "LNF (1º pedido)",
+    }),
+    item(envase, {
+      insumo: envase?.insumo ?? "Envase",
+      categoria: "Serviço",
+      depois: true,
+      precisa: usadas,
+      comprar: usadas,
+      recebido: usadas,
+      unitCents: ALCAPONE_L001 / usadas,
+      desembolsoCents: ALCAPONE_L001,
+      pagoCents: ALCAPONE_L001,
+      fornecedorId: fAlcapone.id,
+      fornecedor: "Alcapone",
+    }),
+  ];
+  return {
+    ...marcado,
+    insumos,
+    lotes: data.lotes.map((l) =>
+      l.id === l1.id
+        ? {
+            ...l,
+            itens,
+            obs: `${l.obs} Cola de amostra grátis; envase pela Alcapone.`.trim(),
+          }
+        : l,
+    ),
+  };
+}
+
 /** Normaliza e roda as importações que faltam. `null` = nada mudou. */
 export function aplicarImportacoes(data: ProducaoData): ProducaoData | null {
   let atual = normalizar(data);
   let mudou = atual !== data;
-  for (const imp of [importarComprasLNF, importarReceita, importarLote1]) {
+  for (const imp of [importarComprasLNF, importarReceita, importarLote1, importarCustosLote1]) {
     const r = imp(atual);
     if (r) {
       atual = r;

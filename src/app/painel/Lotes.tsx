@@ -67,7 +67,7 @@ export function LotesKpis({ data, hoje }: { data: ProducaoData; hoje: string }) 
   const prox = proximoMarco(abertos, hoje);
   const u = ind.ultimo;
   const varPct =
-    u && u.t.lataReal !== null && u.t.lataPlan
+    u && !u.l.historico && u.t.lataReal !== null && u.t.lataPlan
       ? (u.t.lataReal - u.t.lataPlan) / u.t.lataPlan
       : null;
   const semDado = "Aparece com o 1º lote feito pelo painel";
@@ -95,9 +95,11 @@ export function LotesKpis({ data, hoje }: { data: ProducaoData; hoje: string }) 
         value={u?.t.lataReal ? brl(u.t.lataReal) : "—"}
         tone={varPct !== null && varPct > 0.02 ? "fail" : "action"}
         note={
-          u && u.t.lataPlan !== null && varPct !== null
-            ? `${u.l.codigo}: plano ${brl(u.t.lataPlan)} (${sinal(varPct)})`
-            : semDado
+          u && u.l.historico
+            ? `${u.l.codigo}: antes do painel, sem plano pra comparar`
+            : u && u.t.lataPlan !== null && varPct !== null
+              ? `${u.l.codigo}: plano ${brl(u.t.lataPlan)} (${sinal(varPct)})`
+              : semDado
         }
       />
       <Tile
@@ -769,6 +771,7 @@ function Historico({
                     <p className="text-lk-muted text-xs whitespace-nowrap">
                       {num(l.plano.litros, 0)} L
                     </p>
+                    {l.obs && <p className="text-lk-ink3 mt-0.5 max-w-48 text-xs">{l.obs}</p>}
                   </td>
                   <td className={`${TD} whitespace-nowrap`}>
                     <p>{l.envaseEm ? diaAno(l.envaseEm) : "—"}</p>
@@ -789,11 +792,11 @@ function Historico({
                     <p>{t.perdaReal === null ? "—" : pct(t.perdaReal * 100)}</p>
                     <p className="text-lk-muted text-xs">plano {pct(l.plano.perdaEnvasePct)}</p>
                   </td>
-                  <td className={`${TD} text-lk-muted text-xs`} colSpan={2}>
-                    Antes do painel: sem valores pagos nem datas, fica fora do custo real e do
-                    &quot;no prazo&quot;.
-                    {l.obs && <span className="mt-1 block">{l.obs}</span>}
+                  <td className={`${TD} text-right tabular-nums`}>
+                    <p className="font-medium">{t.lataReal ? brl(t.lataReal) : "—"}</p>
+                    <p className="text-lk-muted text-xs">sem plano pra comparar</p>
                   </td>
+                  <td className={`${TD} text-lk-muted text-xs`}>Antes do painel: sem datas</td>
                   <td className={`${TD} text-right tabular-nums`}>
                     {t.durou !== null ? (
                       `${t.durou} dias`
