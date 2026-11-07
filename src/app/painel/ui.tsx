@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { Boxes, FileText, Inbox, BellRing, Factory } from "lucide-react";
+import { Boxes, ChartLine, Factory, Inbox, ShoppingBag, ShoppingCart, Users } from "lucide-react";
 
 // Peças do painel, no visual do Lakeshore Funding (docs/design-rules.md e
 // docs/rules/* daquele repositório). Regras que valem aqui:
@@ -87,15 +87,33 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
 // ── Menu lateral (docs/rules/sidebar.md do Lakeshore) ─────────────────────
 
-export type Aba = "pedidos" | "estoque" | "fora" | "lista" | "producao";
+export type Aba =
+  "pedidos" | "vendas" | "clientes" | "estoque" | "producao" | "compras" | "resultados";
 
-const NAV: { aba: Aba; label: string; icon: LucideIcon }[] = [
-  { aba: "pedidos", label: "Pedidos", icon: Inbox },
-  { aba: "estoque", label: "Estoque e vendas", icon: Boxes },
-  { aba: "fora", label: "Vendas manuais", icon: FileText },
-  { aba: "lista", label: "Lista de espera", icon: BellRing },
-  { aba: "producao", label: "Produção", icon: Factory },
+/** O menu em 3 grupos: vendas, operação (fábrica) e gestão. */
+const GRUPOS: { titulo: string; itens: { aba: Aba; label: string; icon: LucideIcon }[] }[] = [
+  {
+    titulo: "Vendas",
+    itens: [
+      { aba: "pedidos", label: "Pedidos do site", icon: Inbox },
+      { aba: "vendas", label: "Vendas", icon: ShoppingBag },
+      { aba: "clientes", label: "Clientes", icon: Users },
+    ],
+  },
+  {
+    titulo: "Operação",
+    itens: [
+      { aba: "estoque", label: "Estoque de produtos", icon: Boxes },
+      { aba: "producao", label: "Produção", icon: Factory },
+      { aba: "compras", label: "Compras e insumos", icon: ShoppingCart },
+    ],
+  },
+  {
+    titulo: "Gestão",
+    itens: [{ aba: "resultados", label: "Resultados", icon: ChartLine }],
+  },
 ];
+const NAV = GRUPOS.flatMap((g) => g.itens);
 
 const abaHref = (aba: Aba) => (aba === "pedidos" ? "/painel" : `/painel?aba=${aba}`);
 
@@ -203,17 +221,21 @@ export function Frame({
             <div className="pl-2">
               <Brand />
             </div>
-            <p className="font-lk-mono text-lk-side-muted mt-8 mb-1 px-3 text-[10.5px] font-medium tracking-[0.14em] uppercase">
-              Loja
-            </p>
-            <nav aria-label="Menu" className="flex flex-col gap-1">
-              {NAV.map((item) => (
-                <NavItem
-                  key={item.aba}
-                  item={item}
-                  active={aba === item.aba}
-                  count={counts[item.aba] ?? 0}
-                />
+            <nav aria-label="Menu" className="mt-4 flex flex-col gap-1">
+              {GRUPOS.map((g) => (
+                <div key={g.titulo} className="flex flex-col gap-1">
+                  <p className="font-lk-mono text-lk-side-muted mt-4 mb-1 px-3 text-[10.5px] font-medium tracking-[0.14em] uppercase">
+                    {g.titulo}
+                  </p>
+                  {g.itens.map((item) => (
+                    <NavItem
+                      key={item.aba}
+                      item={item}
+                      active={aba === item.aba}
+                      count={counts[item.aba] ?? 0}
+                    />
+                  ))}
+                </div>
               ))}
             </nav>
             <div className="mt-auto flex items-center gap-3 rounded-xl border border-white/[0.09] bg-white/[0.04] p-2">

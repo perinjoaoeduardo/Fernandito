@@ -147,11 +147,11 @@ const unit = (cents: number) =>
 
 export function Producao({
   initial,
-  precos,
+  modo,
 }: {
   initial: ProducaoData;
-  /** Preço de venda (centavos), pra margem. */
-  precos: { lata: number; pack: number };
+  /** Qual aba: "producao" (lotes, planejar, receita) ou "compras" (estoque de insumos, pedidos, cadastro). */
+  modo: "producao" | "compras";
 }) {
   const [data, setData] = useState<ProducaoData>(initial);
   const [editing, setEditing] = useState<Editing | null>(null);
@@ -334,11 +334,6 @@ export function Producao({
     );
   };
 
-  const margens = [
-    { nome: "Lata 350ml", preco: precos.lata, custo: r.lataCents },
-    { nome: "Six pack", preco: precos.pack, custo: r.packCents },
-  ];
-
   return (
     <>
       {temExemplo && (
@@ -349,485 +344,466 @@ export function Producao({
         </div>
       )}
 
-      <LotesKpis data={data} hoje={hoje} />
-      <Lotes
-        data={data}
-        hoje={hoje}
-        onChange={(next, soon) => (soon ? persistSoon : persist)(next)}
-      />
+      {modo === "producao" && (
+        <>
+          <LotesKpis data={data} hoje={hoje} />
+          <Lotes
+            data={data}
+            hoje={hoje}
+            onChange={(next, soon) => (soon ? persistSoon : persist)(next)}
+          />
+        </>
+      )}
 
-      {/* ── Estoque de insumos (visão geral, como o MMBE do SAP) ── */}
-      <EstoqueGeral data={data} hoje={hoje} onPedir={novoPedido} />
-
-      {/* ── Pedidos de compra (ME2N) ── */}
-      <PedidosCompra
-        data={data}
-        hoje={hoje}
-        onNovo={() => novoPedido("", [])}
-        onAbrir={(pcId) => setEditing({ kind: "receber", pcId })}
-      />
+      {modo === "compras" && (
+        <>
+          <ComprasKpis data={data} hoje={hoje} />
+          {/* ── Estoque de insumos (visão geral, como o MMBE do SAP) ── */}
+          <EstoqueGeral data={data} hoje={hoje} onPedir={novoPedido} />
+          {/* ── Pedidos de compra (ME2N) ── */}
+          <PedidosCompra
+            data={data}
+            hoje={hoje}
+            onNovo={() => novoPedido("", [])}
+            onAbrir={(pcId) => setEditing({ kind: "receber", pcId })}
+          />
+        </>
+      )}
 
       {/* ── Planejar novo lote ── */}
-      <Secao
-        id="planejar"
-        defaultOpen
-        title="Planejar novo lote"
-        aside={
-          <span className={`text-xs ${status?.ok === false ? "text-lk-fail" : "text-lk-ink3"}`}>
-            {saving ? "Salvando…" : status?.text}
-          </span>
-        }
-      >
-        <KpiStrip cols={4}>
-          <Tile
-            icon={Factory}
-            label="Latas boas"
-            value={num(r.boas, 0)}
-            note={`${num(r.envasadas, 0)} envasadas · ${num(r.packs, 0)} six packs`}
-          />
-          <Tile
-            icon={Coins}
-            label="Custo por lata"
-            value={r.lataCents === null ? "—" : brl(r.lataCents)}
-            note={
-              r.packCents === null ? "Preencher a receita" : `Six pack ${brl(r.packCents)} pronto`
-            }
-          />
-          <Tile
-            icon={ShoppingCart}
-            label="Comprar agora"
-            value={r.receitaOk ? brl(r.desembolso) : "—"}
-            note={
-              aComprar.length
-                ? `${aComprar.length} ${aComprar.length === 1 ? "insumo" : "insumos"} · com frete`
-                : "Tudo já em estoque"
-            }
-          />
-          <Tile
-            icon={CalendarClock}
-            label="Dá pra produzir em"
-            value={dia(producaoEm)}
-            tone={folga !== null && folga < 0 ? "fail" : "hold"}
-            note={
-              r.gargalo && r.gargalo.prazo > 0
-                ? `${r.espera} dias · gargalo: ${r.gargalo.i.insumo}`
-                : `${r.espera} dias`
-            }
-          />
-        </KpiStrip>
-        <div className={`${TABLE_WRAP} flex flex-col gap-5 p-5`}>
-          <div className="flex flex-wrap items-end gap-x-8 gap-y-5">
-            <label className={LABEL}>
-              <span className="font-medium">Litros a produzir</span>
-              <input
-                type="number"
-                min={0}
-                step={50}
-                value={plano.litros}
-                onChange={(e) => setPlano({ litros: Math.max(0, Number(e.target.value) || 0) })}
-                className={`${INPUT} w-32 text-right tabular-nums`}
-              />
-              <span className="flex gap-1">
-                {[500, 1000, 2000, 5000].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setPlano({ litros: n })}
-                    className={`h-7 rounded-md px-2 text-xs ${plano.litros === n ? "bg-lk-ink text-white" : "bg-lk-soft text-lk-muted hover:text-lk-ink"}`}
-                  >
-                    {num(n, 0)} L
-                  </button>
-                ))}
-              </span>
-            </label>
-            <label className={LABEL}>
-              <span className="font-medium">Perda no envase</span>
-              <span className="flex items-center gap-2">
+      {modo === "producao" && (
+        <Secao
+          id="planejar"
+          defaultOpen
+          title="Planejar novo lote"
+          aside={
+            <span className={`text-xs ${status?.ok === false ? "text-lk-fail" : "text-lk-ink3"}`}>
+              {saving ? "Salvando…" : status?.text}
+            </span>
+          }
+        >
+          <KpiStrip cols={4}>
+            <Tile
+              icon={Factory}
+              label="Latas boas"
+              value={num(r.boas, 0)}
+              note={`${num(r.envasadas, 0)} envasadas · ${num(r.packs, 0)} six packs`}
+            />
+            <Tile
+              icon={Coins}
+              label="Custo por lata"
+              value={r.lataCents === null ? "—" : brl(r.lataCents)}
+              note={
+                r.packCents === null ? "Preencher a receita" : `Six pack ${brl(r.packCents)} pronto`
+              }
+            />
+            <Tile
+              icon={ShoppingCart}
+              label="Comprar agora"
+              value={r.receitaOk ? brl(r.desembolso) : "—"}
+              note={
+                aComprar.length
+                  ? `${aComprar.length} ${aComprar.length === 1 ? "insumo" : "insumos"} · com frete`
+                  : "Tudo já em estoque"
+              }
+            />
+            <Tile
+              icon={CalendarClock}
+              label="Dá pra produzir em"
+              value={dia(producaoEm)}
+              tone={folga !== null && folga < 0 ? "fail" : "hold"}
+              note={
+                r.gargalo && r.gargalo.prazo > 0
+                  ? `${r.espera} dias · gargalo: ${r.gargalo.i.insumo}`
+                  : `${r.espera} dias`
+              }
+            />
+          </KpiStrip>
+          <div className={`${TABLE_WRAP} flex flex-col gap-5 p-5`}>
+            <div className="flex flex-wrap items-end gap-x-8 gap-y-5">
+              <label className={LABEL}>
+                <span className="font-medium">Litros a produzir</span>
                 <input
                   type="number"
                   min={0}
-                  max={90}
-                  step={0.5}
-                  value={plano.perdaEnvasePct}
+                  step={50}
+                  value={plano.litros}
+                  onChange={(e) => setPlano({ litros: Math.max(0, Number(e.target.value) || 0) })}
+                  className={`${INPUT} w-32 text-right tabular-nums`}
+                />
+                <span className="flex gap-1">
+                  {[500, 1000, 2000, 5000].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setPlano({ litros: n })}
+                      className={`h-7 rounded-md px-2 text-xs ${plano.litros === n ? "bg-lk-ink text-white" : "bg-lk-soft text-lk-muted hover:text-lk-ink"}`}
+                    >
+                      {num(n, 0)} L
+                    </button>
+                  ))}
+                </span>
+              </label>
+              <label className={LABEL}>
+                <span className="font-medium">Perda no envase</span>
+                <span className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    max={90}
+                    step={0.5}
+                    value={plano.perdaEnvasePct}
+                    onChange={(e) =>
+                      setPlano({
+                        perdaEnvasePct: Math.min(90, Math.max(0, Number(e.target.value) || 0)),
+                      })
+                    }
+                    className={`${INPUT} w-20 text-right tabular-nums`}
+                  />
+                  <span className="text-lk-muted">%</span>
+                </span>
+                <span className={HINT}>Latas amassadas, mal cheias, amostras</span>
+              </label>
+              <label className={LABEL}>
+                <span className="font-medium">Six packs a montar</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={r.maxPacks}
+                  placeholder={`todas (${num(r.maxPacks, 0)})`}
+                  value={plano.sixPacks ?? ""}
                   onChange={(e) =>
                     setPlano({
-                      perdaEnvasePct: Math.min(90, Math.max(0, Number(e.target.value) || 0)),
+                      sixPacks:
+                        e.target.value === ""
+                          ? null
+                          : Math.min(r.maxPacks, Math.max(0, Math.round(Number(e.target.value)))),
                     })
                   }
-                  className={`${INPUT} w-20 text-right tabular-nums`}
+                  className={`${INPUT} w-36 text-right tabular-nums`}
                 />
-                <span className="text-lk-muted">%</span>
-              </span>
-              <span className={HINT}>Latas amassadas, mal cheias, amostras</span>
-            </label>
-            <label className={LABEL}>
-              <span className="font-medium">Six packs a montar</span>
-              <input
-                type="number"
-                min={0}
-                max={r.maxPacks}
-                placeholder={`todas (${num(r.maxPacks, 0)})`}
-                value={plano.sixPacks ?? ""}
-                onChange={(e) =>
-                  setPlano({
-                    sixPacks:
-                      e.target.value === ""
-                        ? null
-                        : Math.min(r.maxPacks, Math.max(0, Math.round(Number(e.target.value)))),
-                  })
-                }
-                className={`${INPUT} w-36 text-right tabular-nums`}
-              />
-              <span className={HINT}>
-                {r.avulsas > 0
-                  ? `Sobram ${num(r.avulsas, 0)} latas avulsas`
-                  : "Todas as latas boas em pack"}
-              </span>
-            </label>
-            <label className={LABEL}>
-              <span className="font-medium">Data de produção</span>
-              <span className="flex items-center gap-2">
-                <input
-                  type="date"
-                  min={hoje}
-                  value={plano.prontoAte ?? ""}
-                  onChange={(e) => setPlano({ prontoAte: e.target.value || null })}
-                  className={`${INPUT} w-44 tabular-nums`}
-                />
-                {plano.prontoAte && (
-                  <button
-                    type="button"
-                    className={btn("ghost", "sm")}
-                    aria-label="Limpar data"
-                    onClick={() => setPlano({ prontoAte: null })}
-                  >
-                    <X aria-hidden />
-                  </button>
-                )}
-              </span>
-              <span className={HINT}>Dia do envase: mostra até quando pedir cada insumo</span>
-            </label>
-          </div>
-
-          <p className="text-sm">
-            Pedindo hoje, os insumos chegam e dá pra produzir em{" "}
-            <span className="font-semibold">{dia(producaoEm)}</span> ({r.espera} dias); com{" "}
-            {r.servico} de envase, fica pronto em{" "}
-            <span className="font-semibold">{dia(prontoEm)}</span>.{" "}
-            {folga !== null &&
-              (folga >= 0 ? (
-                <span className="text-lk-pass font-medium">
-                  Dá pra produzir em {dia(plano.prontoAte!)}: sobram {folga} dias.
+                <span className={HINT}>
+                  {r.avulsas > 0
+                    ? `Sobram ${num(r.avulsas, 0)} latas avulsas`
+                    : "Todas as latas boas em pack"}
                 </span>
-              ) : (
-                <span className="text-lk-fail font-medium">
-                  Não dá pra produzir em {dia(plano.prontoAte!)}: faltam {-folga} dias. Veja o
-                  gargalo ou um fornecedor mais rápido.
+              </label>
+              <label className={LABEL}>
+                <span className="font-medium">Data de produção</span>
+                <span className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    min={hoje}
+                    value={plano.prontoAte ?? ""}
+                    onChange={(e) => setPlano({ prontoAte: e.target.value || null })}
+                    className={`${INPUT} w-44 tabular-nums`}
+                  />
+                  {plano.prontoAte && (
+                    <button
+                      type="button"
+                      className={btn("ghost", "sm")}
+                      aria-label="Limpar data"
+                      onClick={() => setPlano({ prontoAte: null })}
+                    >
+                      <X aria-hidden />
+                    </button>
+                  )}
                 </span>
-              ))}
-          </p>
+                <span className={HINT}>Dia do envase: mostra até quando pedir cada insumo</span>
+              </label>
+            </div>
 
-          {r.semFornecedor.length > 0 && (
-            <p className="text-lk-fail flex items-center gap-2 text-sm">
-              <TriangleAlert aria-hidden className="size-4" />
-              Sem fornecedor: {r.semFornecedor.map((l) => l.i.insumo).join(", ")}. O custo e o prazo
-              estão incompletos.
+            <p className="text-sm">
+              Pedindo hoje, os insumos chegam e dá pra produzir em{" "}
+              <span className="font-semibold">{dia(producaoEm)}</span> ({r.espera} dias); com{" "}
+              {r.servico} de envase, fica pronto em{" "}
+              <span className="font-semibold">{dia(prontoEm)}</span>.{" "}
+              {folga !== null &&
+                (folga >= 0 ? (
+                  <span className="text-lk-pass font-medium">
+                    Dá pra produzir em {dia(plano.prontoAte!)}: sobram {folga} dias.
+                  </span>
+                ) : (
+                  <span className="text-lk-fail font-medium">
+                    Não dá pra produzir em {dia(plano.prontoAte!)}: faltam {-folga} dias. Veja o
+                    gargalo ou um fornecedor mais rápido.
+                  </span>
+                ))}
             </p>
-          )}
 
-          <div className="border-lk-border -mx-5 overflow-x-auto border-t">
-            <table className="w-full min-w-[980px] text-sm">
-              <thead>
-                <tr>
-                  <th className={TH}>Insumo</th>
-                  <th className={`${TH} text-right`}>Precisa</th>
-                  <th className={`${TH} text-right`}>Disponível</th>
-                  <th className={`${TH} text-right`}>Comprar</th>
-                  <th className={`${TH} text-right`}>Preço (faixa)</th>
-                  <th className={`${TH} text-right`}>Desembolso</th>
-                  <th className={`${TH} text-right`}>Prazo</th>
-                  {plano.prontoAte && <th className={`${TH} text-right`}>Pedir até</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-lk-border divide-y">
-                {linhas.map((l) => {
-                  const { i, escolhida: c } = l;
-                  const p = principalDe(i);
-                  const melhor = l.cotacoes[0];
-                  const economia =
-                    c && melhor && melhor.f.id !== c.f.id ? c.totalCents - melhor.totalCents : 0;
-                  const ate = plano.prontoAte ? pedirAte(l, plano.prontoAte) : null;
-                  const atraso = ate ? diasEntre(hoje, ate) : null;
-                  return (
-                    <tr key={i.id}>
-                      <td className={TD}>
-                        <p className="font-semibold">{i.insumo}</p>
-                        <p className="text-lk-muted text-xs">
-                          {p ? p.nome || "Fornecedor sem nome" : "Sem fornecedor"}
-                        </p>
-                        {economia > 0 && (
-                          <p className="text-lk-pass text-xs">
-                            {melhor.f.nome || "Outro"} sai {brl(economia)} mais barato
-                          </p>
-                        )}
-                      </td>
-                      {l.precisa === null ? (
-                        <td className={`${TD} text-lk-hold text-right`} colSpan={5}>
-                          Preencher a receita abaixo
-                        </td>
-                      ) : (
-                        <>
-                          <td className={`${TD} text-right tabular-nums`}>
-                            {num(l.precisa, l.precisa < 10 ? 2 : 1)} {i.unidade}
-                            {i.perdaPct > 0 && (
-                              <p className="text-lk-muted text-xs">
-                                com {pct(i.perdaPct)} de perda
-                              </p>
-                            )}
-                          </td>
-                          <td className={`${TD} text-right tabular-nums`}>
-                            {i.categoria === "Serviço"
-                              ? "—"
-                              : (disp.get(i.id) ?? 0) > 0
-                                ? num(disp.get(i.id) ?? 0)
-                                : "—"}
-                            {(reservado.get(i.id) ?? 0) > 0 && (
-                              <p className="text-lk-muted text-xs">
-                                {num(reservado.get(i.id) ?? 0)} reservado
-                              </p>
-                            )}
-                          </td>
-                          <td className={`${TD} text-right tabular-nums`}>
-                            {l.falta <= 0 ? (
-                              <span className="text-lk-pass">nada</span>
-                            ) : c ? (
-                              <>
-                                {num(c.comprar, c.comprar < 10 ? 2 : 1)}
-                                {c.ajustado && (
-                                  <p className="text-lk-hold text-xs">
-                                    {c.ajustado === "minimo"
-                                      ? "mínimo do fornecedor"
-                                      : `múltiplo de ${num(c.f.multiplo)}`}
-                                  </p>
-                                )}
-                              </>
-                            ) : (
-                              <span className="text-lk-fail">{num(l.falta)}</span>
-                            )}
-                          </td>
-                          <td className={`${TD} text-right tabular-nums`}>
-                            {c ? (
-                              <>
-                                {brl(c.faixa.precoCents)}
-                                <p className="text-lk-muted text-xs">
-                                  {c.faixa.de > 0 ? `a partir de ${num(c.faixa.de)}` : "faixa base"}
-                                </p>
-                              </>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                          <td className={`${TD} text-right font-medium tabular-nums`}>
-                            {c && c.totalCents > 0 ? (
-                              <>
-                                {brl(c.totalCents)}
-                                {c.f.freteCents > 0 && (
-                                  <p className="text-lk-muted text-xs font-normal">
-                                    frete {brl(c.f.freteCents)}
-                                  </p>
-                                )}
-                              </>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                        </>
-                      )}
-                      <td className={`${TD} text-right tabular-nums`}>
-                        {r.gargalo?.i.id === i.id && l.prazo > 0 ? (
-                          <Badge tone="hold">{l.prazo} dias · gargalo</Badge>
-                        ) : i.depois ? (
-                          `${principalDe(i)?.prazoDias ?? 0} dias · depois`
-                        ) : l.falta > 0 ? (
-                          `${l.prazo} dias`
-                        ) : (
-                          <span className="text-lk-muted">—</span>
-                        )}
-                      </td>
-                      {plano.prontoAte && (
-                        <td className={`${TD} text-right whitespace-nowrap tabular-nums`}>
-                          {ate === null ? (
-                            <span className="text-lk-muted">—</span>
-                          ) : atraso! < 0 ? (
-                            <Badge tone="fail">{dia(ate)} · passou</Badge>
-                          ) : atraso! <= 3 ? (
-                            <Badge tone="hold">{dia(ate)}</Badge>
-                          ) : (
-                            dia(ate)
-                          )}
-                          {i.depois && ate !== null && (
-                            <p className="text-lk-muted text-xs">dia do envase</p>
-                          )}
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot>
-                <tr className="border-lk-border bg-lk-paper border-t">
-                  <td className={`${TD} font-semibold`} colSpan={5}>
-                    Total da compra
-                  </td>
-                  <td className={`${TD} text-right font-semibold tabular-nums`}>
-                    {r.receitaOk ? brl(r.desembolso) : "—"}
-                  </td>
-                  <td className={`${TD} text-right font-semibold tabular-nums`}>{r.prazo} dias</td>
-                  {plano.prontoAte && <td className={TD} />}
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-          <p className={HINT}>
-            Latas envasadas = litros ÷ 0,35; boas = envasadas menos a perda no envase. Precisa =
-            consumo do lote + a perda do insumo. Comprar = o que falta depois do estoque, subindo
-            até o pedido mínimo e o múltiplo do fornecedor principal. Desembolso inclui o frete.
-            Prazo = o insumo a comprar que mais demora + o envase/serviço. Disponível = estoque
-            menos o que os lotes em andamento já reservaram.
-          </p>
-          <div className="border-lk-border -mx-5 -mb-5 flex flex-wrap items-center justify-between gap-3 border-t px-5 py-4">
-            <p className="text-lk-muted text-sm">
-              {podeCriar
-                ? `Gostou do plano? Ele vira o ${proximo}: quantidades, fornecedores e custos ficam guardados, e o estoque usado fica reservado.`
-                : "Preencha a receita e os litros para criar um lote."}
-            </p>
-            <button type="button" className={btn("primary")} disabled={!podeCriar} onClick={criar}>
-              <ArrowDown aria-hidden />
-              Criar lote {proximo}
-            </button>
-          </div>
-        </div>
-      </Secao>
+            {r.semFornecedor.length > 0 && (
+              <p className="text-lk-fail flex items-center gap-2 text-sm">
+                <TriangleAlert aria-hidden className="size-4" />
+                Sem fornecedor: {r.semFornecedor.map((l) => l.i.insumo).join(", ")}. O custo e o
+                prazo estão incompletos.
+              </p>
+            )}
 
-      {/* ── Margem ── */}
-      <Secao id="margem" title="Margem por produto">
-        <div className={`${TABLE_WRAP} overflow-x-auto`}>
-          <table className="w-full min-w-[560px] text-sm">
-            <thead>
-              <tr>
-                <th className={TH}>Produto</th>
-                <th className={`${TH} text-right`}>Preço de venda</th>
-                <th className={`${TH} text-right`}>Custo de produção</th>
-                <th className={`${TH} text-right`}>Margem bruta</th>
-              </tr>
-            </thead>
-            <tbody className="divide-lk-border divide-y">
-              {margens.map((m) => {
-                const margem = m.custo === null ? null : m.preco - m.custo;
-                return (
-                  <tr key={m.nome}>
-                    <td className={`${TD} font-semibold`}>{m.nome}</td>
-                    <td className={`${TD} text-right tabular-nums`}>{brl(m.preco)}</td>
-                    <td className={`${TD} text-right tabular-nums`}>
-                      {m.custo === null ? "—" : brl(m.custo)}
-                    </td>
-                    <td className={`${TD} text-right tabular-nums`}>
-                      {margem === null ? (
-                        "—"
-                      ) : (
-                        <>
-                          <span
-                            className={`font-semibold ${margem < 0 ? "text-lk-fail" : "text-lk-pass"}`}
-                          >
-                            {brl(margem)}
-                          </span>
-                          <span className="text-lk-muted text-xs">
-                            {" "}
-                            · {pct((margem / m.preco) * 100)}
-                          </span>
-                        </>
-                      )}
-                    </td>
+            <div className="border-lk-border -mx-5 overflow-x-auto border-t">
+              <table className="w-full min-w-[980px] text-sm">
+                <thead>
+                  <tr>
+                    <th className={TH}>Insumo</th>
+                    <th className={`${TH} text-right`}>Precisa</th>
+                    <th className={`${TH} text-right`}>Disponível</th>
+                    <th className={`${TH} text-right`}>Comprar</th>
+                    <th className={`${TH} text-right`}>Preço (faixa)</th>
+                    <th className={`${TH} text-right`}>Desembolso</th>
+                    <th className={`${TH} text-right`}>Prazo</th>
+                    {plano.prontoAte && <th className={`${TH} text-right`}>Pedir até</th>}
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <p className={HINT}>
-          Custo = o que o lote consome (líquidos, lata, envase e, no six pack, a embalagem),
-          dividido pelas latas boas, com o frete dos insumos. Margem bruta: antes de impostos, taxa
-          do Pix e frete de venda. Preço = o do Bling.
-        </p>
-      </Secao>
+                </thead>
+                <tbody className="divide-lk-border divide-y">
+                  {linhas.map((l) => {
+                    const { i, escolhida: c } = l;
+                    const p = principalDe(i);
+                    const melhor = l.cotacoes[0];
+                    const economia =
+                      c && melhor && melhor.f.id !== c.f.id ? c.totalCents - melhor.totalCents : 0;
+                    const ate = plano.prontoAte ? pedirAte(l, plano.prontoAte) : null;
+                    const atraso = ate ? diasEntre(hoje, ate) : null;
+                    return (
+                      <tr key={i.id}>
+                        <td className={TD}>
+                          <p className="font-semibold">{i.insumo}</p>
+                          <p className="text-lk-muted text-xs">
+                            {p ? p.nome || "Fornecedor sem nome" : "Sem fornecedor"}
+                          </p>
+                          {economia > 0 && (
+                            <p className="text-lk-pass text-xs">
+                              {melhor.f.nome || "Outro"} sai {brl(economia)} mais barato
+                            </p>
+                          )}
+                        </td>
+                        {l.precisa === null ? (
+                          <td className={`${TD} text-lk-hold text-right`} colSpan={5}>
+                            Preencher a receita abaixo
+                          </td>
+                        ) : (
+                          <>
+                            <td className={`${TD} text-right tabular-nums`}>
+                              {num(l.precisa, l.precisa < 10 ? 2 : 1)} {i.unidade}
+                              {i.perdaPct > 0 && (
+                                <p className="text-lk-muted text-xs">
+                                  com {pct(i.perdaPct)} de perda
+                                </p>
+                              )}
+                            </td>
+                            <td className={`${TD} text-right tabular-nums`}>
+                              {i.categoria === "Serviço"
+                                ? "—"
+                                : (disp.get(i.id) ?? 0) > 0
+                                  ? num(disp.get(i.id) ?? 0)
+                                  : "—"}
+                              {(reservado.get(i.id) ?? 0) > 0 && (
+                                <p className="text-lk-muted text-xs">
+                                  {num(reservado.get(i.id) ?? 0)} reservado
+                                </p>
+                              )}
+                            </td>
+                            <td className={`${TD} text-right tabular-nums`}>
+                              {l.falta <= 0 ? (
+                                <span className="text-lk-pass">nada</span>
+                              ) : c ? (
+                                <>
+                                  {num(c.comprar, c.comprar < 10 ? 2 : 1)}
+                                  {c.ajustado && (
+                                    <p className="text-lk-hold text-xs">
+                                      {c.ajustado === "minimo"
+                                        ? "mínimo do fornecedor"
+                                        : `múltiplo de ${num(c.f.multiplo)}`}
+                                    </p>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-lk-fail">{num(l.falta)}</span>
+                              )}
+                            </td>
+                            <td className={`${TD} text-right tabular-nums`}>
+                              {c ? (
+                                <>
+                                  {brl(c.faixa.precoCents)}
+                                  <p className="text-lk-muted text-xs">
+                                    {c.faixa.de > 0
+                                      ? `a partir de ${num(c.faixa.de)}`
+                                      : "faixa base"}
+                                  </p>
+                                </>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+                            <td className={`${TD} text-right font-medium tabular-nums`}>
+                              {c && c.totalCents > 0 ? (
+                                <>
+                                  {brl(c.totalCents)}
+                                  {c.f.freteCents > 0 && (
+                                    <p className="text-lk-muted text-xs font-normal">
+                                      frete {brl(c.f.freteCents)}
+                                    </p>
+                                  )}
+                                </>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+                          </>
+                        )}
+                        <td className={`${TD} text-right tabular-nums`}>
+                          {r.gargalo?.i.id === i.id && l.prazo > 0 ? (
+                            <Badge tone="hold">{l.prazo} dias · gargalo</Badge>
+                          ) : i.depois ? (
+                            `${principalDe(i)?.prazoDias ?? 0} dias · depois`
+                          ) : l.falta > 0 ? (
+                            `${l.prazo} dias`
+                          ) : (
+                            <span className="text-lk-muted">—</span>
+                          )}
+                        </td>
+                        {plano.prontoAte && (
+                          <td className={`${TD} text-right whitespace-nowrap tabular-nums`}>
+                            {ate === null ? (
+                              <span className="text-lk-muted">—</span>
+                            ) : atraso! < 0 ? (
+                              <Badge tone="fail">{dia(ate)} · passou</Badge>
+                            ) : atraso! <= 3 ? (
+                              <Badge tone="hold">{dia(ate)}</Badge>
+                            ) : (
+                              dia(ate)
+                            )}
+                            {i.depois && ate !== null && (
+                              <p className="text-lk-muted text-xs">dia do envase</p>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-lk-border bg-lk-paper border-t">
+                    <td className={`${TD} font-semibold`} colSpan={5}>
+                      Total da compra
+                    </td>
+                    <td className={`${TD} text-right font-semibold tabular-nums`}>
+                      {r.receitaOk ? brl(r.desembolso) : "—"}
+                    </td>
+                    <td className={`${TD} text-right font-semibold tabular-nums`}>
+                      {r.prazo} dias
+                    </td>
+                    {plano.prontoAte && <td className={TD} />}
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <p className={HINT}>
+              Latas envasadas = litros ÷ 0,35; boas = envasadas menos a perda no envase. Precisa =
+              consumo do lote + a perda do insumo. Comprar = o que falta depois do estoque, subindo
+              até o pedido mínimo e o múltiplo do fornecedor principal. Desembolso inclui o frete.
+              Prazo = o insumo a comprar que mais demora + o envase/serviço. Disponível = estoque
+              menos o que os lotes em andamento já reservaram.
+            </p>
+            <div className="border-lk-border -mx-5 -mb-5 flex flex-wrap items-center justify-between gap-3 border-t px-5 py-4">
+              <p className="text-lk-muted text-sm">
+                {podeCriar
+                  ? `Gostou do plano? Ele vira o ${proximo}: quantidades, fornecedores e custos ficam guardados, e o estoque usado fica reservado.`
+                  : "Preencha a receita e os litros para criar um lote."}
+              </p>
+              <button
+                type="button"
+                className={btn("primary")}
+                disabled={!podeCriar}
+                onClick={criar}
+              >
+                <ArrowDown aria-hidden />
+                Criar lote {proximo}
+              </button>
+            </div>
+          </div>
+        </Secao>
+      )}
 
-      {/* ── Receita ── */}
-      <Receita
-        linhas={linhas}
-        refriPct={receita.refriPct}
-        onRefriPct={setRefriPct}
-        onQtd={setQtd}
-        onEdit={(i) => setEditing({ kind: "insumo", item: structuredClone(i), isNew: false })}
-        onAdd={(parte) => setEditing({ kind: "insumo", item: novoIngrediente(parte), isNew: true })}
-      />
+      {/* ── Receita (cadastro da produção) ── */}
+      {modo === "producao" && (
+        <Receita
+          linhas={linhas}
+          refriPct={receita.refriPct}
+          onRefriPct={setRefriPct}
+          onQtd={setQtd}
+          onEdit={(i) => setEditing({ kind: "insumo", item: structuredClone(i), isNew: false })}
+          onAdd={(parte) =>
+            setEditing({ kind: "insumo", item: novoIngrediente(parte), isNew: true })
+          }
+        />
+      )}
 
-      {/* ── Insumos e cotações ── */}
-      <Secao
-        id="insumos"
-        title="Insumos e fornecedores"
-        count={insumos.length}
-        aside={
-          <button
-            type="button"
-            className={btn("primary", "sm")}
-            onClick={() => setEditing({ kind: "insumo", item: NOVO_INSUMO(), isNew: true })}
-          >
-            <Plus aria-hidden />
-            Adicionar insumo
-          </button>
-        }
-      >
-        {insumos.length === 0 && <Empty>Nenhum insumo ainda.</Empty>}
-        {linhas.map((l) => (
-          <InsumoCard
-            key={l.i.id}
-            linha={l}
-            hoje={hoje}
-            pont={pont}
-            reservado={reservado.get(l.i.id) ?? 0}
-            compras={comprasDo(data, l.i.id)}
-            pos={posicao(data, l.i, hoje)}
-            movimentos={data.movimentos.filter((m) => m.insumoId === l.i.id)}
-            lotesQueUsam={data.lotes
-              .filter((x) => x.etapa !== "concluido" && x.etapa !== "cancelado")
-              .flatMap((x) =>
-                x.itens
-                  .filter((it) => it.insumoId === l.i.id && it.precisa > 0)
-                  .map((it) => ({ codigo: x.codigo, qtd: it.precisa, data: x.plano.prontoAte })),
-              )}
-            onNovoPedido={() => pedirInsumo(l.i, posicao(data, l.i, hoje).sugestao)}
-            onReceber={(pcId) => setEditing({ kind: "receber", pcId })}
-            onContagem={() => setEditing({ kind: "contagem", insumo: l.i })}
-            onEdit={() => setEditing({ kind: "insumo", item: structuredClone(l.i), isNew: false })}
-            onAddFornecedor={() =>
-              setEditing({ kind: "fornecedor", insumo: l.i, item: NOVO_FORNECEDOR(), isNew: true })
-            }
-            onEditFornecedor={(f) =>
-              setEditing({
-                kind: "fornecedor",
-                insumo: l.i,
-                item: structuredClone(f),
-                isNew: false,
-              })
-            }
-            onUsar={(id) => usarFornecedor(l.i, id)}
-          />
-        ))}
-        <p className={HINT}>
-          &quot;Neste lote&quot; = quanto sairia comprar com cada fornecedor o que este lote pede
-          (com mínimo, múltiplo, faixa e frete). A estrela marca o principal, que a calculadora usa.
-        </p>
-      </Secao>
+      {/* ── Insumos e cotações (cadastro de compras) ── */}
+      {modo === "compras" && (
+        <Secao
+          id="insumos"
+          title="Insumos e fornecedores"
+          count={insumos.length}
+          aside={
+            <button
+              type="button"
+              className={btn("primary", "sm")}
+              onClick={() => setEditing({ kind: "insumo", item: NOVO_INSUMO(), isNew: true })}
+            >
+              <Plus aria-hidden />
+              Adicionar insumo
+            </button>
+          }
+        >
+          {insumos.length === 0 && <Empty>Nenhum insumo ainda.</Empty>}
+          {linhas.map((l) => (
+            <InsumoCard
+              key={l.i.id}
+              linha={l}
+              hoje={hoje}
+              pont={pont}
+              reservado={reservado.get(l.i.id) ?? 0}
+              compras={comprasDo(data, l.i.id)}
+              pos={posicao(data, l.i, hoje)}
+              movimentos={data.movimentos.filter((m) => m.insumoId === l.i.id)}
+              lotesQueUsam={data.lotes
+                .filter((x) => x.etapa !== "concluido" && x.etapa !== "cancelado")
+                .flatMap((x) =>
+                  x.itens
+                    .filter((it) => it.insumoId === l.i.id && it.precisa > 0)
+                    .map((it) => ({ codigo: x.codigo, qtd: it.precisa, data: x.plano.prontoAte })),
+                )}
+              onNovoPedido={() => pedirInsumo(l.i, posicao(data, l.i, hoje).sugestao)}
+              onReceber={(pcId) => setEditing({ kind: "receber", pcId })}
+              onContagem={() => setEditing({ kind: "contagem", insumo: l.i })}
+              onEdit={() =>
+                setEditing({ kind: "insumo", item: structuredClone(l.i), isNew: false })
+              }
+              onAddFornecedor={() =>
+                setEditing({
+                  kind: "fornecedor",
+                  insumo: l.i,
+                  item: NOVO_FORNECEDOR(),
+                  isNew: true,
+                })
+              }
+              onEditFornecedor={(f) =>
+                setEditing({
+                  kind: "fornecedor",
+                  insumo: l.i,
+                  item: structuredClone(f),
+                  isNew: false,
+                })
+              }
+              onUsar={(id) => usarFornecedor(l.i, id)}
+            />
+          ))}
+          <p className={HINT}>
+            &quot;Neste lote&quot; = quanto sairia comprar com cada fornecedor o que este lote pede
+            (com mínimo, múltiplo, faixa e frete). A estrela marca o principal, que a calculadora
+            usa.
+          </p>
+        </Secao>
+      )}
 
       {editing?.kind === "insumo" && (
         <InsumoEditor
@@ -1380,6 +1356,55 @@ function InsumoCard({
       {aberto && <HistoricoCompras i={i} compras={compras} />}
       {aberto && i.categoria !== "Serviço" && <Movimentacoes i={i} movimentos={movimentos} />}
     </div>
+  );
+}
+
+/** Topo da aba Compras e insumos. */
+function ComprasKpis({ data, hoje }: { data: ProducaoData; hoje: string }) {
+  const pos = data.insumos
+    .filter((i) => i.categoria !== "Serviço")
+    .map((i) => ({ i, p: posicao(data, i, hoje) }));
+  const valor = pos.reduce((n, x) => n + x.p.valorCents, 0);
+  const abertos = data.pedidos.filter((pc) => {
+    const s = situacaoPedido(pc, hoje);
+    return s !== "recebido" && s !== "encerrado";
+  });
+  const aReceber = abertos.reduce(
+    (n, pc) => n + pc.itens.reduce((m, it, idx) => m + unitPedido(pc, idx) * restante(it), 0),
+    0,
+  );
+  const atrasados = abertos.filter((pc) => situacaoPedido(pc, hoje) === "atrasado");
+  const comprar = pos.filter((x) => x.p.sugestao > 0);
+  const valorComprar = comprar.reduce((n, x) => n + (x.p.sugestaoValorCents ?? 0), 0);
+  return (
+    <KpiStrip cols={4}>
+      <Tile
+        icon={Coins}
+        label="Insumos em estoque"
+        value={brl(valor)}
+        note={`${pos.filter((x) => x.p.estoque > 0).length} insumos com saldo`}
+      />
+      <Tile
+        icon={ShoppingCart}
+        label="A comprar"
+        value={comprar.length}
+        tone={comprar.length ? "hold" : "action"}
+        note={comprar.length ? `cerca de ${brl(valorComprar)}` : "Nada falta pros lotes"}
+      />
+      <Tile
+        icon={PackageCheck}
+        label="Pedidos em aberto"
+        value={abertos.length}
+        note={abertos.length ? `${brl(Math.round(aReceber))} a receber` : "Nada a caminho"}
+      />
+      <Tile
+        icon={TriangleAlert}
+        label="Pedidos atrasados"
+        value={atrasados.length}
+        tone="fail"
+        note={atrasados.length ? atrasados.map((pc) => pc.numero).join(", ") : "Tudo no prazo"}
+      />
+    </KpiStrip>
   );
 }
 
