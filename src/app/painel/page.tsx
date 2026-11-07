@@ -45,7 +45,7 @@ import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
 import { SubmitButton } from "./SubmitButton";
 import { Producao } from "./Producao";
-import { EXEMPLO, PRODUCAO_KEY, producaoSchema } from "@/lib/producao";
+import { EXEMPLO, PRODUCAO_KEY, lerProducao } from "@/lib/producao";
 import {
   Badge,
   CARD,
@@ -434,8 +434,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     if (aba !== "producao") return EXEMPLO;
     try {
       const raw = await kvGet(PRODUCAO_KEY);
-      const parsed = raw ? producaoSchema.safeParse(JSON.parse(raw)) : null;
-      return parsed?.success ? parsed.data : EXEMPLO;
+      return (raw && lerProducao(JSON.parse(raw))) || EXEMPLO;
     } catch {
       return EXEMPLO;
     }
@@ -1122,7 +1121,13 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       {aba === "producao" ? (
         <>
           <PageHeader eyebrow="Fornecedores, custos e prazos" title="Produção" actions={actions} />
-          <Producao initial={producao} />
+          <Producao
+            initial={producao}
+            precos={{
+              lata: ESTOQUE.find((p) => p.sku === "FERN-350")!.priceCents,
+              pack: ESTOQUE.find((p) => p.sku === "FERN-350-6")!.priceCents,
+            }}
+          />
         </>
       ) : aba === "estoque" ? (
         estoqueView
