@@ -1471,11 +1471,52 @@ export function importarCustosLote1(data: ProducaoData): ProducaoData | null {
   };
 }
 
+const IMPORT_LOTE1_SOBRA = "lote-1-fernet-sobra-2026-11";
+/** Fernet que a receita do L001 usou (20% de 400 L); o resto dos 90 L sobrou. */
+const LOTE1_FERNET_USADO_L = 80;
+
+/**
+ * Dos 90 L de fernet comprados pro L001, o lote usou 80 L (seguiu a
+ * receita) e sobraram 10 L: o lote passa a custar só o que usou e os 10 L
+ * entram no estoque do fernet (provisório, até a contagem). A compra
+ * continua registrada como 90 L.
+ */
+export function importarSobraFernetLote1(data: ProducaoData): ProducaoData | null {
+  if (data.importacoes.includes(IMPORT_LOTE1_SOBRA)) return null;
+  const marcado = { ...data, importacoes: [...data.importacoes, IMPORT_LOTE1_SOBRA] };
+  const l1 = data.lotes.find((l) => l.historico && l.codigo === "L001");
+  const fernet = data.insumos.find((i) => /fernet/.test(semAcento(i.insumo)));
+  const it = l1?.itens.find((x) => fernet && x.insumoId === fernet.id);
+  if (!l1 || !fernet || !it || it.precisa <= LOTE1_FERNET_USADO_L) return marcado;
+  const sobra = (it.recebido ?? it.comprar) - LOTE1_FERNET_USADO_L;
+  return {
+    ...marcado,
+    insumos: data.insumos.map((i) =>
+      i.id === fernet.id ? { ...i, estoque: i.estoque + Math.max(0, sobra) } : i,
+    ),
+    lotes: data.lotes.map((l) =>
+      l.id === l1.id
+        ? {
+            ...l,
+            itens: l.itens.map((x) => (x === it ? { ...x, precisa: LOTE1_FERNET_USADO_L } : x)),
+            obs: `${l.obs} Fernet: 90 L comprados, 80 L usados, 10 L no estoque.`,
+          }
+        : l,
+    ),
+  };
+}
+
 /** Normaliza e roda as importações que faltam. `null` = nada mudou. */
 export function aplicarImportacoes(data: ProducaoData): ProducaoData | null {
   let atual = normalizar(data);
   let mudou = atual !== data;
-  for (const imp of [importarComprasLNF, importarReceita, importarLote1, importarCustosLote1]) {
+  for (const imp of [
+    importarComprasLNF,
+    importarReceita,
+    importarLote1,
+    importarCustosLote1,
+    importarSobraFernetLote1,
+  ]) {
     const r = imp(atual);
     if (r) {
       atual = r;
