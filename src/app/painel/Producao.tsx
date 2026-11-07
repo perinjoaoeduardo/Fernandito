@@ -16,7 +16,10 @@ import {
 import {
   CATEGORIAS,
   LATA_ML,
+  UNIDADES,
+  compraInteira,
   comprasDo,
+  tipoUnidade,
   criarLote,
   custoMedio,
   disponiveis,
@@ -151,7 +154,16 @@ export function Producao({
   const producaoEm = somarDias(hoje, r.espera);
   const prontoEm = somarDias(hoje, r.prazo);
   const folga = plano.prontoAte ? diasEntre(producaoEm, plano.prontoAte) : null;
-  const sobraMl = LATA_ML - (receita.fernetMl ?? 0) - (receita.colaMl ?? 0);
+  // A receita segue a unidade do insumo: g se ele é comprado por peso, senão ml.
+  const medidaDe = (uso: "fernet" | "cola") => {
+    const i = insumos.find((x) => x.uso === uso);
+    return i && tipoUnidade(i.unidade) === "massa" ? "g" : "ml";
+  };
+  const medida = { fernetMl: medidaDe("fernet"), colaMl: medidaDe("cola") } as const;
+  const sobraMl =
+    LATA_ML -
+    (medida.fernetMl === "ml" ? (receita.fernetMl ?? 0) : 0) -
+    (medida.colaMl === "ml" ? (receita.colaMl ?? 0) : 0);
   const temExemplo = insumos.some((i) => i.exemplo || i.fornecedores.some((f) => f.exemplo));
   const aComprar = linhas.filter((l) => l.falta > 0);
 
@@ -689,11 +701,14 @@ export function Producao({
                   }
                   className={`${INPUT} w-28 text-right tabular-nums`}
                 />
-                <span className="text-lk-muted">ml por lata</span>
+                <span className="text-lk-muted">{medida[k]} por lata</span>
               </span>
-              {receita[k] !== null && (
-                <span className={HINT}>{num(((receita[k] ?? 0) / LATA_ML) * 100)}% da lata</span>
-              )}
+              {receita[k] !== null &&
+                (medida[k] === "ml" ? (
+                  <span className={HINT}>{num(((receita[k] ?? 0) / LATA_ML) * 100)}% da lata</span>
+                ) : (
+                  <span className={HINT}>Comprado por peso: não entra nos {LATA_ML} ml</span>
+                ))}
             </label>
           ))}
           <div className={LABEL}>
@@ -830,7 +845,7 @@ function InsumoCard({
   const principal = principalDe(i);
   // Compara pelo que falta comprar; se não falta nada, por um lote inteiro.
   const qtd = linha.falta > 0 ? linha.falta : (linha.precisa ?? 0);
-  const inteiro = i.categoria !== "Líquido";
+  const inteiro = compraInteira(i.unidade);
   const cotacoes = i.fornecedores.map((f) => cotar(f, qtd, inteiro));
   const menor = cotacoes.length > 1 ? Math.min(...cotacoes.map((c) => c.totalCents)) : null;
 
@@ -1276,6 +1291,10 @@ function InsumoEditor({
 }) {
   const [f, setF] = useState(item);
   const set = <K extends keyof Insumo>(k: K, v: Insumo[K]) => setF((p) => ({ ...p, [k]: v }));
+  const conhecidas: readonly string[] = UNIDADES.flatMap((g) => g.itens);
+  // Unidade fora da lista (cadastro antigo ou digitada): abre o campo de texto.
+  const [outra, setOutra] = useState(!conhecidas.includes(item.unidade));
+  const daReceita = f.uso === "fernet" || f.uso === "cola";
   const ok = f.insumo.trim().length > 0 && f.unidade.trim().length > 0;
   const un = f.unidade || "unidades";
 
@@ -1312,13 +1331,52 @@ function InsumoEditor({
         </label>
         <label className={LABEL}>
           <span className="font-medium">Unidade de compra</span>
-          <input
+          <select
             className={INPUT}
-            value={f.unidade}
-            onChange={(e) => set("unidade", e.target.value)}
-            placeholder="litro, unidade, caixa…"
-          />
-          <span className={HINT}>Todas as cotações usam esta unidade</span>
+            value={outra ? "__outra" : f.unidade}
+            onChange={(e) => {
+              if (e.target.value === "__outra") {
+                setOutra(true);
+                return;
+              }
+              setOutra(false);
+              set("unidade", e.target.value);
+            }}
+          >
+            {UNIDADES.map((g) => (
+              <optgroup key={g.grupo} label={g.grupo}>
+                {g.itens.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+            <option value="__outra">Outra…</option>
+          </select>
+          {outra && (
+            <input
+              className={INPUT}
+              value={f.unidade}
+              onChange={(e) => set("unidade", e.target.value)}
+              placeholder="Ex.: fardo, bobina"
+              aria-label="Outra unidade"
+            />
+          )}
+          <span className={HINT}>
+            Todas as cotações usam esta unidade
+            {daReceita &&
+              (tipoUnidade(f.unidade) === "massa"
+                ? ". Por peso: a receita pede g por lata."
+                : tipoUnidade(f.unidade) === "volume"
+                  ? ". A receita pede ml por lata."
+                  : ". Da receita: use litro, ml, kg ou g.")}
+          </span>
+          {!isNew && f.unidade !== item.unidade && item.fornecedores.length > 0 && (
+            <span className="text-lk-hold text-xs">
+              Mudou a unidade: confira o preço das cotações (agora é por {f.unidade || "…"}).
+            </span>
+          )}
         </label>
         <label className={LABEL}>
           <span className="font-medium">Quanto vai na produção</span>

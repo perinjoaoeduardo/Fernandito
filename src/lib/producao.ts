@@ -24,6 +24,45 @@ export const USOS = ["fernet", "cola", "lata", "pack"] as const;
 
 export const LATA_ML = 350;
 
+/** Unidades de medida que o cadastro oferece (dá pra digitar outra). */
+export const UNIDADES = [
+  { grupo: "Volume", itens: ["litro", "ml"] },
+  { grupo: "Massa", itens: ["kg", "g"] },
+  {
+    grupo: "Contagem",
+    itens: ["unidade", "lata", "coroa", "caixa", "rolo", "milheiro", "lata envasada"],
+  },
+] as const;
+
+export type TipoUnidade = "volume" | "massa" | "contagem";
+
+const unidadeLimpa = (u: string) =>
+  u
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\.$/, "");
+
+/** Volume (litro, ml), massa (kg, g) ou contagem (o resto). */
+export function tipoUnidade(u: string): TipoUnidade {
+  const x = unidadeLimpa(u);
+  if (/^(l|lt|litros?|ml|mililitros?)$/.test(x)) return "volume";
+  if (/^(kg|kgs|quilos?|kilos?|quilogramas?|g|gr|gramas?)$/.test(x)) return "massa";
+  return "contagem";
+}
+
+/** Só unidade de contagem se compra inteira (lata, caixa…); litro e kg aceitam quebrado. */
+export const compraInteira = (u: string) => tipoUnidade(u) === "contagem";
+
+/**
+ * A receita vem em ml ou g por lata (conforme a unidade do insumo); isto é
+ * quanto da unidade de compra vai em cada ml/g: litro e kg = 1/1000; ml e g = 1.
+ */
+export function fatorReceita(u: string) {
+  return /^(ml|mililitros?|g|gr|gramas?)$/.test(unidadeLimpa(u)) ? 1 : 1 / 1000;
+}
+
 const faixa = z.object({
   /** A partir de quantas unidades de compra vale este preço. */
   de: z.number().min(0).max(1e9),
@@ -82,6 +121,11 @@ export const planoSchema = z.object({
   prontoAte: z.string().max(10).nullable(),
 });
 
+/**
+ * Quanto de fernet e de base de cola vai em cada lata: em ml, ou em g se o
+ * insumo for comprado por peso (kg/g). Os nomes ficaram do tempo em que era
+ * sempre ml.
+ */
 export const receitaSchema = z.object({
   fernetMl: z.number().min(0).max(LATA_ML).nullable(),
   colaMl: z.number().min(0).max(LATA_ML).nullable(),
@@ -380,16 +424,16 @@ export function planejar(data: ProducaoData, disponivel?: Map<string, number>): 
       i.uso === "fernet"
         ? receita.fernetMl === null
           ? null
-          : receita.fernetMl / 1000
+          : receita.fernetMl * fatorReceita(i.unidade)
         : i.uso === "cola"
           ? receita.colaMl === null
             ? null
-            : receita.colaMl / 1000
+            : receita.colaMl * fatorReceita(i.unidade)
           : i.qtd;
     // Líquido, lata e envase vão em toda lata envasada (as perdidas também);
     // embalagem de pack só nos packs montados.
     const unidades = i.uso === "pack" ? packs : envasadas;
-    const inteiro = i.categoria !== "Líquido";
+    const inteiro = compraInteira(i.unidade);
     if (por === null)
       return {
         i,
@@ -585,7 +629,7 @@ export function criarLote(data: ProducaoData, linhas: LinhaPlano[], id: string):
 /** Lote ainda planejado: troca o fornecedor de um insumo (refaz a cotação). */
 export function trocarFornecedor(item: LoteItem, f: Fornecedor): LoteItem {
   const falta = Math.max(0, item.precisa - item.doEstoque);
-  const c = cotar(f, falta, item.categoria !== "Líquido");
+  const c = cotar(f, falta, compraInteira(item.unidade));
   return {
     ...item,
     fornecedorId: f.id,
