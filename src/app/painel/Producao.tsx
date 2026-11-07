@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import {
+  ArrowDown,
   CalendarClock,
   Coins,
   Factory,
@@ -9,13 +10,17 @@ import {
   Plus,
   ShoppingCart,
   Star,
-  Trash2,
   TriangleAlert,
   X,
 } from "lucide-react";
 import {
   CATEGORIAS,
   LATA_ML,
+  criarLote,
+  disponiveis,
+  pontualidade,
+  proximoCodigo,
+  reservas,
   cotar,
   diasEntre,
   hojeBR,
@@ -30,6 +35,21 @@ import {
   type ProducaoData,
 } from "@/lib/producao";
 import { salvarProducao } from "./actions";
+import { Lotes, LotesKpis } from "./Lotes";
+import {
+  Drawer,
+  HINT,
+  INPUT,
+  LABEL,
+  NumField,
+  brl,
+  dia,
+  fromCents,
+  novoId,
+  num,
+  pct,
+  toCents,
+} from "./producao-ui";
 import { Badge, Code, Empty, KpiStrip, SectionTitle, TABLE_WRAP, TD, TH, Tile, btn } from "./ui";
 
 /**
@@ -39,30 +59,6 @@ import { Badge, Code, Empty, KpiStrip, SectionTitle, TABLE_WRAP, TD, TH, Tile, b
  * site (src/lib/producao.ts) — um cadastro só pra equipe toda, sem Bling.
  */
 
-const brl = (cents: number) =>
-  (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const num = (n: number, max = 1) => n.toLocaleString("pt-BR", { maximumFractionDigits: max });
-const pct = (n: number) => `${n.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%`;
-/** "0,95" / "1.234,50" / "12" → centavos. */
-const toCents = (v: string) => {
-  const n = Number(
-    v
-      .replace(/\./g, "")
-      .replace(",", ".")
-      .replace(/[^\d.]/g, ""),
-  );
-  return Number.isFinite(n) ? Math.round(n * 100) : 0;
-};
-const fromCents = (c: number) => (c / 100).toFixed(2).replace(".", ",");
-/** "2026-12-08" → "ter., 08/12". */
-const dia = (d: string) =>
-  new Date(`${d}T12:00:00Z`).toLocaleDateString("pt-BR", {
-    timeZone: "UTC",
-    weekday: "short",
-    day: "2-digit",
-    month: "2-digit",
-  });
-
 const USO_LABEL: Record<Insumo["uso"], string> = {
   fernet: "Da receita: fernet",
   cola: "Da receita: base de cola",
@@ -70,13 +66,6 @@ const USO_LABEL: Record<Insumo["uso"], string> = {
   pack: "Quantidade por six pack",
 };
 
-const INPUT =
-  "border-lk-input focus:border-lk-action focus:ring-lk-action/15 h-10 rounded-lg border bg-white px-3 outline-none focus:ring-4";
-const LABEL = "flex flex-col gap-1.5 text-sm";
-const HINT = "text-lk-ink3 text-xs";
-
-const novoId = (p: string) =>
-  `${p}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 const NOVO_INSUMO = (): Insumo => ({
   id: novoId("i"),
   insumo: "",
@@ -137,7 +126,11 @@ export function Producao({
   };
 
   const { insumos, receita, plano } = data;
-  const linhas = useMemo(() => planejar(data), [data]);
+  // O lote novo só conta com o estoque que os lotes abertos não reservaram.
+  const disp = useMemo(() => disponiveis(data), [data]);
+  const reservado = useMemo(() => reservas(data.lotes), [data.lotes]);
+  const pont = useMemo(() => pontualidade(data.lotes), [data.lotes]);
+  const linhas = useMemo(() => planejar(data, disp), [data, disp]);
   const r = useMemo(() => resumo(data, linhas), [data, linhas]);
   const hoje = hojeBR();
   const prontoEm = somarDias(hoje, r.prazo);
@@ -187,6 +180,18 @@ export function Producao({
     setEditing(null);
   };
   const usarFornecedor = (insumo: Insumo, id: string) => putInsumo({ ...insumo, principal: id });
+  const proximo = proximoCodigo(data.lotes);
+  const podeCriar = r.receitaOk && r.boas > 0;
+  const criar = () => {
+    if (!podeCriar) return;
+    const novo = criarLote(data, linhas, novoId("l"));
+    persist({ ...data, lotes: [...data.lotes, novo] });
+    setStatus({ ok: true, text: `${novo.codigo} criado` });
+    window.setTimeout(
+      () => document.getElementById("lotes")?.scrollIntoView({ behavior: "smooth" }),
+      50,
+    );
+  };
 
   const margens = [
     { nome: "Lata 350ml", preco: precos.lata, custo: r.lataCents },
@@ -203,54 +208,60 @@ export function Producao({
         </div>
       )}
 
-      <KpiStrip cols={4}>
-        <Tile
-          icon={Factory}
-          label="Latas boas"
-          value={num(r.boas, 0)}
-          note={`${num(r.envasadas, 0)} envasadas · ${num(r.packs, 0)} six packs`}
-        />
-        <Tile
-          icon={Coins}
-          label="Custo por lata"
-          value={r.lataCents === null ? "—" : brl(r.lataCents)}
-          note={
-            r.packCents === null ? "Preencher a receita" : `Six pack ${brl(r.packCents)} pronto`
-          }
-        />
-        <Tile
-          icon={ShoppingCart}
-          label="Comprar agora"
-          value={r.receitaOk ? brl(r.desembolso) : "—"}
-          note={
-            aComprar.length
-              ? `${aComprar.length} ${aComprar.length === 1 ? "insumo" : "insumos"} · com frete`
-              : "Tudo já em estoque"
-          }
-        />
-        <Tile
-          icon={CalendarClock}
-          label="Pronto em"
-          value={dia(prontoEm)}
-          tone={folga !== null && folga < 0 ? "fail" : "hold"}
-          note={
-            r.gargalo && r.gargalo.prazo > 0
-              ? `${r.prazo} dias · gargalo: ${r.gargalo.i.insumo}`
-              : `${r.prazo} dias`
-          }
-        />
-      </KpiStrip>
+      <LotesKpis data={data} hoje={hoje} />
+      <Lotes
+        data={data}
+        hoje={hoje}
+        onChange={(next, soon) => (soon ? persistSoon : persist)(next)}
+      />
 
-      {/* ── Plano do lote ── */}
+      {/* ── Planejar novo lote ── */}
       <section className="flex flex-col gap-4">
         <SectionTitle
-          title="Plano do lote"
+          title="Planejar novo lote"
           aside={
             <span className={`text-xs ${status?.ok === false ? "text-lk-fail" : "text-lk-ink3"}`}>
               {saving ? "Salvando…" : status?.text}
             </span>
           }
         />
+        <KpiStrip cols={4}>
+          <Tile
+            icon={Factory}
+            label="Latas boas"
+            value={num(r.boas, 0)}
+            note={`${num(r.envasadas, 0)} envasadas · ${num(r.packs, 0)} six packs`}
+          />
+          <Tile
+            icon={Coins}
+            label="Custo por lata"
+            value={r.lataCents === null ? "—" : brl(r.lataCents)}
+            note={
+              r.packCents === null ? "Preencher a receita" : `Six pack ${brl(r.packCents)} pronto`
+            }
+          />
+          <Tile
+            icon={ShoppingCart}
+            label="Comprar agora"
+            value={r.receitaOk ? brl(r.desembolso) : "—"}
+            note={
+              aComprar.length
+                ? `${aComprar.length} ${aComprar.length === 1 ? "insumo" : "insumos"} · com frete`
+                : "Tudo já em estoque"
+            }
+          />
+          <Tile
+            icon={CalendarClock}
+            label="Pronto em"
+            value={dia(prontoEm)}
+            tone={folga !== null && folga < 0 ? "fail" : "hold"}
+            note={
+              r.gargalo && r.gargalo.prazo > 0
+                ? `${r.prazo} dias · gargalo: ${r.gargalo.i.insumo}`
+                : `${r.prazo} dias`
+            }
+          />
+        </KpiStrip>
         <div className={`${TABLE_WRAP} flex flex-col gap-5 p-5`}>
           <div className="flex flex-wrap items-end gap-x-8 gap-y-5">
             <label className={LABEL}>
@@ -375,7 +386,7 @@ export function Producao({
                 <tr>
                   <th className={TH}>Insumo</th>
                   <th className={`${TH} text-right`}>Precisa</th>
-                  <th className={`${TH} text-right`}>Em estoque</th>
+                  <th className={`${TH} text-right`}>Disponível</th>
                   <th className={`${TH} text-right`}>Comprar</th>
                   <th className={`${TH} text-right`}>Preço (faixa)</th>
                   <th className={`${TH} text-right`}>Desembolso</th>
@@ -420,7 +431,16 @@ export function Producao({
                             )}
                           </td>
                           <td className={`${TD} text-right tabular-nums`}>
-                            {i.estoque > 0 ? num(i.estoque) : "—"}
+                            {i.categoria === "Serviço"
+                              ? "—"
+                              : (disp.get(i.id) ?? 0) > 0
+                                ? num(disp.get(i.id) ?? 0)
+                                : "—"}
+                            {(reservado.get(i.id) ?? 0) > 0 && (
+                              <p className="text-lk-muted text-xs">
+                                {num(reservado.get(i.id) ?? 0)} reservado
+                              </p>
+                            )}
                           </td>
                           <td className={`${TD} text-right tabular-nums`}>
                             {l.falta <= 0 ? (
@@ -517,8 +537,20 @@ export function Producao({
             Latas envasadas = litros ÷ 0,35; boas = envasadas menos a perda no envase. Precisa =
             consumo do lote + a perda do insumo. Comprar = o que falta depois do estoque, subindo
             até o pedido mínimo e o múltiplo do fornecedor principal. Desembolso inclui o frete.
-            Prazo = o insumo a comprar que mais demora + o envase/serviço.
+            Prazo = o insumo a comprar que mais demora + o envase/serviço. Disponível = estoque
+            menos o que os lotes em andamento já reservaram.
           </p>
+          <div className="border-lk-border -mx-5 -mb-5 flex flex-wrap items-center justify-between gap-3 border-t px-5 py-4">
+            <p className="text-lk-muted text-sm">
+              {podeCriar
+                ? `Gostou do plano? Ele vira o ${proximo}: quantidades, fornecedores e custos ficam guardados, e o estoque usado fica reservado.`
+                : "Preencha a receita e os litros para criar um lote."}
+            </p>
+            <button type="button" className={btn("primary")} disabled={!podeCriar} onClick={criar}>
+              <ArrowDown aria-hidden />
+              Criar lote {proximo}
+            </button>
+          </div>
         </div>
       </section>
 
@@ -650,6 +682,8 @@ export function Producao({
             key={l.i.id}
             linha={l}
             hoje={hoje}
+            pont={pont}
+            reservado={reservado.get(l.i.id) ?? 0}
             onEdit={() => setEditing({ kind: "insumo", item: structuredClone(l.i), isNew: false })}
             onAddFornecedor={() =>
               setEditing({ kind: "fornecedor", insumo: l.i, item: NOVO_FORNECEDOR(), isNew: true })
@@ -698,6 +732,8 @@ export function Producao({
 function InsumoCard({
   linha,
   hoje,
+  pont,
+  reservado,
   onEdit,
   onAddFornecedor,
   onEditFornecedor,
@@ -705,6 +741,9 @@ function InsumoCard({
 }: {
   linha: ReturnType<typeof planejar>[number];
   hoje: string;
+  /** Entregas registradas nos lotes, por fornecedor. */
+  pont: ReturnType<typeof pontualidade>;
+  reservado: number;
   onEdit: () => void;
   onAddFornecedor: () => void;
   onEditFornecedor: (f: Fornecedor) => void;
@@ -733,6 +772,7 @@ function InsumoCard({
           </p>
           <p className="text-lk-ink3 mt-1 text-xs">
             Em estoque: <span className="text-lk-ink font-medium">{num(i.estoque)}</span>
+            {reservado > 0 ? ` (${num(reservado)} reservado p/ lotes em andamento)` : ""}
             {i.perdaPct > 0 ? ` · perda ${pct(i.perdaPct)}` : ""}
             {i.depois ? " · serviço: começa depois dos outros" : ""}
             {i.fornecedores.length === 1 && " · um fornecedor só"}
@@ -803,6 +843,21 @@ function InsumoCard({
                             ? "Cotado hoje"
                             : `Cotado há ${idade} ${idade === 1 ? "dia" : "dias"}${idade > 90 ? " · conferir preço" : ""}`}
                       </p>
+                      {(() => {
+                        const p = pont.get(f.id);
+                        if (!p) return null;
+                        const media =
+                          p.entregas > p.noPrazo ? p.atrasoTotal / (p.entregas - p.noPrazo) : 0;
+                        return (
+                          <p
+                            className={`text-xs ${p.noPrazo < p.entregas ? "text-lk-hold" : "text-lk-pass"}`}
+                          >
+                            {p.noPrazo} de {p.entregas} {p.entregas === 1 ? "entrega" : "entregas"}{" "}
+                            no prazo
+                            {media > 0 ? ` · atrasa ${num(media)} d quando atrasa` : ""}
+                          </p>
+                        );
+                      })()}
                       {f.obs && <p className="text-lk-muted mt-0.5 text-xs">{f.obs}</p>}
                     </td>
                     <td className={TD}>
@@ -888,113 +943,6 @@ function InsumoCard({
         </div>
       )}
     </div>
-  );
-}
-
-/** Painel lateral (gaveta) com rodapé de Excluir / Cancelar / Salvar. */
-function Drawer({
-  title,
-  isNew,
-  ok,
-  onCancel,
-  onSave,
-  onDelete,
-  children,
-}: {
-  title: string;
-  isNew: boolean;
-  ok: boolean;
-  onCancel: () => void;
-  onSave: () => void;
-  onDelete: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-[600] flex justify-end"
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-    >
-      <button
-        type="button"
-        aria-label="Fechar"
-        onClick={onCancel}
-        className="absolute inset-0 bg-black/30"
-      />
-      <div className="border-lk-border relative flex h-full w-full max-w-lg flex-col overflow-y-auto border-l bg-white shadow-2xl">
-        <div className="border-lk-border flex items-center justify-between border-b px-6 py-4">
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <button
-            type="button"
-            onClick={onCancel}
-            className={btn("ghost", "sm")}
-            aria-label="Fechar"
-          >
-            <X aria-hidden />
-          </button>
-        </div>
-        <div className="flex flex-col gap-5 px-6 py-5">{children}</div>
-        <div className="border-lk-border mt-auto flex items-center justify-between gap-2 border-t px-6 py-4">
-          {!isNew ? (
-            <button
-              type="button"
-              className={`${btn("ghost", "sm")} text-lk-fail`}
-              onClick={onDelete}
-            >
-              <Trash2 aria-hidden />
-              Excluir
-            </button>
-          ) : (
-            <span />
-          )}
-          <span className="flex gap-2">
-            <button type="button" className={btn("secondary")} onClick={onCancel}>
-              Cancelar
-            </button>
-            <button type="button" className={btn("primary")} disabled={!ok} onClick={onSave}>
-              Salvar
-            </button>
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** Campo numérico com rótulo e dica. */
-function NumField({
-  label,
-  value,
-  onChange,
-  hint,
-  step = "any",
-  max,
-}: {
-  label: string;
-  value: number;
-  onChange: (n: number) => void;
-  hint?: string;
-  step?: number | "any";
-  max?: number;
-}) {
-  return (
-    <label className={LABEL}>
-      <span className="font-medium">{label}</span>
-      <input
-        type="number"
-        min={0}
-        max={max}
-        step={step}
-        className={`${INPUT} text-right tabular-nums`}
-        value={value}
-        onChange={(e) => {
-          const n = Math.max(0, Number(e.target.value) || 0);
-          onChange(max === undefined ? n : Math.min(max, n));
-        }}
-      />
-      {hint && <span className={HINT}>{hint}</span>}
-    </label>
   );
 }
 

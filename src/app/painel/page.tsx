@@ -1120,7 +1120,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     >
       {aba === "producao" ? (
         <>
-          <PageHeader eyebrow="Fornecedores, custos e prazos" title="Produção" actions={actions} />
+          <PageHeader eyebrow="Lotes, fornecedores e custos" title="Produção" actions={actions} />
           <Producao
             initial={producao}
             precos={{

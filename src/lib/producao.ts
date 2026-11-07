@@ -79,14 +79,84 @@ export const planoSchema = z.object({
   prontoAte: z.string().max(10).nullable(),
 });
 
+export const receitaSchema = z.object({
+  fernetMl: z.number().min(0).max(LATA_ML).nullable(),
+  colaMl: z.number().min(0).max(LATA_ML).nullable(),
+});
+
+// ── Lotes de produção ───────────────────────────────────────────────────────
+
+/** Caminho do lote: planejado → insumos pedidos → envasando → concluído. */
+export const ETAPAS = ["planejado", "pedido", "envasando", "concluido", "cancelado"] as const;
+/** Validade da lata a partir do envase. */
+export const VALIDADE_MESES = 12;
+/** Lote "completo" = saiu com pelo menos isto das latas boas planejadas. */
+export const COMPLETO_MIN = 0.95;
+
+const dia = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .nullable();
+
+/** Um insumo do lote: o planejado (congelado ao criar) e o que aconteceu. */
+export const loteItemSchema = z.object({
+  insumoId: z.string().max(40),
+  insumo: z.string().max(80),
+  unidade: z.string().max(30),
+  uso: z.enum(USOS),
+  categoria: z.enum(CATEGORIAS),
+  depois: z.boolean(),
+  fornecedorId: z.string().max(40).nullable(),
+  fornecedor: z.string().max(80),
+  /** Consumo do lote (com a perda do insumo). */
+  precisa: z.number().min(0).max(1e9),
+  /** Parte que sai do estoque (reservada enquanto o lote está aberto). */
+  doEstoque: z.number().min(0).max(1e9),
+  comprar: z.number().min(0).max(1e9),
+  /** Custo planejado de cada unidade (com o frete diluído). */
+  unitCents: z.number().min(0).max(1e10),
+  desembolsoCents: z.number().int().min(0).max(1e12),
+  /** Prazo prometido pelo fornecedor. */
+  prazoDias: z.number().int().min(0).max(3650),
+  pedidoEm: dia,
+  /** Data prometida de chegada (ou de fim do serviço). */
+  previstoEm: dia,
+  chegouEm: dia,
+  recebido: z.number().min(0).max(1e9).nullable(),
+  pagoCents: z.number().int().min(0).max(1e12).nullable(),
+});
+
+export const loteSchema = z.object({
+  id: z.string().min(1).max(40),
+  codigo: z.string().trim().min(1).max(20),
+  etapa: z.enum(ETAPAS),
+  criadoEm: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  plano: planoSchema,
+  receita: receitaSchema,
+  /** Planejado: latas envasadas, boas e six packs. */
+  envasadas: z.number().int().min(0).max(1e8),
+  boas: z.number().int().min(0).max(1e8),
+  packs: z.number().int().min(0).max(1e8),
+  /** Pronto previsto quando o lote foi criado (se pedisse tudo naquele dia). */
+  prontoPlanejado: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  itens: z.array(loteItemSchema).max(100),
+  envaseEm: dia,
+  /** Quando ficou pronto de verdade (concluído). */
+  prontoEm: dia,
+  validade: dia,
+  latasBoas: z.number().int().min(0).max(1e8).nullable(),
+  sixPacksMontados: z.number().int().min(0).max(1e8).nullable(),
+  /** Quando o lote acabou (vendeu tudo): mostra quanto tempo um lote dura. */
+  acabouEm: dia,
+  obs: z.string().max(500),
+});
+
 export const producaoSchema = z.object({
   versao: z.literal(2),
   insumos: z.array(insumoSchema).max(100),
-  receita: z.object({
-    fernetMl: z.number().min(0).max(LATA_ML).nullable(),
-    colaMl: z.number().min(0).max(LATA_ML).nullable(),
-  }),
+  receita: receitaSchema,
   plano: planoSchema,
+  lotes: z.array(loteSchema).max(300).default([]),
   atualizadoEm: z.string().optional(),
 });
 
@@ -94,6 +164,9 @@ export type Faixa = z.infer<typeof faixa>;
 export type Fornecedor = z.infer<typeof fornecedorSchema>;
 export type Insumo = z.infer<typeof insumoSchema>;
 export type Plano = z.infer<typeof planoSchema>;
+export type Etapa = (typeof ETAPAS)[number];
+export type LoteItem = z.infer<typeof loteItemSchema>;
+export type Lote = z.infer<typeof loteSchema>;
 export type ProducaoData = z.infer<typeof producaoSchema>;
 
 export const PRODUCAO_KEY = "producao:dados";
@@ -185,6 +258,7 @@ export function lerProducao(raw: unknown): ProducaoData | null {
     insumos,
     receita: velho.data.receita,
     plano: PLANO_PADRAO,
+    lotes: [],
     atualizadoEm: velho.data.atualizadoEm,
   });
   return parsed.success ? parsed.data : null;
@@ -263,8 +337,11 @@ export type LinhaPlano = {
   prazo: number;
 };
 
-/** Plano do lote insumo por insumo. */
-export function planejar(data: ProducaoData): LinhaPlano[] {
+/**
+ * Plano do lote insumo por insumo. `disponivel` = estoque que sobra depois
+ * das reservas dos lotes abertos (sem ele, vale o estoque cadastrado).
+ */
+export function planejar(data: ProducaoData, disponivel?: Map<string, number>): LinhaPlano[] {
   const { envasadas, packs } = lote(data.plano);
   const { receita } = data;
   return data.insumos.map((i) => {
@@ -295,7 +372,9 @@ export function planejar(data: ProducaoData): LinhaPlano[] {
       };
     const bruto = por * unidades * (1 + i.perdaPct / 100);
     const precisa = inteiro ? Math.ceil(bruto - 1e-9) : bruto;
-    const falta = Math.max(0, precisa - i.estoque);
+    const temos = Math.max(0, disponivel?.get(i.id) ?? i.estoque);
+    // Serviço (envase) não tem estoque: é sempre contratado.
+    const falta = i.categoria === "Serviço" ? precisa : Math.max(0, precisa - temos);
     const cotacoes = i.fornecedores
       .map((f) => cotar(f, falta, inteiro))
       .sort((a, b) => a.totalCents - b.totalCents || a.f.prazoDias - b.f.prazoDias);
@@ -386,6 +465,251 @@ export function pedirAte(linha: LinhaPlano, prontoAte: string, servico: number) 
   return somarDias(prontoAte, -servico - linha.escolhida.f.prazoDias);
 }
 
+// ── Lotes: criar, trocar fornecedor, totais e indicadores ──────────────────
+
+const ABERTAS: Etapa[] = ["planejado", "pedido", "envasando"];
+export const loteAberto = (l: Lote) => ABERTAS.includes(l.etapa);
+
+export function somarMeses(dia: string, n: number) {
+  const d = new Date(`${dia}T12:00:00Z`);
+  d.setUTCMonth(d.getUTCMonth() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Próximo número: L001, L002… (o maior que existe + 1). */
+export function proximoCodigo(lotes: Lote[]) {
+  const n = Math.max(0, ...lotes.map((l) => Number(/^L(\d+)$/i.exec(l.codigo)?.[1] ?? 0)));
+  return `L${String(n + 1).padStart(3, "0")}`;
+}
+
+/** Estoque de cada insumo já reservado pelos lotes abertos. */
+export function reservas(lotes: Lote[]) {
+  const map = new Map<string, number>();
+  for (const l of lotes.filter(loteAberto))
+    for (const it of l.itens) map.set(it.insumoId, (map.get(it.insumoId) ?? 0) + it.doEstoque);
+  return map;
+}
+
+/** Estoque que sobra pra um lote novo (cadastrado − reservado). */
+export function disponiveis(data: ProducaoData) {
+  const res = reservas(data.lotes);
+  return new Map(data.insumos.map((i) => [i.id, Math.max(0, i.estoque - (res.get(i.id) ?? 0))]));
+}
+
+/** Congela o plano atual num lote novo. */
+export function criarLote(data: ProducaoData, linhas: LinhaPlano[], id: string): Lote {
+  const l = lote(data.plano);
+  const r = resumo(data, linhas);
+  const hoje = hojeBR();
+  return {
+    id,
+    codigo: proximoCodigo(data.lotes),
+    etapa: "planejado",
+    criadoEm: hoje,
+    plano: data.plano,
+    receita: data.receita,
+    envasadas: l.envasadas,
+    boas: l.boas,
+    packs: l.packs,
+    prontoPlanejado: somarDias(hoje, r.prazo),
+    itens: linhas
+      .filter((x) => x.precisa !== null && x.precisa > 0)
+      .map((x) => {
+        const c = x.escolhida;
+        // 3 casas bastam (litro com ml); evita 353,50000000000006 no banco.
+        const r3 = (n: number) => Math.round(n * 1000) / 1000;
+        const precisa = r3(x.precisa ?? 0);
+        return {
+          insumoId: x.i.id,
+          insumo: x.i.insumo,
+          unidade: x.i.unidade,
+          uso: x.i.uso,
+          categoria: x.i.categoria,
+          depois: x.i.depois,
+          fornecedorId: c?.f.id ?? null,
+          fornecedor: c?.f.nome ?? "",
+          precisa,
+          doEstoque: r3(Math.max(0, precisa - x.falta)),
+          comprar: r3(c?.comprar ?? x.falta),
+          unitCents: c?.unitCents ?? 0,
+          desembolsoCents: c?.totalCents ?? 0,
+          prazoDias: c?.f.prazoDias ?? 0,
+          pedidoEm: null,
+          previstoEm: null,
+          chegouEm: null,
+          recebido: null,
+          pagoCents: null,
+        };
+      }),
+    envaseEm: null,
+    prontoEm: null,
+    validade: null,
+    latasBoas: null,
+    sixPacksMontados: null,
+    acabouEm: null,
+    obs: "",
+  };
+}
+
+/** Lote ainda planejado: troca o fornecedor de um insumo (refaz a cotação). */
+export function trocarFornecedor(item: LoteItem, f: Fornecedor): LoteItem {
+  const falta = Math.max(0, item.precisa - item.doEstoque);
+  const c = cotar(f, falta, item.categoria !== "Líquido");
+  return {
+    ...item,
+    fornecedorId: f.id,
+    fornecedor: f.nome,
+    comprar: c.comprar,
+    unitCents: c.unitCents,
+    desembolsoCents: c.totalCents,
+    prazoDias: f.prazoDias,
+  };
+}
+
+/** Custo real de cada unidade: o que foi pago ÷ o que chegou (sem isso, o planejado). */
+const unitReal = (it: LoteItem) => {
+  const qtd = it.recebido ?? it.comprar;
+  return it.pagoCents !== null && qtd > 0 ? it.pagoCents / qtd : it.unitCents;
+};
+
+export type Situacao = "chegou" | "no-prazo" | "atrasado" | "a-pedir" | "estoque";
+
+/** Como está um insumo do lote em relação ao prometido. */
+export function situacaoItem(it: LoteItem, hoje: string) {
+  if (it.comprar <= 0 && !it.depois) return { s: "estoque" as Situacao, dias: 0 };
+  if (!it.pedidoEm) return { s: "a-pedir" as Situacao, dias: 0 };
+  if (it.chegouEm)
+    return {
+      s: "chegou" as Situacao,
+      dias: it.previstoEm ? diasEntre(it.previstoEm, it.chegouEm) : 0,
+    };
+  if (it.previstoEm && it.previstoEm < hoje)
+    return { s: "atrasado" as Situacao, dias: diasEntre(it.previstoEm, hoje) };
+  return { s: "no-prazo" as Situacao, dias: 0 };
+}
+
+/** Tudo que o painel mostra de um lote: planejado × real e as datas. */
+export function totaisLote(l: Lote, hoje = hojeBR()) {
+  const lata = l.itens.filter((it) => it.uso !== "pack");
+  const pack = l.itens.filter((it) => it.uso === "pack");
+  const soma = (xs: LoteItem[], f: (it: LoteItem) => number) => xs.reduce((n, it) => n + f(it), 0);
+  const desembolso = soma(l.itens, (it) => it.desembolsoCents);
+  const pago = soma(l.itens, (it) => it.pagoCents ?? 0);
+  const lataPlan =
+    l.boas > 0 ? Math.round(soma(lata, (it) => it.precisa * it.unitCents) / l.boas) : null;
+  const packPlan =
+    lataPlan === null
+      ? null
+      : lataPlan * 6 +
+        (l.packs > 0 ? Math.round(soma(pack, (it) => it.precisa * it.unitCents) / l.packs) : 0);
+  const boasReal = l.latasBoas;
+  const lataReal =
+    boasReal && boasReal > 0
+      ? Math.round(soma(lata, (it) => it.precisa * unitReal(it)) / boasReal)
+      : null;
+
+  // Previsão de pronto: a última chegada dos insumos + o serviço (envase).
+  const servico = Math.max(0, ...l.itens.filter((it) => it.depois).map((it) => it.prazoDias));
+  const chegadas = l.itens
+    .filter((it) => !it.depois && it.comprar > 0)
+    .map((it) => it.chegouEm ?? it.previstoEm ?? somarDias(it.pedidoEm ?? hoje, it.prazoDias));
+  const insumosProntos = chegadas.reduce(
+    (a, b) => (b > a ? b : a),
+    hoje < l.criadoEm ? l.criadoEm : hoje,
+  );
+  const prontoPrevisto =
+    l.prontoEm ??
+    (l.envaseEm ? somarDias(l.envaseEm, servico) : somarDias(insumosProntos, servico));
+  const meta = l.plano.prontoAte ?? l.prontoPlanejado;
+  const atraso = diasEntre(meta, prontoPrevisto);
+
+  const concluido = l.etapa === "concluido" && boasReal !== null;
+  const rendimento = concluido && l.boas > 0 ? boasReal! / l.boas : null;
+  const perdaReal = concluido && l.envasadas > 0 ? 1 - boasReal! / l.envasadas : null;
+  const noPrazo = concluido && l.prontoEm ? l.prontoEm <= meta : null;
+  const completo = concluido ? boasReal! >= l.boas * COMPLETO_MIN : null;
+  const durou = l.acabouEm && l.prontoEm ? diasEntre(l.prontoEm, l.acabouEm) : null;
+  return {
+    desembolso,
+    pago,
+    lataPlan,
+    packPlan,
+    lataReal,
+    servico,
+    prontoPrevisto,
+    meta,
+    atraso,
+    rendimento,
+    perdaReal,
+    noPrazo,
+    completo,
+    durou,
+  };
+}
+
+/** Indicadores dos lotes concluídos (o topo da aba). */
+export function indicadores(lotes: Lote[]) {
+  const feitos = lotes
+    .filter((l) => l.etapa === "concluido" && l.latasBoas !== null)
+    .sort((a, b) => (b.prontoEm ?? b.criadoEm).localeCompare(a.prontoEm ?? a.criadoEm));
+  const t = feitos.map((l) => ({ l, t: totaisLote(l) }));
+  const boasPlan = feitos.reduce((n, l) => n + l.boas, 0);
+  const boasReal = feitos.reduce((n, l) => n + (l.latasBoas ?? 0), 0);
+  const envasadas = feitos.reduce((n, l) => n + l.envasadas, 0);
+  const perdaPlan = envasadas > 0 ? 1 - boasPlan / envasadas : null;
+  const otif = t.filter((x) => x.t.noPrazo && x.t.completo).length;
+  return {
+    feitos: t,
+    rendimento: boasPlan > 0 ? boasReal / boasPlan : null,
+    perdaReal: envasadas > 0 ? 1 - boasReal / envasadas : null,
+    perdaPlan,
+    ultimo: t[0] ?? null,
+    otif,
+    otifPct: t.length ? otif / t.length : null,
+  };
+}
+
+/** Pontualidade de cada fornecedor, pelas chegadas registradas nos lotes. */
+export function pontualidade(lotes: Lote[]) {
+  const map = new Map<string, { entregas: number; noPrazo: number; atrasoTotal: number }>();
+  for (const l of lotes)
+    for (const it of l.itens) {
+      if (!it.fornecedorId || !it.chegouEm || !it.previstoEm) continue;
+      const atraso = diasEntre(it.previstoEm, it.chegouEm);
+      const p = map.get(it.fornecedorId) ?? { entregas: 0, noPrazo: 0, atrasoTotal: 0 };
+      p.entregas++;
+      if (atraso <= 0) p.noPrazo++;
+      p.atrasoTotal += Math.max(0, atraso);
+      map.set(it.fornecedorId, p);
+    }
+  return map;
+}
+
+/**
+ * Concluir: o estoque de cada insumo vira estoque − usado + recebido
+ * (o que veio a mais por mínimo/múltiplo fica guardado). Serviço não tem estoque.
+ */
+export function estoqueAoConcluir(insumos: Insumo[], l: Lote) {
+  return insumos.map((i) => {
+    const its = l.itens.filter((it) => it.insumoId === i.id && it.categoria !== "Serviço");
+    if (!its.length) return i;
+    const delta = its.reduce((n, it) => n + (it.recebido ?? it.comprar) - it.precisa, 0);
+    return { ...i, estoque: Math.max(0, i.estoque + delta) };
+  });
+}
+
+/** Cancelar: o que já chegou entra no estoque (a reserva some sozinha). */
+export function estoqueAoCancelar(insumos: Insumo[], l: Lote) {
+  return insumos.map((i) => {
+    const its = l.itens.filter(
+      (it) => it.insumoId === i.id && it.categoria !== "Serviço" && it.chegouEm,
+    );
+    if (!its.length) return i;
+    const delta = its.reduce((n, it) => n + (it.recebido ?? it.comprar), 0);
+    return { ...i, estoque: i.estoque + delta };
+  });
+}
+
 // ── Exemplos (ponto de partida pra editar ou apagar) ────────────────────────
 
 const forn = (
@@ -414,6 +738,7 @@ export const EXEMPLO: ProducaoData = {
   versao: 2,
   receita: { fernetMl: null, colaMl: null },
   plano: PLANO_PADRAO,
+  lotes: [],
   insumos: [
     {
       id: "fernet",
