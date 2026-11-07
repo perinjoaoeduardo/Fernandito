@@ -34,19 +34,8 @@ import {
   type LoteItem,
   type ProducaoData,
 } from "@/lib/producao";
-import { Drawer, HINT, INPUT, LABEL, MINI, brl, dia, num, pct } from "./producao-ui";
-import {
-  Badge,
-  Empty,
-  KpiStrip,
-  SectionTitle,
-  TABLE_WRAP,
-  TD,
-  TH,
-  Tile,
-  btn,
-  type Tone,
-} from "./ui";
+import { Drawer, HINT, INPUT, LABEL, MINI, Secao, brl, dia, num, pct } from "./producao-ui";
+import { Badge, Empty, KpiStrip, TABLE_WRAP, TD, TH, Tile, btn, type Tone } from "./ui";
 
 /**
  * Lotes de produção: cada lote congela o plano (quanto, de quem, quanto
@@ -168,8 +157,7 @@ export function Lotes({
 
   return (
     <>
-      <section id="lotes" className="flex scroll-mt-6 flex-col gap-4">
-        <SectionTitle title="Lotes em andamento" count={abertos.length} />
+      <Secao id="lotes" defaultOpen title="Lotes em andamento" count={abertos.length}>
         {abertos.length === 0 ? (
           <Empty>Nenhum lote aberto. Planeja um abaixo e clica em “Criar lote”.</Empty>
         ) : (
@@ -184,11 +172,10 @@ export function Lotes({
             />
           ))
         )}
-      </section>
+      </Secao>
 
       {fechados.length > 0 && (
-        <section className="flex flex-col gap-4">
-          <SectionTitle title="Lotes concluídos" count={fechados.length} />
+        <Secao id="concluidos" title="Lotes concluídos" count={fechados.length}>
           <Historico lotes={fechados} hoje={hoje} onEdit={(l) => setEditando(structuredClone(l))} />
           <p className={HINT}>
             Rendimento = latas boas ÷ latas boas planejadas. Perda = latas envasadas que não saíram
@@ -196,7 +183,7 @@ export function Lotes({
             lata boa. No prazo = envasado até a data de produção e com pelo menos{" "}
             {pct(COMPLETO_MIN * 100)} das latas boas.
           </p>
-        </section>
+        </Secao>
       )}
 
       {editando && (

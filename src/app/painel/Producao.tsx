@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import {
   ArrowDown,
+  ChevronRight,
   CalendarClock,
   Coins,
   Factory,
@@ -52,6 +53,8 @@ import {
   LABEL,
   MINI,
   NumField,
+  Secao,
+  abrirSecao,
   brl,
   dia,
   fromCents,
@@ -60,7 +63,7 @@ import {
   pct,
   toCents,
 } from "./producao-ui";
-import { Badge, Code, Empty, KpiStrip, SectionTitle, TABLE_WRAP, TD, TH, Tile, btn } from "./ui";
+import { Badge, Code, Empty, KpiStrip, TABLE_WRAP, TD, TH, Tile, btn } from "./ui";
 
 /**
  * Produção: plano do lote (litros → latas boas, six packs, perda, data),
@@ -254,6 +257,7 @@ export function Producao({
     const novo = criarLote(data, linhas, novoId("l"));
     persist({ ...data, lotes: [...data.lotes, novo] });
     setStatus({ ok: true, text: `${novo.codigo} criado` });
+    abrirSecao("lotes");
     window.setTimeout(
       () => document.getElementById("lotes")?.scrollIntoView({ behavior: "smooth" }),
       50,
@@ -283,15 +287,16 @@ export function Producao({
       />
 
       {/* ── Planejar novo lote ── */}
-      <section className="flex flex-col gap-4">
-        <SectionTitle
-          title="Planejar novo lote"
-          aside={
-            <span className={`text-xs ${status?.ok === false ? "text-lk-fail" : "text-lk-ink3"}`}>
-              {saving ? "Salvando…" : status?.text}
-            </span>
-          }
-        />
+      <Secao
+        id="planejar"
+        defaultOpen
+        title="Planejar novo lote"
+        aside={
+          <span className={`text-xs ${status?.ok === false ? "text-lk-fail" : "text-lk-ink3"}`}>
+            {saving ? "Salvando…" : status?.text}
+          </span>
+        }
+      >
         <KpiStrip cols={4}>
           <Tile
             icon={Factory}
@@ -621,11 +626,10 @@ export function Producao({
             </button>
           </div>
         </div>
-      </section>
+      </Secao>
 
       {/* ── Margem ── */}
-      <section className="flex flex-col gap-4">
-        <SectionTitle title="Margem por produto" />
+      <Secao id="margem" title="Margem por produto">
         <div className={`${TABLE_WRAP} overflow-x-auto`}>
           <table className="w-full min-w-[560px] text-sm">
             <thead>
@@ -674,7 +678,7 @@ export function Producao({
           dividido pelas latas boas, com o frete dos insumos. Margem bruta: antes de impostos, taxa
           do Pix e frete de venda. Preço = o do Bling.
         </p>
-      </section>
+      </Secao>
 
       {/* ── Receita ── */}
       <Receita
@@ -687,21 +691,21 @@ export function Producao({
       />
 
       {/* ── Insumos e cotações ── */}
-      <section className="flex flex-col gap-4">
-        <SectionTitle
-          title="Insumos e fornecedores"
-          count={insumos.length}
-          aside={
-            <button
-              type="button"
-              className={btn("primary", "sm")}
-              onClick={() => setEditing({ kind: "insumo", item: NOVO_INSUMO(), isNew: true })}
-            >
-              <Plus aria-hidden />
-              Adicionar insumo
-            </button>
-          }
-        />
+      <Secao
+        id="insumos"
+        title="Insumos e fornecedores"
+        count={insumos.length}
+        aside={
+          <button
+            type="button"
+            className={btn("primary", "sm")}
+            onClick={() => setEditing({ kind: "insumo", item: NOVO_INSUMO(), isNew: true })}
+          >
+            <Plus aria-hidden />
+            Adicionar insumo
+          </button>
+        }
+      >
         {insumos.length === 0 && <Empty>Nenhum insumo ainda.</Empty>}
         {linhas.map((l) => (
           <InsumoCard
@@ -738,7 +742,7 @@ export function Producao({
           &quot;Neste lote&quot; = quanto sairia comprar com cada fornecedor o que este lote pede
           (com mínimo, múltiplo, faixa e frete). A estrela marca o principal, que a calculadora usa.
         </p>
-      </section>
+      </Secao>
 
       {editing?.kind === "insumo" && (
         <InsumoEditor
@@ -875,11 +879,11 @@ function Receita({
   );
 
   return (
-    <section className="flex flex-col gap-4">
-      <SectionTitle
-        title="Receita"
-        aside={<span className={HINT}>por 100 mL, como na planilha</span>}
-      />
+    <Secao
+      id="receita"
+      title="Receita"
+      aside={<span className={HINT}>por 100 mL, como na planilha</span>}
+    >
       <div className={`${TABLE_WRAP} overflow-x-auto`}>
         <table className="w-full min-w-[980px] table-fixed text-sm">
           <thead>
@@ -972,7 +976,7 @@ function Receita({
         % de refri). Sem as perdas: a calculadora acima soma a perda de cada insumo. Clique no nome
         para editar o ingrediente.
       </p>
-    </section>
+    </Secao>
   );
 }
 
@@ -1010,15 +1014,36 @@ function InsumoCard({
   const inteiro = compraInteira(i.unidade);
   const cotacoes = i.fornecedores.map((f) => cotar(f, qtd, inteiro));
   const menor = cotacoes.length > 1 ? Math.min(...cotacoes.map((c) => c.totalCents)) : null;
+  // Fechado: só o resumo; clicando no nome abrem as cotações e as compras.
+  const [aberto, setAberto] = useState(false);
 
   return (
     <div className={TABLE_WRAP}>
       <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-4">
         <div className="min-w-0">
-          <p className="flex flex-wrap items-center gap-2 font-semibold">
+          <button
+            type="button"
+            onClick={() => setAberto((o) => !o)}
+            aria-expanded={aberto}
+            className="hover:text-lk-action-strong -ml-1 flex flex-wrap items-center gap-1.5 rounded-md px-1 text-left font-semibold transition-colors"
+          >
+            <ChevronRight
+              aria-hidden
+              className={`text-lk-muted size-4 shrink-0 transition-transform duration-150 ${aberto ? "rotate-90" : ""}`}
+            />
             {i.insumo}
             {i.exemplo && <span className="text-lk-hold text-xs font-normal">exemplo</span>}
-          </p>
+            {!aberto && (
+              <span className="text-lk-muted text-xs font-normal">
+                {principal
+                  ? `· ${principal.nome || "sem nome"}${i.fornecedores.length > 1 ? ` + ${i.fornecedores.length - 1}` : ""}`
+                  : "· sem fornecedor"}
+                {compras.length > 0
+                  ? ` · ${compras.length} ${compras.length === 1 ? "compra" : "compras"}`
+                  : ""}
+              </span>
+            )}
+          </button>
           <p className="text-lk-muted text-xs">
             {i.categoria} ·{" "}
             {i.uso === "receita"
@@ -1039,166 +1064,176 @@ function InsumoCard({
             <Pencil aria-hidden />
             Editar insumo
           </button>
-          <button type="button" className={btn("secondary", "sm")} onClick={onAddFornecedor}>
+          <button
+            type="button"
+            className={btn("secondary", "sm")}
+            onClick={() => {
+              setAberto(true);
+              onAddFornecedor();
+            }}
+          >
             <Plus aria-hidden />
             Cotação
           </button>
         </span>
       </div>
-      {i.fornecedores.length === 0 ? (
-        <p className="border-lk-border text-lk-fail border-t px-5 py-3 text-sm">
-          Nenhum fornecedor cadastrado. Adiciona uma cotação.
-        </p>
-      ) : (
-        <div className="border-lk-border overflow-x-auto border-t">
-          <table className="w-full min-w-[980px] table-fixed text-sm">
-            <thead>
-              <tr>
-                <th className={`${TH} w-[21%]`}>Fornecedor</th>
-                <th className={`${TH} w-[22%]`}>Preço por quantidade</th>
-                <th className={`${TH} w-[12%] text-right`}>Mínimo</th>
-                <th className={`${TH} w-[8%] text-right`}>Prazo</th>
-                <th className={`${TH} w-[8%] text-right`}>Frete</th>
-                <th className={`${TH} w-[13%] text-right`}>Neste lote</th>
-                <th className={`${TH} w-[16%]`}>
-                  <span className="sr-only">Ações</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-lk-border divide-y">
-              {cotacoes.map((c) => {
-                const f = c.f;
-                const eh = principal?.id === f.id;
-                const idade = f.cotadoEm ? diasEntre(f.cotadoEm, hoje) : null;
-                return (
-                  <tr key={f.id} className={eh ? "bg-lk-paper/60" : "hover:bg-lk-paper/60"}>
-                    <td className={TD}>
-                      <p className="flex flex-wrap items-center gap-x-1.5 font-semibold">
-                        {eh && (
-                          <Star
-                            aria-label="Principal"
-                            className="text-lk-action-strong size-3.5 fill-current"
-                          />
-                        )}
-                        {f.nome || "—"}
-                        {f.exemplo && (
-                          <span className="text-lk-hold text-xs font-normal">exemplo</span>
-                        )}
-                      </p>
-                      {f.contato && (
-                        <p className="mt-0.5">
-                          <Code>{f.contato}</Code>
-                        </p>
-                      )}
-                      <p
-                        className={`text-xs ${idade !== null && idade > 90 ? "text-lk-hold" : "text-lk-ink3"}`}
-                      >
-                        {idade === null
-                          ? "Sem data de cotação"
-                          : idade <= 0
-                            ? "Cotado hoje"
-                            : `Cotado há ${idade} ${idade === 1 ? "dia" : "dias"}${idade > 90 ? " · conferir preço" : ""}`}
-                      </p>
-                      {(() => {
-                        const p = pont.get(f.id);
-                        if (!p) return null;
-                        const media =
-                          p.entregas > p.noPrazo ? p.atrasoTotal / (p.entregas - p.noPrazo) : 0;
-                        return (
-                          <p
-                            className={`text-xs ${p.noPrazo < p.entregas ? "text-lk-hold" : "text-lk-pass"}`}
-                          >
-                            {p.noPrazo} de {p.entregas} {p.entregas === 1 ? "entrega" : "entregas"}{" "}
-                            no prazo
-                            {media > 0 ? ` · atrasa ${num(media)} d quando atrasa` : ""}
-                          </p>
-                        );
-                      })()}
-                      {f.obs && <p className="text-lk-muted mt-0.5 text-xs">{f.obs}</p>}
-                    </td>
-                    <td className={TD}>
-                      <ul className="flex flex-col gap-0.5 tabular-nums">
-                        {[...f.faixas]
-                          .sort((a, b) => a.de - b.de)
-                          .map((x, k, all) => {
-                            const next = all[k + 1];
-                            return (
-                              <li key={`${x.de}-${k}`} className="text-xs">
-                                <span className="text-lk-muted">
-                                  {next
-                                    ? `${num(x.de)} a ${num(next.de - 1)}`
-                                    : x.de > 0
-                                      ? `${num(x.de)} ou mais`
-                                      : "qualquer quantidade"}
-                                  :
-                                </span>{" "}
-                                <span className="font-medium">{brl(x.precoCents)}</span>
-                                <span className="text-lk-muted"> / {i.unidade}</span>
-                              </li>
-                            );
-                          })}
-                      </ul>
-                    </td>
-                    <td className={`${TD} text-right whitespace-nowrap tabular-nums`}>
-                      {num(f.minimo)}
-                      <p className="text-lk-muted text-xs">
-                        {f.multiplo > 0
-                          ? `de ${num(f.multiplo)} em ${num(f.multiplo)}`
-                          : "qualquer qtd."}
-                      </p>
-                    </td>
-                    <td className={`${TD} text-right whitespace-nowrap tabular-nums`}>
-                      {f.prazoDias} dias
-                    </td>
-                    <td className={`${TD} text-right whitespace-nowrap tabular-nums`}>
-                      {f.freteCents > 0 ? brl(f.freteCents) : "—"}
-                    </td>
-                    <td className={`${TD} text-right tabular-nums`}>
-                      {qtd > 0 ? (
-                        <>
-                          <p className="font-medium">{brl(c.totalCents)}</p>
-                          <p className="text-lk-muted text-xs">
-                            {num(c.comprar)} {i.unidade} · {brl(Math.round(c.unitCents))}/un.
-                          </p>
-                          {menor !== null && c.totalCents === menor && (
-                            <Badge tone="pass">mais barato</Badge>
+      {aberto &&
+        (i.fornecedores.length === 0 ? (
+          <p className="border-lk-border text-lk-fail border-t px-5 py-3 text-sm">
+            Nenhum fornecedor cadastrado. Adiciona uma cotação.
+          </p>
+        ) : (
+          <div className="border-lk-border overflow-x-auto border-t">
+            <table className="w-full min-w-[980px] table-fixed text-sm">
+              <thead>
+                <tr>
+                  <th className={`${TH} w-[21%]`}>Fornecedor</th>
+                  <th className={`${TH} w-[22%]`}>Preço por quantidade</th>
+                  <th className={`${TH} w-[12%] text-right`}>Mínimo</th>
+                  <th className={`${TH} w-[8%] text-right`}>Prazo</th>
+                  <th className={`${TH} w-[8%] text-right`}>Frete</th>
+                  <th className={`${TH} w-[13%] text-right`}>Neste lote</th>
+                  <th className={`${TH} w-[16%]`}>
+                    <span className="sr-only">Ações</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-lk-border divide-y">
+                {cotacoes.map((c) => {
+                  const f = c.f;
+                  const eh = principal?.id === f.id;
+                  const idade = f.cotadoEm ? diasEntre(f.cotadoEm, hoje) : null;
+                  return (
+                    <tr key={f.id} className={eh ? "bg-lk-paper/60" : "hover:bg-lk-paper/60"}>
+                      <td className={TD}>
+                        <p className="flex flex-wrap items-center gap-x-1.5 font-semibold">
+                          {eh && (
+                            <Star
+                              aria-label="Principal"
+                              className="text-lk-action-strong size-3.5 fill-current"
+                            />
                           )}
-                        </>
-                      ) : (
-                        <span className="text-lk-muted">—</span>
-                      )}
-                    </td>
-                    <td className={`${TD} text-right`}>
-                      <span className="flex flex-wrap justify-end gap-1">
-                        {!eh && (
+                          {f.nome || "—"}
+                          {f.exemplo && (
+                            <span className="text-lk-hold text-xs font-normal">exemplo</span>
+                          )}
+                        </p>
+                        {f.contato && (
+                          <p className="mt-0.5">
+                            <Code>{f.contato}</Code>
+                          </p>
+                        )}
+                        <p
+                          className={`text-xs ${idade !== null && idade > 90 ? "text-lk-hold" : "text-lk-ink3"}`}
+                        >
+                          {idade === null
+                            ? "Sem data de cotação"
+                            : idade <= 0
+                              ? "Cotado hoje"
+                              : `Cotado há ${idade} ${idade === 1 ? "dia" : "dias"}${idade > 90 ? " · conferir preço" : ""}`}
+                        </p>
+                        {(() => {
+                          const p = pont.get(f.id);
+                          if (!p) return null;
+                          const media =
+                            p.entregas > p.noPrazo ? p.atrasoTotal / (p.entregas - p.noPrazo) : 0;
+                          return (
+                            <p
+                              className={`text-xs ${p.noPrazo < p.entregas ? "text-lk-hold" : "text-lk-pass"}`}
+                            >
+                              {p.noPrazo} de {p.entregas}{" "}
+                              {p.entregas === 1 ? "entrega" : "entregas"} no prazo
+                              {media > 0 ? ` · atrasa ${num(media)} d quando atrasa` : ""}
+                            </p>
+                          );
+                        })()}
+                        {f.obs && <p className="text-lk-muted mt-0.5 text-xs">{f.obs}</p>}
+                      </td>
+                      <td className={TD}>
+                        <ul className="flex flex-col gap-0.5 tabular-nums">
+                          {[...f.faixas]
+                            .sort((a, b) => a.de - b.de)
+                            .map((x, k, all) => {
+                              const next = all[k + 1];
+                              return (
+                                <li key={`${x.de}-${k}`} className="text-xs">
+                                  <span className="text-lk-muted">
+                                    {next
+                                      ? `${num(x.de)} a ${num(next.de - 1)}`
+                                      : x.de > 0
+                                        ? `${num(x.de)} ou mais`
+                                        : "qualquer quantidade"}
+                                    :
+                                  </span>{" "}
+                                  <span className="font-medium">{brl(x.precoCents)}</span>
+                                  <span className="text-lk-muted"> / {i.unidade}</span>
+                                </li>
+                              );
+                            })}
+                        </ul>
+                      </td>
+                      <td className={`${TD} text-right whitespace-nowrap tabular-nums`}>
+                        {num(f.minimo)}
+                        <p className="text-lk-muted text-xs">
+                          {f.multiplo > 0
+                            ? `de ${num(f.multiplo)} em ${num(f.multiplo)}`
+                            : "qualquer qtd."}
+                        </p>
+                      </td>
+                      <td className={`${TD} text-right whitespace-nowrap tabular-nums`}>
+                        {f.prazoDias} dias
+                      </td>
+                      <td className={`${TD} text-right whitespace-nowrap tabular-nums`}>
+                        {f.freteCents > 0 ? brl(f.freteCents) : "—"}
+                      </td>
+                      <td className={`${TD} text-right tabular-nums`}>
+                        {qtd > 0 ? (
+                          <>
+                            <p className="font-medium">{brl(c.totalCents)}</p>
+                            <p className="text-lk-muted text-xs">
+                              {num(c.comprar)} {i.unidade} · {brl(Math.round(c.unitCents))}/un.
+                            </p>
+                            {menor !== null && c.totalCents === menor && (
+                              <Badge tone="pass">mais barato</Badge>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-lk-muted">—</span>
+                        )}
+                      </td>
+                      <td className={`${TD} text-right`}>
+                        <span className="flex flex-wrap justify-end gap-1">
+                          {!eh && (
+                            <button
+                              type="button"
+                              className={btn("ghost", "sm")}
+                              onClick={() => onUsar(f.id)}
+                            >
+                              <Star aria-hidden />
+                              Usar este
+                            </button>
+                          )}
                           <button
                             type="button"
                             className={btn("ghost", "sm")}
-                            onClick={() => onUsar(f.id)}
+                            onClick={() => onEditFornecedor(f)}
+                            aria-label={`Editar cotação de ${f.nome || "fornecedor"}`}
+                            title="Editar cotação"
                           >
-                            <Star aria-hidden />
-                            Usar este
+                            <Pencil aria-hidden />
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          className={btn("ghost", "sm")}
-                          onClick={() => onEditFornecedor(f)}
-                          aria-label={`Editar cotação de ${f.nome || "fornecedor"}`}
-                          title="Editar cotação"
-                        >
-                          <Pencil aria-hidden />
-                        </button>
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ))}
+      {aberto && (
+        <HistoricoCompras i={i} compras={compras} onAdd={onAddCompra} onEdit={onEditCompra} />
       )}
-      <HistoricoCompras i={i} compras={compras} onAdd={onAddCompra} onEdit={onEditCompra} />
     </div>
   );
 }

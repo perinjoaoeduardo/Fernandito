@@ -1,6 +1,7 @@
 "use client";
 
-import { Trash2, X } from "lucide-react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { ChevronRight, Trash2, X } from "lucide-react";
 import { btn } from "./ui";
 
 // Peças comuns das telas de Produção (Producao.tsx e Lotes.tsx).
@@ -147,3 +148,89 @@ export function NumField({
 /** Campo pequeno dentro de tabela (data, número). */
 export const MINI =
   "border-lk-input focus:border-lk-action focus:ring-lk-action/15 h-8 rounded-md border bg-white px-2 text-[13px] tabular-nums outline-none focus:ring-2";
+
+/** Pede pra uma seção abrir (ex.: depois de criar um lote, abrir "Lotes em andamento"). */
+export function abrirSecao(id: string) {
+  window.dispatchEvent(new CustomEvent("producao:abrir", { detail: id }));
+}
+
+const assinar = (cb: () => void) => {
+  window.addEventListener("storage", cb);
+  return () => window.removeEventListener("storage", cb);
+};
+const lerSalvo = (chave: string) => {
+  try {
+    return window.localStorage.getItem(chave);
+  } catch {
+    return null; // Sem localStorage (aba anônima, bloqueado): fica o padrão.
+  }
+};
+
+/**
+ * Seção que abre e fecha clicando no título. Cada pessoa tem o seu: o
+ * navegador lembra (localStorage, se der) o que ficou aberto.
+ */
+export function Secao({
+  id,
+  title,
+  count,
+  aside,
+  defaultOpen = false,
+  children,
+}: {
+  id: string;
+  title: string;
+  count?: number;
+  aside?: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const chave = `painel:producao:secao:${id}`;
+  const salvo = useSyncExternalStore(
+    assinar,
+    () => lerSalvo(chave),
+    () => null,
+  );
+  // O que a pessoa clicou nesta visita vale mais que o salvo.
+  const [agora, setAgora] = useState<boolean | null>(null);
+  const open = agora ?? (salvo === "1" ? true : salvo === "0" ? false : defaultOpen);
+  useEffect(() => {
+    const abrir = (e: Event) => {
+      if ((e as CustomEvent<string>).detail === id) setAgora(true);
+    };
+    window.addEventListener("producao:abrir", abrir);
+    return () => window.removeEventListener("producao:abrir", abrir);
+  }, [id]);
+  const toggle = () => {
+    const novo = !open;
+    setAgora(novo);
+    try {
+      window.localStorage.setItem(chave, novo ? "1" : "0");
+    } catch {
+      // Ignora: só não lembra.
+    }
+  };
+  return (
+    <section id={id} className="flex scroll-mt-6 flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <h2 className="text-xl leading-7 font-semibold">
+          <button
+            type="button"
+            onClick={toggle}
+            aria-expanded={open}
+            className="hover:text-lk-action-strong -ml-1 flex items-center gap-1.5 rounded-md px-1 text-left transition-colors"
+          >
+            <ChevronRight
+              aria-hidden
+              className={`text-lk-muted size-5 shrink-0 transition-transform duration-150 ${open ? "rotate-90" : ""}`}
+            />
+            {title}
+            {count !== undefined && <span className="text-lk-muted font-normal"> · {count}</span>}
+          </button>
+        </h2>
+        {open && aside}
+      </div>
+      {open && children}
+    </section>
+  );
+}
