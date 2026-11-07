@@ -193,8 +193,8 @@ export function Lotes({
           <p className={HINT}>
             Rendimento = latas boas ÷ latas boas planejadas. Perda = latas envasadas que não saíram
             boas. Custo real = o que foi pago ÷ o que chegou, nas quantidades que o lote usou, por
-            lata boa. No prazo = pronto até a meta e com pelo menos {pct(COMPLETO_MIN * 100)} das
-            latas boas.
+            lata boa. No prazo = envasado até a data de produção e com pelo menos{" "}
+            {pct(COMPLETO_MIN * 100)} das latas boas.
           </p>
         </section>
       )}
@@ -316,10 +316,10 @@ function LoteCard({
             </Badge>
             {t.atraso > 0 ? (
               <Badge tone="fail">
-                {t.atraso} {t.atraso === 1 ? "dia" : "dias"} depois da meta
+                Produção {t.atraso} {t.atraso === 1 ? "dia" : "dias"} depois da data
               </Badge>
             ) : (
-              <Badge tone="pass">Dentro da meta</Badge>
+              <Badge tone="pass">Produção na data</Badge>
             )}
           </p>
           <p className="text-lk-muted text-xs">
@@ -327,7 +327,7 @@ function LoteCard({
             boas · {num(l.packs, 0)} six packs · criado {dia(l.criadoEm)}
           </p>
           <p className="text-lk-ink3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-            Meta:
+            Data de produção:
             {l.etapa === "planejado" ? (
               <input
                 type="date"
@@ -342,11 +342,13 @@ function LoteCard({
               <span className="text-lk-ink font-medium">{dia(t.meta)}</span>
             )}
             {!l.plano.prontoAte && l.etapa === "planejado" && (
-              <span>(sem data: vale {dia(l.prontoPlanejado)}, o mais cedo possível)</span>
+              <span>(sem data: vale {dia(t.meta)}, o mais cedo possível)</span>
             )}
             <span>
-              · previsão <span className="text-lk-ink font-medium">{dia(t.prontoPrevisto)}</span>
+              · produção prevista{" "}
+              <span className="text-lk-ink font-medium">{dia(t.producaoPrevista)}</span>
             </span>
+            <span>· pronto {dia(t.prontoPrevisto)}</span>
             <span>· custo planejado {t.lataPlan === null ? "—" : `${brl(t.lataPlan)}/lata`}</span>
             <span>· compra {brl(t.desembolso)}</span>
           </p>
@@ -407,14 +409,7 @@ function LoteCard({
 
       <div className="border-lk-border overflow-x-auto border-t">
         {l.etapa === "planejado" ? (
-          <TabelaPlanejado
-            l={l}
-            data={data}
-            hoje={hoje}
-            meta={t.meta}
-            servico={t.servico}
-            setLote={setLote}
-          />
+          <TabelaPlanejado l={l} data={data} hoje={hoje} meta={t.meta} setLote={setLote} />
         ) : (
           <TabelaPedidos l={l} hoje={hoje} setItem={setItem} />
         )}
@@ -497,14 +492,12 @@ function TabelaPlanejado({
   data,
   hoje,
   meta,
-  servico,
   setLote,
 }: {
   l: Lote;
   data: ProducaoData;
   hoje: string;
   meta: string;
-  servico: number;
   setLote: (l: Lote, soon?: boolean) => void;
 }) {
   return (
@@ -525,11 +518,7 @@ function TabelaPlanejado({
         {l.itens.map((it, k) => {
           const insumo = data.insumos.find((i) => i.id === it.insumoId);
           const compra = it.comprar > 0 || it.depois;
-          const ate = !compra
-            ? null
-            : it.depois
-              ? somarDias(meta, -it.prazoDias)
-              : somarDias(meta, -servico - it.prazoDias);
+          const ate = !compra ? null : it.depois ? meta : somarDias(meta, -it.prazoDias);
           const passou = ate !== null && ate < hoje;
           return (
             <tr key={it.insumoId}>
@@ -581,7 +570,9 @@ function TabelaPlanejado({
                 ) : (
                   dia(ate)
                 )}
-                {it.depois && ate !== null && <p className="text-lk-muted text-xs">começar até</p>}
+                {it.depois && ate !== null && (
+                  <p className="text-lk-muted text-xs">dia do envase</p>
+                )}
               </td>
             </tr>
           );
@@ -783,7 +774,7 @@ function Historico({
                   </td>
                 </tr>
               );
-            const atraso = l.prontoEm ? diasEntre(t.meta, l.prontoEm) : null;
+            const atraso = l.envaseEm ? diasEntre(t.meta, l.envaseEm) : null;
             const varCusto =
               t.lataReal !== null && t.lataPlan ? (t.lataReal - t.lataPlan) / t.lataPlan : null;
             return (
@@ -837,7 +828,7 @@ function Historico({
                     </Badge>
                   )}
                   <p className="text-lk-muted mt-1 text-xs whitespace-nowrap">
-                    meta {dia(t.meta)} · pronto {l.prontoEm ? dia(l.prontoEm) : "—"}
+                    produção {dia(t.meta)} · envase {l.envaseEm ? dia(l.envaseEm) : "—"}
                   </p>
                 </td>
                 <td className={`${TD} text-right tabular-nums`}>

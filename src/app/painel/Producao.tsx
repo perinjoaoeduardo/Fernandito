@@ -147,8 +147,10 @@ export function Producao({
   const linhas = useMemo(() => planejar(data, disp), [data, disp]);
   const r = useMemo(() => resumo(data, linhas), [data, linhas]);
   const hoje = hojeBR();
+  // Mais cedo que dá pra produzir (envasar) pedindo hoje, e quando fica pronto.
+  const producaoEm = somarDias(hoje, r.espera);
   const prontoEm = somarDias(hoje, r.prazo);
-  const folga = plano.prontoAte ? diasEntre(prontoEm, plano.prontoAte) : null;
+  const folga = plano.prontoAte ? diasEntre(producaoEm, plano.prontoAte) : null;
   const sobraMl = LATA_ML - (receita.fernetMl ?? 0) - (receita.colaMl ?? 0);
   const temExemplo = insumos.some((i) => i.exemplo || i.fornecedores.some((f) => f.exemplo));
   const aComprar = linhas.filter((l) => l.falta > 0);
@@ -300,13 +302,13 @@ export function Producao({
           />
           <Tile
             icon={CalendarClock}
-            label="Pronto em"
-            value={dia(prontoEm)}
+            label="Dá pra produzir em"
+            value={dia(producaoEm)}
             tone={folga !== null && folga < 0 ? "fail" : "hold"}
             note={
               r.gargalo && r.gargalo.prazo > 0
-                ? `${r.prazo} dias · gargalo: ${r.gargalo.i.insumo}`
-                : `${r.prazo} dias`
+                ? `${r.espera} dias · gargalo: ${r.gargalo.i.insumo}`
+                : `${r.espera} dias`
             }
           />
         </KpiStrip>
@@ -380,7 +382,7 @@ export function Producao({
               </span>
             </label>
             <label className={LABEL}>
-              <span className="font-medium">Quero pronto até</span>
+              <span className="font-medium">Data de produção</span>
               <span className="flex items-center gap-2">
                 <input
                   type="date"
@@ -400,22 +402,24 @@ export function Producao({
                   </button>
                 )}
               </span>
-              <span className={HINT}>Mostra até quando pedir cada insumo</span>
+              <span className={HINT}>Dia do envase: mostra até quando pedir cada insumo</span>
             </label>
           </div>
 
           <p className="text-sm">
-            Pedindo hoje, fica pronto em <span className="font-semibold">{dia(prontoEm)}</span> (
-            {r.espera} dias esperando insumo + {r.servico} de envase/serviço).{" "}
+            Pedindo hoje, os insumos chegam e dá pra produzir em{" "}
+            <span className="font-semibold">{dia(producaoEm)}</span> ({r.espera} dias); com{" "}
+            {r.servico} de envase, fica pronto em{" "}
+            <span className="font-semibold">{dia(prontoEm)}</span>.{" "}
             {folga !== null &&
               (folga >= 0 ? (
                 <span className="text-lk-pass font-medium">
-                  Dá tempo pra {dia(plano.prontoAte!)}: sobram {folga} dias.
+                  Dá pra produzir em {dia(plano.prontoAte!)}: sobram {folga} dias.
                 </span>
               ) : (
                 <span className="text-lk-fail font-medium">
-                  Não dá pra {dia(plano.prontoAte!)}: faltam {-folga} dias. Veja o gargalo ou um
-                  fornecedor mais rápido.
+                  Não dá pra produzir em {dia(plano.prontoAte!)}: faltam {-folga} dias. Veja o
+                  gargalo ou um fornecedor mais rápido.
                 </span>
               ))}
           </p>
@@ -449,7 +453,7 @@ export function Producao({
                   const melhor = l.cotacoes[0];
                   const economia =
                     c && melhor && melhor.f.id !== c.f.id ? c.totalCents - melhor.totalCents : 0;
-                  const ate = plano.prontoAte ? pedirAte(l, plano.prontoAte, r.servico) : null;
+                  const ate = plano.prontoAte ? pedirAte(l, plano.prontoAte) : null;
                   const atraso = ate ? diasEntre(hoje, ate) : null;
                   return (
                     <tr key={i.id}>
@@ -559,7 +563,7 @@ export function Producao({
                             dia(ate)
                           )}
                           {i.depois && ate !== null && (
-                            <p className="text-lk-muted text-xs">começar até</p>
+                            <p className="text-lk-muted text-xs">dia do envase</p>
                           )}
                         </td>
                       )}

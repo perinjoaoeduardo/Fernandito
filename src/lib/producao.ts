@@ -75,7 +75,10 @@ export const planoSchema = z.object({
   sixPacks: z.number().int().min(0).max(1e7).nullable(),
   /** Latas que não saem boas do envase (%). */
   perdaEnvasePct: z.number().min(0).max(90),
-  /** Quer o lote pronto até (AAAA-MM-DD). */
+  /**
+   * Data de produção (dia do envase), AAAA-MM-DD. Os insumos têm de chegar
+   * até ela. O nome do campo ficou do tempo em que era "pronto até".
+   */
   prontoAte: z.string().max(10).nullable(),
 });
 
@@ -137,7 +140,7 @@ export const loteSchema = z.object({
   envasadas: z.number().int().min(0).max(1e8),
   boas: z.number().int().min(0).max(1e8),
   packs: z.number().int().min(0).max(1e8),
-  /** Pronto previsto quando o lote foi criado (se pedisse tudo naquele dia). */
+  /** Pronto previsto quando o lote foi criado (se pedisse tudo naquele dia, envase incluído). */
   prontoPlanejado: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   itens: z.array(loteItemSchema).max(100),
   envaseEm: dia,
@@ -484,13 +487,13 @@ export function diasEntre(de: string, ate: string) {
 }
 
 /**
- * Até quando pedir cada insumo pra ficar pronto em `prontoAte`: o serviço
- * (envase) começa `servico` dias antes; os insumos têm de chegar até lá.
+ * Até quando pedir cada insumo pra ele chegar até a data de produção (dia
+ * do envase). O serviço (envase) é marcado para o próprio dia.
  */
-export function pedirAte(linha: LinhaPlano, prontoAte: string, servico: number) {
-  if (linha.i.depois) return somarDias(prontoAte, -(principalDe(linha.i)?.prazoDias ?? 0));
+export function pedirAte(linha: LinhaPlano, producao: string) {
+  if (linha.i.depois) return producao;
   if (linha.falta <= 0 || !linha.escolhida) return null;
-  return somarDias(prontoAte, -servico - linha.escolhida.f.prazoDias);
+  return somarDias(producao, -linha.escolhida.f.prazoDias);
 }
 
 // ── Lotes: criar, trocar fornecedor, totais e indicadores ──────────────────
@@ -636,7 +639,8 @@ export function totaisLote(l: Lote, hoje = hojeBR()) {
       ? Math.round(soma(lata, (it) => it.precisa * unitReal(it)) / boasReal)
       : null;
 
-  // Previsão de pronto: a última chegada dos insumos + o serviço (envase).
+  // Produção prevista: o envase, se já tem data; senão, a última chegada dos
+  // insumos. Pronto = produção + o tempo do serviço (envase).
   const servico = Math.max(0, ...l.itens.filter((it) => it.depois).map((it) => it.prazoDias));
   const chegadas = l.itens
     .filter((it) => !it.depois && it.comprar > 0)
@@ -645,16 +649,16 @@ export function totaisLote(l: Lote, hoje = hojeBR()) {
     (a, b) => (b > a ? b : a),
     hoje < l.criadoEm ? l.criadoEm : hoje,
   );
-  const prontoPrevisto =
-    l.prontoEm ??
-    (l.envaseEm ? somarDias(l.envaseEm, servico) : somarDias(insumosProntos, servico));
-  const meta = l.plano.prontoAte ?? l.prontoPlanejado;
-  const atraso = diasEntre(meta, prontoPrevisto);
+  const producaoPrevista = l.envaseEm ?? insumosProntos;
+  const prontoPrevisto = l.prontoEm ?? somarDias(producaoPrevista, servico);
+  // Meta = a data de produção marcada; sem ela, a mais cedo possível na criação.
+  const meta = l.plano.prontoAte ?? somarDias(l.prontoPlanejado, -servico);
+  const atraso = diasEntre(meta, producaoPrevista);
 
   const concluido = l.etapa === "concluido" && boasReal !== null;
   const rendimento = concluido && l.boas > 0 ? boasReal! / l.boas : null;
   const perdaReal = concluido && l.envasadas > 0 ? 1 - boasReal! / l.envasadas : null;
-  const noPrazo = concluido && l.prontoEm ? l.prontoEm <= meta : null;
+  const noPrazo = concluido && l.envaseEm ? l.envaseEm <= meta : null;
   const completo = concluido ? boasReal! >= l.boas * COMPLETO_MIN : null;
   const durou = l.acabouEm && l.prontoEm ? diasEntre(l.prontoEm, l.acabouEm) : null;
   return {
@@ -664,6 +668,7 @@ export function totaisLote(l: Lote, hoje = hojeBR()) {
     packPlan,
     lataReal,
     servico,
+    producaoPrevista,
     prontoPrevisto,
     meta,
     atraso,
