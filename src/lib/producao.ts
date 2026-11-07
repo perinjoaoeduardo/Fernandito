@@ -1558,6 +1558,7 @@ export function aplicarImportacoes(data: ProducaoData): ProducaoData | null {
     importarCustosLote1,
     importarSobraFernetLote1,
     implantarEstoque,
+    receberFernetPendente,
   ]) {
     const r = imp(atual);
     if (r) {
@@ -2054,6 +2055,35 @@ export function implantarEstoque(data: ProducaoData): ProducaoData | null {
     movimentos: [...data.movimentos, ...movimentos],
     importacoes: [...data.importacoes, IMPORT_ESTOQUE],
   };
+}
+
+const IMPORT_FERNET_ENTREGUE = "fernet-pedidos-entregues-2026-11";
+
+/**
+ * Todo fernet que estava "a receber" já foi entregue (avisado pela equipe):
+ * pedidos avulsos viram recebidos e insumos de lotes já pedidos ganham a
+ * chegada — os dois entram no estoque pelo valor do pedido. Data: a
+ * prometida, se já passou; senão, hoje.
+ */
+export function receberFernetPendente(data: ProducaoData): ProducaoData | null {
+  if (data.importacoes.includes(IMPORT_FERNET_ENTREGUE)) return null;
+  const hoje = hojeBR();
+  const quando = (previsto: string | null) => (previsto && previsto <= hoje ? previsto : hoje);
+  const fernet = data.insumos.filter((i) => /fernet/.test(semAcento(i.insumo)));
+  let d = { ...data, importacoes: [...data.importacoes, IMPORT_FERNET_ENTREGUE] };
+  for (const f of fernet) {
+    for (const c of d.compras.filter((x) => x.insumoId === f.id && x.status === "pedido"))
+      d = salvarCompra(d, { ...c, status: "recebido", data: quando(c.previstoEm) });
+    for (const l of d.lotes.filter(loteAberto))
+      l.itens.forEach((it, k) => {
+        if (it.insumoId === f.id && it.comprar > 0 && it.pedidoEm && !it.chegouEm && !it.noEstoque)
+          d = atualizarItemLote(d, l.id, k, {
+            chegouEm: quando(it.previstoEm),
+            recebido: it.recebido ?? it.comprar,
+          });
+      });
+  }
+  return d;
 }
 
 // ── Exemplos (ponto de partida pra editar ou apagar) ────────────────────────
