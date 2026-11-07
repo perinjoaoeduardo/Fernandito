@@ -70,7 +70,7 @@ export function LotesKpis({ data, hoje }: { data: ProducaoData; hoje: string }) 
     u && u.t.lataReal !== null && u.t.lataPlan
       ? (u.t.lataReal - u.t.lataPlan) / u.t.lataPlan
       : null;
-  const semDado = "Aparece com o 1º lote concluído";
+  const semDado = "Aparece com o 1º lote feito pelo painel";
   return (
     <KpiStrip cols={4}>
       <Tile
@@ -778,10 +778,21 @@ function Historico({
                   </td>
                   <td className={`${TD} text-right tabular-nums`}>
                     <p className="font-medium">{num(l.latasBoas ?? 0, 0)}</p>
+                    <p className="text-lk-muted text-xs">
+                      plano {num(l.boas, 0)} ·{" "}
+                      <span className={t.completo ? "" : "text-lk-fail"}>
+                        {t.rendimento === null ? "—" : pct(t.rendimento * 100)}
+                      </span>
+                    </p>
                   </td>
-                  <td className={`${TD} text-lk-muted text-xs`} colSpan={3}>
-                    Antes do painel: sem plano pra comparar, fica fora dos indicadores.
-                    {l.obs && l.obs !== "1º lote, feito antes do painel." ? ` ${l.obs}` : ""}
+                  <td className={`${TD} text-right tabular-nums`}>
+                    <p>{t.perdaReal === null ? "—" : pct(t.perdaReal * 100)}</p>
+                    <p className="text-lk-muted text-xs">plano {pct(l.plano.perdaEnvasePct)}</p>
+                  </td>
+                  <td className={`${TD} text-lk-muted text-xs`} colSpan={2}>
+                    Antes do painel: sem valores pagos nem datas, fica fora do custo real e do
+                    &quot;no prazo&quot;.
+                    {l.obs && <span className="mt-1 block">{l.obs}</span>}
                   </td>
                   <td className={`${TD} text-right tabular-nums`}>
                     {t.durou !== null ? (

@@ -753,13 +753,16 @@ export function totaisLote(l: Lote, hoje = hojeBR()) {
 
 /** Indicadores dos lotes concluídos (o topo da aba). */
 export function indicadores(lotes: Lote[]) {
-  const feitos = lotes
-    .filter((l) => l.etapa === "concluido" && l.latasBoas !== null && !l.historico)
+  // Rendimento e perda: todos os concluídos (o histórico também, se tem plano).
+  const comLatas = lotes.filter((l) => l.etapa === "concluido" && l.latasBoas !== null);
+  // Custo real e "no prazo": só os feitos pelo painel (o histórico não tem valores nem datas).
+  const feitos = comLatas
+    .filter((l) => !l.historico)
     .sort((a, b) => (b.prontoEm ?? b.criadoEm).localeCompare(a.prontoEm ?? a.criadoEm));
   const t = feitos.map((l) => ({ l, t: totaisLote(l) }));
-  const boasPlan = feitos.reduce((n, l) => n + l.boas, 0);
-  const boasReal = feitos.reduce((n, l) => n + (l.latasBoas ?? 0), 0);
-  const envasadas = feitos.reduce((n, l) => n + l.envasadas, 0);
+  const boasPlan = comLatas.reduce((n, l) => n + l.boas, 0);
+  const boasReal = comLatas.reduce((n, l) => n + (l.latasBoas ?? 0), 0);
+  const envasadas = comLatas.reduce((n, l) => n + l.envasadas, 0);
   const perdaPlan = envasadas > 0 ? 1 - boasPlan / envasadas : null;
   const otif = t.filter((x) => x.t.noPrazo && x.t.completo).length;
   return {
@@ -1259,34 +1262,38 @@ export function importarReceita(data: ProducaoData): ProducaoData | null {
 }
 
 const IMPORT_LOTE1 = "lote-1-historico-2026-11";
-/** Latas boas do 1º lote, feito antes do painel. */
+/** 1º lote, feito antes do painel: 400 L planejados, 994 latas entregues. */
+const LOTE1_LITROS = 400;
 const LOTE1_LATAS = 994;
 
 /**
  * Registra o 1º lote (feito antes do painel) como L001 concluído, pra
- * numeração seguir a das latas: o próximo lote do sistema é o L002. Sem
- * insumos (o estoque já foi descontado na importação das latas da LNF) e
- * fora dos indicadores. Se já existe um L001, não cria outro.
+ * numeração seguir a das latas: o próximo lote do sistema é o L002. Plano
+ * de 400 L (1.142 latas), entregues 994: entra no rendimento e na perda;
+ * sem custos nem datas, fica fora do custo real e do "no prazo". Sem
+ * insumos (o estoque já foi descontado na importação das latas da LNF).
+ * Se já existe um L001, não cria outro.
  */
 export function importarLote1(data: ProducaoData): ProducaoData | null {
   if (data.importacoes.includes(IMPORT_LOTE1)) return null;
   const marcado = { ...data, importacoes: [...data.importacoes, IMPORT_LOTE1] };
   if (data.lotes.some((l) => l.codigo.toUpperCase() === "L001")) return marcado;
   const hoje = hojeBR();
+  const planejadas = Math.floor((LOTE1_LITROS * 1000) / LATA_ML);
   const lote1: Lote = {
     id: "lote-1-historico",
     codigo: "L001",
     etapa: "concluido",
     criadoEm: hoje,
     plano: {
-      litros: Math.round(((LOTE1_LATAS * LATA_ML) / 1000) * 10) / 10,
+      litros: LOTE1_LITROS,
       sixPacks: null,
       perdaEnvasePct: 0,
       prontoAte: null,
     },
     receita: data.receita,
-    envasadas: LOTE1_LATAS,
-    boas: LOTE1_LATAS,
+    envasadas: planejadas,
+    boas: planejadas,
     packs: 0,
     prontoPlanejado: hoje,
     itens: [],
@@ -1296,7 +1303,7 @@ export function importarLote1(data: ProducaoData): ProducaoData | null {
     latasBoas: LOTE1_LATAS,
     sixPacksMontados: null,
     acabouEm: null,
-    obs: "1º lote, feito antes do painel.",
+    obs: `1º lote, feito antes do painel: ${LOTE1_LITROS} L planejados (${planejadas.toLocaleString("pt-BR")} latas), entregues ${LOTE1_LATAS}.`,
     historico: true,
   };
   return { ...marcado, lotes: [lote1, ...data.lotes] };
