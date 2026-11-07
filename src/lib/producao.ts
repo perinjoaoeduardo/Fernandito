@@ -12,15 +12,24 @@ import { z } from "zod";
  * dar pra comparar e desenvolver fornecedores novos.
  */
 
-export const CATEGORIAS = ["Líquido", "Embalagem", "Serviço", "Outro"] as const;
+export const CATEGORIAS = ["Líquido", "Ingrediente", "Embalagem", "Serviço", "Outro"] as const;
 
 /**
  * Quanto do insumo vai em cada lata:
- * - `fernet` / `cola`: vem da receita (ml por lata → litros);
+ * - `receita`: ingrediente da bebida, `qtd` em ml ou g por 100 mL da parte
+ *   em que entra (`parte`: o refri de cola ou o produto final);
  * - `lata`: quantidade fixa por lata envasada (`qtd`);
- * - `pack`: quantidade por six pack montado (`qtd` por pack).
+ * - `pack`: quantidade por six pack montado (`qtd` por pack);
+ * - `fernet` / `cola`: formato antigo (ml por lata na receita), convertido
+ *   para `receita` ao ler (`normalizar`).
  */
-export const USOS = ["fernet", "cola", "lata", "pack"] as const;
+export const USOS = ["receita", "lata", "pack", "fernet", "cola"] as const;
+
+/**
+ * Onde o ingrediente entra: no refri de cola (que vira `refriPct` % da
+ * bebida) ou direto no produto final (o fernet, por exemplo).
+ */
+export const PARTES = ["refri", "final"] as const;
 
 export const LATA_ML = 350;
 
@@ -94,7 +103,12 @@ export const insumoSchema = z.object({
   categoria: z.enum(CATEGORIAS),
   unidade: z.string().trim().min(1).max(30),
   uso: z.enum(USOS),
+  /** Por lata, por pack, ou (receita) ml/g por 100 mL da parte. */
   qtd: z.number().min(0).max(1e6),
+  /** Receita: entra no refri de cola ou no produto final. */
+  parte: z.enum(PARTES).default("final"),
+  /** Especificação (ex.: "Cristal", "0,6 g/L", "ajustar o pH para 2,5"). */
+  especificacao: z.string().trim().max(120).default(""),
   /** Quanto já tem guardado (na unidade do insumo). */
   estoque: z.number().min(0).max(1e9),
   /** Compra a mais pra cobrir perda/quebra deste insumo (%). */
@@ -122,14 +136,20 @@ export const planoSchema = z.object({
 });
 
 /**
- * Quanto de fernet e de base de cola vai em cada lata: em ml, ou em g se o
- * insumo for comprado por peso (kg/g). Os nomes ficaram do tempo em que era
- * sempre ml.
+ * A receita em si são os insumos com `uso: "receita"`. Aqui fica quanto do
+ * produto final é refri de cola (o resto: fernet e o que entrar direto).
+ * `fernetMl`/`colaMl` são do formato antigo (ml por lata), só pra converter.
  */
 export const receitaSchema = z.object({
+  refriPct: z.number().min(0).max(100).default(80),
   fernetMl: z.number().min(0).max(LATA_ML).nullable(),
   colaMl: z.number().min(0).max(LATA_ML).nullable(),
 });
+
+/** ml da parte (refri ou produto final) que vão em cada lata. */
+export function mlDaParte(parte: (typeof PARTES)[number], refriPct: number) {
+  return LATA_ML * (parte === "refri" ? refriPct / 100 : 1);
+}
 
 // ── Lotes de produção ───────────────────────────────────────────────────────
 
@@ -318,6 +338,8 @@ export function lerProducao(raw: unknown): ProducaoData | null {
       unidade: l.unidade,
       uso: l.uso,
       qtd: l.qtd,
+      parte: "final",
+      especificacao: "",
       estoque: 0,
       perdaPct: 0,
       depois: l.depois,
@@ -420,16 +442,19 @@ export function planejar(data: ProducaoData, disponivel?: Map<string, number>): 
   const { envasadas, packs } = lote(data.plano);
   const { receita } = data;
   return data.insumos.map((i) => {
+    // Receita: ml/g por 100 mL da parte → por lata → unidade de compra.
     const por =
-      i.uso === "fernet"
-        ? receita.fernetMl === null
-          ? null
-          : receita.fernetMl * fatorReceita(i.unidade)
-        : i.uso === "cola"
-          ? receita.colaMl === null
+      i.uso === "receita"
+        ? ((i.qtd * mlDaParte(i.parte, receita.refriPct)) / 100) * fatorReceita(i.unidade)
+        : i.uso === "fernet"
+          ? receita.fernetMl === null
             ? null
-            : receita.colaMl * fatorReceita(i.unidade)
-          : i.qtd;
+            : receita.fernetMl * fatorReceita(i.unidade)
+          : i.uso === "cola"
+            ? receita.colaMl === null
+              ? null
+              : receita.colaMl * fatorReceita(i.unidade)
+            : i.qtd;
     // Líquido, lata e envase vão em toda lata envasada (as perdidas também);
     // embalagem de pack só nos packs montados.
     const unidades = i.uso === "pack" ? packs : envasadas;
@@ -473,7 +498,7 @@ export function planejar(data: ProducaoData, disponivel?: Map<string, number>): 
 /** Totais do plano: custos, prazo, gargalo e o "pedir até" de cada insumo. */
 export function resumo(data: ProducaoData, linhas: LinhaPlano[]) {
   const l = lote(data.plano);
-  const receitaOk = data.receita.fernetMl !== null && data.receita.colaMl !== null;
+  const receitaOk = data.insumos.some((i) => i.uso === "receita" && i.qtd > 0);
   const desembolso = linhas.reduce((n, x) => n + (x.escolhida?.totalCents ?? 0), 0);
   const consumoLata = linhas
     .filter((x) => x.i.uso !== "pack")
@@ -951,6 +976,8 @@ export function importarComprasLNF(data: ProducaoData): ProducaoData | null {
           unidade: "lata",
           uso: "lata",
           qtd: 1,
+          parte: "final",
+          especificacao: "",
           estoque: 0,
           perdaPct: 1,
           depois: false,
@@ -991,6 +1018,8 @@ export function importarComprasLNF(data: ProducaoData): ProducaoData | null {
           unidade: "coroa",
           uso: "lata",
           qtd: 1,
+          parte: "final",
+          especificacao: "",
           estoque: 0,
           perdaPct: 1,
           depois: false,
@@ -1039,6 +1068,199 @@ export function importarComprasLNF(data: ProducaoData): ProducaoData | null {
   };
 }
 
+// ── Receita por 100 mL (formato novo) ───────────────────────────────────────
+
+/**
+ * Converte o formato antigo (fernet e base de cola em ml por lata) para
+ * ingredientes da receita por 100 mL do produto final.
+ */
+export function normalizar(data: ProducaoData): ProducaoData {
+  if (!data.insumos.some((i) => i.uso === "fernet" || i.uso === "cola")) return data;
+  return {
+    ...data,
+    insumos: data.insumos.map((i) => {
+      if (i.uso !== "fernet" && i.uso !== "cola") return i;
+      const porLata = (i.uso === "fernet" ? data.receita.fernetMl : data.receita.colaMl) ?? 0;
+      return {
+        ...i,
+        uso: "receita" as const,
+        parte: "final" as const,
+        qtd: Math.round((porLata / LATA_ML) * 100 * 1000) / 1000,
+      };
+    }),
+  };
+}
+
+const IMPORT_RECEITA = "receita-refri-fernet-cola-2026-11";
+
+type Ingrediente = {
+  id: string;
+  nome: RegExp;
+  insumo: string;
+  especificacao: string;
+  categoria: Insumo["categoria"];
+  unidade: string;
+  parte: (typeof PARTES)[number];
+  qtd: number;
+  fornecedor: string;
+  precoCents: number;
+};
+
+/** A planilha "Refri de cola" + "Fernet Cola" (por 100 mL). */
+const RECEITA_PLANILHA: Ingrediente[] = [
+  {
+    id: "acucar",
+    nome: /a[cç]u[cç]ar/,
+    insumo: "Açúcar cristal",
+    especificacao: "Cristal",
+    categoria: "Ingrediente",
+    unidade: "kg",
+    parte: "refri",
+    qtd: 11,
+    fornecedor: "Dinâmica",
+    precoCents: 430,
+  },
+  {
+    id: "preparado-cola",
+    nome: /preparado/,
+    insumo: "Preparado de cola",
+    especificacao: "0,6 g/L",
+    categoria: "Ingrediente",
+    unidade: "litro",
+    parte: "refri",
+    qtd: 0.06,
+    fornecedor: "Duas Rodas",
+    precoCents: 7000,
+  },
+  {
+    id: "corante-caramelo",
+    nome: /corante|caramelo/,
+    insumo: "Corante caramelo VI",
+    especificacao: "0,12%",
+    categoria: "Ingrediente",
+    unidade: "litro",
+    parte: "refri",
+    qtd: 0.12,
+    fornecedor: "Vêneto",
+    precoCents: 1000,
+  },
+  {
+    id: "acido-fosforico",
+    nome: /fosf[oó]rico/,
+    insumo: "Ácido fosfórico 85%",
+    especificacao: "Ajustar o pH para 2,5",
+    categoria: "Ingrediente",
+    unidade: "kg",
+    parte: "refri",
+    qtd: 0.05,
+    fornecedor: "Delaware",
+    precoCents: 1990,
+  },
+  {
+    id: "fernet",
+    nome: /fernet/,
+    insumo: "Fernet",
+    especificacao: "",
+    categoria: "Líquido",
+    unidade: "litro",
+    parte: "final",
+    qtd: 20,
+    fornecedor: "Casa Bucco",
+    precoCents: 3500,
+  },
+];
+
+/**
+ * Lança a receita da planilha: refri de cola (açúcar, preparado, corante,
+ * ácido; água QSP) = 80% da bebida, fernet = 20%. Cada ingrediente vira
+ * insumo da receita com a cotação do fornecedor (preço por kg ou L, sem
+ * prazo/mínimo ainda). O exemplo "Base de cola" sai (virou o refri). Roda
+ * uma vez; `null` = já aplicada.
+ */
+export function importarReceita(data: ProducaoData): ProducaoData | null {
+  if (data.importacoes.includes(IMPORT_RECEITA)) return null;
+  let insumos = data.insumos.filter(
+    (i) => !(i.exemplo && i.uso !== "lata" && i.uso !== "pack" && /cola/.test(semAcento(i.insumo)) && !/fernet/.test(semAcento(i.insumo))),
+  );
+  for (const g of RECEITA_PLANILHA) {
+    const f: Fornecedor = {
+      id: `f-${g.id}-${semAcento(g.fornecedor).replace(/\W+/g, "-")}`.slice(0, 40),
+      nome: g.fornecedor,
+      contato: "",
+      faixas: [{ de: 0, precoCents: g.precoCents }],
+      minimo: 0,
+      multiplo: 0,
+      prazoDias: 0,
+      freteCents: 0,
+      cotadoEm: null,
+      obs: "Da planilha da receita. Prazo, mínimo e frete ainda não informados.",
+    };
+    const idx = insumos.findIndex((i) => g.nome.test(semAcento(i.insumo)) && i.uso !== "lata" && i.uso !== "pack");
+    const base: Insumo =
+      idx >= 0
+        ? insumos[idx]
+        : {
+            id: g.id,
+            insumo: g.insumo,
+            categoria: g.categoria,
+            unidade: g.unidade,
+            uso: "receita",
+            qtd: g.qtd,
+            parte: g.parte,
+            especificacao: g.especificacao,
+            estoque: 0,
+            perdaPct: 0,
+            depois: false,
+            fornecedores: [],
+            principal: null,
+          };
+    const outras = base.fornecedores.filter(
+      (x) => !x.exemplo && semAcento(x.nome) !== semAcento(g.fornecedor),
+    );
+    const novo: Insumo = {
+      ...base,
+      insumo: base.exemplo ? g.insumo : base.insumo,
+      categoria: g.categoria,
+      unidade: g.unidade,
+      uso: "receita",
+      qtd: g.qtd,
+      parte: g.parte,
+      especificacao: g.especificacao,
+      fornecedores: [f, ...outras],
+      principal: f.id,
+      exemplo: undefined,
+    };
+    if (idx >= 0) insumos[idx] = novo;
+    else insumos = [...insumos, novo];
+  }
+  // Ingredientes primeiro (na ordem da planilha), depois embalagem e serviço.
+  const ordem = (i: Insumo) => {
+    const k = RECEITA_PLANILHA.findIndex((g) => g.nome.test(semAcento(i.insumo)));
+    return i.uso === "receita" ? (k >= 0 ? k : 50) : 100;
+  };
+  insumos = [...insumos].sort((a, b) => ordem(a) - ordem(b));
+  return {
+    ...data,
+    insumos,
+    receita: { ...data.receita, refriPct: 80 },
+    importacoes: [...data.importacoes, IMPORT_RECEITA],
+  };
+}
+
+/** Normaliza e roda as importações que faltam. `null` = nada mudou. */
+export function aplicarImportacoes(data: ProducaoData): ProducaoData | null {
+  let atual = normalizar(data);
+  let mudou = atual !== data;
+  for (const imp of [importarComprasLNF, importarReceita]) {
+    const r = imp(atual);
+    if (r) {
+      atual = r;
+      mudou = true;
+    }
+  }
+  return mudou ? atual : null;
+}
+
 // ── Exemplos (ponto de partida pra editar ou apagar) ────────────────────────
 
 const forn = (
@@ -1065,7 +1287,7 @@ const forn = (
 
 export const EXEMPLO: ProducaoData = {
   versao: 2,
-  receita: { fernetMl: null, colaMl: null },
+  receita: { refriPct: 80, fernetMl: null, colaMl: null },
   plano: PLANO_PADRAO,
   lotes: [],
   compras: [],
@@ -1076,8 +1298,10 @@ export const EXEMPLO: ProducaoData = {
       insumo: "Fernet",
       categoria: "Líquido",
       unidade: "litro",
-      uso: "fernet",
-      qtd: 0,
+      uso: "receita",
+      qtd: 20,
+      parte: "final",
+      especificacao: "",
       estoque: 0,
       perdaPct: 1,
       depois: false,
@@ -1101,8 +1325,10 @@ export const EXEMPLO: ProducaoData = {
       insumo: "Base de cola",
       categoria: "Líquido",
       unidade: "litro",
-      uso: "cola",
+      uso: "receita",
       qtd: 0,
+      parte: "refri",
+      especificacao: "",
       estoque: 0,
       perdaPct: 1,
       depois: false,
@@ -1117,6 +1343,8 @@ export const EXEMPLO: ProducaoData = {
       unidade: "unidade",
       uso: "lata",
       qtd: 1,
+      parte: "final",
+      especificacao: "",
       estoque: 0,
       perdaPct: 1,
       depois: false,
@@ -1147,6 +1375,8 @@ export const EXEMPLO: ProducaoData = {
       unidade: "caixa",
       uso: "pack",
       qtd: 1,
+      parte: "final",
+      especificacao: "",
       estoque: 0,
       perdaPct: 0,
       depois: false,
@@ -1161,6 +1391,8 @@ export const EXEMPLO: ProducaoData = {
       unidade: "lata envasada",
       uso: "lata",
       qtd: 1,
+      parte: "final",
+      especificacao: "",
       estoque: 0,
       perdaPct: 0,
       depois: true,

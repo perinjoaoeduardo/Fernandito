@@ -18,6 +18,8 @@ import {
   LATA_ML,
   UNIDADES,
   compraInteira,
+  fatorReceita,
+  mlDaParte,
   comprasDo,
   tipoUnidade,
   criarLote,
@@ -48,6 +50,7 @@ import {
   HINT,
   INPUT,
   LABEL,
+  MINI,
   NumField,
   brl,
   dia,
@@ -67,6 +70,7 @@ import { Badge, Code, Empty, KpiStrip, SectionTitle, TABLE_WRAP, TD, TH, Tile, b
  */
 
 const USO_LABEL: Record<Insumo["uso"], string> = {
+  receita: "Ingrediente da receita",
   fernet: "Da receita: fernet",
   cola: "Da receita: base de cola",
   lata: "Quantidade por lata",
@@ -80,6 +84,8 @@ const NOVO_INSUMO = (): Insumo => ({
   unidade: "unidade",
   uso: "lata",
   qtd: 1,
+  parte: "final",
+  especificacao: "",
   estoque: 0,
   perdaPct: 0,
   depois: false,
@@ -154,23 +160,22 @@ export function Producao({
   const producaoEm = somarDias(hoje, r.espera);
   const prontoEm = somarDias(hoje, r.prazo);
   const folga = plano.prontoAte ? diasEntre(producaoEm, plano.prontoAte) : null;
-  // A receita segue a unidade do insumo: g se ele é comprado por peso, senão ml.
-  const medidaDe = (uso: "fernet" | "cola") => {
-    const i = insumos.find((x) => x.uso === uso);
-    return i && tipoUnidade(i.unidade) === "massa" ? "g" : "ml";
-  };
-  const medida = { fernetMl: medidaDe("fernet"), colaMl: medidaDe("cola") } as const;
-  const sobraMl =
-    LATA_ML -
-    (medida.fernetMl === "ml" ? (receita.fernetMl ?? 0) : 0) -
-    (medida.colaMl === "ml" ? (receita.colaMl ?? 0) : 0);
   const temExemplo = insumos.some((i) => i.exemplo || i.fornecedores.some((f) => f.exemplo));
   const aComprar = linhas.filter((l) => l.falta > 0);
 
   const setPlano = (patch: Partial<Plano>) =>
     persistSoon({ ...data, plano: { ...plano, ...patch } });
-  const setReceita = (k: "fernetMl" | "colaMl", v: number | null) =>
-    persistSoon({ ...data, receita: { ...receita, [k]: v } });
+  const setRefriPct = (v: number) => persistSoon({ ...data, receita: { ...receita, refriPct: v } });
+  const setQtd = (id: string, qtd: number) =>
+    persistSoon({ ...data, insumos: insumos.map((i) => (i.id === id ? { ...i, qtd } : i)) });
+  const novoIngrediente = (parte: "refri" | "final"): Insumo => ({
+    ...NOVO_INSUMO(),
+    categoria: "Ingrediente",
+    unidade: "kg",
+    uso: "receita",
+    qtd: 0,
+    parte,
+  });
 
   const putInsumo = (item: Insumo) => {
     const exists = insumos.some((i) => i.id === item.id);
@@ -487,7 +492,7 @@ export function Producao({
                       ) : (
                         <>
                           <td className={`${TD} text-right tabular-nums`}>
-                            {num(l.precisa)} {i.unidade}
+                            {num(l.precisa, l.precisa < 10 ? 2 : 1)} {i.unidade}
                             {i.perdaPct > 0 && (
                               <p className="text-lk-muted text-xs">
                                 com {pct(i.perdaPct)} de perda
@@ -511,7 +516,7 @@ export function Producao({
                               <span className="text-lk-pass">nada</span>
                             ) : c ? (
                               <>
-                                {num(c.comprar)}
+                                {num(c.comprar, c.comprar < 10 ? 2 : 1)}
                                 {c.ajustado && (
                                   <p className="text-lk-hold text-xs">
                                     {c.ajustado === "minimo"
@@ -672,60 +677,14 @@ export function Producao({
       </section>
 
       {/* ── Receita ── */}
-      <section className="flex flex-col gap-4">
-        <SectionTitle title="Receita" />
-        <div className={`${TABLE_WRAP} flex flex-wrap items-start gap-x-10 gap-y-5 p-5`}>
-          {(
-            [
-              ["fernetMl", "Fernet"],
-              ["colaMl", "Base de cola"],
-            ] as const
-          ).map(([k, label]) => (
-            <label key={k} className={LABEL}>
-              <span className="font-medium">{label}</span>
-              <span className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={0}
-                  max={LATA_ML}
-                  inputMode="decimal"
-                  placeholder="—"
-                  value={receita[k] ?? ""}
-                  onChange={(e) =>
-                    setReceita(
-                      k,
-                      e.target.value === ""
-                        ? null
-                        : Math.min(LATA_ML, Math.max(0, Number(e.target.value))),
-                    )
-                  }
-                  className={`${INPUT} w-28 text-right tabular-nums`}
-                />
-                <span className="text-lk-muted">{medida[k]} por lata</span>
-              </span>
-              {receita[k] !== null &&
-                (medida[k] === "ml" ? (
-                  <span className={HINT}>{num(((receita[k] ?? 0) / LATA_ML) * 100)}% da lata</span>
-                ) : (
-                  <span className={HINT}>Comprado por peso: não entra nos {LATA_ML} ml</span>
-                ))}
-            </label>
-          ))}
-          <div className={LABEL}>
-            <span className="font-medium">Lata</span>
-            <span className="text-lk-muted flex h-10 items-center">{LATA_ML} ml</span>
-            {r.receitaOk && (
-              <span className={`text-xs ${sobraMl < 0 ? "text-lk-fail" : "text-lk-ink3"}`}>
-                {sobraMl < 0
-                  ? `Passou ${num(-sobraMl)} ml da lata`
-                  : sobraMl > 0
-                    ? `Sobram ${num(sobraMl)} ml (água, gás, outros)`
-                    : "Fecha os 350 ml"}
-              </span>
-            )}
-          </div>
-        </div>
-      </section>
+      <Receita
+        linhas={linhas}
+        refriPct={receita.refriPct}
+        onRefriPct={setRefriPct}
+        onQtd={setQtd}
+        onEdit={(i) => setEditing({ kind: "insumo", item: structuredClone(i), isNew: false })}
+        onAdd={(parte) => setEditing({ kind: "insumo", item: novoIngrediente(parte), isNew: true })}
+      />
 
       {/* ── Insumos e cotações ── */}
       <section className="flex flex-col gap-4">
@@ -814,6 +773,209 @@ export function Producao({
   );
 }
 
+/** "g" para o que é comprado por peso, "mL" para volume. */
+const medida = (unidade: string) => {
+  const t = tipoUnidade(unidade);
+  return t === "massa" ? "g" : t === "volume" ? "mL" : unidade;
+};
+/** Valor pequeno (centavos) com até 4 casas: R$ 0,0042. */
+const miudo = (cents: number) =>
+  (cents / 100).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: cents < 10 ? 4 : 2,
+  });
+
+/**
+ * A receita como na planilha: o refri de cola (por 100 mL de refri) e o
+ * Fernet Cola (por 100 mL do produto, com o refri em % da bebida). Custo
+ * de cada ingrediente pela cotação principal (preço por kg ou L, com frete).
+ */
+function Receita({
+  linhas,
+  refriPct,
+  onRefriPct,
+  onQtd,
+  onEdit,
+  onAdd,
+}: {
+  linhas: ReturnType<typeof planejar>;
+  refriPct: number;
+  onRefriPct: (v: number) => void;
+  onQtd: (id: string, qtd: number) => void;
+  onEdit: (i: Insumo) => void;
+  onAdd: (parte: "refri" | "final") => void;
+}) {
+  const ing = linhas.filter((l) => l.i.uso === "receita");
+  const refri = ing.filter((l) => l.i.parte === "refri");
+  const final = ing.filter((l) => l.i.parte === "final");
+  // Custo em 100 mL da parte: quantidade (ml/g) → unidade de compra × preço.
+  const custo100 = (l: (typeof ing)[number]) =>
+    l.escolhida ? l.i.qtd * fatorReceita(l.i.unidade) * l.escolhida.unitCents : null;
+  const soma = (ls: typeof ing) => ls.reduce((n, l) => n + (custo100(l) ?? 0), 0);
+  const ml = (ls: typeof ing) =>
+    ls.filter((l) => medida(l.i.unidade) === "mL").reduce((n, l) => n + l.i.qtd, 0);
+  const refri100 = soma(refri);
+  const refriNoFinal = (refri100 * refriPct) / 100;
+  const final100 = refriNoFinal + soma(final);
+  const fechaFinal = 100 - refriPct - ml(final);
+  const QTD = `${MINI} w-24 text-right`;
+
+  const linha = (l: (typeof ing)[number], porLataMl: number) => {
+    const c = custo100(l);
+    const p = principalDe(l.i);
+    return (
+      <tr key={l.i.id} className="hover:bg-lk-paper/60">
+        <td className={TD}>
+          <button
+            type="button"
+            className="text-left font-semibold hover:underline"
+            onClick={() => onEdit(l.i)}
+          >
+            {l.i.insumo}
+          </button>
+          {l.i.especificacao && <p className="text-lk-muted text-xs">{l.i.especificacao}</p>}
+        </td>
+        <td className={`${TD} text-right`}>
+          <input
+            type="number"
+            min={0}
+            step="any"
+            aria-label={`${l.i.insumo}: quantidade por 100 mL`}
+            className={QTD}
+            value={l.i.qtd}
+            onChange={(e) => onQtd(l.i.id, Math.max(0, Number(e.target.value) || 0))}
+          />
+        </td>
+        <td className={`${TD} text-lk-muted`}>{medida(l.i.unidade)}</td>
+        <td className={`${TD} text-right tabular-nums`}>
+          {l.escolhida ? `${miudo(l.escolhida.unitCents)}/${l.i.unidade}` : "—"}
+        </td>
+        <td className={`${TD} text-right tabular-nums`}>{c === null ? "—" : miudo(c)}</td>
+        <td className={`${TD} text-right tabular-nums`}>
+          {c === null ? "—" : miudo((c * porLataMl) / 100)}
+        </td>
+        <td className={TD}>{p?.nome || <span className="text-lk-fail">Sem fornecedor</span>}</td>
+      </tr>
+    );
+  };
+  const cabeca = (titulo: string, sub: string, parte: "refri" | "final") => (
+    <tr className="bg-lk-hold-bg/60">
+      <td className={`${TD} font-semibold`} colSpan={6}>
+        {titulo} <span className="text-lk-muted text-xs font-normal">· {sub}</span>
+      </td>
+      <td className={`${TD} text-right`}>
+        <button type="button" className={btn("ghost", "sm")} onClick={() => onAdd(parte)}>
+          <Plus aria-hidden />
+          Ingrediente
+        </button>
+      </td>
+    </tr>
+  );
+
+  return (
+    <section className="flex flex-col gap-4">
+      <SectionTitle
+        title="Receita"
+        aside={<span className={HINT}>por 100 mL, como na planilha</span>}
+      />
+      <div className={`${TABLE_WRAP} overflow-x-auto`}>
+        <table className="w-full min-w-[980px] table-fixed text-sm">
+          <thead>
+            <tr>
+              <th className={`${TH} w-[24%]`}>Ingrediente</th>
+              <th className={`${TH} w-[13%] text-right`}>Quantidade/100 mL</th>
+              <th className={`${TH} w-[7%]`}>Unidade</th>
+              <th className={`${TH} w-[15%] text-right`}>Custo do ingrediente</th>
+              <th className={`${TH} w-[13%] text-right`}>Custo em 100 mL</th>
+              <th className={`${TH} w-[12%] text-right`}>Por lata</th>
+              <th className={`${TH} w-[16%]`}>Fornecedor</th>
+            </tr>
+          </thead>
+          <tbody className="divide-lk-border divide-y">
+            {cabeca("Refri de cola", "por 100 mL de refri", "refri")}
+            <tr>
+              <td className={TD}>
+                <p className="font-semibold">Água</p>
+                <p className="text-lk-muted text-xs">Água potável fervida</p>
+              </td>
+              <td className={`${TD} text-lk-muted text-right`}>QSP</td>
+              <td className={`${TD} text-lk-muted`} colSpan={5}>
+                Completa os 100 mL
+                {ml(refri) > 0 ? ` (os outros líquidos somam ${num(ml(refri), 2)} mL)` : ""}
+              </td>
+            </tr>
+            {refri.map((l) => linha(l, mlDaParte("refri", refriPct)))}
+            <tr className="bg-lk-paper">
+              <td className={`${TD} font-medium`} colSpan={4}>
+                Custo do refri
+              </td>
+              <td className={`${TD} text-right font-medium tabular-nums`}>{miudo(refri100)}</td>
+              <td className={`${TD} text-lk-muted text-right text-xs`}>{miudo(refri100 * 10)}/L</td>
+              <td className={TD} />
+            </tr>
+
+            {cabeca("Fernet Cola", "por 100 mL do produto final", "final")}
+            <tr>
+              <td className={`${TD} font-semibold`}>Refri de cola</td>
+              <td className={`${TD} text-right`}>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="any"
+                  aria-label="Refri de cola: mL por 100 mL"
+                  className={QTD}
+                  value={refriPct}
+                  onChange={(e) =>
+                    onRefriPct(Math.min(100, Math.max(0, Number(e.target.value) || 0)))
+                  }
+                />
+              </td>
+              <td className={`${TD} text-lk-muted`}>mL</td>
+              <td className={`${TD} text-right tabular-nums`}>{miudo(refri100 * 10)}/L</td>
+              <td className={`${TD} text-right tabular-nums`}>{miudo(refriNoFinal)}</td>
+              <td className={`${TD} text-right tabular-nums`}>{miudo(refriNoFinal * 3.5)}</td>
+              <td className={`${TD} text-lk-muted`}>feito aqui</td>
+            </tr>
+            {final.map((l) => linha(l, mlDaParte("final", refriPct)))}
+          </tbody>
+          <tfoot>
+            <tr className="border-lk-border bg-lk-paper border-t">
+              <td className={`${TD} font-semibold`}>Total</td>
+              <td className={`${TD} text-right font-semibold tabular-nums`}>
+                {num(refriPct + ml(final), 2)}
+              </td>
+              <td className={`${TD} text-lk-muted`}>mL</td>
+              <td className={TD} />
+              <td className={`${TD} text-right font-semibold tabular-nums`}>{miudo(final100)}</td>
+              <td className={`${TD} text-right font-semibold tabular-nums`}>
+                {miudo(final100 * 3.5)}
+              </td>
+              <td
+                className={`${TD} text-xs ${Math.abs(fechaFinal) < 0.01 ? "text-lk-pass" : "text-lk-fail"}`}
+              >
+                {Math.abs(fechaFinal) < 0.01
+                  ? "Fecha 100 mL"
+                  : fechaFinal > 0
+                    ? `Faltam ${num(fechaFinal, 2)} mL`
+                    : `Passou ${num(-fechaFinal, 2)} mL`}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p className={HINT}>
+        Quantidade em mL (comprado por litro/ml) ou g (comprado por kg/g). Custo do ingrediente = a
+        cotação principal na quantidade do lote, com frete. Por lata = {LATA_ML} mL ({num(refriPct)}
+        % de refri). Sem as perdas: a calculadora acima soma a perda de cada insumo. Clique no nome
+        para editar o ingrediente.
+      </p>
+    </section>
+  );
+}
+
 /** Um insumo e a tabela de cotações dos fornecedores dele. */
 function InsumoCard({
   linha,
@@ -858,9 +1020,11 @@ function InsumoCard({
             {i.exemplo && <span className="text-lk-hold text-xs font-normal">exemplo</span>}
           </p>
           <p className="text-lk-muted text-xs">
-            {i.categoria} · {USO_LABEL[i.uso]}
-            {i.uso === "lata" || i.uso === "pack" ? `: ${num(i.qtd)} ${i.unidade}` : ""} · compra em{" "}
-            {i.unidade}
+            {i.categoria} ·{" "}
+            {i.uso === "receita"
+              ? `Receita: ${num(i.qtd, 3)} ${medida(i.unidade)} por 100 mL de ${i.parte === "refri" ? "refri" : "produto"}`
+              : `${USO_LABEL[i.uso]}${i.uso === "lata" || i.uso === "pack" ? `: ${num(i.qtd)} ${i.unidade}` : ""}`}
+            {i.especificacao ? ` (${i.especificacao})` : ""} · compra em {i.unidade}
           </p>
           <p className="text-lk-ink3 mt-1 text-xs">
             Em estoque: <span className="text-lk-ink font-medium">{num(i.estoque)}</span>
@@ -1294,7 +1458,7 @@ function InsumoEditor({
   const conhecidas: readonly string[] = UNIDADES.flatMap((g) => g.itens);
   // Unidade fora da lista (cadastro antigo ou digitada): abre o campo de texto.
   const [outra, setOutra] = useState(!conhecidas.includes(item.unidade));
-  const daReceita = f.uso === "fernet" || f.uso === "cola";
+  const daReceita = f.uso === "receita";
   const ok = f.insumo.trim().length > 0 && f.unidade.trim().length > 0;
   const un = f.unidade || "unidades";
 
@@ -1367,10 +1531,10 @@ function InsumoEditor({
             Todas as cotações usam esta unidade
             {daReceita &&
               (tipoUnidade(f.unidade) === "massa"
-                ? ". Por peso: a receita pede g por lata."
+                ? ". Por peso: a receita pede g por 100 mL."
                 : tipoUnidade(f.unidade) === "volume"
-                  ? ". A receita pede ml por lata."
-                  : ". Da receita: use litro, ml, kg ou g.")}
+                  ? ". A receita pede mL por 100 mL."
+                  : ". Na receita: use litro, ml, kg ou g.")}
           </span>
           {!isNew && f.unidade !== item.unidade && item.fornecedores.length > 0 && (
             <span className="text-lk-hold text-xs">
@@ -1385,11 +1549,14 @@ function InsumoEditor({
             value={f.uso}
             onChange={(e) => set("uso", e.target.value as Insumo["uso"])}
           >
-            {(Object.keys(USO_LABEL) as Insumo["uso"][]).map((u) => (
-              <option key={u} value={u}>
-                {USO_LABEL[u]}
-              </option>
-            ))}
+            {(Object.keys(USO_LABEL) as Insumo["uso"][])
+              // Formato antigo (fernet/cola por lata) só aparece se ainda estiver em uso.
+              .filter((u) => (u !== "fernet" && u !== "cola") || u === item.uso)
+              .map((u) => (
+                <option key={u} value={u}>
+                  {USO_LABEL[u]}
+                </option>
+              ))}
           </select>
         </label>
         {(f.uso === "lata" || f.uso === "pack") && (
@@ -1399,6 +1566,37 @@ function InsumoEditor({
             onChange={(n) => set("qtd", n)}
             hint={`em ${un}`}
           />
+        )}
+        {f.uso === "receita" && (
+          <>
+            <label className={LABEL}>
+              <span className="font-medium">Entra em</span>
+              <select
+                className={INPUT}
+                value={f.parte}
+                onChange={(e) => set("parte", e.target.value as Insumo["parte"])}
+              >
+                <option value="refri">Refri de cola</option>
+                <option value="final">Produto final (Fernet Cola)</option>
+              </select>
+            </label>
+            <NumField
+              label="Quantidade por 100 mL"
+              value={f.qtd}
+              onChange={(n) => set("qtd", n)}
+              hint={`em ${medida(f.unidade)} por 100 mL de ${f.parte === "refri" ? "refri" : "produto"}`}
+            />
+            <label className={`${LABEL} sm:col-span-2`}>
+              <span className="font-medium">Especificação</span>
+              <input
+                className={INPUT}
+                value={f.especificacao}
+                maxLength={120}
+                onChange={(e) => set("especificacao", e.target.value)}
+                placeholder="Ex.: Cristal, 0,6 g/L, ajustar o pH para 2,5"
+              />
+            </label>
+          </>
         )}
         <NumField
           label="Em estoque"

@@ -49,7 +49,7 @@ import {
   EXEMPLO,
   PRODUCAO_BACKUP_V1,
   PRODUCAO_KEY,
-  importarComprasLNF,
+  aplicarImportacoes,
   lerProducao,
 } from "@/lib/producao";
 import {
@@ -442,7 +442,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       const raw = await kvGet(PRODUCAO_KEY);
       const dados = (raw && lerProducao(JSON.parse(raw))) || EXEMPLO;
       // Importações de dados (rodam uma vez só e ficam salvas no banco).
-      const importado = importarComprasLNF(dados);
+      const importado = aplicarImportacoes(dados);
       if (!importado) return dados;
       // Falhar ao salvar não pode cair nos exemplos: mostra o importado mesmo assim.
       if (raw && !raw.includes('"versao":2')) await kvSet(PRODUCAO_BACKUP_V1, raw).catch(() => {});
