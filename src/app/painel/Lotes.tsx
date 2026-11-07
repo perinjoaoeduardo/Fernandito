@@ -761,6 +761,48 @@ function Historico({
                   </td>
                 </tr>
               );
+            if (l.historico)
+              return (
+                <tr key={l.id} className="hover:bg-lk-paper/60">
+                  <td className={TD}>
+                    <p className="font-lk-mono font-medium">{l.codigo}</p>
+                    <p className="text-lk-muted text-xs whitespace-nowrap">
+                      {num(l.plano.litros, 0)} L
+                    </p>
+                  </td>
+                  <td className={`${TD} whitespace-nowrap`}>
+                    <p>{l.envaseEm ? diaAno(l.envaseEm) : "—"}</p>
+                    <p className="text-lk-muted text-xs">
+                      validade {l.validade ? diaAno(l.validade) : "—"}
+                    </p>
+                  </td>
+                  <td className={`${TD} text-right tabular-nums`}>
+                    <p className="font-medium">{num(l.latasBoas ?? 0, 0)}</p>
+                  </td>
+                  <td className={`${TD} text-lk-muted text-xs`} colSpan={3}>
+                    Antes do painel: sem plano pra comparar, fica fora dos indicadores.
+                    {l.obs && l.obs !== "1º lote, feito antes do painel." ? ` ${l.obs}` : ""}
+                  </td>
+                  <td className={`${TD} text-right tabular-nums`}>
+                    {t.durou !== null ? (
+                      `${t.durou} dias`
+                    ) : (
+                      <span className="text-lk-muted text-xs">—</span>
+                    )}
+                  </td>
+                  <td className={`${TD} text-right`}>
+                    <button
+                      type="button"
+                      className={btn("ghost", "sm")}
+                      onClick={() => onEdit(l)}
+                      aria-label={`Editar ${l.codigo}`}
+                      title="Editar"
+                    >
+                      <Pencil aria-hidden />
+                    </button>
+                  </td>
+                </tr>
+              );
             const atraso = l.envaseEm ? diasEntre(t.meta, l.envaseEm) : null;
             const varCusto =
               t.lataReal !== null && t.lataPlan ? (t.lataReal - t.lataPlan) / t.lataPlan : null;
@@ -868,7 +910,13 @@ function ConcluidoEditor({
         type="date"
         className={INPUT}
         value={f[k] ?? ""}
-        onChange={(ev) => set(k, ev.target.value || null)}
+        onChange={(ev) => {
+          const v = ev.target.value || null;
+          // Pôs a data do envase e a validade está vazia: calcula (+12 meses).
+          if (k === "envaseEm" && v && !f.validade)
+            setF((p) => ({ ...p, envaseEm: v, validade: somarMeses(v, VALIDADE_MESES) }));
+          else set(k, v);
+        }}
       />
       {hint && <span className={HINT}>{hint}</span>}
     </label>

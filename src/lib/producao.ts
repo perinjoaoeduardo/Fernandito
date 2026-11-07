@@ -216,6 +216,8 @@ export const loteSchema = z.object({
   /** Quando o lote acabou (vendeu tudo): mostra quanto tempo um lote dura. */
   acabouEm: dia,
   obs: z.string().max(500),
+  /** Lote de antes do painel: só o realizado, fica fora dos indicadores. */
+  historico: z.boolean().optional(),
 });
 
 /**
@@ -752,7 +754,7 @@ export function totaisLote(l: Lote, hoje = hojeBR()) {
 /** Indicadores dos lotes concluídos (o topo da aba). */
 export function indicadores(lotes: Lote[]) {
   const feitos = lotes
-    .filter((l) => l.etapa === "concluido" && l.latasBoas !== null)
+    .filter((l) => l.etapa === "concluido" && l.latasBoas !== null && !l.historico)
     .sort((a, b) => (b.prontoEm ?? b.criadoEm).localeCompare(a.prontoEm ?? a.criadoEm));
   const t = feitos.map((l) => ({ l, t: totaisLote(l) }));
   const boasPlan = feitos.reduce((n, l) => n + l.boas, 0);
@@ -1180,7 +1182,14 @@ const RECEITA_PLANILHA: Ingrediente[] = [
 export function importarReceita(data: ProducaoData): ProducaoData | null {
   if (data.importacoes.includes(IMPORT_RECEITA)) return null;
   let insumos = data.insumos.filter(
-    (i) => !(i.exemplo && i.uso !== "lata" && i.uso !== "pack" && /cola/.test(semAcento(i.insumo)) && !/fernet/.test(semAcento(i.insumo))),
+    (i) =>
+      !(
+        i.exemplo &&
+        i.uso !== "lata" &&
+        i.uso !== "pack" &&
+        /cola/.test(semAcento(i.insumo)) &&
+        !/fernet/.test(semAcento(i.insumo))
+      ),
   );
   for (const g of RECEITA_PLANILHA) {
     const f: Fornecedor = {
@@ -1195,7 +1204,9 @@ export function importarReceita(data: ProducaoData): ProducaoData | null {
       cotadoEm: null,
       obs: "Da planilha da receita. Prazo, mínimo e frete ainda não informados.",
     };
-    const idx = insumos.findIndex((i) => g.nome.test(semAcento(i.insumo)) && i.uso !== "lata" && i.uso !== "pack");
+    const idx = insumos.findIndex(
+      (i) => g.nome.test(semAcento(i.insumo)) && i.uso !== "lata" && i.uso !== "pack",
+    );
     const base: Insumo =
       idx >= 0
         ? insumos[idx]
@@ -1247,11 +1258,55 @@ export function importarReceita(data: ProducaoData): ProducaoData | null {
   };
 }
 
+const IMPORT_LOTE1 = "lote-1-historico-2026-11";
+/** Latas boas do 1º lote, feito antes do painel. */
+const LOTE1_LATAS = 994;
+
+/**
+ * Registra o 1º lote (feito antes do painel) como L001 concluído, pra
+ * numeração seguir a das latas: o próximo lote do sistema é o L002. Sem
+ * insumos (o estoque já foi descontado na importação das latas da LNF) e
+ * fora dos indicadores. Se já existe um L001, não cria outro.
+ */
+export function importarLote1(data: ProducaoData): ProducaoData | null {
+  if (data.importacoes.includes(IMPORT_LOTE1)) return null;
+  const marcado = { ...data, importacoes: [...data.importacoes, IMPORT_LOTE1] };
+  if (data.lotes.some((l) => l.codigo.toUpperCase() === "L001")) return marcado;
+  const hoje = hojeBR();
+  const lote1: Lote = {
+    id: "lote-1-historico",
+    codigo: "L001",
+    etapa: "concluido",
+    criadoEm: hoje,
+    plano: {
+      litros: Math.round(((LOTE1_LATAS * LATA_ML) / 1000) * 10) / 10,
+      sixPacks: null,
+      perdaEnvasePct: 0,
+      prontoAte: null,
+    },
+    receita: data.receita,
+    envasadas: LOTE1_LATAS,
+    boas: LOTE1_LATAS,
+    packs: 0,
+    prontoPlanejado: hoje,
+    itens: [],
+    envaseEm: null,
+    prontoEm: null,
+    validade: null,
+    latasBoas: LOTE1_LATAS,
+    sixPacksMontados: null,
+    acabouEm: null,
+    obs: "1º lote, feito antes do painel.",
+    historico: true,
+  };
+  return { ...marcado, lotes: [lote1, ...data.lotes] };
+}
+
 /** Normaliza e roda as importações que faltam. `null` = nada mudou. */
 export function aplicarImportacoes(data: ProducaoData): ProducaoData | null {
   let atual = normalizar(data);
   let mudou = atual !== data;
-  for (const imp of [importarComprasLNF, importarReceita]) {
+  for (const imp of [importarComprasLNF, importarReceita, importarLote1]) {
     const r = imp(atual);
     if (r) {
       atual = r;
