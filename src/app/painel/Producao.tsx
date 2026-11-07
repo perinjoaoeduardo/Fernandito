@@ -302,6 +302,7 @@ export function Producao({
   const savePedido = (pc: PedidoCompra) => {
     persist(salvarPedido(data, pc));
     setEditing(null);
+    abrirSecao("pedidos");
   };
   const pcReceber =
     editing?.kind === "receber" ? (data.pedidos.find((x) => x.id === editing.pcId) ?? null) : null;
@@ -357,6 +358,16 @@ export function Producao({
 
       {modo === "compras" && (
         <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-lk-muted text-sm">
+              Comprou um insumo? Lance o pedido aqui; quando chegar, dê entrada pelo
+              &quot;Receber&quot; do pedido.
+            </p>
+            <button type="button" className={btn("primary")} onClick={() => novoPedido("", [])}>
+              <ShoppingCart aria-hidden />
+              Novo pedido de compra
+            </button>
+          </div>
           <ComprasKpis data={data} hoje={hoje} />
           {/* ── Estoque de insumos (visão geral, como o MMBE do SAP) ── */}
           <EstoqueGeral data={data} hoje={hoje} onPedir={novoPedido} />
@@ -1614,6 +1625,7 @@ function PedidosCompra({
   return (
     <Secao
       id="pedidos"
+      defaultOpen
       title="Pedidos de compra"
       count={abertos.length}
       aside={
@@ -1627,7 +1639,7 @@ function PedidosCompra({
             />
             mostrar recebidos ({lista.length - abertos.length})
           </label>
-          <button type="button" className={btn("primary", "sm")} onClick={onNovo}>
+          <button type="button" className={btn("secondary", "sm")} onClick={onNovo}>
             <Plus aria-hidden />
             Novo pedido
           </button>

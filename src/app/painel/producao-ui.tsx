@@ -228,7 +228,7 @@ export function Secao({
             {count !== undefined && <span className="text-lk-muted font-normal"> · {count}</span>}
           </button>
         </h2>
-        {open && aside}
+        {aside}
       </div>
       {open && children}
     </section>
