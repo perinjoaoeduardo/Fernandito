@@ -548,9 +548,15 @@ export function planejar(data: ProducaoData, disponivel?: Map<string, number>): 
               ? null
               : receita.colaMl * fatorReceita(i.unidade)
             : i.qtd;
-    // Líquido, lata e envase vão em toda lata envasada (as perdidas também);
-    // embalagem de pack só nos packs montados.
-    const unidades = i.uso === "pack" ? packs : envasadas;
+    // Líquido, lata e envase vão em toda lata envasada (as perdidas também).
+    // Caixa de six pack: 1 a cada 6 latas produzidas, pra cima (2.857 latas =
+    // 477 caixas); se o plano diz quantos packs montar, vale esse número.
+    const unidades =
+      i.uso === "pack"
+        ? data.plano.sixPacks === null
+          ? Math.ceil(envasadas / 6)
+          : packs
+        : envasadas;
     const inteiro = compraInteira(i.unidade);
     if (por === null)
       return {

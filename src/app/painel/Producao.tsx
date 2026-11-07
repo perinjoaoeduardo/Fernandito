@@ -709,10 +709,11 @@ export function Producao({
             </div>
             <p className={HINT}>
               Latas envasadas = litros ÷ 0,35; boas = envasadas menos a perda no envase. Precisa =
-              consumo do lote + a perda do insumo. Comprar = o que falta depois do estoque, subindo
-              até o pedido mínimo e o múltiplo do fornecedor principal. Desembolso inclui o frete.
-              Prazo = o insumo a comprar que mais demora + o envase/serviço. Disponível = estoque
-              menos o que os lotes em andamento já reservaram.
+              consumo do lote + a perda do insumo (caixa de six pack: 1 a cada 6 latas envasadas,
+              pra cima, ou o número de packs do plano). Comprar = o que falta depois do estoque,
+              subindo até o pedido mínimo e o múltiplo do fornecedor principal. Desembolso inclui o
+              frete. Prazo = o insumo a comprar que mais demora + o envase/serviço. Disponível =
+              estoque menos o que os lotes em andamento já reservaram.
             </p>
             <div className="border-lk-border -mx-5 -mb-5 flex flex-wrap items-center justify-between gap-3 border-t px-5 py-4">
               <p className="text-lk-muted text-sm">
