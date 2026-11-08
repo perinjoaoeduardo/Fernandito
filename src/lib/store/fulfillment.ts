@@ -291,7 +291,9 @@ async function stepLabel(order: StoredOrder, f: Fulfillment) {
       const msg = (error as Error).message;
       const human = /saldo|balance|insufficient|insuficiente/i.test(msg)
         ? "Sem saldo no Melhor Envio — colocar saldo (a etiqueta sai sozinha depois)"
-        : msg;
+        : /abort|timeout|timed out/i.test(msg)
+          ? "Melhor Envio demorou pra responder (tempo esgotado) — o site tenta de novo sozinho; se não sair, clica em Atualizar agora"
+          : msg;
       if (f.error !== human) await raiseAlert(order.id, human);
       f.error = human;
       await save(order.id, f);

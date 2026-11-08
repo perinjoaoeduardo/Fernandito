@@ -489,7 +489,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     .filter((a) => !refunded.has(a.orderId))
     // "Sem saldo no Melhor Envio" some sozinho quando a etiqueta já saiu.
     .filter((a) => {
-      if (!/sem saldo no melhor envio/i.test(a.problem)) return true;
+      if (!/sem saldo no melhor envio|tempo esgotado/i.test(a.problem)) return true;
       const row = every.find((r) => r.order.id === a.orderId);
       return !(row?.f && !row.f.error && row.f.stage !== "invoice" && row.f.stage !== "label");
     })
