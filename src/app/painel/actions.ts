@@ -7,8 +7,13 @@ import { retryPendingBlingOrders } from "@/lib/bling/orders";
 import { painelAuthed, painelLogin, painelLogout, passwordOk } from "@/lib/painel";
 import { reconcileOpenOrders } from "@/lib/store/checkout";
 import { advanceAllFulfillments, markLocalDelivered, markPosted } from "@/lib/store/fulfillment";
-import { kvSet, rateLimit } from "@/lib/store/kv";
-import { PRODUCAO_KEY, producaoSchema, type ProducaoData } from "@/lib/producao";
+import { kvGet, kvSet, rateLimit } from "@/lib/store/kv";
+import {
+  PRODUCAO_BACKUP_V1,
+  PRODUCAO_KEY,
+  producaoSchema,
+  type ProducaoData,
+} from "@/lib/producao";
 
 export async function entrar(_prev: { error: string } | null, form: FormData) {
   const h = await headers();
@@ -57,7 +62,7 @@ export async function marcarEntregue(form: FormData) {
   redirect(backTo(form));
 }
 
-/** Aba Produção: salva fornecedores/insumos e a receita (cadastro da equipe). */
+/** Aba Produção: salva insumos, fornecedores, receita e plano (cadastro da equipe). */
 export async function salvarProducao(
   data: ProducaoData,
 ): Promise<{ ok: boolean; error?: string; at?: string }> {
@@ -65,6 +70,10 @@ export async function salvarProducao(
   const parsed = producaoSchema.safeParse(data);
   if (!parsed.success) return { ok: false, error: "Algum campo ficou inválido." };
   const at = new Date().toISOString();
+  // 1ª gravação no formato novo: guarda uma cópia do cadastro antigo.
+  const before = await kvGet(PRODUCAO_KEY).catch(() => null);
+  if (before && !before.includes('"versao":2'))
+    await kvSet(PRODUCAO_BACKUP_V1, before).catch(() => {});
   await kvSet(PRODUCAO_KEY, JSON.stringify({ ...parsed.data, atualizadoEm: at }));
   return { ok: true, at };
 }

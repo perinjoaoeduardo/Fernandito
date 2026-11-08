@@ -123,7 +123,7 @@ export const PRODUCTS: Product[] = [
     teaserCta: "Ver o six pack",
     contentsTitle: "O que vem no pack",
     description:
-      "Seis latas de Fernandito 350ml. Fernet y cola gelado, pronto pra abrir e dividir.",
+      "Seis latas de Fernandito 350ml. Fernet y cola para beber tri gelado, pronto pra abrir e dividir.",
     contents: [{ icon: "can", qty: "6", label: "latas 350ml" }],
     // R$ 94,99 (igual ao cadastro no Bling).
     priceCents: 9499,
