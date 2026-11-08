@@ -45,7 +45,28 @@ import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
 import { SubmitButton } from "./SubmitButton";
 import { Producao } from "./Producao";
-import { EXEMPLO, PRODUCAO_KEY, producaoSchema } from "@/lib/producao";
+import {
+  EXEMPLO,
+  PRODUCAO_BACKUP_V1,
+  PRODUCAO_KEY,
+  aplicarImportacoes,
+  disponiveis,
+  hojeBR,
+  lerProducao,
+  planejar,
+  resumo,
+  totaisLote,
+  totalPedido,
+} from "@/lib/producao";
+import {
+  ClientesView,
+  LotesAVenda,
+  PERIODOS,
+  ResultadosView,
+  VendasView,
+  type Periodo,
+  type Venda,
+} from "./views";
 import {
   Badge,
   CARD,
@@ -228,7 +249,19 @@ const FILTER_GROUPS = [
   { title: "Atenção", keys: ["olho", "estornados"] },
 ] as const;
 
-const ABAS: Aba[] = ["pedidos", "estoque", "fora", "lista", "producao"];
+const ABAS: Aba[] = [
+  "pedidos",
+  "vendas",
+  "clientes",
+  "estoque",
+  "producao",
+  "compras",
+  "resultados",
+];
+// Endereços antigos continuam abrindo a aba certa.
+const ABA_ANTIGA: Record<string, Aba> = { fora: "vendas", lista: "clientes" };
+// Abas que leem o cadastro de produção (lotes, insumos, compras).
+const COM_PRODUCAO: Aba[] = ["producao", "compras", "estoque", "resultados"];
 
 /** "Bom dia, equipe / sexta-feira, 6 de novembro" (hora de Brasília). */
 function greeting() {
@@ -283,7 +316,11 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   }
 
   const sp = await props.searchParams;
-  const aba: Aba = ABAS.includes(sp.aba as Aba) ? (sp.aba as Aba) : "pedidos";
+  const abaPedida = typeof sp.aba === "string" ? (ABA_ANTIGA[sp.aba] ?? sp.aba) : "pedidos";
+  const aba: Aba = ABAS.includes(abaPedida as Aba) ? (abaPedida as Aba) : "pedidos";
+  const periodo: Periodo = PERIODOS.some(([k]) => k === sp.periodo)
+    ? (sp.periodo as Periodo)
+    : "tudo";
   const raw = sp.ver;
   const q = (typeof sp.q === "string" ? sp.q : "").trim().slice(0, 80);
   const page = Math.max(1, Number.parseInt(String(sp.p ?? "1"), 10) || 1);
@@ -425,17 +462,24 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const manualRevenue = manualSales
     .filter((m) => NFE_OK.includes(m.situacao))
     .reduce((sum, m) => sum + m.totalCents, 0);
-  const units = (list: typeof bonus) =>
-    list.reduce((sum, m) => sum + m.itens.reduce((n, i) => n + i.quantidade, 0), 0);
 
   const waitlist = (await listLeads().catch(() => [])).filter((l) => l.form === "aviso");
   // Aba Produção: cadastro salvo no banco (sem nada salvo → exemplos).
   const producao = await (async () => {
-    if (aba !== "producao") return EXEMPLO;
+    if (!COM_PRODUCAO.includes(aba)) return EXEMPLO;
     try {
       const raw = await kvGet(PRODUCAO_KEY);
-      const parsed = raw ? producaoSchema.safeParse(JSON.parse(raw)) : null;
-      return parsed?.success ? parsed.data : EXEMPLO;
+      const dados = (raw && lerProducao(JSON.parse(raw))) || EXEMPLO;
+      // Importações de dados (rodam uma vez só e ficam salvas no banco).
+      const importado = aplicarImportacoes(dados);
+      if (!importado) return dados;
+      // Falhar ao salvar não pode cair nos exemplos: mostra o importado mesmo assim.
+      if (raw && !raw.includes('"versao":2')) await kvSet(PRODUCAO_BACKUP_V1, raw).catch(() => {});
+      await kvSet(
+        PRODUCAO_KEY,
+        JSON.stringify({ ...importado, atualizadoEm: new Date().toISOString() }),
+      ).catch(() => {});
+      return importado;
     } catch {
       return EXEMPLO;
     }
@@ -464,6 +508,55 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const ticket = salesCount ? Math.round(totalRevenue / salesCount) : 0;
   const latasSold = latasOf(soldUnits);
   const latasGift = latasOf(giftUnits);
+
+  // Todas as vendas num formato só (abas Vendas, Clientes e Resultados).
+  const hoje = hojeBR();
+  const diaDe = (iso: string) =>
+    new Date(new Date(iso).getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const vendas: Venda[] = [
+    ...sitePaid.map(({ order: o }) => ({
+      id: o.id,
+      data: diaDe(o.paidAt ?? o.createdAt),
+      canal: "site" as const,
+      cliente: o.customer.name,
+      contato: o.customer.phone || o.customer.email,
+      cidade: o.address.city,
+      uf: o.address.uf,
+      itens: o.items.map((i) => ({
+        sku: i.sku,
+        nome: i.name,
+        qtd: i.qty,
+        valorCents: i.unitPriceCents * i.qty,
+      })),
+      totalCents: o.totalCents,
+      freteCents: o.shipping.priceCents,
+      pendente: false,
+      marketing: o.marketingOptIn,
+      ref: `#${o.id}`,
+      link: `/pedido/${o.id}/confirmado`,
+    })),
+    ...(manual?.sales ?? []).map((m) => ({
+      id: `nf-${m.id}`,
+      data: m.data ? m.data.slice(0, 10) : hoje,
+      canal: m.tipo === "bonificacao" ? ("bonificacao" as const) : ("manual" as const),
+      cliente: m.cliente,
+      contato: "",
+      cidade: m.cidade,
+      uf: m.uf,
+      itens: m.itens.map((i) => ({
+        sku: i.codigo,
+        nome: i.descricao,
+        qtd: i.quantidade,
+        valorCents: Math.round(i.quantidade * i.valor * 100),
+      })),
+      totalCents: m.totalCents,
+      freteCents: 0,
+      pendente: !NFE_OK.includes(m.situacao),
+      marketing: false,
+      ref: `NF ${m.numero}`,
+      link: m.danfeUrl,
+    })),
+  ];
 
   const [stockMap, alertsRaw, siteLeft] = await Promise.all([
     cachedBlingStock(ESTOQUE.map((p) => p.sku)),
@@ -831,29 +924,44 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     </>
   );
 
+  // Resultados: custo por lata = média real dos lotes concluídos (pelas latas
+  // boas); sem lote com custo, o planejado da calculadora.
+  const lotesConcluidos = producao.lotes.filter(
+    (l) => l.etapa === "concluido" && (l.latasBoas ?? 0) > 0,
+  );
+  const comCusto = lotesConcluidos
+    .map((l) => ({ l, c: totaisLote(l).lataReal }))
+    .filter((x): x is { l: (typeof lotesConcluidos)[number]; c: number } => (x.c ?? 0) > 0);
+  const plano = resumo(producao, planejar(producao, disponiveis(producao)));
+  const latasComCusto = comCusto.reduce((n, x) => n + (x.l.latasBoas ?? 0), 0);
+  const custoLata = latasComCusto
+    ? Math.round(comCusto.reduce((n, x) => n + x.c * (x.l.latasBoas ?? 0), 0) / latasComCusto)
+    : plano.lataCents;
+  const custoLataBase = latasComCusto
+    ? `média real de ${comCusto.map((x) => x.l.codigo).join(", ")}`
+    : "planejado na calculadora";
+  const LATAS_SKU = Object.fromEntries(ESTOQUE.map((p) => [p.sku, p.latas]));
+
   const estoqueView = (
     <>
-      <PageHeader eyebrow={greeting()} title="Estoque e vendas" actions={actions} />
+      <PageHeader eyebrow={greeting()} title="Estoque de produtos" actions={actions} />
       <KpiStrip cols={4}>
-        <Tile
-          icon={ShoppingBag}
-          label="Vendas"
-          value={salesCount}
-          note={`${sitePaid.length} no site · ${manualOk.length} manuais`}
-        />
-        <Tile
-          icon={Banknote}
-          label="Faturado"
-          value={brl(totalRevenue)}
-          note={`site ${brl(revenue)} · manual ${brl(manualRevenue)}`}
-        />
-        <Tile icon={Receipt} label="Ticket médio" value={brl(ticket)} note="Faturado ÷ vendas" />
-        <Tile
-          icon={CupSoda}
-          label="Latas vendidas"
-          value={latasSold}
-          note={latasGift ? `+${latasGift} em brindes` : "Kit = 2 latas · six pack = 6"}
-        />
+        {ESTOQUE.map((p) => {
+          const saldo = stockMap?.get(p.sku) ?? null;
+          return (
+            <Tile
+              key={p.sku}
+              icon={p.sku === "FERN-PRESSKIT" ? Gift : p.sku === "FERN-350" ? CupSoda : Boxes}
+              label={p.name}
+              value={saldo === null ? "—" : saldo}
+              note={
+                saldo === null
+                  ? "Bling sem resposta"
+                  : `${saldo === 1 ? p.unit[0] : p.unit[1]} no Bling`
+              }
+            />
+          );
+        })}
       </KpiStrip>
 
       <section className="flex flex-col gap-4">
@@ -933,203 +1041,89 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           saldo é o do Bling (atualiza a cada minuto).
         </p>
       </section>
-    </>
-  );
-
-  const foraView = (
-    <>
-      <PageHeader eyebrow="Lidas das notas do Bling" title="Vendas manuais" actions={actions} />
-      <KpiStrip cols={3}>
-        <Tile
-          icon={ShoppingBag}
-          label="Vendas manuais"
-          value={manualSales.length}
-          note={brl(manualRevenue)}
-        />
-        <Tile
-          icon={Gift}
-          label="Bonificações"
-          value={bonus.length}
-          tone="review"
-          note={`${units(bonus)} itens`}
-        />
-        <Tile
-          icon={Clock}
-          label="Notas pendentes"
-          value={(manual?.sales ?? []).filter((m) => !NFE_OK.includes(m.situacao)).length}
-          tone="hold"
-          note="Ainda sem autorização"
-        />
-      </KpiStrip>
-      {manual?.error && (
-        <p className="text-lk-fail text-xs">Última conferência falhou: {manual.error}</p>
-      )}
-      <section className="flex flex-col gap-4">
-        <SectionTitle title="Notas" count={manual?.sales.length ?? 0} />
-        {(manual?.sales.length ?? 0) === 0 ? (
-          <Empty>Nenhuma nota fora do site nos últimos 6 meses.</Empty>
-        ) : (
-          <div className={`${TABLE_WRAP} overflow-x-auto`}>
-            <table className="w-full min-w-[720px] text-sm">
-              <thead>
-                <tr>
-                  <th className={`${TH} w-[30%]`}>Cliente</th>
-                  <th className={TH}>Itens</th>
-                  <th className={TH}>Tipo</th>
-                  <th className={TH}>Nota</th>
-                  <th className={`${TH} text-right`}>Valor</th>
-                </tr>
-              </thead>
-              <tbody className="divide-lk-border divide-y">
-                {manual!.sales.map((m) => (
-                  <tr key={m.id} className="hover:bg-lk-paper/60">
-                    <td className={TD}>
-                      <p className="font-semibold">{m.cliente || "—"}</p>
-                      <p className="text-lk-muted text-xs">
-                        {m.cidade ? `${m.cidade}/${m.uf} · ` : ""}
-                        {m.data ? when(m.data.replace(" ", "T") + "-03:00") : "—"}
-                      </p>
-                      {m.nfPara && (
-                        <p className="text-lk-ink3 text-xs">Nota em nome de {m.nfPara}</p>
-                      )}
-                    </td>
-                    <td className={`${TD} text-lk-muted`}>
-                      {m.itens.map((i) => `${i.quantidade}x ${i.descricao}`).join(" + ")}
-                    </td>
-                    <td className={TD}>
-                      <div className="flex flex-wrap gap-1.5">
-                        {m.tipo === "bonificacao" ? (
-                          <Badge tone="review" icon={Gift}>
-                            Bonificação
-                          </Badge>
-                        ) : (
-                          <Badge tone="pass" icon={ShoppingBag}>
-                            Venda manual
-                          </Badge>
-                        )}
-                        {!NFE_OK.includes(m.situacao) && (
-                          <Badge tone="hold" icon={Clock}>
-                            Nota pendente
-                          </Badge>
-                        )}
-                      </div>
-                    </td>
-                    <td className={TD}>
-                      {m.danfeUrl ? (
-                        <a className={LINK} href={m.danfeUrl} {...ext}>
-                          NF {m.numero}
-                        </a>
-                      ) : (
-                        <span className="text-lk-muted">NF {m.numero}</span>
-                      )}
-                    </td>
-                    <td className={`${TD} text-right font-medium`}>{brl(m.totalCents)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-    </>
-  );
-
-  // Lista de espera: 25 por página, mais novo primeiro.
-  const LIST_PAGE = 25;
-  const listPages = Math.max(1, Math.ceil(waitlist.length / LIST_PAGE));
-  const listCur = Math.min(listPages, Math.max(1, Number.parseInt(String(sp.lp ?? "1"), 10) || 1));
-  const listShown = [...waitlist]
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .slice((listCur - 1) * LIST_PAGE, listCur * LIST_PAGE);
-  const listHref = (n: number) => (n > 1 ? `/painel?aba=lista&lp=${n}` : "/painel?aba=lista");
-
-  const listaView = (
-    <>
-      <PageHeader
-        eyebrow="Quem pediu aviso do próximo lote"
-        title="Lista de espera"
-        actions={actions}
+      <LotesAVenda
+        lotes={lotesConcluidos.map((l) => ({
+          codigo: l.codigo,
+          latasBoas: l.latasBoas ?? 0,
+          envaseEm: l.envaseEm,
+          validade: l.validade,
+          lataCents: totaisLote(l).lataReal,
+        }))}
+        latasEmEstoque={stockMap?.get("FERN-350") ?? null}
+        hoje={hoje}
       />
-      <section className="flex flex-col gap-4">
-        <SectionTitle title="Contatos" count={waitlist.length} />
-        {waitlist.length === 0 ? (
-          <Empty>Ninguém na lista ainda.</Empty>
-        ) : (
-          <div className={`${TABLE_WRAP} overflow-x-auto`}>
-            <table className="w-full min-w-[560px] text-sm">
-              <thead>
-                <tr>
-                  <th className={TH}>Nome</th>
-                  <th className={TH}>Contato</th>
-                  <th className={TH}>Interesse</th>
-                  <th className={`${TH} text-right`}>Quando</th>
-                </tr>
-              </thead>
-              <tbody className="divide-lk-border divide-y">
-                {listShown.map((l) => {
-                  const c = l.fields.contato ?? "";
-                  const link = c.includes("@") ? `mailto:${c}` : waLink(c);
-                  return (
-                    <tr key={l.id} className="hover:bg-lk-paper/60">
-                      <td className={`${TD} font-semibold`}>{l.fields.nome || "—"}</td>
-                      <td className={TD}>
-                        <a className={LINK} href={link} {...ext}>
-                          {c.includes("@") ? c : phone(c)}
-                        </a>
-                      </td>
-                      <td className={`${TD} text-lk-muted`}>
-                        {l.fields.produto ? <Code>{l.fields.produto}</Code> : "Próximo lote"}
-                      </td>
-                      <td className={`${TD} text-lk-muted text-right`}>{when(l.createdAt)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {listPages > 1 && (
-          <nav aria-label="Páginas" className="flex items-center justify-between gap-3 text-sm">
-            {listCur > 1 ? (
-              <Link href={listHref(listCur - 1)} className={btn("secondary")}>
-                ← Anterior
-              </Link>
-            ) : (
-              <span />
-            )}
-            <span className="text-lk-muted">
-              {(listCur - 1) * LIST_PAGE + 1}–{Math.min(listCur * LIST_PAGE, waitlist.length)} de{" "}
-              {waitlist.length} · página {listCur} de {listPages}
-            </span>
-            {listCur < listPages ? (
-              <Link href={listHref(listCur + 1)} className={btn("secondary")}>
-                Próxima →
-              </Link>
-            ) : (
-              <span />
-            )}
-          </nav>
-        )}
-      </section>
     </>
   );
 
   return (
-    <Frame
-      aba={aba}
-      counts={{ pedidos: toPrint.length + toDeliver.length + stuck.length, lista: waitlist.length }}
-    >
-      {aba === "producao" ? (
+    <Frame aba={aba} counts={{ pedidos: toPrint.length + toDeliver.length + stuck.length }}>
+      {aba === "producao" || aba === "compras" ? (
         <>
-          <PageHeader eyebrow="Fornecedores, custos e prazos" title="Produção" actions={actions} />
-          <Producao initial={producao} />
+          <PageHeader
+            eyebrow={
+              aba === "producao"
+                ? "Lotes, planejamento e receita"
+                : "Estoque de insumos, pedidos de compra e fornecedores"
+            }
+            title={aba === "producao" ? "Produção" : "Compras e insumos"}
+            actions={actions}
+          />
+          <Producao key={aba} initial={producao} modo={aba} />
         </>
       ) : aba === "estoque" ? (
         estoqueView
-      ) : aba === "fora" ? (
-        foraView
-      ) : aba === "lista" ? (
-        listaView
+      ) : aba === "vendas" ? (
+        <VendasView
+          vendas={vendas}
+          periodo={periodo}
+          hoje={hoje}
+          latas={LATAS_SKU}
+          actions={actions}
+          pendentesNotas={(manual?.sales ?? []).filter((m) => !NFE_OK.includes(m.situacao)).length}
+          erroNotas={manual?.error ?? null}
+        />
+      ) : aba === "clientes" ? (
+        <ClientesView
+          vendas={vendas}
+          espera={waitlist.map((l) => ({
+            id: l.id,
+            nome: l.fields.nome ?? "",
+            contato: l.fields.contato ?? "",
+            produto: l.fields.produto ?? "",
+            quando: l.createdAt,
+          }))}
+          pagina={Number.parseInt(String(sp.lp ?? "1"), 10) || 1}
+          actions={actions}
+          latas={LATAS_SKU}
+        />
+      ) : aba === "resultados" ? (
+        <ResultadosView
+          vendas={vendas}
+          compras={producao.pedidos
+            .filter((pc) => pc.data)
+            .map((pc) => ({ data: pc.data!, totalCents: totalPedido(pc) }))}
+          periodo={periodo}
+          hoje={hoje}
+          latas={LATAS_SKU}
+          custoLata={custoLata}
+          custoLataBase={custoLataBase}
+          embalagemPackCents={plano.embalagemPackCents}
+          valorInsumos={producao.insumos.reduce((n, i) => n + i.valorEstoqueCents, 0)}
+          latasEmEstoque={stockMap?.get("FERN-350") ?? null}
+          margens={[
+            {
+              nome: "Lata 350ml",
+              preco: ESTOQUE.find((p) => p.sku === "FERN-350")!.priceCents,
+              custo: custoLata,
+            },
+            {
+              nome: "Six pack",
+              preco: ESTOQUE.find((p) => p.sku === "FERN-350-6")!.priceCents,
+              custo: custoLata === null ? null : custoLata * 6 + plano.embalagemPackCents,
+            },
+          ]}
+          actions={actions}
+        />
       ) : (
         pedidosView
       )}
