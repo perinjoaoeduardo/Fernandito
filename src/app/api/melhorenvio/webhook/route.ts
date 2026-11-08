@@ -11,6 +11,8 @@ import { kvSet } from "@/lib/store/kv";
  * base64) e só usa o aviso pra saber QUAL pedido conferir — o estado real é
  * sempre lido de novo na API do Melhor Envio.
  */
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   const raw = await request.text();
   const secret = process.env.MELHOR_ENVIO_SECRET?.trim() || "";

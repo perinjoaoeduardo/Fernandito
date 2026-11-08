@@ -19,6 +19,8 @@ function authorized(header: string | null, secret: string | undefined) {
   return expected.length === received.length && timingSafeEqual(expected, received);
 }
 
+export const maxDuration = 60;
+
 export async function GET(request: Request) {
   const manual = isAdmin(new URL(request.url).searchParams.get("key"));
   if (!manual && !authorized(request.headers.get("authorization"), process.env.CRON_SECRET))

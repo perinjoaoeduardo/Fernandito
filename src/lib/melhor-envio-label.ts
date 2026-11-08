@@ -39,7 +39,7 @@ export class MeError extends Error {
   }
 }
 
-async function me<T>(path: string, body?: unknown): Promise<T> {
+async function me<T>(path: string, body?: unknown, timeoutMs = 20000): Promise<T> {
   const token = await meToken();
   if (!token) throw new MeError("Melhor Envio sem token (autorizar em /api/melhorenvio/connect)");
   const response = await fetch(`${BASE}/api/v2/me${path}`, {
@@ -52,7 +52,7 @@ async function me<T>(path: string, body?: unknown): Promise<T> {
     },
     body: body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
-    signal: AbortSignal.timeout(20000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   const text = await response.text();
   const data = text ? (JSON.parse(text) as unknown) : null;
@@ -280,7 +280,8 @@ export async function addToCart(input: LabelInput): Promise<string> {
 
 /** Paga com o saldo da conta (falta saldo → erro do Melhor Envio). */
 export async function payWithBalance(id: string) {
-  await me("/shipment/checkout", { orders: [id] });
+  // Pagar e gerar às vezes passam de 20 s no Melhor Envio: espera até 55 s.
+  await me("/shipment/checkout", { orders: [id] }, 55000);
 }
 
 /** Gera a etiqueta (sai o código de rastreio). */
@@ -289,6 +290,7 @@ export async function generateLabel(id: string) {
   const result = await me<Record<string, { status?: boolean; message?: string }> | null>(
     "/shipment/generate",
     { orders: [id] },
+    55000,
   );
   const item = result?.[id];
   if (item && item.status === false) {
