@@ -253,6 +253,28 @@ const c1 = await buy({ note: RECADO });
   await diag(true);
   check("C3d 'received' no Melhor Envio → 'A caminho'", (await envio(id))?.etapa === "posted");
 }
+// C3e erro velho gravado (ex.: tempo esgotado numa conferência antiga) some
+// quando a conferência seguinte dá certo (pedido já postado).
+{
+  const id = await buy();
+  await until(id, ["ready", "local"]);
+  const ship = (await ctl(ME)).orders.find((o) => o.tags.some((t) => t.tag === id));
+  await ctl(ME, { set: { id: ship.id, status: "posted" } });
+  await diag(true);
+  const port = process.env.REDIS_PORT ?? 6390;
+  const raw = execSync(`redis-cli -p ${port} get fulfill:${id}`).toString().trim();
+  const f = JSON.parse(raw);
+  f.error = "The operation was aborted due to timeout";
+  execSync(`redis-cli -p ${port} set fulfill:${id} '${JSON.stringify(f)}'`);
+  check("C3e erro velho gravado aparece", (await envio(id))?.erro?.includes("aborted") === true);
+  await diag(true);
+  const after = await envio(id);
+  check(
+    "C3e conferiu ok → erro velho some",
+    !after?.erro && after?.etapa === "posted",
+    JSON.stringify(after?.erro),
+  );
+}
 // C4 sem saldo no Melhor Envio
 {
   await ctl(ME, { flags: { noBalance: true } });
