@@ -35,6 +35,8 @@ export type StoredOrder = {
   marketingOptIn: boolean;
   /** Recado que a pessoa deixou no checkout (presente, cartinha…). */
   note?: string;
+  /** Envio fora do site (bonificação / venda manual): ver src/lib/store/avulsos.ts. */
+  origem?: "bonificacao" | "manual";
   /** Versões dos Termos e da Política aceitas (frontmatter dos .md). */
   termsVersion?: string;
   privacyVersion?: string;

@@ -134,6 +134,7 @@ export function VendasView({
   actions,
   pendentesNotas,
   erroNotas,
+  semTopo = false,
 }: {
   vendas: Venda[];
   periodo: Periodo;
@@ -142,6 +143,8 @@ export function VendasView({
   actions: React.ReactNode;
   pendentesNotas: number;
   erroNotas: string | null;
+  /** Embutida na aba Vendas (depois da tabela de pedidos): sem título nem os 4 números. */
+  semTopo?: boolean;
 }) {
   const iv = intervalo(periodo, hoje);
   const doPeriodo = vendas.filter((v) => noPeriodo(v.data, iv));
@@ -184,34 +187,42 @@ export function VendasView({
 
   return (
     <>
-      <PageHeader eyebrow="Site, vendas manuais e bonificações" title="Vendas" actions={actions} />
-      <PeriodoNav aba="vendas" periodo={periodo} />
-      <KpiStrip cols={4}>
-        <Tile
-          icon={Banknote}
-          label="Faturado"
-          value={brl(faturado)}
-          note={`site ${brl(soma(site))} · manual ${brl(soma(manual))}`}
+      {!semTopo && (
+        <PageHeader
+          eyebrow="Site, vendas manuais e bonificações"
+          title="Vendas"
+          actions={actions}
         />
-        <Tile
-          icon={ShoppingBag}
-          label="Vendas"
-          value={pagas.length}
-          note={`${site.length} no site · ${manual.length} manuais`}
-        />
-        <Tile
-          icon={Receipt}
-          label="Ticket médio"
-          value={brl(ticket)}
-          note={freteCobrado ? `frete cobrado no site ${brl(freteCobrado)}` : "Faturado ÷ vendas"}
-        />
-        <Tile
-          icon={CupSoda}
-          label="Latas vendidas"
-          value={num(latasVendidas)}
-          note={latasBrinde ? `+${num(latasBrinde)} em brindes` : "Kit = 2 latas · six pack = 6"}
-        />
-      </KpiStrip>
+      )}
+      <PeriodoNav aba="pedidos" periodo={periodo} />
+      {!semTopo && (
+        <KpiStrip cols={4}>
+          <Tile
+            icon={Banknote}
+            label="Faturado"
+            value={brl(faturado)}
+            note={`site ${brl(soma(site))} · manual ${brl(soma(manual))}`}
+          />
+          <Tile
+            icon={ShoppingBag}
+            label="Vendas"
+            value={pagas.length}
+            note={`${site.length} no site · ${manual.length} manuais`}
+          />
+          <Tile
+            icon={Receipt}
+            label="Ticket médio"
+            value={brl(ticket)}
+            note={freteCobrado ? `frete cobrado no site ${brl(freteCobrado)}` : "Faturado ÷ vendas"}
+          />
+          <Tile
+            icon={CupSoda}
+            label="Latas vendidas"
+            value={num(latasVendidas)}
+            note={latasBrinde ? `+${num(latasBrinde)} em brindes` : "Kit = 2 latas · six pack = 6"}
+          />
+        </KpiStrip>
+      )}
       {(pendentesNotas > 0 || erroNotas) && (
         <p className="text-lk-muted text-xs">
           {pendentesNotas > 0 &&
