@@ -304,67 +304,69 @@ export function VendasView({
         </section>
       )}
 
-      <section className="flex flex-col gap-4">
-        <SectionTitle title="Todas as vendas do período" count={lista.length} />
-        {lista.length === 0 ? (
-          <Empty>Nenhuma venda no período.</Empty>
-        ) : (
-          <div className={`${TABLE_WRAP} overflow-x-auto`}>
-            <table className="w-full min-w-[760px] text-sm">
-              <thead>
-                <tr>
-                  <th className={TH}>Data</th>
-                  <th className={`${TH} w-[28%]`}>Cliente</th>
-                  <th className={TH}>Itens</th>
-                  <th className={TH}>Canal</th>
-                  <th className={`${TH} text-right`}>Valor</th>
-                </tr>
-              </thead>
-              <tbody className="divide-lk-border divide-y">
-                {lista.map((v) => {
-                  const c = CANAL[v.canal];
-                  return (
-                    <tr key={v.id} className="hover:bg-lk-paper/60">
-                      <td className={`${TD} whitespace-nowrap tabular-nums`}>{diaBR(v.data)}</td>
-                      <td className={TD}>
-                        <p className="font-semibold">{v.cliente || "—"}</p>
-                        <p className="text-lk-muted text-xs">
-                          {v.cidade ? `${v.cidade}/${v.uf}` : ""}
-                        </p>
-                      </td>
-                      <td className={`${TD} text-lk-muted`}>
-                        {v.itens.map((i) => `${num(i.qtd)}x ${i.nome}`).join(" + ")}
-                      </td>
-                      <td className={TD}>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <Badge tone={c.tone}>{c.label}</Badge>
-                          {v.pendente && <Badge tone="hold">Nota pendente</Badge>}
-                        </div>
-                        <p className="mt-1 text-xs">
-                          {v.link ? (
-                            <a className={LINK} href={v.link} {...ext}>
-                              {v.ref}
-                            </a>
-                          ) : (
-                            <span className="text-lk-muted">{v.ref}</span>
-                          )}
-                        </p>
-                      </td>
-                      <td className={`${TD} text-right font-medium tabular-nums`}>
-                        {brl(v.totalCents)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <p className="text-lk-ink3 text-xs">
-          Faturado = pedidos pagos do site (com o frete cobrado) + vendas manuais com nota
-          autorizada. Bonificações não entram no faturado. Receita por produto é sem o frete.
-        </p>
-      </section>
+      {!semTopo && (
+        <section className="flex flex-col gap-4">
+          <SectionTitle title="Todas as vendas do período" count={lista.length} />
+          {lista.length === 0 ? (
+            <Empty>Nenhuma venda no período.</Empty>
+          ) : (
+            <div className={`${TABLE_WRAP} overflow-x-auto`}>
+              <table className="w-full min-w-[760px] text-sm">
+                <thead>
+                  <tr>
+                    <th className={TH}>Data</th>
+                    <th className={`${TH} w-[28%]`}>Cliente</th>
+                    <th className={TH}>Itens</th>
+                    <th className={TH}>Canal</th>
+                    <th className={`${TH} text-right`}>Valor</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-lk-border divide-y">
+                  {lista.map((v) => {
+                    const c = CANAL[v.canal];
+                    return (
+                      <tr key={v.id} className="hover:bg-lk-paper/60">
+                        <td className={`${TD} whitespace-nowrap tabular-nums`}>{diaBR(v.data)}</td>
+                        <td className={TD}>
+                          <p className="font-semibold">{v.cliente || "—"}</p>
+                          <p className="text-lk-muted text-xs">
+                            {v.cidade ? `${v.cidade}/${v.uf}` : ""}
+                          </p>
+                        </td>
+                        <td className={`${TD} text-lk-muted`}>
+                          {v.itens.map((i) => `${num(i.qtd)}x ${i.nome}`).join(" + ")}
+                        </td>
+                        <td className={TD}>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <Badge tone={c.tone}>{c.label}</Badge>
+                            {v.pendente && <Badge tone="hold">Nota pendente</Badge>}
+                          </div>
+                          <p className="mt-1 text-xs">
+                            {v.link ? (
+                              <a className={LINK} href={v.link} {...ext}>
+                                {v.ref}
+                              </a>
+                            ) : (
+                              <span className="text-lk-muted">{v.ref}</span>
+                            )}
+                          </p>
+                        </td>
+                        <td className={`${TD} text-right font-medium tabular-nums`}>
+                          {brl(v.totalCents)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="text-lk-ink3 text-xs">
+            Faturado = pedidos pagos do site (com o frete cobrado) + vendas manuais com nota
+            autorizada. Bonificações não entram no faturado. Receita por produto é sem o frete.
+          </p>
+        </section>
+      )}
     </>
   );
 }
