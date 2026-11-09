@@ -551,14 +551,9 @@ export function planejar(data: ProducaoData, disponivel?: Map<string, number>): 
               : receita.colaMl * fatorReceita(i.unidade)
             : i.qtd;
     // Líquido, lata e envase vão em toda lata envasada (as perdidas também).
-    // Caixa de six pack: 1 a cada 6 latas produzidas, pra cima (2.857 latas =
-    // 477 caixas); se o plano diz quantos packs montar, vale esse número.
-    const unidades =
-      i.uso === "pack"
-        ? data.plano.sixPacks === null
-          ? Math.ceil(envasadas / 6)
-          : packs
-        : envasadas;
+    // Caixa de six pack: uma por six pack montado (latas boas ÷ 6, ou o
+    // número do plano), o mesmo número que o lote mostra.
+    const unidades = i.uso === "pack" ? packs : envasadas;
     const inteiro = compraInteira(i.unidade);
     if (por === null)
       return {
@@ -1731,6 +1726,39 @@ export function pedidoBuccoL001(data: ProducaoData): ProducaoData | null {
 
 const num0 = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
 
+const IMPORT_CAIXAS = "caixas-por-sixpack-2026-11";
+
+/** Insumo que é a caixa do six pack (pelo nome). */
+const ehCaixaPack = (i: Insumo) =>
+  /caixa/.test(semAcento(i.insumo)) && /(six|6)\s*-?\s*pack/.test(semAcento(i.insumo));
+
+/**
+ * Caixa do six pack: uma por six pack. Acerta o cadastro (se a caixa
+ * estava como "quantidade por lata", vira "1 por six pack") e o consumo
+ * de caixa dos lotes abertos (= six packs do lote × caixas por pack).
+ */
+export function corrigirCaixas(data: ProducaoData): ProducaoData | null {
+  if (data.importacoes.includes(IMPORT_CAIXAS)) return null;
+  const insumos = data.insumos.map((i) =>
+    ehCaixaPack(i) && i.uso !== "pack" ? { ...i, uso: "pack" as const, qtd: 1 } : i,
+  );
+  const packIds = new Map(insumos.filter((i) => i.uso === "pack").map((i) => [i.id, i]));
+  const lotes = data.lotes.map((l) =>
+    loteAberto(l)
+      ? {
+          ...l,
+          itens: l.itens.map((it) => {
+            const i = packIds.get(it.insumoId);
+            if (!i) return it;
+            const precisa = Math.ceil(l.packs * i.qtd * (1 + i.perdaPct / 100) - 1e-9);
+            return { ...it, uso: "pack" as const, precisa };
+          }),
+        }
+      : l,
+  );
+  return { ...data, insumos, lotes, importacoes: [...data.importacoes, IMPORT_CAIXAS] };
+}
+
 /** Normaliza e roda as importações que faltam. `null` = nada mudou. */
 export function aplicarImportacoes(data: ProducaoData): ProducaoData | null {
   let atual = normalizar(data);
@@ -1746,6 +1774,7 @@ export function aplicarImportacoes(data: ProducaoData): ProducaoData | null {
     receberFernetPendente,
     entrarFernetLegado,
     pedidoBuccoL001,
+    corrigirCaixas,
   ]) {
     const r = imp(atual);
     if (r) {

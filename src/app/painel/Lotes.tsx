@@ -587,6 +587,7 @@ function TabelaCobertura({
                 <p className="font-semibold">{it.insumo}</p>
                 <p className="text-lk-muted text-xs">
                   em estoque {num(insumo?.estoque ?? 0)} {it.unidade}
+                  {it.uso === "pack" ? ` · ${num(l.packs, 0)} six packs` : ""}
                 </p>
               </td>
               <td className={`${TD} text-right tabular-nums`}>
