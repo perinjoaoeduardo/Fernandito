@@ -389,6 +389,9 @@ async function stepTrack(order: StoredOrder, f: Fulfillment) {
   f.label.postedAt = shipment.postedAt ?? f.label.postedAt ?? null;
   f.label.deliveredAt = shipment.deliveredAt ?? f.label.deliveredAt ?? null;
   f.label.checkedAt = new Date().toISOString();
+  // Conferiu sem erro: o erro gravado (ex.: tempo esgotado numa conferência
+  // anterior) já não vale. Antes ele ficava pra sempre em "Precisa de olho".
+  f.error = null;
   if (shipment.status === "posted") f.stage = "posted";
   if (shipment.status === "delivered") f.stage = "delivered";
   await save(order.id, f);
