@@ -635,9 +635,14 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const kitFree = siteLeft;
   // Alerta só aparece enquanto o pedido ainda está ativo (estornado não conta).
   const refunded = new Set(all.filter((r) => r.order.refundedAt).map((r) => r.order.id));
+  const pedidosDoSite = new Set(ids);
+  const ativos = new Set(every.map((r) => r.order.id));
   const alerts = alertsRaw
     .map((a) => JSON.parse(a) as { at: string; orderId: string; problem: string })
     .filter((a) => !refunded.has(a.orderId))
+    // Pedido do site cancelado ou expirado (ex.: Pix manual que não foi pago):
+    // o alerta dele não pede mais nada.
+    .filter((a) => !pedidosDoSite.has(a.orderId) || ativos.has(a.orderId))
     // "Sem saldo no Melhor Envio" some sozinho quando a etiqueta já saiu.
     .filter((a) => {
       if (!/sem saldo no melhor envio|tempo esgotado|aborted|timeout/i.test(a.problem)) return true;

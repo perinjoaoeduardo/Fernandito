@@ -356,6 +356,22 @@ const approve = async (orderId, extra = {}) =>
   await fetch(`${B}/api/loja/confirmar?key=${KEY}&pedido=${id}&acao=cancelar`);
   const after = (await diag()).estoque["FERN-KIT-PRE"].livres;
   check("S16 cancelar Pix manual devolve a unidade", after === before + 1, `${before}→${after}`);
+  // O alerta "virou Pix MANUAL" some do painel depois de cancelar.
+  const { createHmac: hm } = await import("node:crypto");
+  const { createRequire } = await import("node:module");
+  const { chromium } = createRequire(import.meta.url)("playwright");
+  const exp = String(Date.now() + 3600e3);
+  const value = `${exp}.${hm("sha256", KEY).update(`painel-v2.${exp}`).digest("hex")}`;
+  const browser = await chromium.launch();
+  const ctx = await browser.newContext();
+  await ctx.addCookies([{ name: "fernandito_painel", value, url: `${B}/painel` }]);
+  const page = await ctx.newPage();
+  // Sem consultar /api/estoque (guarda 15 s e atrapalharia o S17).
+  await page.route("**/api/estoque**", (r) => r.abort());
+  await page.goto(`${B}/painel`, { waitUntil: "networkidle" });
+  const txt = await page.locator("main").innerText();
+  await browser.close();
+  check("S16 alerta do Pix manual some depois de cancelar", !txt.includes(id), id);
 }
 // S17 trava de estoque (teto do site): esgota, recusa, devolve quando o Pix vence
 {
