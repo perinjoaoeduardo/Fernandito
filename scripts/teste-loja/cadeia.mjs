@@ -286,6 +286,59 @@ const c1 = await buy({ note: RECADO });
   await ctl(MP, { flags: { rejectEmail: false } });
   check("C3f MP recusa o e-mail → Pix sai com o e-mail de reserva", ok);
 }
+// C3g envio fora do site (bonificação) comprado pelo link avulso entra na
+// MESMA tabela e no MESMO número "Imprimir e postar" dos pedidos do site.
+// Lido num navegador de verdade (o painel chega em partes, por streaming).
+{
+  const { createRequire } = await import("node:module");
+  const { chromium } = createRequire(import.meta.url)("playwright");
+  const exp = String(Date.now() + 3600e3);
+  const value = `${exp}.${createHmac("sha256", KEY).update(`painel-v2.${exp}`).digest("hex")}`;
+  const browser = await chromium.launch();
+  const ctx = await browser.newContext();
+  await ctx.addCookies([{ name: "fernandito_painel", value, url: `${B}/painel` }]);
+  const page = await ctx.newPage();
+  const painel = async (q = "") => {
+    await page.goto(`${B}/painel${q}`, { waitUntil: "networkidle" });
+    return (await page.locator("main").innerText()).replace(/\s+/g, " ");
+  };
+  const imprimir = (t) => Number(t.match(/Imprimir e postar (\d+)/)?.[1] ?? -1);
+  const antes = imprimir(await painel());
+  const q = new URLSearchParams({
+    key: KEY,
+    acao: "comprar",
+    servico: "me-3",
+    nome: "Teste Bonificacao",
+    rua: "Rua A",
+    numero: "1",
+    bairro: "Centro",
+    cidade: "Campinas",
+    uf: "SP",
+    cep: "13025070",
+    caixa: "24x14x16.5",
+    kg: "2.5",
+    valor: "94.99",
+    item: "Six pack (bonificação)",
+    nf: "43261169252946000141550010000009991456706230",
+    ref: "bonif-teste",
+  });
+  const r = await fetch(`${B}/api/loja/etiqueta-avulsa?${q}`).then((x) => x.json());
+  check("C3g etiqueta avulsa comprada", r.ok === true, JSON.stringify(r).slice(0, 120));
+  const depois = imprimir(await painel());
+  check(
+    "C3g bonificação soma no 'Imprimir e postar' do topo",
+    depois >= antes + 1,
+    `${antes} → ${depois}`,
+  );
+  const filtro = await painel("?ver=imprimir");
+  check(
+    "C3g aparece no filtro Imprimir, com a tag Fora do site",
+    filtro.includes("Teste Bonificacao") && filtro.includes("Fora do site · Bonificação"),
+  );
+  await browser.close();
+  const again = await fetch(`${B}/api/loja/etiqueta-avulsa?${q}`).then((x) => x.json());
+  check("C3g abrir o link de novo não compra outra", again.jaExistia === true);
+}
 // C4 sem saldo no Melhor Envio
 {
   await ctl(ME, { flags: { noBalance: true } });
