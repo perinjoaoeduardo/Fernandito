@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { isAdmin } from "@/lib/leads";
+import { getAvulso, saveAvulso, type Avulso } from "@/lib/store/avulsos";
 import { quoteMelhorEnvio } from "@/lib/melhor-envio";
 import {
   addToCart,
@@ -139,6 +140,46 @@ export async function GET(request: NextRequest) {
     }
     const shipment = await getShipment(id);
     const pdf = await labelPrintUrl(id);
+    // Registra no painel (Pedidos, com a tag "Fora do site"): idempotente, abrir
+    // o link de novo só atualiza e mantém o que já foi marcado (ex.: "Já postei").
+    const old = await getAvulso(ref);
+    const numeroNf = String(Number(nf.slice(25, 34)) || "").padStart(6, "0");
+    const avulso: Avulso = {
+      id: ref,
+      tipo: text("tipo", 12) === "manual" ? "manual" : "bonificacao",
+      nome,
+      cidade,
+      uf,
+      cep,
+      rua,
+      numero,
+      complemento: text("compl", 40),
+      bairro,
+      fone: digits("fone"),
+      item: text("item", 80) || "Press kit Fernandito (brinde)",
+      qtd: qty,
+      valorCents: Math.round(valor * 100),
+      transportadora: text("transp", 40) || old?.transportadora || "Melhor Envio",
+      nf: { chave: nf, numero: numeroNf },
+      meId: id,
+      stage:
+        old?.stage ??
+        (shipment.status === "delivered"
+          ? "delivered"
+          : shipment.status === "posted"
+            ? "posted"
+            : "ready"),
+      status: shipment.status,
+      tracking: shipment.tracking ?? shipment.selfTracking ?? null,
+      trackingUrl: shipment.trackingUrl,
+      printUrl: pdf,
+      postedAt: shipment.postedAt,
+      postedByHand: old?.postedByHand ?? null,
+      checkedAt: new Date().toISOString(),
+      error: null,
+      createdAt: old?.createdAt ?? new Date().toISOString(),
+    };
+    await saveAvulso(avulso);
     return json({
       ok: true,
       ref,

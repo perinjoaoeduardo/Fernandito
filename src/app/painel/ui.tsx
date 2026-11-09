@@ -95,8 +95,7 @@ const GRUPOS: { titulo: string; itens: { aba: Aba; label: string; icon: LucideIc
   {
     titulo: "Vendas",
     itens: [
-      { aba: "pedidos", label: "Pedidos do site", icon: Inbox },
-      { aba: "vendas", label: "Vendas", icon: ShoppingBag },
+      { aba: "pedidos", label: "Vendas", icon: ShoppingBag },
       { aba: "clientes", label: "Clientes", icon: Users },
     ],
   },
