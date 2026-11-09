@@ -25,6 +25,9 @@ import {
  *       PDF e o rastreio. A `ref` (padrão: final da chave da nota) é a tag do
  *       envio: abrir o link de novo NÃO compra outra etiqueta.
  *
+ * Já comprou e quer só registrar no painel (ou a busca não achou)? Acrescenta
+ * `&envio=<código do envio>` (vem na resposta da compra, campo "envio").
+ *
  * Caixa em cm (comprimento x largura x altura), peso em kg, valor declarado em reais.
  */
 export async function GET(request: NextRequest) {
@@ -127,7 +130,10 @@ export async function GET(request: NextRequest) {
 
   try {
     // Já existe com essa tag? Continua dele em vez de comprar outro.
-    const existing = await findShipmentByTag(ref);
+    // `envio=<código>`: usa direto a etiqueta que já existe (a busca por tag às
+    // vezes não acha, e criar outra é recusado: a nota já está ligada à primeira).
+    const envioPedido = text("envio", 60);
+    const existing = envioPedido ? await getShipment(envioPedido) : await findShipmentByTag(ref);
     const id = existing?.id ?? (await addToCart(input));
     const already =
       existing && ["generated", "released", "posted", "delivered"].includes(existing.status);

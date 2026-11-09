@@ -202,10 +202,24 @@ export async function createPixOrder(
       idempotencyKey: `pix-${id}`,
     };
     // Uma segunda tentativa automática antes de desistir (falha passageira).
-    const pix = await createPixPayment(request).catch(async (first: Error) => {
+    const pix = await createPixPayment({
+      ...request,
+      email: request.email.trim().toLowerCase(),
+    }).catch(async (first: Error) => {
       console.warn(`[pedido ${id}] Pix falhou, tentando de novo:`, first.message);
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      return createPixPayment(request);
+      // O Mercado Pago é mais rígido com e-mail que o formulário ("payer.email
+      // must be a valid email"): tenta de novo com o e-mail da Fernandito só no
+      // cadastro do Pix (o pedido segue com o e-mail real do cliente).
+      const emailRecusado = /e-?mail/i.test(first.message);
+      return createPixPayment(
+        emailRecusado
+          ? {
+              ...request,
+              email: process.env.MP_EMAIL_RESERVA?.trim() || "contato@fernandito.com.br",
+            }
+          : request,
+      );
     });
     order.mpPaymentId = pix.id;
     order.simulated = pix.id.startsWith("sim-");

@@ -37,6 +37,11 @@ export type StoredOrder = {
   note?: string;
   /** Envio fora do site (bonificação / venda manual): ver src/lib/store/avulsos.ts. */
   origem?: "bonificacao" | "manual";
+  /** Fora do site: link e número da nota fiscal (DANFE) lida do Bling. */
+  nfLink?: string | null;
+  nfNumero?: string | null;
+  /** Fora do site: nota ainda sem autorização. */
+  nfPendente?: boolean;
   /** Versões dos Termos e da Política aceitas (frontmatter dos .md). */
   termsVersion?: string;
   privacyVersion?: string;
