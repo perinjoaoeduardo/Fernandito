@@ -275,6 +275,17 @@ const c1 = await buy({ note: RECADO });
     JSON.stringify(after?.erro),
   );
 }
+// C3f Mercado Pago recusa o e-mail do cliente ("payer.email must be a valid
+// email") → o Pix sai mesmo assim (tenta de novo com o e-mail da Fernandito).
+{
+  await ctl(MP, { flags: { rejectEmail: true } });
+  const ok = await buy().then(
+    (id) => Boolean(id),
+    () => false,
+  );
+  await ctl(MP, { flags: { rejectEmail: false } });
+  check("C3f MP recusa o e-mail → Pix sai com o e-mail de reserva", ok);
+}
 // C4 sem saldo no Melhor Envio
 {
   await ctl(ME, { flags: { noBalance: true } });
