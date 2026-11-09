@@ -1759,6 +1759,35 @@ export function corrigirCaixas(data: ProducaoData): ProducaoData | null {
   return { ...data, insumos, lotes, importacoes: [...data.importacoes, IMPORT_CAIXAS] };
 }
 
+const IMPORT_SEM_BASICOS = "basicos-no-servico-alcapone-2026-11";
+/** Ingredientes que vêm no serviço da Alcapone (sem gestão de estoque/compra). */
+const INCLUSOS_NO_ENVASE = [/a[cç]u[cç]ar/, /corante|caramelo/, /fosf[oó]rico/];
+const incluso = (nome: string) => INCLUSOS_NO_ENVASE.some((r) => r.test(semAcento(nome)));
+
+/**
+ * Açúcar, corante e ácido fosfórico estão no preço do serviço da Alcapone:
+ * saem do cadastro de insumos e dos lotes em andamento (a equipe não faz
+ * gestão deles). Insumo com estoque, pedido em aberto ou movimento fica.
+ */
+export function tirarBasicosDoEnvase(data: ProducaoData): ProducaoData | null {
+  if (data.importacoes.includes(IMPORT_SEM_BASICOS)) return null;
+  const emUso = (i: Insumo) =>
+    i.estoque > 0 ||
+    data.movimentos.some((m) => m.insumoId === i.id) ||
+    data.pedidos.some((pc) => !pc.encerrado && pc.itens.some((it) => it.insumoId === i.id && restante(it) > 0));
+  const sair = new Set(
+    data.insumos.filter((i) => i.uso === "receita" && incluso(i.insumo) && !emUso(i)).map((i) => i.id),
+  );
+  return {
+    ...data,
+    insumos: data.insumos.filter((i) => !sair.has(i.id)),
+    lotes: data.lotes.map((l) =>
+      loteAberto(l) ? { ...l, itens: l.itens.filter((it) => !sair.has(it.insumoId)) } : l,
+    ),
+    importacoes: [...data.importacoes, IMPORT_SEM_BASICOS],
+  };
+}
+
 /** Normaliza e roda as importações que faltam. `null` = nada mudou. */
 export function aplicarImportacoes(data: ProducaoData): ProducaoData | null {
   let atual = normalizar(data);
@@ -1775,6 +1804,7 @@ export function aplicarImportacoes(data: ProducaoData): ProducaoData | null {
     entrarFernetLegado,
     pedidoBuccoL001,
     corrigirCaixas,
+    tirarBasicosDoEnvase,
   ]) {
     const r = imp(atual);
     if (r) {

@@ -1018,6 +1018,16 @@ function Receita({
               </td>
             </tr>
             {refri.map((l) => linha(l, mlDaParte("refri", refriPct)))}
+            <tr>
+              <td className={TD}>
+                <p className="font-semibold">Açúcar, corante e ácido fosfórico</p>
+                <p className="text-lk-muted text-xs">Fornecidos pela Alcapone</p>
+              </td>
+              <td className={`${TD} text-lk-muted text-right`}>—</td>
+              <td className={`${TD} text-lk-muted`} colSpan={5}>
+                Inclusos no preço do serviço de envase (sem gestão de estoque e compra)
+              </td>
+            </tr>
             <tr className="bg-lk-paper">
               <td className={`${TD} font-medium`} colSpan={4}>
                 Custo do refri
