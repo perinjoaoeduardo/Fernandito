@@ -1,9 +1,9 @@
 import type { NextRequest } from "next/server";
 import { isAdmin } from "@/lib/leads";
 import { syncOrderToBling } from "@/lib/bling/orders";
-import { markPaid, MANUAL_SET } from "@/lib/store/checkout";
+import { ALL_SET, markPaid, MANUAL_SET } from "@/lib/store/checkout";
 import { markLocalDelivered } from "@/lib/store/fulfillment";
-import { kvSRem } from "@/lib/store/kv";
+import { kvSMembers, kvSRem } from "@/lib/store/kv";
 import { getOrder, saveOrder } from "@/lib/store/orders";
 import { releaseStock } from "@/lib/store/stock";
 
@@ -29,7 +29,14 @@ export async function GET(request: NextRequest) {
   if (!isAdmin(params.get("key"))) return new Response("Não encontrado", { status: 404 });
   const id = params.get("pedido") ?? "";
   const action = params.get("acao");
-  const order = await getOrder(id);
+  // Código digitado de um print: 0/O e l/I/1 se confundem. Não achou exato →
+  // procura entre os pedidos com essas letras trocadas (só se der um único).
+  let order = await getOrder(id);
+  if (!order && id) {
+    const norm = (t: string) => t.replace(/O/g, "0").replace(/[Il]/g, "1");
+    const hits = (await kvSMembers(ALL_SET)).filter((x) => norm(x) === norm(id));
+    if (hits.length === 1) order = await getOrder(hits[0]);
+  }
   if (!order) return Response.json({ erro: "Pedido não encontrado" }, { status: 404 });
   if (action === "bling") {
     if (order.status !== "paid")
