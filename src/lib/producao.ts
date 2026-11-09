@@ -323,6 +323,8 @@ export const pedidoCompraSchema = z.object({
   encerrado: z.boolean().default(false),
   /** De antes do controle de estoque: recebido sem movimento (já está no saldo inicial). */
   legado: z.boolean().default(false),
+  /** Antigo e já contado (no saldo ou no consumo de lote): não oferece "dar entrada". */
+  jaContado: z.boolean().default(false),
   obs: z.string().max(300).default(""),
 });
 
@@ -1655,6 +1657,80 @@ export function entrarFernetLegado(data: ProducaoData): ProducaoData | null {
   return d;
 }
 
+const IMPORT_BUCCO_L001 = "pedido-bucco-l001-2026-11";
+
+/**
+ * A 1ª compra da Casa Bucco (o fernet do L001) estava só dentro do lote:
+ * vira um pedido de compra numerado, recebido e já contado (80 L no
+ * consumo do L001, 10 L no saldo inicial), sem mexer no estoque. Os
+ * pedidos antigos da LNF também ficam marcados como já contados.
+ */
+export function pedidoBuccoL001(data: ProducaoData): ProducaoData | null {
+  if (data.importacoes.includes(IMPORT_BUCCO_L001)) return null;
+  const pedidosLnf = data.pedidos.map((pc) =>
+    pc.legado && pc.id.startsWith("pc-lnf-") ? { ...pc, jaContado: true } : pc,
+  );
+  let d: ProducaoData = {
+    ...data,
+    pedidos: pedidosLnf,
+    importacoes: [...data.importacoes, IMPORT_BUCCO_L001],
+  };
+  const l1 = d.lotes.find((l) => l.historico && l.codigo === "L001");
+  const k = l1?.itens.findIndex(
+    (it) => /fernet/.test(semAcento(it.insumo)) && it.comprar > 0 && it.pagoCents !== null,
+  );
+  if (!l1 || k === undefined || k < 0) return d;
+  const it = l1.itens[k];
+  const qtd = it.recebido ?? it.comprar;
+  const pc: PedidoCompra = {
+    id: "pc-l001-bucco",
+    numero: proximoPC(d),
+    fornecedor: it.fornecedor || "Casa Bucco",
+    data: null,
+    previstoEm: null,
+    freteCents: 0,
+    itens: [
+      {
+        insumoId: it.insumoId,
+        insumo: it.insumo,
+        unidade: it.unidade,
+        qtd,
+        valorCents: it.pagoCents ?? Math.round(qtd * it.unitCents),
+        recebido: qtd,
+      },
+    ],
+    recebimentos: [
+      {
+        doc: "",
+        data: null,
+        itens: [{ idx: 0, qtd }],
+        obs: `Comprado pro L001: ${num0(it.precisa)} L usados no lote, ${num0(qtd - it.precisa)} L no saldo inicial`,
+      },
+    ],
+    encerrado: false,
+    legado: true,
+    jaContado: true,
+    obs: "1º pedido da Casa Bucco (fernet do L001)",
+  };
+  d = {
+    ...d,
+    // No começo da lista: é o pedido mais antigo da Bucco.
+    pedidos: [pc, ...d.pedidos],
+    // O lote não conta mais como compra (o pedido conta); o custo real fica igual.
+    lotes: d.lotes.map((l) =>
+      l.id === l1.id
+        ? {
+            ...l,
+            itens: l.itens.map((x, j) => (j === k ? { ...x, comprar: 0, recebido: qtd } : x)),
+          }
+        : l,
+    ),
+  };
+  return d;
+}
+
+const num0 = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+
 /** Normaliza e roda as importações que faltam. `null` = nada mudou. */
 export function aplicarImportacoes(data: ProducaoData): ProducaoData | null {
   let atual = normalizar(data);
@@ -1669,6 +1745,7 @@ export function aplicarImportacoes(data: ProducaoData): ProducaoData | null {
     implantarEstoque,
     receberFernetPendente,
     entrarFernetLegado,
+    pedidoBuccoL001,
   ]) {
     const r = imp(atual);
     if (r) {
@@ -2155,6 +2232,7 @@ export function entrarLegado(data: ProducaoData, pcId: string): ProducaoData {
   const novo: PedidoCompra = {
     ...pc,
     legado: false,
+    jaContado: false,
     recebimentos: pc.recebimentos.map((r) => ({
       ...r,
       doc: r.doc && r.doc !== "MIGRADO" ? r.doc : doc,
@@ -2369,6 +2447,7 @@ export function migrarParaPedidos(data: ProducaoData): ProducaoData | null {
         : [],
       encerrado: false,
       legado,
+      jaContado: false,
       obs: [c0.pedido && !/^\d+º pedido$/.test(c0.pedido) ? c0.pedido : "", ...cs.map((c) => c.obs)]
         .filter(Boolean)
         .join(" · ")
@@ -2412,6 +2491,7 @@ export function migrarParaPedidos(data: ProducaoData): ProducaoData | null {
         recebimentos: [],
         encerrado: false,
         legado: false,
+        jaContado: false,
         obs: `Pedido do lote ${l.codigo}`,
       });
     return l.etapa === "pedido" ? { ...l, etapa: "planejado" as const } : l;

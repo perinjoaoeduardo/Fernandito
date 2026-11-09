@@ -276,6 +276,7 @@ export function Producao({
         recebimentos: [],
         encerrado: false,
         legado: false,
+        jaContado: false,
         obs: "",
       },
     });
@@ -1708,7 +1709,13 @@ function PedidosCompra({
                     <td className={`${TD} text-right tabular-nums`}>{brl(totalPedido(pc))}</td>
                     <td className={TD}>
                       <Badge tone={sit.tone}>{sit.label}</Badge>
-                      {pc.legado && (
+                      {pc.legado && pc.jaContado && (
+                        <p className="text-lk-muted text-sm">
+                          Pedido de antes do controle de estoque, já contado (no saldo inicial ou no
+                          consumo de um lote).
+                        </p>
+                      )}
+                      {pc.legado && !pc.jaContado && (
                         <p className="text-lk-muted mt-1 text-xs">antes do controle de estoque</p>
                       )}
                     </td>
