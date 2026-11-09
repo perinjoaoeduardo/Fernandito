@@ -41,6 +41,7 @@ import { blingStock } from "@/lib/bling/orders";
 import { stockRemaining } from "@/lib/store/stock";
 import { ESPECIAL_LOTES } from "@/lib/especial";
 import { atualizar, marcarEntregue, marcarPostado, sair } from "./actions";
+import { advanceAvulsos, avulsoAsRow, listAvulsos } from "@/lib/store/avulsos";
 import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
 import { SubmitButton } from "./SubmitButton";
@@ -219,6 +220,11 @@ function status(o: StoredOrder, f: Fulfillment | null): St {
   if (o.status !== "paid") return { label: "Aguardando Pix", tone: "muted", icon: Clock };
   if (f?.error) return { label: "Precisa de olho", tone: "fail", icon: TriangleAlert };
   if (f) return STAGE[f.stage];
+  // Fora do site, só a nota (sem envio pelo Melhor Envio).
+  if (o.origem)
+    return o.nfPendente
+      ? { label: "Nota pendente", tone: "hold", icon: Clock }
+      : { label: "Nota emitida", tone: "pass", icon: CircleCheck };
   return {
     label: o.bling?.orderId ? "Na fila de envio" : "Entrando no Bling",
     tone: "running",
@@ -238,28 +244,21 @@ const FILTERS = [
   ["entregues-correio", "Entregues"],
   ["olho", "Precisam de olho"],
   ["estornados", "Estornados"],
+  ["fora", "Fora do site"],
 ] as const;
 
 // Filtros agrupados pelo caminho do pedido.
 const FILTER_LABEL = Object.fromEntries(FILTERS) as Record<(typeof FILTERS)[number][0], string>;
 const FILTER_GROUPS = [
-  { title: "Geral", keys: ["todos"] },
+  { title: "Geral", keys: ["todos", "fora"] },
   { title: "Correio", keys: ["imprimir", "caminho", "entregues-correio"] },
   { title: "Em mãos", keys: ["entregar", "entregues-maos"] },
   { title: "Atenção", keys: ["olho", "estornados"] },
 ] as const;
 
-const ABAS: Aba[] = [
-  "pedidos",
-  "vendas",
-  "clientes",
-  "estoque",
-  "producao",
-  "compras",
-  "resultados",
-];
+const ABAS: Aba[] = ["pedidos", "clientes", "estoque", "producao", "compras", "resultados"];
 // Endereços antigos continuam abrindo a aba certa.
-const ABA_ANTIGA: Record<string, Aba> = { fora: "vendas", lista: "clientes" };
+const ABA_ANTIGA: Record<string, Aba> = { fora: "pedidos", vendas: "pedidos", lista: "clientes" };
 // Abas que leem o cadastro de produção (lotes, insumos, compras).
 const COM_PRODUCAO: Aba[] = ["producao", "compras", "estoque", "resultados"];
 
@@ -338,11 +337,74 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     .filter((o): o is StoredOrder => Boolean(o) && (o!.status === "paid" || o!.status === "manual"))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const fulfillments = await getFulfillments(orders.map((o) => o.id));
-  const every = orders.map((order, i) => ({
-    order,
-    f: fulfillments[i],
-    st: status(order, fulfillments[i]),
-  }));
+  // Envios fora do site (bonificação / venda manual) entram na mesma lista,
+  // com a tag "Fora do site". Não contam em faturado, vendas nem ticket médio.
+  after(() => advanceAvulsos());
+  // Vendas fora do site (Bling): sem nada guardado ainda → busca agora; velho →
+  // mostra o que tem e atualiza depois da resposta.
+  let manual = await getManualSales();
+  if (!manual) manual = await syncManualSales();
+  else if (manualSalesStale(manual)) after(() => syncManualSales().then(() => undefined));
+  const NFE_OK = [5, 6, 7];
+  const avulsosRaw = await listAvulsos().catch(() => []);
+  const nfNum = (t: string | null | undefined) => Number(String(t ?? "").replace(/\D/g, "")) || 0;
+  const iso = (d: string) => new Date(d.replace(" ", "T") + "-03:00").toISOString();
+  // Envio registrado (com etiqueta) já tem a nota: o DANFE vem da nota do Bling.
+  const nfDe = new Map((manual?.sales ?? []).map((m) => [nfNum(m.numero), m]));
+  const avulsos = avulsosRaw.map((a) => {
+    const row = avulsoAsRow(a);
+    const m = nfDe.get(nfNum(a.nf.numero));
+    row.order.nfLink = m?.danfeUrl ?? null;
+    row.order.nfNumero = a.nf.numero;
+    return row;
+  });
+  const comEnvio = new Set(avulsosRaw.map((a) => nfNum(a.nf.numero)));
+  // Venda manual / bonificação lida do Bling SEM envio registrado: entra na
+  // mesma tabela (só com a nota), pra ter tudo num lugar só.
+  const soNota = (manual?.sales ?? [])
+    .filter((m) => !comEnvio.has(nfNum(m.numero)))
+    .map((m) => {
+      const quando = m.data ? iso(m.data) : new Date().toISOString();
+      const order = {
+        id: `NF ${m.numero}`,
+        status: "paid",
+        items: m.itens.map((i) => ({
+          sku: i.codigo,
+          name: i.descricao,
+          qty: i.quantidade,
+          unitPriceCents: 0,
+        })),
+        customer: { name: m.cliente || "—", email: "", phone: "", cpf: "" },
+        address: {
+          cep: "",
+          street: "",
+          number: "",
+          complement: "",
+          neighborhood: "",
+          city: m.cidade ?? "",
+          uf: m.uf ?? "",
+        },
+        shipping: { carrier: "Sem envio registrado", priceCents: 0 },
+        subtotalCents: m.totalCents,
+        totalCents: m.totalCents,
+        paidAt: quando,
+        createdAt: quando,
+        simulated: false,
+        origem: m.tipo === "bonificacao" ? "bonificacao" : "manual",
+        nfLink: m.danfeUrl ?? null,
+        nfNumero: String(m.numero),
+        nfPendente: !NFE_OK.includes(m.situacao),
+      } as unknown as StoredOrder;
+      return { order, f: null as Fulfillment | null };
+    });
+  const every = [
+    ...orders.map((order, i) => ({
+      order,
+      f: fulfillments[i],
+      st: status(order, fulfillments[i]),
+    })),
+    ...[...avulsos, ...soNota].map(({ order, f }) => ({ order, f, st: status(order, f) })),
+  ].sort((a, b) => b.order.createdAt.localeCompare(a.order.createdAt));
   // Pedidos simulados (Pix de mentira dos testes do preview) ficam fora das
   // contas e da lista; só aparecem em "Todos".
   const all = every.filter((r) => !r.order.simulated);
@@ -356,7 +418,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const deliveredByMail = active.filter((r) => r.f?.stage === "delivered");
   const delivered = [...deliveredByHand, ...deliveredByMail];
   const revenue = active
-    .filter((r) => r.order.status === "paid")
+    .filter((r) => r.order.status === "paid" && !r.order.origem)
     .reduce((sum, r) => sum + r.order.totalCents, 0);
 
   const byFilter =
@@ -374,7 +436,9 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                 ? stuck
                 : ver === "estornados"
                   ? all.filter((r) => r.order.refundedAt)
-                  : every;
+                  : ver === "fora"
+                    ? every.filter((r) => r.order.origem)
+                    : every;
 
   // Busca: nome, telefone, cidade, itens, nota, rastreio e código do pedido.
   const norm = (t: string) =>
@@ -451,12 +515,6 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     return t ? `/painel?${t}` : "/painel";
   };
 
-  // Vendas fora do site (Bling): sem nada guardado ainda → busca agora; velho →
-  // mostra o que tem e atualiza depois da resposta.
-  let manual = await getManualSales();
-  if (!manual) manual = await syncManualSales();
-  else if (manualSalesStale(manual)) after(() => syncManualSales().then(() => undefined));
-  const NFE_OK = [5, 6, 7];
   const manualSales = (manual?.sales ?? []).filter((m) => m.tipo === "venda");
   const bonus = (manual?.sales ?? []).filter((m) => m.tipo === "bonificacao");
   const manualRevenue = manualSales
@@ -487,7 +545,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
 
   // Vendas: pedidos pagos do site + vendas manuais com nota autorizada.
   // Unidades por produto (site, manual e brindes) e as latas que já saíram.
-  const sitePaid = active.filter((r) => r.order.status === "paid");
+  const sitePaid = active.filter((r) => r.order.status === "paid" && !r.order.origem);
   const manualOk = manualSales.filter((m) => NFE_OK.includes(m.situacao));
   const unitsBy = (pairs: [string, number][]) => {
     const map = new Map<string, number>();
@@ -582,7 +640,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     .filter((a) => !refunded.has(a.orderId))
     // "Sem saldo no Melhor Envio" some sozinho quando a etiqueta já saiu.
     .filter((a) => {
-      if (!/sem saldo no melhor envio/i.test(a.problem)) return true;
+      if (!/sem saldo no melhor envio|tempo esgotado|aborted|timeout/i.test(a.problem)) return true;
       const row = every.find((r) => r.order.id === a.orderId);
       return !(row?.f && !row.f.error && row.f.stage !== "invoice" && row.f.stage !== "label");
     })
@@ -597,6 +655,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     "entregues-correio": deliveredByMail.length,
     olho: stuck.length,
     estornados: all.filter((r) => r.order.refundedAt).length,
+    fora: every.filter((r) => r.order.origem).length,
     todos: every.length,
   };
   const waLink = (digits: string) =>
@@ -651,18 +710,28 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   // ── Peças de uma linha de pedido (tabela no computador, cartão no celular) ──
   const cliente = ({ order: o }: Row) => (
     <div className="flex min-w-0 flex-col gap-0.5">
-      <p className="text-lk-ink truncate font-semibold">{o.customer.name}</p>
+      <p className="text-lk-ink flex min-w-0 items-center gap-2 font-semibold">
+        <span className="truncate">{o.customer.name}</span>
+        {o.origem && (
+          <Badge tone={o.origem === "bonificacao" ? "review" : "muted"}>
+            Fora do site · {o.origem === "bonificacao" ? "Bonificação" : "Venda"}
+          </Badge>
+        )}
+      </p>
       <p className="text-lk-muted text-xs">
-        {o.items.map((i) => `${i.qty}x ${i.name}`).join(" + ")} · {o.address.city}/{o.address.uf}
+        {o.items.map((i) => `${i.qty}x ${i.name}`).join(" + ")}
+        {o.address.city ? ` · ${o.address.city}/${o.address.uf}` : ""}
       </p>
-      <p className="text-lk-ink3 text-xs">
-        {o.address.street}, {o.address.number}
-        {o.address.complement ? ` (${o.address.complement})` : ""} · {o.address.neighborhood} · CEP{" "}
-        {o.address.cep} ·{" "}
-        <a className={`${LINK} font-normal`} href={waLink(o.customer.phone)} {...ext}>
-          {phone(o.customer.phone)}
-        </a>
-      </p>
+      {o.address.street && (
+        <p className="text-lk-ink3 text-xs">
+          {o.address.street}, {o.address.number}
+          {o.address.complement ? ` (${o.address.complement})` : ""} · {o.address.neighborhood} ·
+          CEP {o.address.cep} ·{" "}
+          <a className={`${LINK} font-normal`} href={waLink(o.customer.phone)} {...ext}>
+            {o.customer.phone ? phone(o.customer.phone) : ""}
+          </a>
+        </p>
+      )}
       {o.note && (
         <p className="bg-lk-hold-bg text-lk-hold mt-1.5 rounded-md px-2.5 py-1.5 text-xs">
           <span className="font-medium">Recado:</span> {o.note}
@@ -691,9 +760,13 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       )}
       <p className="flex flex-wrap gap-x-3">
         {f?.label.tracking && !byHand(f) && <Code>{f.label.tracking}</Code>}
-        <a href={`/pedido/${o.id}/confirmado`} {...ext} className="hover:underline">
-          <Code>#{o.id}</Code>
-        </a>
+        {o.origem ? (
+          <Code>{o.id}</Code>
+        ) : (
+          <a href={`/pedido/${o.id}/confirmado`} {...ext} className="hover:underline">
+            <Code>#{o.id}</Code>
+          </a>
+        )}
       </p>
     </div>
   );
@@ -730,6 +803,12 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           </SubmitButton>
         </form>
       )}
+      {!f?.invoice.danfeUrl && o.nfLink && (
+        <a className={btn("ghost", "sm")} href={o.nfLink} {...ext}>
+          <FileText aria-hidden />
+          Nota {o.nfNumero ?? ""}
+        </a>
+      )}
       {f?.invoice.danfeUrl && (
         <a className={btn("ghost", "sm")} href={f.invoice.danfeUrl} {...ext}>
           <FileText aria-hidden />
@@ -747,7 +826,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
 
   const pedidosView = (
     <>
-      <PageHeader eyebrow={greeting()} title="Pedidos Fernandito" actions={actions} />
+      <PageHeader eyebrow={greeting()} title="Vendas" actions={actions} />
       {alertBox}
       <KpiStrip cols={4}>
         <Tile
@@ -1072,16 +1151,6 @@ export default async function PainelPage(props: PageProps<"/painel">) {
         </>
       ) : aba === "estoque" ? (
         estoqueView
-      ) : aba === "vendas" ? (
-        <VendasView
-          vendas={vendas}
-          periodo={periodo}
-          hoje={hoje}
-          latas={LATAS_SKU}
-          actions={actions}
-          pendentesNotas={(manual?.sales ?? []).filter((m) => !NFE_OK.includes(m.situacao)).length}
-          erroNotas={manual?.error ?? null}
-        />
       ) : aba === "clientes" ? (
         <ClientesView
           vendas={vendas}
@@ -1125,7 +1194,21 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           actions={actions}
         />
       ) : (
-        pedidosView
+        <>
+          {pedidosView}
+          <VendasView
+            semTopo
+            vendas={vendas}
+            periodo={periodo}
+            hoje={hoje}
+            latas={LATAS_SKU}
+            actions={actions}
+            pendentesNotas={
+              (manual?.sales ?? []).filter((m) => !NFE_OK.includes(m.situacao)).length
+            }
+            erroNotas={manual?.error ?? null}
+          />
+        </>
       )}
     </Frame>
   );

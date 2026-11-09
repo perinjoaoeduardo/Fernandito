@@ -134,6 +134,7 @@ export function VendasView({
   actions,
   pendentesNotas,
   erroNotas,
+  semTopo = false,
 }: {
   vendas: Venda[];
   periodo: Periodo;
@@ -142,6 +143,8 @@ export function VendasView({
   actions: React.ReactNode;
   pendentesNotas: number;
   erroNotas: string | null;
+  /** Embutida na aba Vendas (depois da tabela de pedidos): sem título nem os 4 números. */
+  semTopo?: boolean;
 }) {
   const iv = intervalo(periodo, hoje);
   const doPeriodo = vendas.filter((v) => noPeriodo(v.data, iv));
@@ -184,34 +187,42 @@ export function VendasView({
 
   return (
     <>
-      <PageHeader eyebrow="Site, vendas manuais e bonificações" title="Vendas" actions={actions} />
-      <PeriodoNav aba="vendas" periodo={periodo} />
-      <KpiStrip cols={4}>
-        <Tile
-          icon={Banknote}
-          label="Faturado"
-          value={brl(faturado)}
-          note={`site ${brl(soma(site))} · manual ${brl(soma(manual))}`}
+      {!semTopo && (
+        <PageHeader
+          eyebrow="Site, vendas manuais e bonificações"
+          title="Vendas"
+          actions={actions}
         />
-        <Tile
-          icon={ShoppingBag}
-          label="Vendas"
-          value={pagas.length}
-          note={`${site.length} no site · ${manual.length} manuais`}
-        />
-        <Tile
-          icon={Receipt}
-          label="Ticket médio"
-          value={brl(ticket)}
-          note={freteCobrado ? `frete cobrado no site ${brl(freteCobrado)}` : "Faturado ÷ vendas"}
-        />
-        <Tile
-          icon={CupSoda}
-          label="Latas vendidas"
-          value={num(latasVendidas)}
-          note={latasBrinde ? `+${num(latasBrinde)} em brindes` : "Kit = 2 latas · six pack = 6"}
-        />
-      </KpiStrip>
+      )}
+      <PeriodoNav aba="pedidos" periodo={periodo} />
+      {!semTopo && (
+        <KpiStrip cols={4}>
+          <Tile
+            icon={Banknote}
+            label="Faturado"
+            value={brl(faturado)}
+            note={`site ${brl(soma(site))} · manual ${brl(soma(manual))}`}
+          />
+          <Tile
+            icon={ShoppingBag}
+            label="Vendas"
+            value={pagas.length}
+            note={`${site.length} no site · ${manual.length} manuais`}
+          />
+          <Tile
+            icon={Receipt}
+            label="Ticket médio"
+            value={brl(ticket)}
+            note={freteCobrado ? `frete cobrado no site ${brl(freteCobrado)}` : "Faturado ÷ vendas"}
+          />
+          <Tile
+            icon={CupSoda}
+            label="Latas vendidas"
+            value={num(latasVendidas)}
+            note={latasBrinde ? `+${num(latasBrinde)} em brindes` : "Kit = 2 latas · six pack = 6"}
+          />
+        </KpiStrip>
+      )}
       {(pendentesNotas > 0 || erroNotas) && (
         <p className="text-lk-muted text-xs">
           {pendentesNotas > 0 &&
@@ -293,67 +304,69 @@ export function VendasView({
         </section>
       )}
 
-      <section className="flex flex-col gap-4">
-        <SectionTitle title="Todas as vendas do período" count={lista.length} />
-        {lista.length === 0 ? (
-          <Empty>Nenhuma venda no período.</Empty>
-        ) : (
-          <div className={`${TABLE_WRAP} overflow-x-auto`}>
-            <table className="w-full min-w-[760px] text-sm">
-              <thead>
-                <tr>
-                  <th className={TH}>Data</th>
-                  <th className={`${TH} w-[28%]`}>Cliente</th>
-                  <th className={TH}>Itens</th>
-                  <th className={TH}>Canal</th>
-                  <th className={`${TH} text-right`}>Valor</th>
-                </tr>
-              </thead>
-              <tbody className="divide-lk-border divide-y">
-                {lista.map((v) => {
-                  const c = CANAL[v.canal];
-                  return (
-                    <tr key={v.id} className="hover:bg-lk-paper/60">
-                      <td className={`${TD} whitespace-nowrap tabular-nums`}>{diaBR(v.data)}</td>
-                      <td className={TD}>
-                        <p className="font-semibold">{v.cliente || "—"}</p>
-                        <p className="text-lk-muted text-xs">
-                          {v.cidade ? `${v.cidade}/${v.uf}` : ""}
-                        </p>
-                      </td>
-                      <td className={`${TD} text-lk-muted`}>
-                        {v.itens.map((i) => `${num(i.qtd)}x ${i.nome}`).join(" + ")}
-                      </td>
-                      <td className={TD}>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <Badge tone={c.tone}>{c.label}</Badge>
-                          {v.pendente && <Badge tone="hold">Nota pendente</Badge>}
-                        </div>
-                        <p className="mt-1 text-xs">
-                          {v.link ? (
-                            <a className={LINK} href={v.link} {...ext}>
-                              {v.ref}
-                            </a>
-                          ) : (
-                            <span className="text-lk-muted">{v.ref}</span>
-                          )}
-                        </p>
-                      </td>
-                      <td className={`${TD} text-right font-medium tabular-nums`}>
-                        {brl(v.totalCents)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <p className="text-lk-ink3 text-xs">
-          Faturado = pedidos pagos do site (com o frete cobrado) + vendas manuais com nota
-          autorizada. Bonificações não entram no faturado. Receita por produto é sem o frete.
-        </p>
-      </section>
+      {!semTopo && (
+        <section className="flex flex-col gap-4">
+          <SectionTitle title="Todas as vendas do período" count={lista.length} />
+          {lista.length === 0 ? (
+            <Empty>Nenhuma venda no período.</Empty>
+          ) : (
+            <div className={`${TABLE_WRAP} overflow-x-auto`}>
+              <table className="w-full min-w-[760px] text-sm">
+                <thead>
+                  <tr>
+                    <th className={TH}>Data</th>
+                    <th className={`${TH} w-[28%]`}>Cliente</th>
+                    <th className={TH}>Itens</th>
+                    <th className={TH}>Canal</th>
+                    <th className={`${TH} text-right`}>Valor</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-lk-border divide-y">
+                  {lista.map((v) => {
+                    const c = CANAL[v.canal];
+                    return (
+                      <tr key={v.id} className="hover:bg-lk-paper/60">
+                        <td className={`${TD} whitespace-nowrap tabular-nums`}>{diaBR(v.data)}</td>
+                        <td className={TD}>
+                          <p className="font-semibold">{v.cliente || "—"}</p>
+                          <p className="text-lk-muted text-xs">
+                            {v.cidade ? `${v.cidade}/${v.uf}` : ""}
+                          </p>
+                        </td>
+                        <td className={`${TD} text-lk-muted`}>
+                          {v.itens.map((i) => `${num(i.qtd)}x ${i.nome}`).join(" + ")}
+                        </td>
+                        <td className={TD}>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <Badge tone={c.tone}>{c.label}</Badge>
+                            {v.pendente && <Badge tone="hold">Nota pendente</Badge>}
+                          </div>
+                          <p className="mt-1 text-xs">
+                            {v.link ? (
+                              <a className={LINK} href={v.link} {...ext}>
+                                {v.ref}
+                              </a>
+                            ) : (
+                              <span className="text-lk-muted">{v.ref}</span>
+                            )}
+                          </p>
+                        </td>
+                        <td className={`${TD} text-right font-medium tabular-nums`}>
+                          {brl(v.totalCents)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="text-lk-ink3 text-xs">
+            Faturado = pedidos pagos do site (com o frete cobrado) + vendas manuais com nota
+            autorizada. Bonificações não entram no faturado. Receita por produto é sem o frete.
+          </p>
+        </section>
+      )}
     </>
   );
 }

@@ -7,6 +7,7 @@ import { retryPendingBlingOrders } from "@/lib/bling/orders";
 import { painelAuthed, painelLogin, painelLogout, passwordOk } from "@/lib/painel";
 import { reconcileOpenOrders } from "@/lib/store/checkout";
 import { advanceAllFulfillments, markLocalDelivered, markPosted } from "@/lib/store/fulfillment";
+import { advanceAvulsos, markAvulsoPosted } from "@/lib/store/avulsos";
 import { kvGet, kvSet, rateLimit } from "@/lib/store/kv";
 import {
   PRODUCAO_BACKUP_V1,
@@ -38,6 +39,7 @@ export async function atualizar() {
   await reconcileOpenOrders().catch(() => {});
   await retryPendingBlingOrders().catch(() => {});
   await advanceAllFulfillments().catch(() => {});
+  await advanceAvulsos().catch(() => {});
   await syncManualSales();
   redirect("/painel");
 }
@@ -50,7 +52,8 @@ const backTo = (form: FormData) => {
 /** "Já postei": tira de "Imprimir" e põe em "A caminho". */
 export async function marcarPostado(form: FormData) {
   if (!(await painelAuthed())) redirect("/painel");
-  await markPosted(String(form.get("id") ?? ""));
+  const id = String(form.get("id") ?? "");
+  if (!(await markAvulsoPosted(id))) await markPosted(id);
   redirect(backTo(form));
 }
 

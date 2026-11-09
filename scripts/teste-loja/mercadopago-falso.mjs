@@ -3,7 +3,13 @@
 import http from "node:http";
 const pays = new Map();
 let next = 1000;
-const flags = { failCreate: 0, failGet: false, expireSeconds: null, createDelayMs: 0 };
+const flags = {
+  rejectEmail: false,
+  failCreate: 0,
+  failGet: false,
+  expireSeconds: null,
+  createDelayMs: 0,
+};
 const send = (res, code, body) => {
   res.writeHead(code, { "content-type": "application/json" });
   res.end(JSON.stringify(body));
@@ -19,6 +25,9 @@ http
       return send(res, 200, { flags, pays: [...pays.values()] });
     }
     if (req.method === "POST" && req.url === "/v1/payments") {
+      // Igual ao real: e-mail do pagador recusado (só aceita o de reserva).
+      if (flags.rejectEmail && body.payer?.email !== "contato@fernandito.com.br")
+        return send(res, 400, { message: "payer.email must be a valid email" });
       if (flags.failCreate > 0) {
         flags.failCreate--;
         return send(res, 500, { message: "internal_error" });
