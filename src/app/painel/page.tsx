@@ -1146,7 +1146,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           <PageHeader
             eyebrow={
               aba === "producao"
-                ? "Lotes, planejamento e receita"
+                ? "Lotes, planejamento e ficha técnica"
                 : "Estoque de insumos, pedidos de compra e fornecedores"
             }
             title={aba === "producao" ? "Produção" : "Compras e insumos"}

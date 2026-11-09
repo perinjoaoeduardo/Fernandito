@@ -328,6 +328,24 @@ export const pedidoCompraSchema = z.object({
   obs: z.string().max(300).default(""),
 });
 
+/**
+ * Cadastro do fornecedor (dados da empresa): um por fornecedor, ligado às
+ * cotações e aos pedidos de compra pelo nome (`chaveFornecedor`).
+ */
+export const parceiroSchema = z.object({
+  id: z.string().min(1).max(40),
+  nome: z.string().trim().min(1).max(80),
+  cnpj: z.string().trim().max(20),
+  /** Pessoa de contato. */
+  contato: z.string().trim().max(80),
+  telefone: z.string().trim().max(30),
+  email: z.string().trim().max(120),
+  cidade: z.string().trim().max(80),
+  /** Condição de pagamento combinada (ex.: "28 dias", "à vista com 3%"). */
+  pagamento: z.string().trim().max(120),
+  obs: z.string().trim().max(500),
+});
+
 export const producaoSchema = z.object({
   versao: z.literal(2),
   insumos: z.array(insumoSchema).max(100),
@@ -337,6 +355,8 @@ export const producaoSchema = z.object({
   compras: z.array(compraSchema).max(2000).default([]),
   movimentos: z.array(movimentoSchema).max(3000).default([]),
   pedidos: z.array(pedidoCompraSchema).max(1000).default([]),
+  /** Cadastro de fornecedores (dados da empresa, contato, pagamento). */
+  parceiros: z.array(parceiroSchema).max(200).default([]),
   /** Importações de dados já aplicadas (cada uma roda uma vez só). */
   importacoes: z.array(z.string().max(60)).max(50).default([]),
   atualizadoEm: z.string().optional(),
@@ -353,6 +373,7 @@ export type Compra = z.infer<typeof compraSchema>;
 export type Movimento = z.infer<typeof movimentoSchema>;
 export type PedidoCompra = z.infer<typeof pedidoCompraSchema>;
 export type PcItem = z.infer<typeof pcItemSchema>;
+export type Parceiro = z.infer<typeof parceiroSchema>;
 export type ProducaoData = z.infer<typeof producaoSchema>;
 
 export const PRODUCAO_KEY = "producao:dados";
@@ -449,6 +470,7 @@ export function lerProducao(raw: unknown): ProducaoData | null {
     receita: velho.data.receita,
     plano: PLANO_PADRAO,
     lotes: [],
+    parceiros: [],
     compras: [],
     importacoes: [],
     atualizadoEm: velho.data.atualizadoEm,
@@ -926,6 +948,235 @@ export const chaveFornecedor = (nome: string) =>
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
+
+// ── Cadastro de fornecedores ────────────────────────────────────────────────
+
+export type FichaFornecedor = {
+  chave: string;
+  nome: string;
+  /** Dados da empresa; `null` = ainda sem cadastro (só aparece em cotação ou pedido). */
+  cadastro: Parceiro | null;
+  /** O que fornece (pelas cotações). */
+  insumos: { id: string; insumo: string; principal: boolean; prazoDias: number }[];
+  pedidos: number;
+  abertos: number;
+  /** Valor já recebido (materiais) ou pago (serviços). */
+  totalCents: number;
+  ultimaCompra: string | null;
+  entregas: number;
+  noPrazo: number;
+};
+
+/**
+ * Todos os fornecedores da empresa: os cadastrados e os que só aparecem em
+ * cotação, pedido de compra ou lote, com o resumo das compras de cada um.
+ */
+export function fichasFornecedores(data: ProducaoData, hoje = hojeBR()): FichaFornecedor[] {
+  const map = new Map<string, FichaFornecedor>();
+  const ficha = (nome: string) => {
+    const chave = chaveFornecedor(nome);
+    if (!chave) return null;
+    let f = map.get(chave);
+    if (!f) {
+      f = {
+        chave,
+        nome: nome.trim(),
+        cadastro: null,
+        insumos: [],
+        pedidos: 0,
+        abertos: 0,
+        totalCents: 0,
+        ultimaCompra: null,
+        entregas: 0,
+        noPrazo: 0,
+      };
+      map.set(chave, f);
+    }
+    return f;
+  };
+  const compra = (f: FichaFornecedor, cents: number, dia: string | null) => {
+    f.totalCents += cents;
+    if (dia && (!f.ultimaCompra || dia > f.ultimaCompra)) f.ultimaCompra = dia;
+  };
+  for (const p of data.parceiros) {
+    const f = ficha(p.nome);
+    if (f) {
+      f.cadastro = p;
+      f.nome = p.nome;
+    }
+  }
+  for (const i of data.insumos) {
+    for (const q of i.fornecedores) {
+      const f = ficha(q.nome);
+      if (f && !f.insumos.some((x) => x.id === i.id))
+        f.insumos.push({
+          id: i.id,
+          insumo: i.insumo,
+          principal: i.principal === q.id,
+          prazoDias: q.prazoDias,
+        });
+    }
+    for (const c of comprasDo(data, i.id)) {
+      const f = ficha(c.fornecedor);
+      if (f) compra(f, c.totalCents, c.data);
+    }
+  }
+  for (const pc of data.pedidos) {
+    const f = ficha(pc.fornecedor);
+    if (!f) continue;
+    f.pedidos++;
+    const sit = situacaoPedido(pc, hoje);
+    if (sit === "aberto" || sit === "parcial" || sit === "atrasado") f.abertos++;
+  }
+  // Serviços (envase) são pagos no lote, sem pedido de compra.
+  for (const l of data.lotes.filter((x) => x.etapa !== "cancelado"))
+    for (const it of l.itens)
+      if (it.categoria === "Serviço" && it.pagoCents) {
+        const f = ficha(it.fornecedor);
+        if (f) compra(f, it.pagoCents, it.chegouEm ?? it.pedidoEm ?? l.plano.prontoAte);
+      }
+  for (const [k, p] of pontualidade(data)) {
+    const f = map.get(k);
+    if (f) {
+      f.entregas = p.entregas;
+      f.noPrazo = p.noPrazo;
+    }
+  }
+  return [...map.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+/**
+ * Grava o cadastro do fornecedor. Se o nome mudou, as cotações, os pedidos
+ * de compra e os lotes que usavam o nome antigo passam a usar o novo.
+ */
+export function salvarParceiro(
+  data: ProducaoData,
+  parceiro: Parceiro,
+  chaveAnterior: string | null,
+): ProducaoData {
+  const existe = data.parceiros.some((p) => p.id === parceiro.id);
+  const parceiros = existe
+    ? data.parceiros.map((p) => (p.id === parceiro.id ? parceiro : p))
+    : [...data.parceiros, parceiro];
+  if (!chaveAnterior || chaveAnterior === chaveFornecedor(parceiro.nome))
+    return { ...data, parceiros };
+  const era = (nome: string) => chaveFornecedor(nome) === chaveAnterior;
+  return {
+    ...data,
+    parceiros,
+    insumos: data.insumos.map((i) =>
+      i.fornecedores.some((q) => era(q.nome))
+        ? {
+            ...i,
+            fornecedores: i.fornecedores.map((q) =>
+              era(q.nome) ? { ...q, nome: parceiro.nome } : q,
+            ),
+          }
+        : i,
+    ),
+    pedidos: data.pedidos.map((pc) =>
+      era(pc.fornecedor) ? { ...pc, fornecedor: parceiro.nome } : pc,
+    ),
+    lotes: data.lotes.map((l) =>
+      l.itens.some((it) => era(it.fornecedor))
+        ? {
+            ...l,
+            itens: l.itens.map((it) =>
+              era(it.fornecedor) ? { ...it, fornecedor: parceiro.nome } : it,
+            ),
+          }
+        : l,
+    ),
+  };
+}
+
+// ── Pendências de cadastro ──────────────────────────────────────────────────
+
+export type Pendencia = {
+  id: string;
+  /** Tela onde se resolve. */
+  vista: "lotes" | "planejar" | "receita" | "estoque" | "pedidos" | "insumos" | "fornecedores";
+  titulo: string;
+  /** O que está pendente (nomes, números de pedido, códigos de lote). */
+  itens: string[];
+};
+
+/** Cotação com mais de 90 dias (ou sem data) é preço a confirmar. */
+export const COTACAO_VALE_DIAS = 90;
+
+/**
+ * O que falta no cadastro para os números do painel serem confiáveis:
+ * cada pendência diz onde resolver.
+ */
+export function pendencias(data: ProducaoData, hoje = hojeBR()): Pendencia[] {
+  const lista: Pendencia[] = [];
+  const add = (id: string, vista: Pendencia["vista"], titulo: string, itens: string[]) => {
+    if (itens.length) lista.push({ id, vista, titulo, itens });
+  };
+  const { insumos } = data;
+  add(
+    "exemplo",
+    "insumos",
+    "Dados de exemplo a substituir pelos dados reais",
+    insumos
+      .filter((i) => i.exemplo || i.fornecedores.some((f) => f.exemplo))
+      .map((i) => i.insumo),
+  );
+  add(
+    "sem-cotacao",
+    "insumos",
+    "Insumos sem cotação de fornecedor",
+    insumos.filter((i) => i.fornecedores.length === 0).map((i) => i.insumo),
+  );
+  const principais = insumos.flatMap((i) => {
+    const f = principalDe(i);
+    return f ? [{ i, f }] : [];
+  });
+  add(
+    "cotacao-antiga",
+    "insumos",
+    `Cotações a confirmar (sem data ou com mais de ${COTACAO_VALE_DIAS} dias)`,
+    principais
+      .filter(({ f }) => !f.cotadoEm || diasEntre(f.cotadoEm, hoje) > COTACAO_VALE_DIAS)
+      .map(({ i, f }) => `${i.insumo} (${f.nome || "sem nome"})`),
+  );
+  add(
+    "sem-prazo",
+    "insumos",
+    "Cotações sem prazo de entrega informado",
+    principais
+      .filter(({ i, f }) => !ehServico(i) && f.prazoDias === 0)
+      .map(({ i, f }) => `${i.insumo} (${f.nome || "sem nome"})`),
+  );
+  add(
+    "sem-contato",
+    "fornecedores",
+    "Fornecedores sem dados de contato",
+    fichasFornecedores(data, hoje)
+      .filter((f) => !f.cadastro || (!f.cadastro.telefone && !f.cadastro.email))
+      .map((f) => f.nome),
+  );
+  add(
+    "pedido-sem-data",
+    "pedidos",
+    "Pedidos de compra em aberto sem data prevista de entrega",
+    data.pedidos
+      .filter((pc) => {
+        const sit = situacaoPedido(pc, hoje);
+        return !pc.previstoEm && (sit === "aberto" || sit === "parcial");
+      })
+      .map((pc) => pc.numero),
+  );
+  add(
+    "lote-sem-data",
+    "lotes",
+    "Lotes em andamento sem data de produção",
+    data.lotes.filter((l) => loteAberto(l) && !l.plano.prontoAte).map((l) => l.codigo),
+  );
+  if (!insumos.some((i) => i.uso === "receita" && i.qtd > 0))
+    add("sem-receita", "receita", "Ficha técnica sem ingredientes", ["Receita"]);
+  return lista;
+}
 
 // ── Histórico de compras ────────────────────────────────────────────────────
 
@@ -2604,6 +2855,7 @@ export const EXEMPLO: ProducaoData = {
   compras: [],
   movimentos: [],
   pedidos: [],
+  parceiros: [],
   importacoes: [],
   insumos: [
     {

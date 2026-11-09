@@ -3,8 +3,14 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import {
   ArrowDown,
+  Boxes,
+  Building2,
   ChevronRight,
   ClipboardCheck,
+  ClipboardList,
+  FlaskConical,
+  ListChecks,
+  SlidersHorizontal,
   PackageCheck,
   Undo2,
   CalendarClock,
@@ -19,7 +25,12 @@ import {
 } from "lucide-react";
 import {
   CATEGORIAS,
+  COTACAO_VALE_DIAS,
   LATA_ML,
+  fichasFornecedores,
+  loteAberto,
+  pendencias,
+  salvarParceiro,
   UNIDADES,
   compraInteira,
   fatorReceita,
@@ -56,7 +67,10 @@ import {
   resumo,
   somarDias,
   type PedidoCompra,
+  type FichaFornecedor,
   type Fornecedor,
+  type Parceiro,
+  type Pendencia,
   type Insumo,
   type LinhaCompra,
   type Movimento,
@@ -72,8 +86,10 @@ import {
   LABEL,
   MINI,
   NumField,
+  Ajuda,
   Secao,
-  abrirSecao,
+  SubAbas,
+  useVista,
   brl,
   dia,
   fromCents,
@@ -134,7 +150,22 @@ type Editing =
   | { kind: "fornecedor"; insumo: Insumo; item: Fornecedor; isNew: boolean }
   | { kind: "pedido"; pc: PedidoCompra; isNew: boolean }
   | { kind: "receber"; pcId: string }
-  | { kind: "contagem"; insumo: Insumo };
+  | { kind: "contagem"; insumo: Insumo }
+  | { kind: "parceiro"; item: Parceiro; chaveAnterior: string | null; isNew: boolean };
+
+/** Telas do menu interno de cada aba. */
+const VISTAS_PRODUCAO = ["lotes", "planejar", "receita"] as const;
+const VISTAS_COMPRAS = ["estoque", "pedidos", "insumos", "fornecedores"] as const;
+type Vista = (typeof VISTAS_PRODUCAO)[number] | (typeof VISTAS_COMPRAS)[number];
+const NOME_VISTA: Record<Vista, string> = {
+  lotes: "Lotes",
+  planejar: "Planejamento",
+  receita: "Ficha técnica",
+  estoque: "Estoque",
+  pedidos: "Pedidos de compra",
+  insumos: "Insumos",
+  fornecedores: "Fornecedores",
+};
 
 /** Custo de uma unidade com até 3 casas (R$ 1,026). */
 const unit = (cents: number) =>
@@ -164,7 +195,11 @@ export function Producao({
     window.clearTimeout(timer.current);
     start(async () => {
       const r = await salvarProducao(next);
-      setStatus(r.ok ? { ok: true, text: "Salvo" } : { ok: false, text: r.error ?? "Não salvou" });
+      setStatus(
+        r.ok
+          ? { ok: true, text: "Salvo" }
+          : { ok: false, text: r.error ?? "Não foi possível salvar" },
+      );
     });
   };
   /** Campos digitados (receita, plano): salva 0,7 s depois da última tecla. */
@@ -186,7 +221,21 @@ export function Producao({
   const producaoEm = somarDias(hoje, r.espera);
   const prontoEm = somarDias(hoje, r.prazo);
   const folga = plano.prontoAte ? diasEntre(producaoEm, plano.prontoAte) : null;
-  const temExemplo = insumos.some((i) => i.exemplo || i.fornecedores.some((f) => f.exemplo));
+  const vistas: readonly Vista[] = modo === "producao" ? VISTAS_PRODUCAO : VISTAS_COMPRAS;
+  const [vista, irPara] = useVista<Vista>(modo, vistas, vistas[0]);
+  const fichas = fichasFornecedores(data, hoje);
+  const pend = pendencias(data, hoje).filter((x) => vistas.includes(x.vista));
+  const lotesAbertos = data.lotes.filter(loteAberto).length;
+  const pedidosAbertos = data.pedidos.filter((pc) => {
+    const sit = situacaoPedido(pc, hoje);
+    return sit !== "recebido" && sit !== "encerrado";
+  });
+  const pedidosAtrasados = pedidosAbertos.some((pc) => situacaoPedido(pc, hoje) === "atrasado");
+  const estoqueAtencao = insumos.filter((i) => {
+    if (i.categoria === "Serviço") return false;
+    const sit = posicao(data, i, hoje).situacao;
+    return sit === "falta" || sit === "abaixo" || sit === "atrasado";
+  }).length;
   const aComprar = linhas.filter((l) => l.falta > 0);
 
   const setPlano = (patch: Partial<Plano>) =>
@@ -303,7 +352,7 @@ export function Producao({
   const savePedido = (pc: PedidoCompra) => {
     persist(salvarPedido(data, pc));
     setEditing(null);
-    abrirSecao("pedidos");
+    irPara("pedidos");
   };
   const pcReceber =
     editing?.kind === "receber" ? (data.pedidos.find((x) => x.id === editing.pcId) ?? null) : null;
@@ -314,7 +363,12 @@ export function Producao({
   };
   const estornarPc = (doc: string) => {
     if (!pcReceber) return;
-    if (!window.confirm(`Estornar a entrada ${doc}? O que ela pôs no estoque sai.`)) return;
+    if (
+      !window.confirm(
+        `Estornar a entrada ${doc}? As quantidades lançadas por ela serão retiradas do estoque.`,
+      )
+    )
+      return;
     persist(estornarRecebimento(data, pcReceber.id, doc));
   };
   const deletePedido = (pcId: string) => {
@@ -322,6 +376,41 @@ export function Producao({
     persist(excluirPedido(data, pcId));
     setEditing(null);
   };
+  // ── Cadastro de fornecedores ──
+  const editarParceiro = (f: FichaFornecedor | null) =>
+    setEditing({
+      kind: "parceiro",
+      isNew: !f?.cadastro,
+      chaveAnterior: f?.chave ?? null,
+      item: f?.cadastro
+        ? structuredClone(f.cadastro)
+        : {
+            id: novoId("fo"),
+            nome: f?.nome ?? "",
+            cnpj: "",
+            contato: "",
+            telefone: "",
+            email: "",
+            cidade: "",
+            pagamento: "",
+            obs: "",
+          },
+    });
+  const saveParceiro = (item: Parceiro, chaveAnterior: string | null) => {
+    persist(salvarParceiro(data, item, chaveAnterior));
+    setEditing(null);
+  };
+  const removeParceiro = (id: string) => {
+    if (
+      !window.confirm(
+        "Excluir os dados de cadastro deste fornecedor? Cotações e pedidos são mantidos.",
+      )
+    )
+      return;
+    persist({ ...data, parceiros: data.parceiros.filter((x) => x.id !== id) });
+    setEditing(null);
+  };
+  const nomesFornecedores = fichas.map((f) => f.nome);
   const proximo = proximoCodigo(data.lotes);
   const podeCriar = r.receitaOk && r.boas > 0;
   const criar = () => {
@@ -329,71 +418,99 @@ export function Producao({
     const novo = criarLote(data, linhas, novoId("l"));
     persist({ ...data, lotes: [...data.lotes, novo] });
     setStatus({ ok: true, text: `${novo.codigo} criado` });
-    abrirSecao("lotes");
-    window.setTimeout(
-      () => document.getElementById("lotes")?.scrollIntoView({ behavior: "smooth" }),
-      50,
-    );
+    irPara("lotes");
   };
 
   return (
     <>
-      {temExemplo && (
-        <div className="border-lk-hold/25 bg-lk-hold-bg text-lk-hold rounded-xl border px-5 py-3 text-sm">
-          Os insumos e cotações marcados <span className="font-semibold">exemplo</span> são de
-          mentira: edita com os dados reais ou exclui. Tudo que vocês salvam aqui fica pra equipe
-          toda.
-        </div>
+      {modo === "producao" ? (
+        <LotesKpis data={data} hoje={hoje} />
+      ) : (
+        <ComprasKpis data={data} hoje={hoje} />
       )}
-
-      {modo === "producao" && (
-        <>
-          <LotesKpis data={data} hoje={hoje} />
-          <Lotes
-            data={data}
-            hoje={hoje}
-            onChange={(next, soon) => (soon ? persistSoon : persist)(next)}
-          />
-        </>
-      )}
-
-      {modo === "compras" && (
-        <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-lk-muted text-sm">
-              Comprou um insumo? Lance o pedido aqui; quando chegar, dê entrada pelo
-              &quot;Receber&quot; do pedido.
-            </p>
-            <button type="button" className={btn("primary")} onClick={() => novoPedido("", [])}>
-              <ShoppingCart aria-hidden />
-              Novo pedido de compra
-            </button>
-          </div>
-          <ComprasKpis data={data} hoje={hoje} />
-          {/* ── Estoque de insumos (visão geral, como o MMBE do SAP) ── */}
-          <EstoqueGeral data={data} hoje={hoje} onPedir={novoPedido} />
-          {/* ── Pedidos de compra (ME2N) ── */}
-          <PedidosCompra
-            data={data}
-            hoje={hoje}
-            onNovo={() => novoPedido("", [])}
-            onAbrir={(pcId) => setEditing({ kind: "receber", pcId })}
-          />
-        </>
-      )}
-
-      {/* ── Planejar novo lote ── */}
-      {modo === "producao" && (
-        <Secao
-          id="planejar"
-          defaultOpen
-          title="Planejar novo lote"
-          aside={
+      <Pendencias lista={pend} onAbrir={irPara} />
+      <SubAbas<Vista>
+        atual={vista}
+        onChange={irPara}
+        itens={
+          modo === "producao"
+            ? [
+                { id: "lotes", label: "Lotes", icon: Factory, count: lotesAbertos },
+                { id: "planejar", label: "Planejamento", icon: SlidersHorizontal },
+                { id: "receita", label: "Ficha técnica", icon: FlaskConical },
+              ]
+            : [
+                {
+                  id: "estoque",
+                  label: "Estoque",
+                  icon: Boxes,
+                  count: estoqueAtencao || undefined,
+                  alerta: true,
+                },
+                {
+                  id: "pedidos",
+                  label: "Pedidos de compra",
+                  icon: ClipboardList,
+                  count: pedidosAbertos.length,
+                  alerta: pedidosAtrasados,
+                },
+                { id: "insumos", label: "Insumos", icon: PackageCheck, count: insumos.length },
+                {
+                  id: "fornecedores",
+                  label: "Fornecedores",
+                  icon: Building2,
+                  count: fichas.length,
+                },
+              ]
+        }
+        aside={
+          <>
             <span className={`text-xs ${status?.ok === false ? "text-lk-fail" : "text-lk-ink3"}`}>
               {saving ? "Salvando…" : status?.text}
             </span>
-          }
-        >
+            {modo === "compras" && (
+              <button
+                type="button"
+                className={btn("primary", "sm")}
+                onClick={() => novoPedido("", [])}
+              >
+                <ShoppingCart aria-hidden />
+                Novo pedido de compra
+              </button>
+            )}
+          </>
+        }
+      />
+
+      {vista === "lotes" && (
+        <Lotes
+          data={data}
+          hoje={hoje}
+          onChange={(next, soon) => (soon ? persistSoon : persist)(next)}
+          onPlanejar={() => irPara("planejar")}
+        />
+      )}
+      {/* ── Estoque de insumos (visão geral, como o MMBE do SAP) ── */}
+      {vista === "estoque" && <EstoqueGeral data={data} hoje={hoje} onPedir={novoPedido} />}
+      {/* ── Pedidos de compra (ME2N) ── */}
+      {vista === "pedidos" && (
+        <PedidosCompra
+          data={data}
+          hoje={hoje}
+          onAbrir={(pcId) => setEditing({ kind: "receber", pcId })}
+        />
+      )}
+      {vista === "fornecedores" && (
+        <Fornecedores
+          fichas={fichas}
+          onNovo={() => editarParceiro(null)}
+          onEditar={editarParceiro}
+        />
+      )}
+
+      {/* ── Planejamento de lote ── */}
+      {vista === "planejar" && (
+        <Secao id="planejar" fixa title="Planejamento de lote">
           <KpiStrip cols={4}>
             <Tile
               icon={Factory}
@@ -406,22 +523,24 @@ export function Producao({
               label="Custo por lata"
               value={r.lataCents === null ? "—" : brl(r.lataCents)}
               note={
-                r.packCents === null ? "Preencher a receita" : `Six pack ${brl(r.packCents)} pronto`
+                r.packCents === null
+                  ? "Preencha a ficha técnica"
+                  : `Six pack montado: ${brl(r.packCents)}`
               }
             />
             <Tile
               icon={ShoppingCart}
-              label="Comprar agora"
+              label="Compra necessária"
               value={r.receitaOk ? brl(r.desembolso) : "—"}
               note={
                 aComprar.length
-                  ? `${aComprar.length} ${aComprar.length === 1 ? "insumo" : "insumos"} · com frete`
-                  : "Tudo já em estoque"
+                  ? `${aComprar.length} ${aComprar.length === 1 ? "insumo" : "insumos"} · frete incluído`
+                  : "Todos os insumos em estoque"
               }
             />
             <Tile
               icon={CalendarClock}
-              label="Dá pra produzir em"
+              label="Produção possível em"
               value={dia(producaoEm)}
               tone={folga !== null && folga < 0 ? "fail" : "hold"}
               note={
@@ -474,7 +593,9 @@ export function Producao({
                   />
                   <span className="text-lk-muted">%</span>
                 </span>
-                <span className={HINT}>Latas amassadas, mal cheias, amostras</span>
+                <span className={HINT}>
+                  Latas danificadas, com enchimento incompleto e amostras
+                </span>
               </label>
               <label className={LABEL}>
                 <span className="font-medium">Six packs a montar</span>
@@ -496,8 +617,8 @@ export function Producao({
                 />
                 <span className={HINT}>
                   {r.avulsas > 0
-                    ? `Sobram ${num(r.avulsas, 0)} latas avulsas`
-                    : "Todas as latas boas em pack"}
+                    ? `Restam ${num(r.avulsas, 0)} latas avulsas`
+                    : "Todas as latas boas em six pack"}
                 </span>
               </label>
               <label className={LABEL}>
@@ -521,24 +642,28 @@ export function Producao({
                     </button>
                   )}
                 </span>
-                <span className={HINT}>Dia do envase: mostra até quando pedir cada insumo</span>
+                <span className={HINT}>
+                  Dia do envase: define a data limite de pedido de cada insumo
+                </span>
               </label>
             </div>
 
             <p className="text-sm">
-              Pedindo hoje, os insumos chegam e dá pra produzir em{" "}
-              <span className="font-semibold">{dia(producaoEm)}</span> ({r.espera} dias); com{" "}
-              {r.servico} de envase, fica pronto em{" "}
+              Com os pedidos de compra feitos hoje, os insumos chegam e a produção pode ocorrer em{" "}
+              <span className="font-semibold">{dia(producaoEm)}</span> ({r.espera} dias). Com{" "}
+              {r.servico} {r.servico === 1 ? "dia" : "dias"} de envase, o lote fica pronto em{" "}
               <span className="font-semibold">{dia(prontoEm)}</span>.{" "}
               {folga !== null &&
                 (folga >= 0 ? (
                   <span className="text-lk-pass font-medium">
-                    Dá pra produzir em {dia(plano.prontoAte!)}: sobram {folga} dias.
+                    A data de produção {dia(plano.prontoAte!)} é viável, com folga de {folga}{" "}
+                    {folga === 1 ? "dia" : "dias"}.
                   </span>
                 ) : (
                   <span className="text-lk-fail font-medium">
-                    Não dá pra produzir em {dia(plano.prontoAte!)}: faltam {-folga} dias. Veja o
-                    gargalo ou um fornecedor mais rápido.
+                    A data de produção {dia(plano.prontoAte!)} não é viável: faltam {-folga}{" "}
+                    {-folga === 1 ? "dia" : "dias"}. Avalie o insumo de maior prazo ou um fornecedor
+                    com entrega mais rápida.
                   </span>
                 ))}
             </p>
@@ -546,13 +671,13 @@ export function Producao({
             {r.semFornecedor.length > 0 && (
               <p className="text-lk-fail flex items-center gap-2 text-sm">
                 <TriangleAlert aria-hidden className="size-4" />
-                Sem fornecedor: {r.semFornecedor.map((l) => l.i.insumo).join(", ")}. O custo e o
-                prazo estão incompletos.
+                Insumos sem fornecedor: {r.semFornecedor.map((l) => l.i.insumo).join(", ")}. O custo
+                e o prazo do plano estão incompletos.
               </p>
             )}
 
             <div className="border-lk-border -mx-5 overflow-x-auto border-t">
-              <table className="w-full min-w-[980px] text-sm">
+              <table className="w-full min-w-[920px] text-sm">
                 <thead>
                   <tr>
                     <th className={TH}>Insumo</th>
@@ -583,13 +708,13 @@ export function Producao({
                           </p>
                           {economia > 0 && (
                             <p className="text-lk-pass text-xs">
-                              {melhor.f.nome || "Outro"} sai {brl(economia)} mais barato
+                              {melhor.f.nome || "Outro"} sai {brl(economia)} menor custo
                             </p>
                           )}
                         </td>
                         {l.precisa === null ? (
                           <td className={`${TD} text-lk-hold text-right`} colSpan={5}>
-                            Preencher a receita abaixo
+                            Preencha a ficha técnica
                           </td>
                         ) : (
                           <>
@@ -708,19 +833,30 @@ export function Producao({
                 </tfoot>
               </table>
             </div>
-            <p className={HINT}>
-              Latas envasadas = litros ÷ 0,35; boas = envasadas menos a perda no envase. Precisa =
-              consumo do lote + a perda do insumo (caixa de six pack: uma por six pack montado).
-              Comprar = o que falta depois do estoque, subindo até o pedido mínimo e o múltiplo do
-              fornecedor principal. Desembolso inclui o frete. Prazo = o insumo a comprar que mais
-              demora + o envase/serviço. Disponível = estoque menos o que os lotes em andamento já
-              reservaram.
-            </p>
+            <Ajuda>
+              <p>
+                Latas envasadas: litros divididos por 0,35. Latas boas: envasadas menos a perda no
+                envase.
+              </p>
+              <p>
+                Precisa: consumo do lote acrescido da perda do insumo (caixa de six pack: uma por
+                six pack montado). Disponível: estoque menos o que os lotes em andamento já
+                reservaram.
+              </p>
+              <p>
+                Comprar: quantidade que falta depois do estoque, ajustada ao pedido mínimo e ao
+                múltiplo do fornecedor principal. O desembolso inclui o frete.
+              </p>
+              <p>
+                Prazo: insumo a comprar com a entrega mais demorada, somado ao prazo do serviço de
+                envase.
+              </p>
+            </Ajuda>
             <div className="border-lk-border -mx-5 -mb-5 flex flex-wrap items-center justify-between gap-3 border-t px-5 py-4">
               <p className="text-lk-muted text-sm">
                 {podeCriar
-                  ? `Gostou do plano? Ele vira o ${proximo}: quantidades, fornecedores e custos ficam guardados, e o estoque usado fica reservado.`
-                  : "Preencha a receita e os litros para criar um lote."}
+                  ? `Ao criar o lote ${proximo}, as quantidades, os fornecedores e os custos deste plano são registrados e o estoque necessário fica reservado.`
+                  : "Preencha a ficha técnica e os litros a produzir para criar um lote."}
               </p>
               <button
                 type="button"
@@ -736,8 +872,8 @@ export function Producao({
         </Secao>
       )}
 
-      {/* ── Receita (cadastro da produção) ── */}
-      {modo === "producao" && (
+      {/* ── Ficha técnica (receita) ── */}
+      {vista === "receita" && (
         <Receita
           linhas={linhas}
           refriPct={receita.refriPct}
@@ -751,15 +887,16 @@ export function Producao({
       )}
 
       {/* ── Insumos e cotações (cadastro de compras) ── */}
-      {modo === "compras" && (
+      {vista === "insumos" && (
         <Secao
           id="insumos"
-          title="Insumos e fornecedores"
+          fixa
+          title="Cadastro de insumos"
           count={insumos.length}
           aside={
             <button
               type="button"
-              className={btn("primary", "sm")}
+              className={btn("secondary", "sm")}
               onClick={() => setEditing({ kind: "insumo", item: NOVO_INSUMO(), isNew: true })}
             >
               <Plus aria-hidden />
@@ -767,7 +904,7 @@ export function Producao({
             </button>
           }
         >
-          {insumos.length === 0 && <Empty>Nenhum insumo ainda.</Empty>}
+          {insumos.length === 0 && <Empty>Nenhum insumo cadastrado.</Empty>}
           {linhas.map((l) => (
             <InsumoCard
               key={l.i.id}
@@ -810,11 +947,17 @@ export function Producao({
               onUsar={(id) => usarFornecedor(l.i, id)}
             />
           ))}
-          <p className={HINT}>
-            &quot;Neste lote&quot; = quanto sairia comprar com cada fornecedor o que este lote pede
-            (com mínimo, múltiplo, faixa e frete). A estrela marca o principal, que a calculadora
-            usa.
-          </p>
+          <Ajuda titulo="Como utilizar o cadastro de insumos">
+            <p>
+              Selecione um insumo para consultar o estoque, as cotações, o histórico de compras e as
+              movimentações.
+            </p>
+            <p>
+              Em cada cotação, a coluna Neste lote indica quanto custaria comprar desse fornecedor a
+              quantidade do planejamento atual, considerando pedido mínimo, múltiplo, faixa de preço
+              e frete. A estrela identifica o fornecedor principal, utilizado no planejamento.
+            </p>
+          </Ajuda>
         </Secao>
       )}
 
@@ -859,7 +1002,7 @@ export function Producao({
           onEntrarLegado={() => {
             if (
               !window.confirm(
-                `Dar entrada no estoque do que o ${pcReceber.numero} recebeu? Use só se essas quantidades ainda não estão no estoque.`,
+                `Lançar no estoque as quantidades recebidas do ${pcReceber.numero}? Utilize esta opção somente se essas quantidades ainda não constam no estoque.`,
               )
             )
               return;
@@ -870,8 +1013,18 @@ export function Producao({
           }
         />
       )}
+      {editing?.kind === "parceiro" && (
+        <ParceiroEditor
+          item={editing.item}
+          isNew={editing.isNew}
+          onCancel={() => setEditing(null)}
+          onSave={(item) => saveParceiro(item, editing.chaveAnterior)}
+          onDelete={() => removeParceiro(editing.item.id)}
+        />
+      )}
       {editing?.kind === "fornecedor" && (
         <FornecedorEditor
+          nomes={nomesFornecedores}
           item={editing.item}
           insumo={editing.insumo}
           isNew={editing.isNew}
@@ -988,11 +1141,12 @@ function Receita({
   return (
     <Secao
       id="receita"
-      title="Receita"
-      aside={<span className={HINT}>por 100 mL, como na planilha</span>}
+      fixa
+      title="Ficha técnica"
+      aside={<span className={HINT}>Formulação por 100 mL</span>}
     >
       <div className={`${TABLE_WRAP} overflow-x-auto`}>
-        <table className="w-full min-w-[980px] table-fixed text-sm">
+        <table className="w-full min-w-[920px] table-fixed text-sm">
           <thead>
             <tr>
               <th className={`${TH} w-[24%]`}>Ingrediente</th>
@@ -1005,7 +1159,7 @@ function Receita({
             </tr>
           </thead>
           <tbody className="divide-lk-border divide-y">
-            {cabeca("Refri de cola", "por 100 mL de refri", "refri")}
+            {cabeca("Refrigerante de cola", "por 100 mL de refrigerante", "refri")}
             <tr>
               <td className={TD}>
                 <p className="font-semibold">Água</p>
@@ -1013,8 +1167,8 @@ function Receita({
               </td>
               <td className={`${TD} text-lk-muted text-right`}>QSP</td>
               <td className={`${TD} text-lk-muted`} colSpan={5}>
-                Completa os 100 mL
-                {ml(refri) > 0 ? ` (os outros líquidos somam ${num(ml(refri), 2)} mL)` : ""}
+                Completa o volume até 100 mL
+                {ml(refri) > 0 ? ` (os demais líquidos somam ${num(ml(refri), 2)} mL)` : ""}
               </td>
             </tr>
             {refri.map((l) => linha(l, mlDaParte("refri", refriPct)))}
@@ -1030,7 +1184,7 @@ function Receita({
             </tr>
             <tr className="bg-lk-paper">
               <td className={`${TD} font-medium`} colSpan={4}>
-                Custo do refri
+                Custo do refrigerante de cola
               </td>
               <td className={`${TD} text-right font-medium tabular-nums`}>{miudo(refri100)}</td>
               <td className={`${TD} text-lk-muted text-right text-xs`}>{miudo(refri100 * 10)}/L</td>
@@ -1039,14 +1193,14 @@ function Receita({
 
             {cabeca("Fernet Cola", "por 100 mL do produto final", "final")}
             <tr>
-              <td className={`${TD} font-semibold`}>Refri de cola</td>
+              <td className={`${TD} font-semibold`}>Refrigerante de cola</td>
               <td className={`${TD} text-right`}>
                 <input
                   type="number"
                   min={0}
                   max={100}
                   step="any"
-                  aria-label="Refri de cola: mL por 100 mL"
+                  aria-label="Refrigerante de cola: mL por 100 mL"
                   className={QTD}
                   value={refriPct}
                   onChange={(e) =>
@@ -1058,7 +1212,7 @@ function Receita({
               <td className={`${TD} text-right tabular-nums`}>{miudo(refri100 * 10)}/L</td>
               <td className={`${TD} text-right tabular-nums`}>{miudo(refriNoFinal)}</td>
               <td className={`${TD} text-right tabular-nums`}>{miudo(refriNoFinal * 3.5)}</td>
-              <td className={`${TD} text-lk-muted`}>feito aqui</td>
+              <td className={`${TD} text-lk-muted`}>calculado acima</td>
             </tr>
             {final.map((l) => linha(l, mlDaParte("final", refriPct)))}
           </tbody>
@@ -1087,12 +1241,17 @@ function Receita({
           </tfoot>
         </table>
       </div>
-      <p className={HINT}>
-        Quantidade em mL (comprado por litro/ml) ou g (comprado por kg/g). Custo do ingrediente = a
-        cotação principal na quantidade do lote, com frete. Por lata = {LATA_ML} mL ({num(refriPct)}
-        % de refri). Sem as perdas: a calculadora acima soma a perda de cada insumo. Clique no nome
-        para editar o ingrediente.
-      </p>
+      <Ajuda>
+        <p>
+          Quantidade em mL (insumo comprado por litro) ou em g (insumo comprado por quilo). Custo do
+          ingrediente: cotação principal na quantidade do lote, com frete.
+        </p>
+        <p>
+          Por lata: {LATA_ML} mL, com {num(refriPct)}% de refrigerante de cola. Os valores não
+          incluem perdas; o planejamento acrescenta a perda de cada insumo.
+        </p>
+        <p>Selecione o nome de um ingrediente para alterar o cadastro.</p>
+      </Ajuda>
     </Secao>
   );
 }
@@ -1173,7 +1332,7 @@ function InsumoCard({
           <p className="text-lk-muted text-xs">
             {i.categoria} ·{" "}
             {i.uso === "receita"
-              ? `Receita: ${num(i.qtd, 3)} ${medida(i.unidade)} por 100 mL de ${i.parte === "refri" ? "refri" : "produto"}`
+              ? `Ficha técnica: ${num(i.qtd, 3)} ${medida(i.unidade)} por 100 mL de ${i.parte === "refri" ? "refrigerante" : "produto"}`
               : `${USO_LABEL[i.uso]}${i.uso === "lata" || i.uso === "pack" ? `: ${num(i.qtd)} ${i.unidade}` : ""}`}
             {i.especificacao ? ` (${i.especificacao})` : ""} · compra em {i.unidade}
           </p>
@@ -1182,11 +1341,11 @@ function InsumoCard({
             {i.categoria !== "Serviço" && i.valorEstoqueCents > 0
               ? ` · ${brl(i.valorEstoqueCents)}`
               : ""}
-            {reservado > 0 ? ` (${num(reservado)} reservado p/ lotes em andamento)` : ""}
+            {reservado > 0 ? ` (${num(reservado)} reservado para lotes em andamento)` : ""}
             {pos.emPedido > 0 ? ` · ${num(pos.emPedido)} em pedido` : ""}
             {i.perdaPct > 0 ? ` · perda ${pct(i.perdaPct)}` : ""}
-            {i.depois ? " · serviço: começa depois dos outros" : ""}
-            {i.fornecedores.length === 1 && " · um fornecedor só"}
+            {i.depois ? " · serviço: inicia após a chegada dos demais insumos" : ""}
+            {i.fornecedores.length === 1 && " · fornecedor único"}
           </p>
         </div>
         <span className="flex gap-2">
@@ -1221,7 +1380,7 @@ function InsumoCard({
       {aberto &&
         (i.fornecedores.length === 0 ? (
           <p className="border-lk-border text-lk-fail border-t px-5 py-3 text-sm">
-            Nenhum fornecedor cadastrado. Adiciona uma cotação.
+            Nenhuma cotação cadastrada. Adicione uma cotação.
           </p>
         ) : (
           <div className="border-lk-border overflow-x-auto border-t">
@@ -1229,7 +1388,7 @@ function InsumoCard({
               <span className="font-semibold">Cotações</span>
               <span className="text-lk-muted"> · {i.fornecedores.length}</span>
             </p>
-            <table className="w-full min-w-[980px] table-fixed text-sm">
+            <table className="w-full min-w-[920px] table-fixed text-sm">
               <thead>
                 <tr>
                   <th className={`${TH} w-[21%]`}>Fornecedor</th>
@@ -1275,7 +1434,7 @@ function InsumoCard({
                             ? "Sem data de cotação"
                             : idade <= 0
                               ? "Cotado hoje"
-                              : `Cotado há ${idade} ${idade === 1 ? "dia" : "dias"}${idade > 90 ? " · conferir preço" : ""}`}
+                              : `Cotado há ${idade} ${idade === 1 ? "dia" : "dias"}${idade > COTACAO_VALE_DIAS ? " · confirmar preço" : ""}`}
                         </p>
                         {(() => {
                           const p = pont.get(chaveFornecedor(f.nome));
@@ -1288,7 +1447,7 @@ function InsumoCard({
                             >
                               {p.noPrazo} de {p.entregas}{" "}
                               {p.entregas === 1 ? "entrega" : "entregas"} no prazo
-                              {media > 0 ? ` · atrasa ${num(media)} d quando atrasa` : ""}
+                              {media > 0 ? ` · atraso médio de ${num(media)} dias` : ""}
                             </p>
                           );
                         })()}
@@ -1322,7 +1481,7 @@ function InsumoCard({
                         <p className="text-lk-muted text-xs">
                           {f.multiplo > 0
                             ? `de ${num(f.multiplo)} em ${num(f.multiplo)}`
-                            : "qualquer qtd."}
+                            : "qualquer quantidade"}
                         </p>
                       </td>
                       <td className={`${TD} text-right whitespace-nowrap tabular-nums`}>
@@ -1339,7 +1498,7 @@ function InsumoCard({
                               {num(c.comprar)} {i.unidade} · {brl(Math.round(c.unitCents))}/un.
                             </p>
                             {menor !== null && c.totalCents === menor && (
-                              <Badge tone="pass">mais barato</Badge>
+                              <Badge tone="pass">menor custo</Badge>
                             )}
                           </>
                         ) : (
@@ -1355,7 +1514,7 @@ function InsumoCard({
                               onClick={() => onUsar(f.id)}
                             >
                               <Star aria-hidden />
-                              Usar este
+                              Definir como principal
                             </button>
                           )}
                           <button
@@ -1412,20 +1571,20 @@ function ComprasKpis({ data, hoje }: { data: ProducaoData; hoje: string }) {
         label="A comprar"
         value={comprar.length}
         tone={comprar.length ? "hold" : "action"}
-        note={comprar.length ? `cerca de ${brl(valorComprar)}` : "Nada falta pros lotes"}
+        note={comprar.length ? `cerca de ${brl(valorComprar)}` : "Nenhuma compra necessária"}
       />
       <Tile
         icon={PackageCheck}
         label="Pedidos em aberto"
         value={abertos.length}
-        note={abertos.length ? `${brl(Math.round(aReceber))} a receber` : "Nada a caminho"}
+        note={abertos.length ? `${brl(Math.round(aReceber))} a receber` : "Nenhum pedido a receber"}
       />
       <Tile
         icon={TriangleAlert}
         label="Pedidos atrasados"
         value={atrasados.length}
         tone="fail"
-        note={atrasados.length ? atrasados.map((pc) => pc.numero).join(", ") : "Tudo no prazo"}
+        note={atrasados.length ? atrasados.map((pc) => pc.numero).join(", ") : "Todos no prazo"}
       />
     </KpiStrip>
   );
@@ -1478,7 +1637,7 @@ function EstoqueGeral({
   return (
     <Secao
       id="estoque"
-      defaultOpen
+      fixa
       title="Estoque de insumos"
       count={linhas.length}
       aside={
@@ -1530,7 +1689,7 @@ function EstoqueGeral({
                         <p>{num(p.emPedido)}</p>
                         {p.proxima && (
                           <p className={`text-xs ${p.atrasado ? "text-lk-fail" : "text-lk-muted"}`}>
-                            chega {dia(p.proxima)}
+                            entrega prevista {dia(p.proxima)}
                           </p>
                         )}
                       </>
@@ -1590,12 +1749,18 @@ function EstoqueGeral({
           </tfoot>
         </table>
       </div>
-      <p className={HINT}>
-        Reservado = o que os lotes em andamento vão consumir. Projetado = estoque − reservado + em
-        pedido. Comprar = o que falta pros lotes e pra voltar ao mínimo, no lote de compra do
-        fornecedor principal (mínimo e múltiplo); &quot;Pedir&quot; abre um pedido com todos os
-        itens desse fornecedor. Valor pelo custo médio móvel.
-      </p>
+      <Ajuda>
+        <p>
+          Reservado: consumo previsto dos lotes em andamento. Projetado: estoque menos o reservado,
+          mais o que está em pedido de compra.
+        </p>
+        <p>
+          Comprar: quantidade necessária para atender os lotes e recompor o estoque mínimo, ajustada
+          ao pedido mínimo e ao múltiplo do fornecedor principal. O botão Pedir abre um pedido de
+          compra com todos os itens desse fornecedor.
+        </p>
+        <p>Valor: quantidade em estoque pelo custo médio móvel.</p>
+      </Ajuda>
     </Secao>
   );
 }
@@ -1615,12 +1780,10 @@ const SIT_PC: Record<
 function PedidosCompra({
   data,
   hoje,
-  onNovo,
   onAbrir,
 }: {
   data: ProducaoData;
   hoje: string;
-  onNovo: () => void;
   onAbrir: (pcId: string) => void;
 }) {
   const [todos, setTodos] = useState(false);
@@ -1637,7 +1800,7 @@ function PedidosCompra({
   return (
     <Secao
       id="pedidos"
-      defaultOpen
+      fixa
       title="Pedidos de compra"
       count={abertos.length}
       aside={
@@ -1649,29 +1812,25 @@ function PedidosCompra({
               checked={todos}
               onChange={(e) => setTodos(e.target.checked)}
             />
-            mostrar recebidos ({lista.length - abertos.length})
+            Mostrar recebidos ({lista.length - abertos.length})
           </label>
-          <button type="button" className={btn("secondary", "sm")} onClick={onNovo}>
-            <Plus aria-hidden />
-            Novo pedido
-          </button>
         </span>
       }
     >
       {mostrados.length === 0 ? (
         <Empty>
-          {lista.length ? "Nenhum pedido em aberto." : "Nenhum pedido de compra ainda."}
+          {lista.length ? "Nenhum pedido em aberto." : "Nenhum pedido de compra registrado."}
         </Empty>
       ) : (
         <div className={`${TABLE_WRAP} overflow-x-auto`}>
-          <table className="w-full min-w-[1000px] table-fixed text-sm">
+          <table className="w-full min-w-[920px] table-fixed text-sm">
             <thead>
               <tr>
                 <th className={`${TH} w-[10%]`}>Pedido</th>
                 <th className={`${TH} w-[14%]`}>Fornecedor</th>
                 <th className={`${TH} w-[28%]`}>Itens (recebido / pedido)</th>
-                <th className={`${TH} w-[10%]`}>Pedido em</th>
-                <th className={`${TH} w-[10%]`}>Chega</th>
+                <th className={`${TH} w-[10%]`}>Data do pedido</th>
+                <th className={`${TH} w-[10%]`}>Entrega prevista</th>
                 <th className={`${TH} w-[11%] text-right`}>Valor</th>
                 <th className={`${TH} w-[17%]`}>Situação</th>
               </tr>
@@ -1719,14 +1878,17 @@ function PedidosCompra({
                     <td className={`${TD} text-right tabular-nums`}>{brl(totalPedido(pc))}</td>
                     <td className={TD}>
                       <Badge tone={sit.tone}>{sit.label}</Badge>
-                      {pc.legado && pc.jaContado && (
-                        <p className="text-lk-muted text-sm">
-                          Pedido de antes do controle de estoque, já contado (no saldo inicial ou no
-                          consumo de um lote).
+                      {pc.legado && (
+                        <p
+                          className="text-lk-muted mt-1 text-xs"
+                          title={
+                            pc.jaContado
+                              ? "Quantidades já consideradas no saldo inicial ou no consumo de um lote."
+                              : undefined
+                          }
+                        >
+                          Anterior ao controle de estoque
                         </p>
-                      )}
-                      {pc.legado && !pc.jaContado && (
-                        <p className="text-lk-muted mt-1 text-xs">antes do controle de estoque</p>
                       )}
                     </td>
                   </tr>
@@ -1736,11 +1898,16 @@ function PedidosCompra({
           </table>
         </div>
       )}
-      <p className={HINT}>
-        Cada pedido tem um número (PC-0001…), um fornecedor e um ou mais insumos; o frete é do
-        pedido e se divide entre os itens pelo valor. Clique no pedido pra receber (entrada no
-        estoque, pode ser em partes), estornar uma entrada ou editar.
-      </p>
+      <Ajuda titulo="Como funcionam os pedidos de compra">
+        <p>
+          Cada pedido recebe um número (PC-0001, PC-0002…), tem um fornecedor e um ou mais insumos.
+          O frete pertence ao pedido e é dividido entre os itens proporcionalmente ao valor.
+        </p>
+        <p>
+          Selecione um pedido para registrar o recebimento (entrada no estoque, total ou parcial),
+          estornar uma entrada ou alterar os dados.
+        </p>
+      </Ajuda>
     </Secao>
   );
 }
@@ -1828,7 +1995,7 @@ function PedidoEditor({
           />
         </label>
         <label className={LABEL}>
-          <span className="font-medium">Chega em (prometido)</span>
+          <span className="font-medium">Entrega prevista</span>
           <input
             type="date"
             className={INPUT}
@@ -1894,7 +2061,7 @@ function PedidoEditor({
               {it.recebido === 0 && f.itens.length > 1 && (
                 <button
                   type="button"
-                  aria-label="Tirar item"
+                  aria-label="Remover item"
                   className={btn("ghost", "sm")}
                   onClick={() => {
                     setF((p) => ({ ...p, itens: p.itens.filter((_, j) => j !== k) }));
@@ -1938,7 +2105,8 @@ function PedidoEditor({
           Adicionar item
         </button>
         <p className={HINT}>
-          Valor em branco usa o preço da cotação desse fornecedor (o cinza no campo).
+          Com o valor em branco, utiliza-se o preço da cotação desse fornecedor (indicado em cinza
+          no campo).
         </p>
       </fieldset>
 
@@ -1973,9 +2141,9 @@ function PedidoEditor({
             className="accent-lk-action mt-0.5 size-4"
           />
           <span>
-            Encerrar: o fornecedor não vai entregar o resto
+            Encerrar o pedido: o fornecedor não entregará o saldo restante
             <span className={`${HINT} block`}>
-              O que falta deixa de contar como &quot;em pedido&quot;.
+              O saldo restante deixa de ser considerado em pedido.
             </span>
           </span>
         </label>
@@ -1991,7 +2159,9 @@ function PedidoEditor({
         />
       </label>
       {recebeu && !isNew && (
-        <p className={HINT}>Pedido com entrada não pode ser excluído: estorne as entradas antes.</p>
+        <p className={HINT}>
+          Pedido com entrada no estoque não pode ser excluído. Estorne as entradas antes.
+        </p>
       )}
     </Drawer>
   );
@@ -2033,8 +2203,8 @@ function ReceberEditor({
       <p className="flex flex-wrap items-center gap-2 text-sm">
         <Badge tone={s.tone}>{s.label}</Badge>
         <span className="text-lk-muted">
-          pedido {pc.data ? dia(pc.data) : "—"} · chega {pc.previstoEm ? dia(pc.previstoEm) : "—"} ·{" "}
-          {brl(totalPedido(pc))}
+          Pedido em {pc.data ? dia(pc.data) : "—"} · entrega prevista{" "}
+          {pc.previstoEm ? dia(pc.previstoEm) : "—"} · {brl(totalPedido(pc))}
           {pc.freteCents > 0 ? ` (frete ${brl(pc.freteCents)})` : ""}
         </span>
         <button type="button" className={`${btn("ghost", "sm")} ml-auto`} onClick={onEditar}>
@@ -2045,8 +2215,9 @@ function ReceberEditor({
       {pc.legado && (
         <div className="border-lk-hold/25 bg-lk-hold-bg flex flex-col gap-2 rounded-lg border p-3 text-sm">
           <p className="text-lk-hold">
-            Pedido de antes do controle de estoque: o recebido dele <b>não</b> foi somado no estoque
-            (considerado já contado no saldo inicial). Se não estava contado, dê entrada agora.
+            Pedido anterior ao controle de estoque: as quantidades recebidas <b>não</b> foram
+            somadas ao estoque, pois são consideradas parte do saldo inicial. Caso não estejam no
+            saldo, lance a entrada agora.
           </p>
           <button
             type="button"
@@ -2054,7 +2225,7 @@ function ReceberEditor({
             onClick={onEntrarLegado}
           >
             <PackageCheck aria-hidden />
-            Dar entrada no estoque
+            Lançar entrada no estoque
           </button>
         </div>
       )}
@@ -2079,20 +2250,20 @@ function ReceberEditor({
                 <div className="min-w-40 flex-1">
                   <p className="font-medium">{it.insumo}</p>
                   <p className="text-lk-muted text-xs tabular-nums">
-                    pedido {num(it.qtd)} · recebido {num(it.recebido)} · falta {num(restante(it))}{" "}
-                    {it.unidade}
+                    pedido {num(it.qtd)} · recebido {num(it.recebido)} · a receber{" "}
+                    {num(restante(it))} {it.unidade}
                     {" · "}
                     {unit(unitPedido(pc, k))}/{it.unidade} com frete
                   </p>
                 </div>
                 <label className="flex items-center gap-2">
-                  <span className="text-lk-muted text-xs">chegou</span>
+                  <span className="text-lk-muted text-xs">recebido</span>
                   <input
                     type="number"
                     min={0}
                     step="any"
                     disabled={restante(it) <= 0}
-                    aria-label={`${it.insumo}: quantidade que chegou`}
+                    aria-label={`${it.insumo}: quantidade recebida`}
                     className={`${MINI} w-28 text-right`}
                     value={qtds[k]}
                     onChange={(e) =>
@@ -2116,13 +2287,14 @@ function ReceberEditor({
             />
           </label>
           <p className={HINT}>
-            Salvar lança a entrada no estoque (um documento de material pra todo o recebimento) e
-            recalcula o custo médio. Pode receber em partes.
+            Ao salvar, a entrada é lançada no estoque (um documento de material para todo o
+            recebimento) e o custo médio é recalculado. O recebimento pode ser parcial.
           </p>
         </>
       ) : (
         <p className="text-lk-muted text-sm">
-          {pc.encerrado ? "Pedido encerrado." : "Tudo recebido."} Nada a dar entrada.
+          {pc.encerrado ? "Pedido encerrado." : "Pedido totalmente recebido."} Não há entrada a
+          lançar.
         </p>
       )}
       {pc.recebimentos.length > 0 && (
@@ -2167,7 +2339,7 @@ const SITUACAO: Record<
   { label: string; tone: "pass" | "hold" | "fail" | "muted" }
 > = {
   ok: { label: "OK", tone: "pass" },
-  falta: { label: "Falta pros lotes", tone: "fail" },
+  falta: { label: "Falta para os lotes", tone: "fail" },
   abaixo: { label: "Abaixo do mínimo", tone: "hold" },
   sem: { label: "Sem estoque", tone: "muted" },
   atrasado: { label: "Pedido atrasado", tone: "fail" },
@@ -2232,12 +2404,12 @@ function FichaEstoque({
         <Num
           label="Em estoque"
           value={`${num(pos.estoque)} ${un}`}
-          note={pos.reservado > 0 ? `${num(pos.reservado)} reservado pros lotes` : "nada reservado"}
+          note={pos.reservado > 0 ? `${num(pos.reservado)} reservado para lotes` : "sem reserva"}
         />
         <Num
           label="Em pedido"
           value={`${num(pos.emPedido)} ${un}`}
-          note={pos.proxima ? `próxima chegada ${dia(pos.proxima)}` : "nada a caminho"}
+          note={pos.proxima ? `próxima chegada ${dia(pos.proxima)}` : "nenhum pedido em aberto"}
         />
         <Num
           label="Projetado"
@@ -2262,7 +2434,7 @@ function FichaEstoque({
       </div>
       {lotesQueUsam.length > 0 && (
         <p className="text-lk-muted px-5 pb-3 text-xs">
-          Reservado pros lotes:{" "}
+          Reservado para os lotes:{" "}
           {lotesQueUsam
             .map((l) => `${l.codigo} ${num(l.qtd)} ${un}${l.data ? ` (${dia(l.data)})` : ""}`)
             .join(" · ")}
@@ -2272,7 +2444,7 @@ function FichaEstoque({
         <p className="px-5 py-3 text-sm">
           <span className="font-semibold">Pedidos em aberto</span>
           <span className="text-lk-muted"> · {pos.abertos.length}</span>
-          {pos.abertos.length === 0 && <span className="text-lk-muted"> · nada a receber</span>}
+          {pos.abertos.length === 0 && <span className="text-lk-muted"> · nenhum a receber</span>}
         </p>
         {pos.abertos.length > 0 && (
           <div className="overflow-x-auto">
@@ -2281,9 +2453,9 @@ function FichaEstoque({
                 <tr>
                   <th className={`${TH} w-[14%]`}>Pedido</th>
                   <th className={`${TH} w-[20%]`}>Fornecedor</th>
-                  <th className={`${TH} w-[15%] text-right`}>Falta receber</th>
+                  <th className={`${TH} w-[15%] text-right`}>A receber</th>
                   <th className={`${TH} w-[14%] text-right`}>Valor</th>
-                  <th className={`${TH} w-[12%]`}>Pedido em</th>
+                  <th className={`${TH} w-[12%]`}>Data do pedido</th>
                   <th className={`${TH} w-[13%]`}>Chega</th>
                   <th className={`${TH} w-[12%]`}>
                     <span className="sr-only">Ações</span>
@@ -2411,7 +2583,7 @@ function Movimentacoes({ i, movimentos }: { i: Insumo; movimentos: Movimento[] }
           className="text-lk-action-strong px-5 py-3 text-xs hover:underline"
           onClick={() => setTodas((v) => !v)}
         >
-          {todas ? "Mostrar só as últimas" : `Ver todas (${lista.length})`}
+          {todas ? "Mostrar apenas as últimas" : `Ver todas (${lista.length})`}
         </button>
       )}
     </div>
@@ -2656,19 +2828,19 @@ function InsumoEditor({
             Todas as cotações usam esta unidade
             {daReceita &&
               (tipoUnidade(f.unidade) === "massa"
-                ? ". Por peso: a receita pede g por 100 mL."
+                ? ". Insumo por peso: a ficha técnica utiliza g por 100 mL."
                 : tipoUnidade(f.unidade) === "volume"
-                  ? ". A receita pede mL por 100 mL."
-                  : ". Na receita: use litro, ml, kg ou g.")}
+                  ? ". A ficha técnica utiliza mL por 100 mL."
+                  : ". Para uso na ficha técnica, utilize litro, ml, kg ou g.")}
           </span>
           {!isNew && f.unidade !== item.unidade && item.fornecedores.length > 0 && (
             <span className="text-lk-hold text-xs">
-              Mudou a unidade: confira o preço das cotações (agora é por {f.unidade || "…"}).
+              A unidade foi alterada: confira o preço das cotações (agora por {f.unidade || "…"}).
             </span>
           )}
         </label>
         <label className={LABEL}>
-          <span className="font-medium">Quanto vai na produção</span>
+          <span className="font-medium">Consumo na produção</span>
           <select
             className={INPUT}
             value={f.uso}
@@ -2695,13 +2867,13 @@ function InsumoEditor({
         {f.uso === "receita" && (
           <>
             <label className={LABEL}>
-              <span className="font-medium">Entra em</span>
+              <span className="font-medium">Utilizado em</span>
               <select
                 className={INPUT}
                 value={f.parte}
                 onChange={(e) => set("parte", e.target.value as Insumo["parte"])}
               >
-                <option value="refri">Refri de cola</option>
+                <option value="refri">Refrigerante de cola</option>
                 <option value="final">Produto final (Fernet Cola)</option>
               </select>
             </label>
@@ -2709,7 +2881,7 @@ function InsumoEditor({
               label="Quantidade por 100 mL"
               value={f.qtd}
               onChange={(n) => set("qtd", n)}
-              hint={`em ${medida(f.unidade)} por 100 mL de ${f.parte === "refri" ? "refri" : "produto"}`}
+              hint={`em ${medida(f.unidade)} por 100 mL de ${f.parte === "refri" ? "refrigerante" : "produto"}`}
             />
             <label className={`${LABEL} sm:col-span-2`}>
               <span className="font-medium">Especificação</span>
@@ -2729,11 +2901,11 @@ function InsumoEditor({
               label="Estoque inicial"
               value={f.estoque}
               onChange={(n) => set("estoque", n)}
-              hint={`${un} que já estão guardados`}
+              hint={`${un} já armazenados`}
             />
             {f.estoque > 0 && (
               <label className={LABEL}>
-                <span className="font-medium">Custo de cada {f.unidade || "unidade"}</span>
+                <span className="font-medium">Custo por {f.unidade || "unidade"}</span>
                 <span className="flex items-center gap-2">
                   <span className="text-lk-muted">R$</span>
                   <input
@@ -2744,7 +2916,7 @@ function InsumoEditor({
                     placeholder="0,00"
                   />
                 </span>
-                <span className={HINT}>Valoriza o estoque inicial</span>
+                <span className={HINT}>Define o valor do estoque inicial</span>
               </label>
             )}
           </>
@@ -2755,14 +2927,14 @@ function InsumoEditor({
               {num(item.estoque)} {un}
               {item.valorEstoqueCents > 0 ? ` · ${brl(item.valorEstoqueCents)}` : ""}
             </span>
-            <span className={HINT}>Muda por chegada, consumo de lote ou contagem</span>
+            <span className={HINT}>Alterado por recebimento, consumo de lote ou contagem</span>
           </div>
         )}
         <NumField
           label="Estoque mínimo"
           value={f.estoqueMinimo}
           onChange={(n) => set("estoqueMinimo", n)}
-          hint={`${un}: abaixo disso (projetado) o painel avisa`}
+          hint={`${un}: o painel alerta quando o saldo projetado fica abaixo deste valor`}
         />
         <NumField
           label="Perda deste insumo (%)"
@@ -2770,7 +2942,7 @@ function InsumoEditor({
           max={90}
           step={0.5}
           onChange={(n) => set("perdaPct", n)}
-          hint="Compra a mais pra cobrir quebra/perda na linha"
+          hint="Quantidade adicional comprada para cobrir quebras e perdas na linha"
         />
       </div>
       <label className="flex items-start gap-2 text-sm">
@@ -2781,8 +2953,10 @@ function InsumoEditor({
           className="accent-lk-action mt-0.5 size-4"
         />
         <span>
-          É envase/serviço: só começa depois que os outros insumos chegam
-          <span className={`${HINT} block`}>O prazo dele soma depois do insumo mais demorado.</span>
+          Serviço de envase: inicia somente após a chegada dos demais insumos
+          <span className={`${HINT} block`}>
+            O prazo do serviço é somado ao do insumo de entrega mais demorada.
+          </span>
         </span>
       </label>
       <p className={HINT}>Fornecedores, preços e prazos ficam nas cotações do insumo.</p>
@@ -2793,6 +2967,7 @@ function InsumoEditor({
 function FornecedorEditor({
   item,
   insumo,
+  nomes,
   isNew,
   onCancel,
   onSave,
@@ -2800,6 +2975,8 @@ function FornecedorEditor({
 }: {
   item: Fornecedor;
   insumo: Insumo;
+  /** Fornecedores já conhecidos (sugestões do campo de nome). */
+  nomes: string[];
   isNew: boolean;
   onCancel: () => void;
   onSave: (f: Fornecedor) => void;
@@ -2842,7 +3019,13 @@ function FornecedorEditor({
             value={f.nome}
             onChange={(e) => set("nome", e.target.value)}
             placeholder="Nome da empresa"
+            list="fornecedores-cadastrados"
           />
+          <datalist id="fornecedores-cadastrados">
+            {nomes.map((n) => (
+              <option key={n} value={n} />
+            ))}
+          </datalist>
         </label>
         <label className={LABEL}>
           <span className="font-medium">Contato</span>
@@ -2858,8 +3041,8 @@ function FornecedorEditor({
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1.5 text-sm font-medium">Preço por quantidade</legend>
         <p className={HINT}>
-          Se o preço muda conforme a quantidade, coloca uma linha por faixa. A primeira vale desde
-          0.
+          Se o preço varia conforme a quantidade, informe uma linha por faixa. A primeira é válida a
+          partir de 0.
         </p>
         {f.faixas.map((x, k) => (
           <div key={k} className="flex items-center gap-2 text-sm">
@@ -2928,17 +3111,17 @@ function FornecedorEditor({
           hint={`em ${un}`}
         />
         <NumField
-          label="Vende de quanto em quanto"
+          label="Múltiplo de venda"
           value={f.multiplo}
           onChange={(n) => set("multiplo", n)}
-          hint={`palete, caixa, milheiro (em ${un}); 0 = livre`}
+          hint={`Palete, caixa, milheiro (em ${un}); 0 = sem múltiplo`}
         />
         <NumField
           label="Prazo de entrega"
           value={f.prazoDias}
           step={1}
           onChange={(n) => set("prazoDias", Math.round(n))}
-          hint="dias corridos até chegar no envase"
+          hint="Dias corridos até a entrega no local do envase"
         />
         <label className={LABEL}>
           <span className="font-medium">Frete do pedido</span>
@@ -2952,7 +3135,7 @@ function FornecedorEditor({
               placeholder="0,00"
             />
           </span>
-          <span className={HINT}>Até o envase; entra no custo</span>
+          <span className={HINT}>Até o local do envase; incluído no custo</span>
         </label>
         <label className={LABEL}>
           <span className="font-medium">Data da cotação</span>
@@ -2962,7 +3145,9 @@ function FornecedorEditor({
             value={f.cotadoEm ?? ""}
             onChange={(e) => set("cotadoEm", e.target.value || null)}
           />
-          <span className={HINT}>Depois de 90 dias o painel avisa pra conferir</span>
+          <span className={HINT}>
+            Após {COTACAO_VALE_DIAS} dias, o painel indica a cotação para confirmação
+          </span>
         </label>
       </div>
       <label className={LABEL}>
@@ -2975,6 +3160,242 @@ function FornecedorEditor({
           placeholder="Condição de pagamento, qualidade, amostra pedida…"
         />
       </label>
+    </Drawer>
+  );
+}
+
+/** O que falta no cadastro para os números da aba serem confiáveis. */
+function Pendencias({ lista, onAbrir }: { lista: Pendencia[]; onAbrir: (v: Vista) => void }) {
+  if (lista.length === 0) return null;
+  return (
+    <details className="group border-lk-hold/25 bg-lk-hold-bg overflow-hidden rounded-xl border text-sm">
+      <summary className="text-lk-hold flex cursor-pointer list-none items-center gap-2 px-5 py-3 [&::-webkit-details-marker]:hidden">
+        <ListChecks aria-hidden className="size-4 shrink-0" />
+        <span className="font-semibold">
+          {lista.length} {lista.length === 1 ? "pendência" : "pendências"} de cadastro
+        </span>
+        <span className="hidden sm:inline">
+          · Dados completos tornam os indicadores desta aba confiáveis
+        </span>
+        <ChevronRight
+          aria-hidden
+          className="ml-auto size-4 shrink-0 transition-transform duration-150 group-open:rotate-90"
+        />
+      </summary>
+      <ul className="border-lk-hold/20 divide-lk-border divide-y border-t bg-white">
+        {lista.map((x) => (
+          <li key={x.id} className="flex items-center justify-between gap-4 px-5 py-3">
+            <div className="min-w-0">
+              <p className="font-medium">{x.titulo}</p>
+              <p className="text-lk-muted text-xs">{x.itens.join(" · ")}</p>
+            </div>
+            <button
+              type="button"
+              className={`${btn("secondary", "sm")} shrink-0`}
+              onClick={() => onAbrir(x.vista)}
+            >
+              Abrir {NOME_VISTA[x.vista]}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+/** Cadastro de fornecedores: dados da empresa e o resumo das compras de cada um. */
+function Fornecedores({
+  fichas,
+  onNovo,
+  onEditar,
+}: {
+  fichas: FichaFornecedor[];
+  onNovo: () => void;
+  onEditar: (f: FichaFornecedor) => void;
+}) {
+  const total = fichas.reduce((n, f) => n + f.totalCents, 0);
+  return (
+    <Secao
+      id="fornecedores"
+      fixa
+      title="Cadastro de fornecedores"
+      count={fichas.length}
+      aside={
+        <button type="button" className={btn("secondary", "sm")} onClick={onNovo}>
+          <Plus aria-hidden />
+          Adicionar fornecedor
+        </button>
+      }
+    >
+      {fichas.length === 0 ? (
+        <Empty>Nenhum fornecedor cadastrado.</Empty>
+      ) : (
+        <div className={`${TABLE_WRAP} overflow-x-auto`}>
+          <table className="w-full min-w-[920px] table-fixed text-sm">
+            <thead>
+              <tr>
+                <th className={`${TH} w-[18%]`}>Fornecedor</th>
+                <th className={`${TH} w-[20%]`}>Contato</th>
+                <th className={`${TH} w-[20%]`}>Fornece</th>
+                <th className={`${TH} w-[13%]`}>Pagamento</th>
+                <th className={`${TH} w-[9%] text-right`}>Pedidos</th>
+                <th className={`${TH} w-[11%] text-right`}>Total comprado</th>
+                <th className={`${TH} w-[9%] text-right`}>No prazo</th>
+              </tr>
+            </thead>
+            <tbody className="divide-lk-border divide-y">
+              {fichas.map((f) => {
+                const c = f.cadastro;
+                const contato = [c?.contato, c?.telefone, c?.email].filter(Boolean);
+                return (
+                  <tr
+                    key={f.chave}
+                    className="hover:bg-lk-paper cursor-pointer align-top transition-colors"
+                    onClick={() => onEditar(f)}
+                  >
+                    <td className={TD}>
+                      <p className="font-semibold">{f.nome}</p>
+                      <p className="text-lk-muted text-xs">
+                        {[c?.cidade, c?.cnpj].filter(Boolean).join(" · ") || "Cadastro incompleto"}
+                      </p>
+                    </td>
+                    <td className={TD}>
+                      {contato.length ? (
+                        contato.map((x) => (
+                          <p key={x} className="truncate first:font-medium">
+                            {x}
+                          </p>
+                        ))
+                      ) : (
+                        <Badge tone="hold">Sem contato</Badge>
+                      )}
+                    </td>
+                    <td className={TD}>
+                      {f.insumos.length ? (
+                        f.insumos.map((x) => (
+                          <p key={x.id}>
+                            {x.insumo}
+                            <span className="text-lk-muted text-xs">
+                              {x.prazoDias > 0 ? ` · ${x.prazoDias} dias` : ""}
+                            </span>
+                          </p>
+                        ))
+                      ) : (
+                        <span className="text-lk-muted">Sem cotação</span>
+                      )}
+                    </td>
+                    <td className={`${TD} text-lk-muted`}>{c?.pagamento || "—"}</td>
+                    <td className={`${TD} text-right tabular-nums`}>
+                      {f.pedidos || "—"}
+                      {f.abertos > 0 && (
+                        <p className="text-lk-muted text-xs">{f.abertos} em aberto</p>
+                      )}
+                    </td>
+                    <td className={`${TD} text-right tabular-nums`}>
+                      {f.totalCents > 0 ? brl(f.totalCents) : "—"}
+                      {f.ultimaCompra && (
+                        <p className="text-lk-muted text-xs">última em {dia(f.ultimaCompra)}</p>
+                      )}
+                    </td>
+                    <td className={`${TD} text-right tabular-nums`}>
+                      {f.entregas > 0 ? (
+                        <>
+                          {pct((f.noPrazo / f.entregas) * 100)}
+                          <p className="text-lk-muted text-xs">
+                            {f.noPrazo} de {f.entregas}
+                          </p>
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="bg-lk-paper">
+                <td className={`${TD} font-semibold`} colSpan={5}>
+                  Total
+                </td>
+                <td className={`${TD} text-right font-semibold tabular-nums`}>{brl(total)}</td>
+                <td className={TD} />
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+      <Ajuda>
+        <p>
+          A lista reúne os fornecedores cadastrados e os que constam em cotações, pedidos de compra
+          ou lotes. Selecione uma linha para completar ou alterar o cadastro.
+        </p>
+        <p>
+          Fornece: insumos com cotação desse fornecedor e o prazo de entrega informado. Total
+          comprado: materiais recebidos e serviços pagos. No prazo: entregas recebidas até a data
+          prevista do pedido de compra.
+        </p>
+      </Ajuda>
+    </Secao>
+  );
+}
+
+function ParceiroEditor({
+  item,
+  isNew,
+  onCancel,
+  onSave,
+  onDelete,
+}: {
+  item: Parceiro;
+  isNew: boolean;
+  onCancel: () => void;
+  onSave: (p: Parceiro) => void;
+  onDelete: () => void;
+}) {
+  const [f, setF] = useState(item);
+  const campo = (k: keyof Parceiro, label: string, placeholder = "", type = "text") => (
+    <label className={LABEL}>
+      <span className="font-medium">{label}</span>
+      <input
+        type={type}
+        className={INPUT}
+        value={f[k]}
+        placeholder={placeholder}
+        onChange={(e) => setF((p) => ({ ...p, [k]: e.target.value }))}
+      />
+    </label>
+  );
+  return (
+    <Drawer
+      title={isNew ? "Cadastro de fornecedor" : "Editar fornecedor"}
+      isNew={isNew}
+      ok={f.nome.trim().length > 0}
+      onCancel={onCancel}
+      onSave={() => onSave(f)}
+      onDelete={onDelete}
+    >
+      {campo("nome", "Nome ou razão social", "Nome da empresa")}
+      <div className="grid gap-4 sm:grid-cols-2">
+        {campo("cnpj", "CNPJ", "00.000.000/0000-00")}
+        {campo("cidade", "Cidade e UF", "Porto Alegre, RS")}
+        {campo("contato", "Pessoa de contato")}
+        {campo("telefone", "Telefone ou WhatsApp", "(51) 90000-0000", "tel")}
+      </div>
+      {campo("email", "E-mail", "", "email")}
+      {campo("pagamento", "Condição de pagamento", "Ex.: 28 dias, à vista, 50% no pedido")}
+      <label className={LABEL}>
+        <span className="font-medium">Observações</span>
+        <textarea
+          className={`${INPUT} h-24 py-2`}
+          value={f.obs}
+          onChange={(e) => setF((p) => ({ ...p, obs: e.target.value }))}
+        />
+      </label>
+      <p className={HINT}>
+        Ao alterar o nome, as cotações e os pedidos de compra deste fornecedor passam a usar o nome
+        novo. Preços, pedido mínimo e prazo de entrega ficam na cotação de cada insumo.
+      </p>
     </Drawer>
   );
 }

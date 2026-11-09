@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { ChevronRight, Trash2, X } from "lucide-react";
+import { useState, useSyncExternalStore } from "react";
+import { ChevronRight, CircleHelp, Trash2, X, type LucideIcon } from "lucide-react";
 import { btn } from "./ui";
 
 // Peças comuns das telas de Produção (Producao.tsx e Lotes.tsx).
@@ -149,11 +149,6 @@ export function NumField({
 export const MINI =
   "border-lk-input focus:border-lk-action focus:ring-lk-action/15 h-8 rounded-md border bg-white px-2 text-[13px] tabular-nums outline-none focus:ring-2";
 
-/** Pede pra uma seção abrir (ex.: depois de criar um lote, abrir "Lotes em andamento"). */
-export function abrirSecao(id: string) {
-  window.dispatchEvent(new CustomEvent("producao:abrir", { detail: id }));
-}
-
 const assinar = (cb: () => void) => {
   window.addEventListener("storage", cb);
   return () => window.removeEventListener("storage", cb);
@@ -176,6 +171,7 @@ export function Secao({
   count,
   aside,
   defaultOpen = false,
+  fixa = false,
   children,
 }: {
   id: string;
@@ -183,6 +179,8 @@ export function Secao({
   count?: number;
   aside?: React.ReactNode;
   defaultOpen?: boolean;
+  /** Sempre aberta, sem o botão de recolher (a tela já é só ela). */
+  fixa?: boolean;
   children: React.ReactNode;
 }) {
   const chave = `painel:producao:secao:${id}`;
@@ -193,14 +191,7 @@ export function Secao({
   );
   // O que a pessoa clicou nesta visita vale mais que o salvo.
   const [agora, setAgora] = useState<boolean | null>(null);
-  const open = agora ?? (salvo === "1" ? true : salvo === "0" ? false : defaultOpen);
-  useEffect(() => {
-    const abrir = (e: Event) => {
-      if ((e as CustomEvent<string>).detail === id) setAgora(true);
-    };
-    window.addEventListener("producao:abrir", abrir);
-    return () => window.removeEventListener("producao:abrir", abrir);
-  }, [id]);
+  const open = fixa || (agora ?? (salvo === "1" ? true : salvo === "0" ? false : defaultOpen));
   const toggle = () => {
     const novo = !open;
     setAgora(novo);
@@ -214,23 +205,145 @@ export function Secao({
     <section id={id} className="flex scroll-mt-6 flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h2 className="text-xl leading-7 font-semibold">
-          <button
-            type="button"
-            onClick={toggle}
-            aria-expanded={open}
-            className="hover:text-lk-action-strong -ml-1 flex items-center gap-1.5 rounded-md px-1 text-left transition-colors"
-          >
-            <ChevronRight
-              aria-hidden
-              className={`text-lk-muted size-5 shrink-0 transition-transform duration-150 ${open ? "rotate-90" : ""}`}
-            />
-            {title}
-            {count !== undefined && <span className="text-lk-muted font-normal"> · {count}</span>}
-          </button>
+          {fixa ? (
+            <>
+              {title}
+              {count !== undefined && <span className="text-lk-muted font-normal"> · {count}</span>}
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={toggle}
+              aria-expanded={open}
+              className="hover:text-lk-action-strong -ml-1 flex items-center gap-1.5 rounded-md px-1 text-left transition-colors"
+            >
+              <ChevronRight
+                aria-hidden
+                className={`text-lk-muted size-5 shrink-0 transition-transform duration-150 ${open ? "rotate-90" : ""}`}
+              />
+              {title}
+              {count !== undefined && <span className="text-lk-muted font-normal"> · {count}</span>}
+            </button>
+          )}
         </h2>
         {aside}
       </div>
       {open && children}
     </section>
+  );
+}
+
+/** Lê do navegador a última tela aberta nesta visita (sessionStorage). */
+const lerSessao = (chave: string) => {
+  try {
+    return window.sessionStorage.getItem(chave);
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Tela atual do menu interno de uma aba. Vale durante a visita: ao recarregar
+ * a página a pessoa continua onde estava; numa visita nova, começa na primeira.
+ */
+export function useVista<T extends string>(
+  chave: string,
+  opcoes: readonly T[],
+  padrao: T,
+): [T, (v: T) => void] {
+  const k = `painel:producao:vista:${chave}`;
+  const salvo = useSyncExternalStore(
+    assinar,
+    () => lerSessao(k),
+    () => null,
+  );
+  const [agora, setAgora] = useState<T | null>(null);
+  const vista = agora ?? (opcoes.includes(salvo as T) ? (salvo as T) : padrao);
+  const ir = (v: T) => {
+    setAgora(v);
+    try {
+      window.sessionStorage.setItem(k, v);
+    } catch {
+      // Ignora: só não lembra.
+    }
+  };
+  return [vista, ir];
+}
+
+export type ItemSubAba<T extends string> = {
+  id: T;
+  label: string;
+  icon: LucideIcon;
+  count?: number;
+  /** Marca a tela que pede atenção (algo atrasado ou em falta). */
+  alerta?: boolean;
+};
+
+/** Menu interno de uma aba: uma tela por assunto. */
+export function SubAbas<T extends string>({
+  itens,
+  atual,
+  onChange,
+  aside,
+}: {
+  itens: ItemSubAba<T>[];
+  atual: T;
+  onChange: (v: T) => void;
+  aside?: React.ReactNode;
+}) {
+  return (
+    <div className="border-lk-border flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b">
+      <div role="tablist" className="-mb-px flex flex-wrap gap-x-1">
+        {itens.map((it) => {
+          const ativo = it.id === atual;
+          return (
+            <button
+              key={it.id}
+              type="button"
+              role="tab"
+              aria-selected={ativo}
+              onClick={() => onChange(it.id)}
+              className={`flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors ${
+                ativo
+                  ? "border-lk-action text-lk-action-strong"
+                  : "text-lk-muted hover:text-lk-ink border-transparent"
+              }`}
+            >
+              <it.icon aria-hidden className="size-4 shrink-0" />
+              {it.label}
+              {it.count !== undefined && (
+                <span
+                  className={`rounded-full px-1.5 text-xs leading-5 tabular-nums ${
+                    it.alerta ? "bg-lk-fail-bg text-lk-fail" : "bg-lk-soft text-lk-muted"
+                  }`}
+                >
+                  {it.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {aside && <div className="flex items-center gap-3 pb-2">{aside}</div>}
+    </div>
+  );
+}
+
+/** Explicação dos campos de uma tela: recolhida, abre quando a pessoa precisa. */
+export function Ajuda({
+  titulo = "Como interpretar estes números",
+  children,
+}: {
+  titulo?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="group text-lk-muted text-xs leading-5">
+      <summary className="hover:text-lk-ink inline-flex cursor-pointer list-none items-center gap-1.5 font-medium transition-colors [&::-webkit-details-marker]:hidden">
+        <CircleHelp aria-hidden className="size-3.5" />
+        {titulo}
+      </summary>
+      <div className="mt-2 flex max-w-3xl flex-col gap-1">{children}</div>
+    </details>
   );
 }

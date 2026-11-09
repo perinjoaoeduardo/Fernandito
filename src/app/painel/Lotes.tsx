@@ -9,6 +9,7 @@ import {
   Factory,
   Gauge,
   Pencil,
+  Plus,
   Coins,
   Timer,
   Trash2,
@@ -33,7 +34,7 @@ import {
   type LoteItem,
   type ProducaoData,
 } from "@/lib/producao";
-import { Drawer, HINT, INPUT, LABEL, MINI, Secao, brl, dia, num, pct } from "./producao-ui";
+import { Ajuda, Drawer, HINT, INPUT, LABEL, MINI, Secao, brl, dia, num, pct } from "./producao-ui";
 import { Badge, Empty, KpiStrip, TABLE_WRAP, TD, TH, Tile, btn, type Tone } from "./ui";
 
 /**
@@ -71,7 +72,7 @@ export function LotesKpis({ data, hoje }: { data: ProducaoData; hoje: string }) 
     u && !u.l.historico && u.t.lataReal !== null && u.t.lataPlan
       ? (u.t.lataReal - u.t.lataPlan) / u.t.lataPlan
       : null;
-  const semDado = "Aparece com o 1º lote feito pelo painel";
+  const semDado = "Disponível após o 1º lote do painel";
   return (
     <KpiStrip cols={4}>
       <Tile
@@ -97,7 +98,7 @@ export function LotesKpis({ data, hoje }: { data: ProducaoData; hoje: string }) 
         tone={varPct !== null && varPct > 0.02 ? "fail" : "action"}
         note={
           u && u.l.historico
-            ? `${u.l.codigo}: antes do painel, sem plano pra comparar`
+            ? `${u.l.codigo} · sem plano para comparação`
             : u && u.t.lataPlan !== null && varPct !== null
               ? `${u.l.codigo}: plano ${brl(u.t.lataPlan)} (${sinal(varPct)})`
               : semDado
@@ -133,7 +134,7 @@ function proximoMarco(data: ProducaoData, abertos: Lote[], hoje: string) {
     .pop();
   return chega && chega > hoje
     ? `${l.codigo}: insumos chegam até ${dia(chega)}`
-    : `${l.codigo}: insumos em estoque, pronto pra envasar`;
+    : `${l.codigo}: insumos em estoque, pronto para o envase`;
 }
 
 /** Lotes abertos (cartões) e o histórico (tabela). */
@@ -141,10 +142,13 @@ export function Lotes({
   data,
   hoje,
   onChange,
+  onPlanejar,
 }: {
   data: ProducaoData;
   hoje: string;
   onChange: Change;
+  /** Abre a tela de planejamento (para criar um lote). */
+  onPlanejar: () => void;
 }) {
   const [editando, setEditando] = useState<Lote | null>(null);
   const abertos = data.lotes
@@ -158,15 +162,26 @@ export function Lotes({
   const setLote = (l: Lote, soon = false, insumos = data.insumos) =>
     onChange({ ...data, insumos, lotes: data.lotes.map((x) => (x.id === l.id ? l : x)) }, soon);
   const excluir = (l: Lote) => {
-    if (!window.confirm(`Excluir o ${l.codigo}? A reserva dos insumos é liberada.`)) return;
+    if (!window.confirm(`Excluir o ${l.codigo}? A reserva dos insumos será liberada.`)) return;
     onChange({ ...data, lotes: data.lotes.filter((x) => x.id !== l.id) });
   };
 
   return (
     <>
-      <Secao id="lotes" defaultOpen title="Lotes em andamento" count={abertos.length}>
+      <Secao
+        id="lotes"
+        fixa
+        title="Lotes em andamento"
+        count={abertos.length}
+        aside={
+          <button type="button" className={btn("secondary", "sm")} onClick={onPlanejar}>
+            <Plus aria-hidden />
+            Planejar novo lote
+          </button>
+        }
+      >
         {abertos.length === 0 ? (
-          <Empty>Nenhum lote aberto. Planeja um abaixo e clica em “Criar lote”.</Empty>
+          <Empty>Nenhum lote em andamento. Para criar um lote, utilize a tela Planejamento.</Empty>
         ) : (
           abertos.map((l) => (
             <LoteCard
@@ -184,14 +199,20 @@ export function Lotes({
       </Secao>
 
       {fechados.length > 0 && (
-        <Secao id="concluidos" title="Lotes concluídos" count={fechados.length}>
+        <Secao id="concluidos" fixa title="Lotes concluídos" count={fechados.length}>
           <Historico lotes={fechados} hoje={hoje} onEdit={(l) => setEditando(structuredClone(l))} />
-          <p className={HINT}>
-            Rendimento = latas boas ÷ latas boas planejadas. Perda = latas envasadas que não saíram
-            boas. Custo real = o consumo de cada insumo pelo custo médio do estoque + o serviço
-            pago, por lata boa. No prazo = envasado até a data de produção e com pelo menos{" "}
-            {pct(COMPLETO_MIN * 100)} das latas boas.
-          </p>
+          <Ajuda>
+            <p>Rendimento: latas boas em relação às latas boas planejadas.</p>
+            <p>Perda: latas envasadas que não resultaram em latas boas.</p>
+            <p>
+              Custo real: consumo de cada insumo pelo custo médio do estoque, somado ao serviço
+              pago, dividido pelas latas boas.
+            </p>
+            <p>
+              No prazo: envasado até a data de produção e com pelo menos {pct(COMPLETO_MIN * 100)}{" "}
+              das latas boas.
+            </p>
+          </Ajuda>
         </Secao>
       )}
 
@@ -247,7 +268,7 @@ function LoteCard({
     if (
       faltam.length &&
       !window.confirm(
-        `Ainda falta comprar: ${faltam.map((it) => it.insumo).join(", ")}. Começar o envase mesmo assim?`,
+        `Ainda há insumos a comprar: ${faltam.map((it) => it.insumo).join(", ")}. Iniciar o envase mesmo assim?`,
       )
     )
       return;
@@ -261,7 +282,7 @@ function LoteCard({
       !window.confirm(
         `Concluir o ${l.codigo} com ${num(l.latasBoas, 0)} latas boas?\n\n` +
           `• Validade: ${diaAno(validade)} (envase + ${VALIDADE_MESES} meses)\n` +
-          `• Sai do estoque o consumo de cada insumo, pelo custo médio.`,
+          `• O consumo de cada insumo será baixado do estoque pelo custo médio.`,
       )
     )
       return;
@@ -276,7 +297,7 @@ function LoteCard({
     );
   };
   const cancelar = () => {
-    if (!window.confirm(`Cancelar o ${l.codigo}? A reserva dos insumos é liberada.`)) return;
+    if (!window.confirm(`Cancelar o ${l.codigo}? A reserva dos insumos será liberada.`)) return;
     onChange(cancelarLote(data, l));
   };
   const setItem = (k: number, patch: Partial<LoteItem>) =>
@@ -323,16 +344,18 @@ function LoteCard({
             ) : (
               <span className="text-lk-ink font-medium">{dia(t.meta)}</span>
             )}
-            {!l.plano.prontoAte && planejado && <span>(sem data: vale {dia(t.meta)})</span>}
+            {!l.plano.prontoAte && planejado && (
+              <span>(sem data definida: considera-se {dia(t.meta)})</span>
+            )}
             {planejado && (
               <span>
-                · dá pra produzir{" "}
+                · produção possível{" "}
                 <span className="text-lk-ink font-medium">
                   {possivel
                     ? possivel === hoje
-                      ? "já"
+                      ? "hoje"
                       : `em ${dia(possivel)}`
-                    : "depois das compras"}
+                    : "após as compras"}
                 </span>
               </span>
             )}
@@ -352,7 +375,7 @@ function LoteCard({
               </button>
               <button type="button" className={btn("primary", "sm")} onClick={envasar}>
                 <Factory aria-hidden />
-                Começar envase
+                Iniciar envase
               </button>
             </>
           )}
@@ -378,7 +401,7 @@ function LoteCard({
                 type="button"
                 className={btn("primary", "sm")}
                 disabled={l.latasBoas === null}
-                title={l.latasBoas === null ? "Preenche as latas boas primeiro" : undefined}
+                title={l.latasBoas === null ? "Informe primeiro as latas boas" : undefined}
                 onClick={concluir}
               >
                 <CircleCheck aria-hidden />
@@ -545,7 +568,7 @@ function TabelaCobertura({
                   )}
                   <span className="text-lk-muted text-xs">
                     {" "}
-                    · marcar até {dia(somarDias(meta, -it.prazoDias))}
+                    · agendar até {dia(somarDias(meta, -it.prazoDias))}
                   </span>
                 </td>
                 <td className={TD}>
@@ -569,7 +592,7 @@ function TabelaCobertura({
                       }
                     />
                   ) : (
-                    <span className="text-lk-muted text-xs">valor no envase</span>
+                    <span className="text-lk-muted text-xs">valor informado no envase</span>
                   )}
                 </td>
                 <td className={`${TD} text-right tabular-nums`}>
@@ -613,7 +636,7 @@ function TabelaCobertura({
                         {c.chegaEm < hoje
                           ? " (atrasado)"
                           : c.chegaEm > meta
-                            ? " (depois da data)"
+                            ? " (após a data)"
                             : ""}
                       </p>
                     )}
@@ -664,7 +687,7 @@ function Historico({
 }) {
   return (
     <div className={`${TABLE_WRAP} overflow-x-auto`}>
-      <table className="w-full min-w-[1000px] text-sm">
+      <table className="w-full min-w-[920px] text-sm">
         <thead>
           <tr>
             <th className={TH}>Lote</th>
@@ -673,7 +696,7 @@ function Historico({
             <th className={`${TH} text-right`}>Perda</th>
             <th className={`${TH} text-right`}>Custo por lata</th>
             <th className={TH}>Prazo</th>
-            <th className={`${TH} text-right`}>Durou</th>
+            <th className={`${TH} text-right`}>Duração</th>
             <th className={TH}>
               <span className="sr-only">Editar</span>
             </th>
@@ -730,9 +753,9 @@ function Historico({
                   </td>
                   <td className={`${TD} text-right tabular-nums`}>
                     <p className="font-medium">{t.lataReal ? brl(t.lataReal) : "—"}</p>
-                    <p className="text-lk-muted text-xs">sem plano pra comparar</p>
+                    <p className="text-lk-muted text-xs">sem plano para comparação</p>
                   </td>
-                  <td className={`${TD} text-lk-muted text-xs`}>Antes do painel: sem datas</td>
+                  <td className={`${TD} text-lk-muted text-xs`}>Anterior ao painel, sem datas</td>
                   <td className={`${TD} text-right tabular-nums`}>
                     {t.durou !== null ? (
                       `${t.durou} dias`
@@ -814,7 +837,7 @@ function Historico({
                   {t.durou !== null ? (
                     `${t.durou} dias`
                   ) : (
-                    <span className="text-lk-muted text-xs">ainda vendendo</span>
+                    <span className="text-lk-muted text-xs">em venda</span>
                   )}
                 </td>
                 <td className={`${TD} text-right`}>
@@ -883,8 +906,12 @@ function ConcluidoEditor({
       <div className="grid gap-4 sm:grid-cols-2">
         {date("envaseEm", "Envase em")}
         {date("prontoEm", "Pronto em")}
-        {date("validade", "Validade", `Envase + ${VALIDADE_MESES} meses, a não ser que mudem aqui`)}
-        {date("acabouEm", "Acabou em", "Quando a última lata do lote foi vendida")}
+        {date(
+          "validade",
+          "Validade",
+          `Envase + ${VALIDADE_MESES} meses, salvo alteração neste campo`,
+        )}
+        {date("acabouEm", "Esgotado em", "Data em que a última lata do lote foi vendida")}
         <label className={LABEL}>
           <span className="font-medium">Latas boas</span>
           <input
@@ -926,7 +953,7 @@ function ConcluidoEditor({
                 type="date"
                 className={`${MINI} w-36`}
                 value={it.chegouEm ?? ""}
-                aria-label={`${it.insumo}: chegou em`}
+                aria-label={`${it.insumo}: recebido em`}
                 onChange={(ev) =>
                   set(
                     "itens",
@@ -966,8 +993,8 @@ function ConcluidoEditor({
           ),
         )}
         <p className={HINT}>
-          Mudar isto corrige os indicadores, mas não mexe no estoque dos insumos: se precisar,
-          ajusta o estoque no próprio insumo.
+          Estas alterações corrigem os indicadores, mas não modificam o estoque dos insumos. Se
+          necessário, ajuste o estoque no cadastro do insumo.
         </p>
       </fieldset>
       <label className={LABEL}>
