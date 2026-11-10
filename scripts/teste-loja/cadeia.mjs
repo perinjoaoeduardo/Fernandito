@@ -335,6 +335,43 @@ const c1 = await buy({ note: RECADO });
     "C3g aparece no filtro Imprimir, com a tag Fora do site",
     filtro.includes("Teste Bonificacao") && filtro.includes("Fora do site · Bonificação"),
   );
+  // C3h busca: filtra, apaga e volta; depois de um link que tira a busca
+  // (período), a caixa limpa e buscar o mesmo nome de novo funciona.
+  {
+    const total = (t) => Number(t.match(/Pedidos · (\d+)/)?.[1] ?? -1);
+    const lido = async () => (await page.locator("main").innerText()).replace(/\s+/g, " ");
+    const box = page.getByLabel("Buscar pedidos");
+    await page.goto(`${B}/painel?ordem=cliente&dir=asc`, { waitUntil: "load" });
+    await page.getByText(/Pedidos · \d+/).first().waitFor();
+    await page.waitForTimeout(1500);
+    const tudo = total(await lido());
+    await box.fill("Teste Bonificacao");
+    await page.waitForURL(/q=Teste/);
+    await page.waitForTimeout(800);
+    const um = total(await lido());
+    check(
+      "C3h busca filtra e mantém a ordem",
+      um >= 1 && um < tudo && /ordem=cliente/.test(page.url()),
+      `${tudo} → ${um} ${page.url()}`,
+    );
+    await box.fill("");
+    await page.waitForURL((u) => !u.search.includes("q="));
+    await page.waitForTimeout(800);
+    check("C3h apagar a busca volta a lista toda", total(await lido()) === tudo);
+    await box.fill("Teste Bonificacao");
+    await page.waitForURL(/q=Teste/);
+    await page.locator('main a[href="/painel?aba=pedidos&periodo=30"]').first().click();
+    await page.waitForURL((u) => !u.search.includes("q="));
+    await page.waitForTimeout(800);
+    const caixa = await box.inputValue();
+    await box.fill("Teste Bonificacao");
+    await page.waitForURL(/q=Teste/, { timeout: 5000 }).catch(() => {});
+    check(
+      "C3h link sem busca limpa a caixa e buscar de novo funciona",
+      caixa === "" && /q=Teste/.test(page.url()),
+      `caixa=${caixa} ${page.url()}`,
+    );
+  }
   await browser.close();
   const again = await fetch(`${B}/api/loja/etiqueta-avulsa?${q}`).then((x) => x.json());
   check("C3g abrir o link de novo não compra outra", again.jaExistia === true);

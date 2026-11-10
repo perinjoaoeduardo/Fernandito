@@ -6,19 +6,32 @@ import { Search, X } from "lucide-react";
 import { FOCUS } from "./ui";
 
 /** Busca que atualiza a lista enquanto digita (sem clicar em "Buscar"). */
-export function SearchBox({ ver, q }: { ver: string; q: string }) {
+export function SearchBox({ q }: { q: string }) {
   const router = useRouter();
   const [value, setValue] = useState(q);
   const [pending, start] = useTransition();
+  /** Último termo pedido (pra não buscar o mesmo duas vezes). */
   const last = useRef(q);
+
+  // Quando a busca da página muda por fora (menu, período, voltar), a caixa
+  // acompanha: mostra o termo que está valendo e esquece o pedido antigo.
+  const [seen, setSeen] = useState(q);
+  if (q !== seen) {
+    setSeen(q);
+    if (value.trim() !== q) setValue(q);
+  }
+  useEffect(() => {
+    last.current = q;
+  }, [q]);
 
   const go = (text: string) => {
     const term = text.trim();
     if (term === last.current) return;
     last.current = term;
-    const qs = new URLSearchParams();
-    if (ver !== "todos") qs.set("ver", ver);
+    // Mantém o filtro, a ordem e o período que já estão na página.
+    const qs = new URLSearchParams(window.location.search);
     if (term) qs.set("q", term);
+    else qs.delete("q");
     const url = qs.toString() ? `/painel?${qs}` : "/painel";
     start(() => router.replace(url, { scroll: false }));
   };

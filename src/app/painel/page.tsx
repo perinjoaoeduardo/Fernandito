@@ -892,7 +892,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       <section className="flex flex-col gap-4">
         <SectionTitle title="Pedidos" count={rows.length} />
         <div className="flex flex-col gap-3">
-          <SearchBox ver={ver} q={q} />
+          <SearchBox q={q} />
           <FilterGroups
             label="Filtrar pedidos"
             groups={FILTER_GROUPS.map((g) => ({
