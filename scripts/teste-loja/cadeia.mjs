@@ -581,6 +581,30 @@ const c1 = await buy({ note: RECADO });
   const bad = await fetch(`${B}/pedido/naoexiste1/nota`, { redirect: "manual" });
   check("C16 pedido que não existe → 404", bad.status === 404, String(bad.status));
 }
+// C17b estoque do six pack no Bling vale pelas LATAS (6 por pack), não pelo
+// número do próprio pack: com 11 latas só cabe 1 pack; 2 packs → "só temos 1".
+{
+  await ctl(BL, { flags: { saldos: { "FERN-350": 11, "FERN-350-6": 50 } } });
+  const dois = await buy({ items: [{ sku: "FERN-350-6", qty: 2, unitPriceCents: 9499 }] }).then(
+    () => "",
+    (e) => String(e.message),
+  );
+  let umId = "";
+  const um = await buy({ items: [{ sku: "FERN-350-6", qty: 1, unitPriceCents: 9499 }] }).then(
+    (id) => ((umId = id), "ok"),
+    (e) => String(e.message),
+  );
+  await ctl(BL, { flags: { saldos: {} } });
+  // Devolve o pack ao teto do site (C17 conta os 37 inteiros): `buy` paga, e
+  // o estorno do admin é o único jeito de devolver unidade de pedido pago.
+  if (umId) await fetch(`${B}/api/loja/confirmar?key=${KEY}&pedido=${umId}&acao=estornar`);
+  const livres = (await diag()).estoque["FERN-350-6"].livres;
+  check(
+    "C17b six pack: estoque do Bling conta pelas latas (11 latas = 1 pack)",
+    /1 unidade/.test(dois) && um === "ok" && livres === 37,
+    `2 packs → ${dois.slice(0, 80)} · 1 pack → ${um} · livres depois: ${livres}`,
+  );
+}
 // C17 six pack. Em "Em breve" (comingSoon) o checkout recusa. Aberto: entra
 // no Bling, a baixa sai das latas (6 por pack), no máximo 6 por pedido e o
 // teto do site (37) não passa.

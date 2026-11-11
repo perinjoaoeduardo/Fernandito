@@ -373,6 +373,28 @@ const approve = async (orderId, extra = {}) =>
   await browser.close();
   check("S16 alerta do Pix manual some depois de cancelar", !txt.includes(id), id);
 }
+// S16b pedido pago: "cancelar" não mexe (não é Pix manual) e a unidade fica
+// reservada; "estornar" (admin) devolve a unidade mesmo com o pedido pago.
+{
+  const before = (await diag()).estoque["FERN-KIT-PRE"].livres;
+  const a = await mk();
+  const id = a.data.order.id;
+  await approve(id);
+  await webhook(await payIdOf(id));
+  const r = await fetch(`${B}/api/loja/confirmar?key=${KEY}&pedido=${id}&acao=cancelar`).then((x) =>
+    x.json(),
+  );
+  const meio = (await diag()).estoque["FERN-KIT-PRE"].livres;
+  const est = await fetch(`${B}/api/loja/confirmar?key=${KEY}&pedido=${id}&acao=estornar`).then(
+    (x) => x.json(),
+  );
+  const depois = (await diag()).estoque["FERN-KIT-PRE"].livres;
+  check(
+    "S16b pago: cancelar não devolve a unidade; estornar devolve",
+    Boolean(r.erro) && meio === before - 1 && est.ok === true && depois === before,
+    `${before} → ${meio} → ${depois} ${JSON.stringify(r)}`,
+  );
+}
 // S17 trava de estoque (teto do site): esgota, recusa, devolve quando o Pix vence
 {
   const stockNow = async () => (await diag()).estoque["FERN-KIT-PRE"].livres;

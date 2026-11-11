@@ -66,11 +66,15 @@ for i = 1, n do redis.call("INCRBY", KEYS[i], ARGV[i]) end
 redis.call("SET", hold, ARGV[2*n + 1], "EX", ARGV[2*n + 3])
 return 1`;
 
-// KEYS: hold, contadores... ARGV: qtds... · devolve 1 se devolveu.
+// KEYS: hold, marca de pago, contadores... ARGV: força (1/0), qtds...
+// Devolve 1 se devolveu. Pedido PAGO (marca `paid:<id>`) não devolve, a não
+// ser à força (estorno pelo link de admin): o Pix pode ter sido confirmado
+// no mesmo instante em que a tela marcava "vencido".
 const RELEASE = `
 local current = redis.call("GET", KEYS[1])
 if not current or current == "released" then return 0 end
-for i = 2, #KEYS do
+if ARGV[1] ~= "1" and redis.call("EXISTS", KEYS[2]) == 1 then return -1 end
+for i = 3, #KEYS do
   local left = redis.call("DECRBY", KEYS[i], ARGV[i - 1])
   if left < 0 then redis.call("SET", KEYS[i], 0) end
 end
@@ -133,17 +137,21 @@ export async function reserveStock(
     }
 }
 
-/** Devolve o que o pedido reservou (Pix vencido/cancelado). Repetir não conta em dobro. */
-export async function releaseStock(orderId: string) {
+/**
+ * Devolve o que o pedido reservou (Pix vencido/cancelado). Repetir não conta
+ * em dobro. Pedido já pago não devolve (`force` = estorno de verdade).
+ */
+export async function releaseStock(orderId: string, force = false) {
   const hold = await kvGet(holdKey(orderId));
   if (!hold || hold === "released") return;
   const lines = decode(hold);
   const result = await kvEval(
     RELEASE,
-    [holdKey(orderId), ...lines.map((l) => counter(l.sku))],
-    lines.map((l) => l.qty),
+    [holdKey(orderId), `paid:${orderId}`, ...lines.map((l) => counter(l.sku))],
+    [force ? "1" : "0", ...lines.map((l) => l.qty)],
   );
   if (result === null) {
+    if (!force && (await kvGet(`paid:${orderId}`))) return;
     for (const line of lines) {
       const held = Number((await kvGet(counter(line.sku))) ?? 0);
       await kvSet(counter(line.sku), String(Math.max(0, held - line.qty)));

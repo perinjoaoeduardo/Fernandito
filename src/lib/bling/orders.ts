@@ -500,13 +500,23 @@ export async function retryPendingBlingOrders() {
 export async function blingStock(skus: string[]): Promise<Map<string, number> | null> {
   try {
     if (!(await isBlingConnected())) return null;
-    const ids = await productIds(skus);
+    // Produto composto (six pack = 6 latas): o que vale é o saldo dos
+    // componentes (a baixa sai deles), não o número do próprio pack no Bling.
+    const parts = (sku: string) => getProductAny(sku)?.stockComponents ?? [];
+    const all = [...new Set([...skus, ...skus.flatMap((sku) => parts(sku).map((c) => c.sku))])];
+    const ids = await productIds(all);
     const query = [...ids.values()].map((id) => `idsProdutos[]=${id}`).join("&");
     const page = await bling<Page<{ produto: { id: number }; saldoVirtualTotal: number }>>(
       `/estoques/saldos?${query}`,
     );
     const byId = new Map(page.data.map((row) => [row.produto.id, row.saldoVirtualTotal]));
-    return new Map(skus.map((sku) => [sku, byId.get(ids.get(sku)!) ?? 0]));
+    const of = (sku: string) => byId.get(ids.get(sku)!) ?? 0;
+    const available = (sku: string) => {
+      const comps = parts(sku);
+      if (!comps.length) return of(sku);
+      return Math.min(...comps.map((c) => Math.floor(of(c.sku) / c.qty)));
+    };
+    return new Map(skus.map((sku) => [sku, available(sku)]));
   } catch (error) {
     console.error("[bling] não deu pra conferir estoque:", (error as Error).message);
     return null;

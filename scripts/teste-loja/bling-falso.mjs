@@ -1,8 +1,10 @@
 // Bling de mentira pra testar a loja localmente (porta 3998).
 // POST /_ctl muda o comportamento: rejeitar nota, travar nota em "aguardando".
 import http from "node:http";
-const flags = { nfeReject: false, nfeStuck: false, celularReject: false };
+const flags = { nfeReject: false, nfeStuck: false, celularReject: false, saldos: {} };
 const contacts = [];
+const idByCodigo = new Map();
+const codigoById = new Map();
 const throttled = new Set();
 const sales = new Map();
 const nfes = new Map();
@@ -59,10 +61,16 @@ http
       return send(res, 201, { data: { id: nextId++ } });
     }
     if (p.startsWith("/campos-customizados")) return send(res, 200, { data: [] });
-    if (p === "/produtos")
-      return send(res, 200, {
-        data: url.searchParams.getAll("codigos[]").map((c, i) => ({ id: 100 + i, codigo: c })),
+    if (p === "/produtos") {
+      const data = url.searchParams.getAll("codigos[]").map((c) => {
+        if (!idByCodigo.has(c)) {
+          idByCodigo.set(c, 100 + idByCodigo.size);
+          codigoById.set(idByCodigo.get(c), c);
+        }
+        return { id: idByCodigo.get(c), codigo: c };
       });
+      return send(res, 200, { data });
+    }
     if (p === "/depositos") return send(res, 200, { data: [{ id: 7, padrao: true }] });
     if (p === "/estoques" && req.method === "POST") {
       baixas.push(body);
@@ -71,9 +79,12 @@ http
     if (p === "/_baixas") return send(res, 200, { baixas });
     if (p === "/estoques/saldos")
       return send(res, 200, {
-        data: url.searchParams
-          .getAll("idsProdutos[]")
-          .map((id) => ({ produto: { id: Number(id) }, saldoVirtualTotal: 9999 })),
+        // flags.saldos: { "<codigo>": n } — os ids seguem a ordem dos códigos
+        // pedidos em /produtos (100, 101, …), então guardamos por código.
+        data: url.searchParams.getAll("idsProdutos[]").map((id) => ({
+          produto: { id: Number(id) },
+          saldoVirtualTotal: flags.saldos[codigoById.get(Number(id))] ?? 9999,
+        })),
       });
     if (p === "/pedidos/vendas" && req.method === "GET") {
       const n = url.searchParams.get("numerosLojas[]");

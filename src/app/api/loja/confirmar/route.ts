@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
   if (action === "estornar") {
     if (order.status !== "paid")
       return Response.json({ erro: `Só pedido pago (está "${order.status}")` }, { status: 409 });
-    await releaseStock(order.id);
+    await releaseStock(order.id, true);
     await kvSRem("fulfill:queue", order.id);
     await saveOrder({ ...order, refundedAt: new Date().toISOString() });
     return Response.json({ ok: true, pedido: order.id, estoque: "devolvido", fila: "removido" });
