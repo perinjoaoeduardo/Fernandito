@@ -85,7 +85,7 @@ export function EpisodiosSection() {
         },
       );
 
-    mm.add("(min-width: 768px)", () => {
+    mm.add("(min-width: 1024px)", () => {
       const depth = [70, 130, 90, 120, 80]; // px: cada cartão vem de uma distância
       q("[data-ep-card]").forEach((card, i) => {
         gsap.fromTo(
@@ -104,7 +104,7 @@ export function EpisodiosSection() {
       mediaTweens();
     });
 
-    mm.add("(max-width: 767px)", () => {
+    mm.add("(max-width: 1023px)", () => {
       gsap.fromTo(
         rail,
         { y: 70, opacity: 0 },
@@ -147,12 +147,12 @@ export function EpisodiosSection() {
       </div>
 
       <div data-ep-rail className="mt-12 md:mt-16">
-        <ul className="mx-auto flex max-w-6xl snap-x snap-mandatory [scrollbar-width:none] gap-4 overflow-x-auto px-6 pb-2 sm:px-10 md:grid md:grid-cols-3 md:overflow-visible lg:grid-cols-5 lg:gap-5 lg:px-16 [&::-webkit-scrollbar]:hidden">
+        <ul className="mx-auto flex max-w-6xl snap-x snap-mandatory [scrollbar-width:none] gap-4 overflow-x-auto px-6 pb-2 sm:px-10 lg:grid lg:grid-cols-5 lg:gap-5 lg:overflow-visible lg:px-16 [&::-webkit-scrollbar]:hidden">
           {EPISODIOS.items.map((ep) => (
             <li
               key={ep.number}
               data-ep-card
-              className="w-[68%] shrink-0 snap-center sm:w-[42%] md:w-auto"
+              className="w-[68%] shrink-0 snap-center sm:w-[42%] md:w-[30%] lg:w-auto"
             >
               <EpisodeCard ep={ep} />
             </li>
@@ -264,17 +264,20 @@ function EpisodeCard({ ep }: { ep: (typeof EPISODIOS.items)[number] }) {
         aria-hidden="true"
         className="from-fernandito-verde-escuro/85 absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t to-transparent"
       />
-      <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-5 lg:gap-2 lg:p-4">
-        <span className="min-w-0">
+      {/* Rodapé do cartão: "Ep. 0X" e o play na mesma linha; o título embaixo
+          com a largura toda do cartão (com 5 lado a lado, dividir a linha
+          com o play quebrava o título em 3 linhas tortas). */}
+      <span className="absolute inset-x-0 bottom-0 block p-5 lg:p-4">
+        <span className="flex items-center justify-between gap-3">
           <span className="font-accent text-label block tracking-[0.16em] uppercase opacity-80">
             Ep. {String(ep.number).padStart(2, "0")}
           </span>
-          <span className="font-rampart mt-1 block text-[1.3rem] leading-[1.02] md:text-[1.5rem] lg:text-[clamp(1rem,1.25vw,1.3rem)]">
-            {ep.title}
+          <span className="bg-fernandito-off-white text-fernandito-verde-escuro duration-base ease-out-standard flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform group-hover:scale-110 lg:h-9 lg:w-9">
+            <PlayIcon />
           </span>
         </span>
-        <span className="bg-fernandito-off-white text-fernandito-verde-escuro duration-base ease-out-standard flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform group-hover:scale-110 lg:h-9 lg:w-9">
-          <PlayIcon />
+        <span className="font-rampart mt-2 block text-[1.3rem] leading-[1.05] text-balance lg:text-[clamp(0.85rem,1.25vw,1.3rem)]">
+          {ep.title}
         </span>
       </span>
     </a>
