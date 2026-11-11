@@ -83,9 +83,20 @@ export type Fulfillment = {
   };
   error: string | null;
   updatedAt: string;
+  /**
+   * Etiqueta refeita (a transportadora recusou/devolveu o pacote): a nota é a
+   * mesma, a etiqueta nova sai por outra transportadora. `avoid` é a que não
+   * pode; `previous` guarda as etiquetas antigas (nunca reaproveitadas).
+   */
+  reship?: {
+    avoid: string;
+    previous: { meId: string; carrier: string | null; tracking: string | null; at: string }[];
+  };
 };
 
 const QUEUE = "fulfill:queue";
+export const CANCELED_MSG =
+  'Etiqueta cancelada no Melhor Envio (a transportadora recusou ou devolveu?) — usar "Etiqueta nova"';
 const key = (id: string) => `fulfill:${id}`;
 const ENABLED = IS_PRODUCTION || process.env.BLING_SYNC_PREVIEW === "1";
 const AUTO_NFE = process.env.FULFILL_NFE !== "0";
@@ -252,7 +263,10 @@ async function stepLabel(order: StoredOrder, f: Fulfillment) {
   // 1. Envio dessa compra: o que já guardamos, ou um que já tenha a tag do
   //    pedido no Melhor Envio (nunca cria um segundo).
   if (!f.label.meId) {
-    const existing = await findShipmentByTag(order.id);
+    const existing = await findShipmentByTag(
+      order.id,
+      f.reship?.previous.map((p) => p.meId),
+    );
     if (existing) {
       f.label.meId = existing.id;
     } else {
@@ -276,6 +290,7 @@ async function stepLabel(order: StoredOrder, f: Fulfillment) {
         items: order.items.map((i) => ({ name: i.name, qty: i.qty, unitCents: i.unitPriceCents })),
         totalProductsCents: order.subtotalCents,
         box: boxOf(order),
+        avoidCarrier: f.reship ? new RegExp(f.reship.avoid, "i") : undefined,
       });
       console.info(`[envio ${order.id}] etiqueta no carrinho do Melhor Envio (${f.label.meId})`);
     }
@@ -389,6 +404,15 @@ async function stepTrack(order: StoredOrder, f: Fulfillment) {
   f.label.postedAt = shipment.postedAt ?? f.label.postedAt ?? null;
   f.label.deliveredAt = shipment.deliveredAt ?? f.label.deliveredAt ?? null;
   f.label.checkedAt = new Date().toISOString();
+  // Etiqueta cancelada/estornada depois de gerada (ex.: a transportadora
+  // recusou e devolveu o pacote): avisa e o painel oferece "Etiqueta nova".
+  if (shipment.status === "canceled") {
+    const msg = CANCELED_MSG;
+    if (f.error !== msg) await raiseAlert(order.id, msg);
+    f.error = msg;
+    await save(order.id, f);
+    return true;
+  }
   // Conferiu sem erro: o erro gravado (ex.: tempo esgotado numa conferência
   // anterior) já não vale. Antes ele ficava pra sempre em "Precisa de olho".
   f.error = null;
@@ -423,6 +447,52 @@ export async function markPosted(orderId: string) {
   f.error = null;
   await save(orderId, f);
   return f;
+}
+
+/**
+ * Etiqueta nova por OUTRA transportadora (a de antes recusou ou devolveu o
+ * pacote e o Melhor Envio já estornou). Mesma nota, mesmo endereço: guarda a
+ * etiqueta antiga, volta o pedido pra "gerar etiqueta" e compra na hora a
+ * mais barata das outras transportadoras. O pedido volta pra "Imprimir".
+ */
+export async function reshipLabel(orderId: string) {
+  const f = await getFulfillment(orderId);
+  if (!f?.label.meId || !["ready", "posted", "label"].includes(f.stage))
+    return { ok: false as const, error: "Esse pedido não tem etiqueta pra refazer" };
+  const order = await getOrder(orderId);
+  if (!order) return { ok: false as const, error: "Pedido não encontrado" };
+  const old = await getShipment(f.label.meId).catch(() => null);
+  const carrier = old?.carrier ?? order.shipping.carrier ?? null;
+  // A que recusou: a do envio antigo (ou a escolhida na compra).
+  const avoid = /latam/i.test(carrier ?? "")
+    ? "latam"
+    : (carrier ?? "").split(/\s+/)[0]?.replace(/[^\p{L}\p{N}&]/gu, "") || "latam";
+  f.reship = {
+    avoid,
+    previous: [
+      ...(f.reship?.previous ?? []),
+      {
+        meId: f.label.meId,
+        carrier,
+        tracking: f.label.tracking,
+        at: new Date().toISOString(),
+      },
+    ],
+  };
+  f.stage = "label";
+  f.label = {
+    meId: null,
+    status: null,
+    tracking: null,
+    trackingUrl: null,
+    printUrl: null,
+    savedInBling: false,
+  };
+  f.error = null;
+  await save(orderId, f);
+  await kvSAdd(QUEUE, orderId);
+  const after = await advanceFulfillment(orderId);
+  return { ok: true as const, avoid, fulfillment: after };
 }
 
 /** Marca a entrega própria como feita (botão do painel ou `&acao=entregue`). */

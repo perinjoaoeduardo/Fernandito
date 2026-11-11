@@ -180,7 +180,10 @@ const c1 = await buy({ note: RECADO });
     html.includes("Rastreio JAD") && html.includes("Etiqueta pronta") && html.includes("Nota nº"),
   );
   const ship = (await ctl(ME)).orders.find((o) => o.tags.some((t) => t.tag === c1));
-  check("C1 → etiqueta com a chave da nota e o serviço escolhido (Jadlog 3)", ship?.service === 3);
+  check(
+    "C1 → etiqueta com a chave da nota e o serviço escolhido (Jadlog 3)",
+    ship?.service?.id === 3,
+  );
 }
 // C2 repetir tudo não compra de novo (nem se o site "esquecer" o envio)
 {
@@ -342,7 +345,10 @@ const c1 = await buy({ note: RECADO });
     const lido = async () => (await page.locator("main").innerText()).replace(/\s+/g, " ");
     const box = page.getByLabel("Buscar pedidos");
     await page.goto(`${B}/painel?ordem=cliente&dir=asc`, { waitUntil: "load" });
-    await page.getByText(/Pedidos · \d+/).first().waitFor();
+    await page
+      .getByText(/Pedidos · \d+/)
+      .first()
+      .waitFor();
     await page.waitForTimeout(1500);
     const tudo = total(await lido());
     await box.fill("Teste Bonificacao");
@@ -375,6 +381,68 @@ const c1 = await buy({ note: RECADO });
   await browser.close();
   const again = await fetch(`${B}/api/loja/etiqueta-avulsa?${q}`).then((x) => x.json());
   check("C3g abrir o link de novo não compra outra", again.jaExistia === true);
+}
+// C3i transportadora recusou (ex.: LATAM devolveu): "Etiqueta nova" no painel
+// compra outra etiqueta, mesma nota, por OUTRA transportadora; volta pra Imprimir.
+{
+  await ctl(ME, { flags: { variasOpcoes: true } });
+  // Cotação guardada (sem a LATAM) sai do cache pra valer a nova.
+  execSync(`redis-cli -p 6390 --scan --pattern 'frete:*' | xargs -r redis-cli -p 6390 del`);
+  const id = await buy({
+    ship: { id: "me-12", priceCents: 3870, source: "melhor-envio", carrier: "LATAM Cargo" },
+  });
+  const e = await until(id, ["ready"]);
+  const doPedido = () =>
+    ctl(ME).then((x) => x.orders.filter((o) => o.tags.some((t) => t.tag === id)));
+  const [antiga] = await doPedido();
+  check(
+    "C3i etiqueta saiu pela LATAM",
+    e?.etapa === "ready" && antiga?.service?.company?.name === "LATAM Cargo",
+    JSON.stringify(antiga?.service),
+  );
+  // O Melhor Envio estorna e cancela a etiqueta antiga.
+  await ctl(ME, { set: { id: antiga.id, status: "canceled" } });
+  const visto = await envio(id, true);
+  check(
+    "C3i etiqueta cancelada aparece com aviso pra fazer etiqueta nova",
+    /Etiqueta cancelada/.test(visto?.erro ?? ""),
+    JSON.stringify(visto),
+  );
+  const { createRequire } = await import("node:module");
+  const { chromium } = createRequire(import.meta.url)("playwright");
+  const exp = String(Date.now() + 3600e3);
+  const value = `${exp}.${createHmac("sha256", KEY).update(`painel-v2.${exp}`).digest("hex")}`;
+  const browser = await chromium.launch();
+  const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+  await ctx.addCookies([{ name: "fernandito_painel", value, url: `${B}/painel` }]);
+  const page = await ctx.newPage();
+  await page.goto(`${B}/painel?q=${id}`, { waitUntil: "load" });
+  const row = page.locator("tr", { hasText: `#${id}` }).first();
+  await row.locator("summary", { hasText: "Etiqueta nova" }).click();
+  await row.getByLabel(/Confirmo/).check();
+  await row.getByRole("button", { name: "Comprar etiqueta nova" }).click();
+  await page.waitForLoadState("load");
+  await page.waitForTimeout(1500);
+  const texto = (await page.locator("main").innerText()).replace(/\s+/g, " ");
+  await browser.close();
+  const todas = await doPedido();
+  const nova = todas.find((o) => o.id !== antiga.id);
+  const depois = await envio(id);
+  check(
+    "C3i etiqueta nova comprada por outra transportadora (não LATAM)",
+    Boolean(nova) && !/latam/i.test(nova.service?.company?.name ?? "") && todas.length === 2,
+    JSON.stringify(todas.map((o) => [o.id, o.status, o.service?.company?.name])),
+  );
+  check(
+    "C3i pedido volta pra Imprimir com a etiqueta nova",
+    depois?.etapa === "ready" && !depois?.erro,
+    JSON.stringify(depois),
+  );
+  check(
+    "C3i painel mostra 'Etiqueta refeita · antes: LATAM Cargo'",
+    texto.includes("Etiqueta refeita · antes: LATAM Cargo"),
+  );
+  await ctl(ME, { flags: { variasOpcoes: false } });
 }
 // C4 sem saldo no Melhor Envio
 {
@@ -579,7 +647,7 @@ const c1 = await buy({ note: RECADO });
   const ship = (await ctl(ME)).orders.find((o) => o.tags.some((t) => t.tag === id));
   check(
     "C8 frete de último recurso → compra a Jadlog mais barata na hora",
-    e?.etapa === "ready" && ship?.service === 3,
+    e?.etapa === "ready" && ship?.service?.id === 3,
     JSON.stringify(e),
   );
 }

@@ -6,7 +6,12 @@ import { syncManualSales } from "@/lib/bling/manual";
 import { retryPendingBlingOrders } from "@/lib/bling/orders";
 import { painelAuthed, painelLogin, painelLogout, passwordOk } from "@/lib/painel";
 import { reconcileOpenOrders } from "@/lib/store/checkout";
-import { advanceAllFulfillments, markLocalDelivered, markPosted } from "@/lib/store/fulfillment";
+import {
+  advanceAllFulfillments,
+  markLocalDelivered,
+  markPosted,
+  reshipLabel,
+} from "@/lib/store/fulfillment";
 import { advanceAvulsos, markAvulsoPosted } from "@/lib/store/avulsos";
 import { kvGet, kvSet, rateLimit } from "@/lib/store/kv";
 import {
@@ -54,6 +59,17 @@ export async function marcarPostado(form: FormData) {
   if (!(await painelAuthed())) redirect("/painel");
   const id = String(form.get("id") ?? "");
   if (!(await markAvulsoPosted(id))) await markPosted(id);
+  redirect(backTo(form));
+}
+
+/**
+ * "Etiqueta nova": a transportadora recusou/devolveu o pacote. Compra outra
+ * etiqueta (mesma nota) por outra transportadora; o pedido volta pra Imprimir.
+ */
+export async function refazerEtiqueta(form: FormData) {
+  if (!(await painelAuthed())) redirect("/painel");
+  if (form.get("confirmo") !== "on") redirect(backTo(form));
+  await reshipLabel(String(form.get("id") ?? ""));
   redirect(backTo(form));
 }
 

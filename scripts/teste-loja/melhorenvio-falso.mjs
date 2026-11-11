@@ -92,6 +92,15 @@ http
       calls.cart++;
       if (!body.options?.invoice?.key)
         return send(res, 422, { message: "invoice key obrigatória" });
+      // Igual ao real: a mesma nota não pode estar em dois envios ativos.
+      if (
+        [...orders.values()].some(
+          (o) => o.invoiceKey === body.options.invoice.key && o.status !== "canceled",
+        )
+      )
+        return send(res, 422, {
+          message: "Esta chave de NF-e já está vinculada a outro envio ativo",
+        });
       const id = `me-${n++}`;
       orders.set(id, {
         id,
@@ -99,7 +108,13 @@ http
         tracking: null,
         self_tracking: null,
         tags: body.options.tags,
-        service: body.service,
+        invoiceKey: body.options.invoice.key,
+        service: {
+          id: body.service,
+          company: {
+            name: { 3: "Jadlog", 33: "J&T Express", 31: "Loggi", 12: "LATAM Cargo" }[body.service],
+          },
+        },
         to: body.to,
       });
       return send(res, 201, { id });

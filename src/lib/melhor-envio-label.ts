@@ -76,6 +76,8 @@ export type MeShipment = {
   /** Quando a transportadora registrou a postagem / a entrega (se já). */
   postedAt: string | null;
   deliveredAt: string | null;
+  /** Transportadora (ex.: "LATAM Cargo"), quando o Melhor Envio informa. */
+  carrier: string | null;
 };
 
 type MeOrder = {
@@ -87,6 +89,7 @@ type MeOrder = {
   generated_at?: string | null;
   posted_at?: string | null;
   delivered_at?: string | null;
+  service?: { name?: string; company?: { name?: string } } | null;
 };
 
 // Situações do Melhor Envio que querem dizer "já saiu da nossa mão": recebido
@@ -120,17 +123,25 @@ function toShipment(o: MeOrder): MeShipment {
     trackingUrl: code ? `https://www.melhorrastreio.com.br/rastreio/${code}` : null,
     postedAt: o.posted_at || null,
     deliveredAt: o.delivered_at || null,
+    carrier: o.service?.company?.name ?? null,
   };
 }
 
 /** Envio já existente com a tag do pedido (carrinho, pago ou gerado), se houver. */
-export async function findShipmentByTag(orderId: string): Promise<MeShipment | null> {
+export async function findShipmentByTag(
+  orderId: string,
+  /** Envios antigos do pedido que não valem mais (etiqueta refeita). */
+  skip: string[] = [],
+): Promise<MeShipment | null> {
   // Sem resultado o Melhor Envio responde vazio (null), não uma lista.
   const page = await me<{ data?: MeOrder[] } | MeOrder[] | null>(
     `/orders/search?q=${encodeURIComponent(orderId)}`,
   );
   const list = Array.isArray(page) ? page : (page?.data ?? []);
-  const found = list.find((o) => o.tags?.some((t) => t.tag === orderId) && o.status !== "canceled");
+  const found = list.find(
+    (o) =>
+      o.tags?.some((t) => t.tag === orderId) && o.status !== "canceled" && !skip.includes(o.id),
+  );
   return found ? toShipment(found) : null;
 }
 
@@ -146,6 +157,8 @@ export async function getShipment(id: string): Promise<MeShipment> {
  */
 export async function trackShipment(id: string): Promise<MeShipment> {
   const base = await getShipment(id);
+  // Cancelada (estornada) vale mais que qualquer rastreio antigo dela.
+  if (base.status === "canceled") return base;
   const live = await me<Record<string, Partial<MeOrder>> | null>("/shipment/tracking", {
     orders: [id],
   }).catch((error: Error) => {
@@ -187,6 +200,7 @@ async function cheapestService(input: LabelInput): Promise<number> {
   const ok = services
     .filter((s) => !s.error && (s.custom_price ?? s.price))
     .filter((s) => isAllowedCarrier(s.company?.name))
+    .filter((s) => !input.avoidCarrier || !input.avoidCarrier.test(s.company?.name ?? ""))
     .sort((a, b) => Number(a.custom_price ?? a.price) - Number(b.custom_price ?? b.price));
   if (!ok[0]) throw new MeError("Nenhuma transportadora liberada atende esse CEP");
   return ok[0].id;
@@ -212,6 +226,10 @@ export type LabelInput = {
   };
   items: { name: string; qty: number; unitCents: number }[];
   totalProductsCents: number;
+  /** Etiqueta refeita: transportadora que NÃO pode (ex.: recusou o pacote).
+   * Com isso o serviço escolhido na compra é ignorado e vale o mais barato
+   * das outras. */
+  avoidCarrier?: RegExp;
   /** Caixa (soma do pedido). */
   box: { weightKg: number; widthCm: number; heightCm: number; lengthCm: number };
 };
@@ -230,7 +248,7 @@ function packageOf(input: LabelInput) {
 
 /** Põe no carrinho (com a nota e a tag do pedido). Devolve o id do envio. */
 export async function addToCart(input: LabelInput): Promise<string> {
-  const chosen = /^me-(\d+)$/.exec(input.shippingId)?.[1];
+  const chosen = input.avoidCarrier ? undefined : /^me-(\d+)$/.exec(input.shippingId)?.[1];
   const service = chosen ? Number(chosen) : await cheapestService(input);
   const created = await me<{ id: string }>("/cart", {
     service,

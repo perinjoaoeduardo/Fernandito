@@ -18,6 +18,7 @@ import {
   PackageCheck,
   Printer,
   RefreshCw,
+  RotateCcw,
   ShoppingBag,
   Receipt,
   CupSoda,
@@ -40,7 +41,7 @@ import { getOrders, type StoredOrder } from "@/lib/store/orders";
 import { blingStock } from "@/lib/bling/orders";
 import { stockRemaining } from "@/lib/store/stock";
 import { ESPECIAL_LOTES } from "@/lib/especial";
-import { atualizar, marcarEntregue, marcarPostado, sair } from "./actions";
+import { atualizar, marcarEntregue, marcarPostado, refazerEtiqueta, sair } from "./actions";
 import { advanceAvulsos, avulsoAsRow, listAvulsos } from "@/lib/store/avulsos";
 import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
@@ -763,6 +764,12 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           {` · conferido ${f.label.checkedAt ? when(f.label.checkedAt) : "ainda não"}`}
         </p>
       )}
+      {f?.reship && (
+        <p className="text-lk-ink3 text-xs">
+          Etiqueta refeita · antes: {f.reship.previous.at(-1)?.carrier ?? "outra transportadora"}
+          {f.reship.previous.at(-1)?.tracking ? ` (${f.reship.previous.at(-1)?.tracking})` : ""}
+        </p>
+      )}
       <p className="flex flex-wrap gap-x-3">
         {f?.label.tracking && !byHand(f) && <Code>{f.label.tracking}</Code>}
         {o.origem ? (
@@ -788,7 +795,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           </SubmitButton>
         </form>
       )}
-      {f?.label.printUrl && !byHand(f) && (
+      {f?.label.printUrl && !byHand(f) && f.label.status !== "canceled" && (
         <a
           className={btn(f.stage === "ready" ? "primary" : "secondary", "sm")}
           href={f.label.printUrl}
@@ -808,6 +815,36 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           </SubmitButton>
         </form>
       )}
+      {!o.origem && f?.label.meId && (f.stage === "ready" || f.stage === "posted") && (
+        <details className="group/re relative">
+          <summary
+            className={`${btn(f.label.status === "canceled" ? "primary" : "ghost", "sm")} cursor-pointer list-none`}
+          >
+            <RotateCcw aria-hidden />
+            Etiqueta nova
+          </summary>
+          <form
+            action={refazerEtiqueta}
+            className="border-lk-border bg-lk-paper absolute right-0 z-20 mt-2 w-72 space-y-3 rounded-lg border p-3 text-left text-xs shadow-lg"
+          >
+            <input type="hidden" name="id" value={o.id} />
+            <input type="hidden" name="back" value={href({})} />
+            <p className="text-lk-ink">
+              A transportadora recusou ou devolveu o pacote? Compra uma etiqueta nova por{" "}
+              <b>outra transportadora</b> (a mais barata), com a mesma nota e o mesmo endereço. Usa
+              saldo do Melhor Envio. O pedido volta pra Imprimir.
+            </p>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="confirmo" required />
+              Confirmo: a etiqueta antiga já foi cancelada/estornada
+            </label>
+            <SubmitButton variant="primary" size="sm">
+              <RotateCcw aria-hidden />
+              Comprar etiqueta nova
+            </SubmitButton>
+          </form>
+        </details>
+      )}
       {!f?.invoice.danfeUrl && o.nfLink && (
         <a className={btn("ghost", "sm")} href={o.nfLink} {...ext}>
           <FileText aria-hidden />
@@ -820,7 +857,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           Nota {f.invoice.number ?? ""}
         </a>
       )}
-      {f?.label.trackingUrl && !byHand(f) && (
+      {f?.label.trackingUrl && !byHand(f) && f.label.status !== "canceled" && (
         <a className={btn("ghost", "sm")} href={f.label.trackingUrl} {...ext}>
           <MapPin aria-hidden />
           Rastrear
