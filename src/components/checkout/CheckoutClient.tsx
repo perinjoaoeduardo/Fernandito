@@ -352,7 +352,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
           variant="primary"
           className="!bg-fernandito-off-white !text-fernandito-verde-escuro hover:!bg-fernandito-verde-claro hover:!text-fernandito-off-white mt-2"
         >
-          Ver o kit
+          Ver a loja
         </Button>
       </div>
     );
