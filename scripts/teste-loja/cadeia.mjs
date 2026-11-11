@@ -378,6 +378,26 @@ const c1 = await buy({ note: RECADO });
       `caixa=${caixa} ${page.url()}`,
     );
   }
+  // C3j "Imprimir todas": um PDF só com as etiquetas do filtro Imprimir.
+  {
+    const t = await painel("?ver=imprimir");
+    const n = Number(t.match(/Pedidos · (\d+)/)?.[1] ?? 0);
+    const botao = page.getByRole("link", { name: /Imprimir todas \((\d+)\)/ });
+    const label = (await botao.textContent().catch(() => "")) ?? "";
+    const m = Number(label.match(/\((\d+)\)/)?.[1] ?? -1);
+    const hrefPdf = (await botao.getAttribute("href").catch(() => "")) ?? "";
+    const r = await fetch(B + hrefPdf, {
+      headers: { cookie: `fernandito_painel=${value}` },
+      redirect: "manual",
+    });
+    check(
+      "C3j 'Imprimir todas' conta as etiquetas prontas e abre o PDF do Melhor Envio",
+      m === n && m > 1 && r.status === 307 && /etiqueta\.pdf/.test(r.headers.get("location") ?? ""),
+      `${label} lista=${n} → ${r.status} ${r.headers.get("location")}`,
+    );
+    const semLogin = await fetch(B + hrefPdf, { redirect: "manual" });
+    check("C3j sem estar no painel, o link das etiquetas não abre", semLogin.status === 404);
+  }
   await browser.close();
   const again = await fetch(`${B}/api/loja/etiqueta-avulsa?${q}`).then((x) => x.json());
   check("C3g abrir o link de novo não compra outra", again.jaExistia === true);

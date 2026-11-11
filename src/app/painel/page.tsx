@@ -506,6 +506,11 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const cur = Math.min(page, pages);
   const shown = rows.slice((cur - 1) * PAGE_SIZE, cur * PAGE_SIZE);
+  // "Imprimir todas": etiquetas prontas (não canceladas) da lista que está na
+  // tela — com o filtro Imprimir, são todas pra imprimir e postar.
+  const paraImprimir = rows
+    .filter((r) => r.f?.stage === "ready" && r.f.label.meId && r.f.label.status !== "canceled")
+    .map((r) => r.f!.label.meId!);
   const href = (o: { ver?: string; p?: number; q?: string; ordem?: string; dir?: string }) => {
     const v = o.ver ?? ver;
     const qs = new URLSearchParams();
@@ -913,7 +918,22 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       </KpiStrip>
 
       <section className="flex flex-col gap-4">
-        <SectionTitle title="Pedidos" count={rows.length} />
+        <SectionTitle
+          title="Pedidos"
+          count={rows.length}
+          aside={
+            paraImprimir.length > 1 && (
+              <a
+                className={btn("primary", "sm")}
+                href={`/painel/etiquetas?envios=${paraImprimir.join(",")}`}
+                {...ext}
+              >
+                <Printer aria-hidden />
+                Imprimir todas ({paraImprimir.length})
+              </a>
+            )
+          }
+        />
         <div className="flex flex-col gap-3">
           <SearchBox q={q} />
           <FilterGroups

@@ -320,6 +320,12 @@ export async function generateLabel(id: string) {
 
 /** Link do PDF da etiqueta, pra imprimir e colar na caixa. */
 export async function labelPrintUrl(id: string): Promise<string | null> {
-  const data = await me<{ url?: string }>("/shipment/print", { mode: "private", orders: [id] });
+  return labelsPrintUrl([id]);
+}
+
+/** Um PDF só com várias etiquetas (botão "Imprimir todas" do painel). */
+export async function labelsPrintUrl(ids: string[]): Promise<string | null> {
+  if (!ids.length) return null;
+  const data = await me<{ url?: string }>("/shipment/print", { mode: "private", orders: ids });
   return data?.url ?? null;
 }
