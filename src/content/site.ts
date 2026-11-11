@@ -130,8 +130,9 @@ export const ANNOUNCEMENT = {
  * ainda depende de `STORE.enabled`.
  */
 export const SECTIONS = [
-  // PROPOSTA (teste do six pack): chamada do six pack logo depois da Hero.
-  { key: "kit", on: true, id: "kit", label: "Six pack" },
+  // Chamada do six pack logo depois da Hero: fora da home por enquanto
+  // (pedido explícito). A loja segue em /comprar. Pra voltar: on: true.
+  { key: "kit", on: false, id: "kit", label: "Six pack" },
   { key: "oQueE", on: true, id: "o-que-e", label: "O que é" },
   { key: "galeria", on: true, id: "galeria", label: "Fotos" },
   // Manifesto fora do ar por enquanto (texto em `MANIFESTO` e cartão em
@@ -465,17 +466,41 @@ export const CONTATO = {
 export const EPISODIOS = {
   title: "O que anda rolando",
   follow: "Segue a gente no Instagram",
+  // Do mais novo pro mais antigo: o episódio novo é o primeiro que aparece
+  // (no celular, o primeiro do trilho).
   items: [
     {
-      number: 1,
-      title: "Como chegamos aqui?",
-      href: "https://www.instagram.com/p/DeQEuoLRP92/",
+      number: 5,
+      title: "Testes e mais testes",
+      href: "https://www.instagram.com/p/Dfk7I2DiZnd/",
       cover: photo(
-        "Capa ep. 1",
-        "Capa do episódio 1: Como chegamos aqui?",
-        "/images/episodios/ep-1.jpg",
+        "Capa ep. 5",
+        "Capa do episódio 5: Testes e mais testes",
+        "/images/episodios/ep-5.jpg",
       ),
-      preview: "/videos/ep-1.mp4" as string | null,
+      preview: null as string | null,
+    },
+    {
+      number: 4,
+      title: "Onde a mágica acontece",
+      href: "https://www.instagram.com/p/DfX9FHkCCzr/",
+      cover: photo(
+        "Capa ep. 4",
+        "Capa do episódio 4: Onde a mágica acontece",
+        "/images/episodios/ep-4.jpg",
+      ),
+      preview: null as string | null,
+    },
+    {
+      number: 3,
+      title: "Isso é muito Fernandito",
+      href: "https://www.instagram.com/p/DesR8QqxaRL/",
+      cover: photo(
+        "Capa ep. 3",
+        "Capa do episódio 3: Isso é muito Fernandito",
+        "/images/episodios/ep-3.jpg",
+      ),
+      preview: "/videos/ep-3.mp4" as string | null,
     },
     {
       number: 2,
@@ -489,15 +514,15 @@ export const EPISODIOS = {
       preview: "/videos/ep-2.mp4" as string | null,
     },
     {
-      number: 3,
-      title: "Isso é muito Fernandito",
-      href: "https://www.instagram.com/p/DesR8QqxaRL/",
+      number: 1,
+      title: "Como chegamos aqui?",
+      href: "https://www.instagram.com/p/DeQEuoLRP92/",
       cover: photo(
-        "Capa ep. 3",
-        "Capa do episódio 3: Isso é muito Fernandito",
-        "/images/episodios/ep-3.jpg",
+        "Capa ep. 1",
+        "Capa do episódio 1: Como chegamos aqui?",
+        "/images/episodios/ep-1.jpg",
       ),
-      preview: "/videos/ep-3.mp4" as string | null,
+      preview: "/videos/ep-1.mp4" as string | null,
     },
   ],
 };
