@@ -339,8 +339,16 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   // a cada 2 min): "A caminho" e "Entregue" atualizam sem apertar botão.
   after(() => maybeAdvanceFulfillments());
 
+  // Tudo que não depende um do outro sai numa ida só ao banco (antes era em
+  // fila: pedidos → envios → notas → avulsos → leads, cada um esperando o outro).
   const ids = await kvSMembers(ALL_SET);
-  const orders = (await getOrders(ids))
+  const [ordersRaw, manualStored, avulsosRaw, leadsRaw] = await Promise.all([
+    getOrders(ids),
+    getManualSales(),
+    listAvulsos().catch(() => []),
+    listLeads().catch(() => []),
+  ]);
+  const orders = ordersRaw
     .filter((o): o is StoredOrder => Boolean(o) && (o!.status === "paid" || o!.status === "manual"))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const fulfillments = await getFulfillments(orders.map((o) => o.id));
@@ -349,11 +357,10 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   after(() => advanceAvulsos());
   // Vendas fora do site (Bling): sem nada guardado ainda → busca agora; velho →
   // mostra o que tem e atualiza depois da resposta.
-  let manual = await getManualSales();
+  let manual = manualStored;
   if (!manual) manual = await syncManualSales();
   else if (manualSalesStale(manual)) after(() => syncManualSales().then(() => undefined));
   const NFE_OK = [5, 6, 7];
-  const avulsosRaw = await listAvulsos().catch(() => []);
   const nfNum = (t: string | null | undefined) => Number(String(t ?? "").replace(/\D/g, "")) || 0;
   const iso = (d: string) => new Date(d.replace(" ", "T") + "-03:00").toISOString();
   // Envio registrado (com etiqueta) já tem a nota: o DANFE vem da nota do Bling.
@@ -533,7 +540,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     .filter((m) => NFE_OK.includes(m.situacao))
     .reduce((sum, m) => sum + m.totalCents, 0);
 
-  const waitlist = (await listLeads().catch(() => [])).filter((l) => l.form === "aviso");
+  const waitlist = leadsRaw.filter((l) => l.form === "aviso");
   // Aba Produção: cadastro salvo no banco (sem nada salvo → exemplos).
   const producao = await (async () => {
     if (!COM_PRODUCAO.includes(aba)) return EXEMPLO;
