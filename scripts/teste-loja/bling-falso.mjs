@@ -1,7 +1,15 @@
 // Bling de mentira pra testar a loja localmente (porta 3998).
 // POST /_ctl muda o comportamento: rejeitar nota, travar nota em "aguardando".
 import http from "node:http";
-const flags = { nfeReject: false, nfeStuck: false, celularReject: false, saldos: {} };
+const flags = {
+  nfeReject: false,
+  nfeStuck: false,
+  celularReject: false,
+  saldos: {},
+  // Token vencido: a próxima chamada (fora /oauth) responde 401 uma vez.
+  expire401Once: false,
+};
+const calls = { refresh: 0 };
 const contacts = [];
 const idByCodigo = new Map();
 const codigoById = new Map();
@@ -18,9 +26,27 @@ http
   .createServer(async (req, res) => {
     let raw = "";
     for await (const c of req) raw += c;
-    const body = raw ? JSON.parse(raw) : {};
+    // O pedido de token vai em formulário (não JSON): não pode derrubar o servidor.
+    let body = {};
+    try {
+      body = raw ? JSON.parse(raw) : {};
+    } catch {
+      body = Object.fromEntries(new URLSearchParams(raw));
+    }
     const url = new URL(req.url, "http://x");
     const p = url.pathname.replace(/^\/Api\/v3/, "");
+    if (p === "/oauth/token") {
+      calls.refresh++;
+      return send(res, 200, {
+        access_token: "bling-novo-" + calls.refresh,
+        refresh_token: "r-" + calls.refresh,
+        expires_in: 21600,
+      });
+    }
+    if (flags.expire401Once && p !== "/_ctl") {
+      flags.expire401Once = false;
+      return send(res, 401, { error: { description: "invalid_token" } });
+    }
     if (p === "/_ctl") {
       Object.assign(flags, body.flags ?? {});
       if (body.atender) sales.get(String(body.atender)).situacao = { id: 9 };
@@ -31,6 +57,7 @@ http
       }
       return send(res, 200, {
         flags,
+        calls,
         sales: [...sales.values()],
         nfes: [...nfes.values()],
         contacts,

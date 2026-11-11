@@ -1,5 +1,6 @@
 // Bateria de cenários da compra (ver LANCAMENTO.md → "Testar a loja").
 import { createHmac, randomUUID } from "node:crypto";
+import { execSync } from "node:child_process";
 const PRICE = 8990; // preço do kit (src/lib/catalog.ts)
 const B = "http://localhost:3160",
   MP = "http://localhost:3999",
@@ -393,6 +394,31 @@ const approve = async (orderId, extra = {}) =>
     "S16b pago: cancelar não devolve a unidade; estornar devolve",
     Boolean(r.erro) && meio === before - 1 && est.ok === true && depois === before,
     `${before} → ${meio} → ${depois} ${JSON.stringify(r)}`,
+  );
+}
+// S20 duas pessoas gerando Pix da ÚLTIMA unidade ao mesmo tempo: só uma leva.
+{
+  const livres = (await diag()).estoque["FERN-KIT-PRE"].livres;
+  // Deixa 1 livre (sem passar pelo site): o contador do teto é do Redis.
+  execSync(`redis-cli -p 6390 set stock:held:preview:FERN-KIT-PRE ${159 - 1} >/dev/null`);
+  const [a, b] = await Promise.all([mk(), mk()]);
+  const codes = [a.code, b.code].sort();
+  const stockErr = [a, b].find((r) => r.code === 409)?.data?.code;
+  check(
+    "S20 2 Pix na última unidade ao mesmo tempo → 1 sai, 1 recebe 'esgotou'",
+    codes.join(",") === "201,409" && stockErr === "stock",
+    `${a.code}/${b.code} ${JSON.stringify(a.data.code ?? a.data.order?.id)} ${JSON.stringify(b.data.code ?? b.data.order?.id)}`,
+  );
+  // Devolve o contador pro que era (o pedido que saiu ainda reserva 1).
+  execSync(`redis-cli -p 6390 set stock:held:preview:FERN-KIT-PRE ${159 - livres + 1} >/dev/null`);
+}
+// S21 aviso do Mercado Pago de pagamento que não existe → 200 (não fica reenviando).
+{
+  const w = await webhook("999999999");
+  check(
+    "S21 webhook MP de pagamento inexistente → 200 ignorado",
+    w.status === 200,
+    String(w.status),
   );
 }
 // S17 trava de estoque (teto do site): esgota, recusa, devolve quando o Pix vence

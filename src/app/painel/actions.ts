@@ -93,6 +93,9 @@ export async function salvarProducao(
   const before = await kvGet(PRODUCAO_KEY).catch(() => null);
   if (before && !before.includes('"versao":2'))
     await kvSet(PRODUCAO_BACKUP_V1, before).catch(() => {});
+  // Cópia de segurança de cada gravação (30 dias): se alguém salvar por cima
+  // do cadastro de outra pessoa, dá pra recuperar.
+  if (before) await kvSet(`${PRODUCAO_KEY}:bak:${at}`, before, 60 * 60 * 24 * 30).catch(() => {});
   await kvSet(PRODUCAO_KEY, JSON.stringify({ ...parsed.data, atualizadoEm: at }));
   return { ok: true, at };
 }

@@ -228,7 +228,11 @@ export function VendasView({
           {pendentesNotas > 0 &&
             `${pendentesNotas} ${pendentesNotas === 1 ? "nota manual ainda sem autorização" : "notas manuais ainda sem autorização"} (fora do faturado). `}
           {erroNotas && (
-            <span className="text-lk-fail">Última leitura das notas falhou: {erroNotas}</span>
+            <span className="text-lk-fail">
+              {/429|limite de requisi/i.test(erroNotas)
+                ? "O Bling pediu calma (muitas consultas de uma vez): a leitura das notas fica pra daqui a pouco, sozinha."
+                : `Última leitura das notas falhou: ${erroNotas}`}
+            </span>
           )}
         </p>
       )}

@@ -116,6 +116,8 @@ http
           },
         },
         to: body.to,
+        volumes: body.volumes,
+        products: body.products,
       });
       return send(res, 201, { id });
     }

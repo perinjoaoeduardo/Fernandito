@@ -38,6 +38,8 @@ const envio = async (id, c) => (await diag(c)).envios.find((e) => e.id === id);
 async function buy({
   local = false,
   ship = { id: "me-3", priceCents: 2590, source: "melhor-envio" },
+  // Endereço de POA, mas com o frete escolhido (ex.: Melhor Envio em vez da entrega própria).
+  freteEscolhido = false,
   note,
   items = [{ sku: "FERN-KIT-PRE", qty: 1, unitPriceCents: 8990 }],
 } = {}) {
@@ -69,16 +71,17 @@ async function buy({
           city: "São Paulo",
           uf: "SP",
         },
-    shipping: local
-      ? {
-          id: "local-poa",
-          service: "x",
-          carrier: "y",
-          priceCents: 499,
-          days: { min: 1, max: 2 },
-          source: "local",
-        }
-      : { service: "x", carrier: "Jadlog", days: { min: 1, max: 5 }, ...ship },
+    shipping:
+      local && !freteEscolhido
+        ? {
+            id: "local-poa",
+            service: "x",
+            carrier: "y",
+            priceCents: 499,
+            days: { min: 1, max: 2 },
+            source: "local",
+          }
+        : { service: "x", carrier: "Jadlog", days: { min: 1, max: 5 }, ...ship },
     subtotalCents: sub,
     totalCents: 0,
     ageConfirmed: true,
@@ -469,6 +472,127 @@ const c1 = await buy({ note: RECADO });
   );
   await ctl(ME, { flags: { variasOpcoes: false } });
 }
+// C18 pedido MISTO (kit + six pack): nota com os 2 itens, baixa do kit e das
+// latas (6 por pack), uma caixa só no Melhor Envio com peso somado.
+{
+  const id = await buy({
+    items: [
+      { sku: "FERN-KIT-PRE", qty: 1, unitPriceCents: 8990 },
+      { sku: "FERN-350-6", qty: 2, unitPriceCents: 9499 },
+    ],
+  });
+  const e = await until(id, ["ready"]);
+  const sale = (await ctl(BL)).sales.find((x) => x.numeroLoja === id);
+  const { baixas } = await fetch(`${BL}/_baixas`).then((r) => r.json());
+  const mine = baixas.filter((x) => String(x.observacoes ?? "").includes(id));
+  const ship = (await ctl(ME)).orders.find((o) => o.tags.some((t) => t.tag === id));
+  check(
+    "C18 misto → nota/etiqueta sem erro e pedido no Bling com 2 itens",
+    e?.etapa === "ready" && !e?.erro && sale?.itens?.length === 2,
+    JSON.stringify({ e: e?.etapa, erro: e?.erro, itens: sale?.itens?.length }),
+  );
+  check(
+    "C18 misto → baixa: 1 kit + 12 latas",
+    mine.length === 2 &&
+      mine.some((b) => b.quantidade === 1) &&
+      mine.some((b) => b.quantidade === 12),
+    JSON.stringify(mine.map((b) => b.quantidade)),
+  );
+  const v = ship?.volumes?.[0];
+  check(
+    "C18 misto → uma caixa só no Melhor Envio, peso somado e 3 produtos declarados",
+    ship?.volumes?.length === 1 && v?.weight > 1 && ship?.products?.length === 2,
+    JSON.stringify({ volumes: ship?.volumes, products: ship?.products?.length }),
+  );
+}
+// C19 CEP de Porto Alegre mas a pessoa escolheu o Melhor Envio (não a entrega
+// própria): vai com etiqueta, como qualquer pedido de fora.
+{
+  const before = (await ctl(ME)).calls.cart;
+  const id = await buy({
+    local: true,
+    freteEscolhido: true,
+    ship: { id: "me-3", priceCents: 2590, source: "melhor-envio" },
+  });
+  const e = await until(id, ["ready", "local"]);
+  check(
+    "C19 POA com Melhor Envio escolhido → etiqueta (não 'entrega própria')",
+    e?.etapa === "ready" && (await ctl(ME)).calls.cart === before + 1,
+    JSON.stringify(e),
+  );
+}
+// C20 aviso do Melhor Envio de um envio que o site não conhece (ou sem tag):
+// responde 200 e não derruba nada.
+{
+  const a = await meWebhook({ event: "order.posted", data: { id: "nao-existe", tags: [] } });
+  const b = await meWebhook({
+    event: "order.posted",
+    data: { id: "x", tags: [{ tag: "pedido-que-nao-existe" }] },
+  });
+  await sleep(1500);
+  const alive = await fetch(`${B}/api/estoque`).then((r) => r.status);
+  check(
+    "C20 aviso do ME de envio desconhecido → 200 e o site segue de pé",
+    a.status === 200 && b.status === 200 && alive === 200,
+    `${a.status} ${b.status} ${alive}`,
+  );
+}
+// C21 token do Bling vencido no meio do caminho (401): renova sozinho e segue.
+{
+  const refreshesBefore = (await ctl(BL)).calls.refresh;
+  // Token com validade de verdade (1 h): o ambiente de teste usa um "eterno".
+  execSync(
+    `redis-cli -p 6390 set bling:tokens '{"accessToken":"a","refreshToken":"r","expiresAt":${Date.now() + 3600e3}}' >/dev/null`,
+  );
+  await ctl(BL, { flags: { expire401Once: true } });
+  const id = await buy();
+  const e = await until(id, ["ready"]);
+  const refreshes = (await ctl(BL)).calls.refresh;
+  check(
+    "C21 Bling 401 no meio → token renovado e o pedido segue até a etiqueta",
+    e?.etapa === "ready" && !e?.erro && refreshes === refreshesBefore + 1,
+    `etapa=${e?.etapa} erro=${e?.erro} renovações ${refreshesBefore}→${refreshes}`,
+  );
+}
+// C22 "Etiqueta nova" SEM saldo no Melhor Envio: avisa com a mensagem humana
+// (não trava em erro técnico) e, com saldo de volta, sai sozinha no Atualizar.
+{
+  await ctl(ME, { flags: { variasOpcoes: true } });
+  execSync(`redis-cli -p 6390 --scan --pattern 'frete:*' | xargs -r redis-cli -p 6390 del`);
+  const id = await buy({
+    ship: { id: "me-12", priceCents: 3870, source: "melhor-envio", carrier: "LATAM Cargo" },
+  });
+  await until(id, ["ready"]);
+  const [antiga] = (await ctl(ME)).orders.filter((o) => o.tags.some((t) => t.tag === id));
+  await ctl(ME, { set: { id: antiga.id, status: "canceled" }, flags: { noBalance: true } });
+  const { createRequire } = await import("node:module");
+  const { chromium } = createRequire(import.meta.url)("playwright");
+  const exp = String(Date.now() + 3600e3);
+  const value = `${exp}.${createHmac("sha256", KEY).update(`painel-v2.${exp}`).digest("hex")}`;
+  const browser = await chromium.launch();
+  const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+  await ctx.addCookies([{ name: "fernandito_painel", value, url: `${B}/painel` }]);
+  const page = await ctx.newPage();
+  await page.goto(`${B}/painel?q=${id}`, { waitUntil: "load" });
+  const row = page.locator("tr", { hasText: `#${id}` }).first();
+  await row.getByRole("button", { name: "Etiqueta nova" }).click();
+  const modal = page.getByRole("dialog");
+  await modal.getByLabel(/Confirmo/).check();
+  await modal.getByRole("button", { name: "Comprar etiqueta nova" }).click();
+  await page.waitForLoadState("load");
+  await page.waitForTimeout(1500);
+  await browser.close();
+  const semSaldo = await envio(id);
+  await ctl(ME, { flags: { noBalance: false } });
+  await diag(true);
+  const comSaldo = await envio(id);
+  await ctl(ME, { flags: { variasOpcoes: false } });
+  check(
+    "C22 etiqueta nova sem saldo → aviso 'Sem saldo'; com saldo → sai no Atualizar",
+    /Sem saldo/.test(semSaldo?.erro ?? "") && comSaldo?.etapa === "ready" && !comSaldo?.erro,
+    `${semSaldo?.erro} → ${comSaldo?.etapa} ${comSaldo?.erro}`,
+  );
+}
 // C4 sem saldo no Melhor Envio
 {
   await ctl(ME, { flags: { noBalance: true } });
@@ -584,6 +708,7 @@ const c1 = await buy({ note: RECADO });
 // C17b estoque do six pack no Bling vale pelas LATAS (6 por pack), não pelo
 // número do próprio pack: com 11 latas só cabe 1 pack; 2 packs → "só temos 1".
 {
+  const livresAntes = (await diag()).estoque["FERN-350-6"].livres;
   await ctl(BL, { flags: { saldos: { "FERN-350": 11, "FERN-350-6": 50 } } });
   const dois = await buy({ items: [{ sku: "FERN-350-6", qty: 2, unitPriceCents: 9499 }] }).then(
     () => "",
@@ -601,7 +726,7 @@ const c1 = await buy({ note: RECADO });
   const livres = (await diag()).estoque["FERN-350-6"].livres;
   check(
     "C17b six pack: estoque do Bling conta pelas latas (11 latas = 1 pack)",
-    /1 unidade/.test(dois) && um === "ok" && livres === 37,
+    /1 unidade/.test(dois) && um === "ok" && livres === livresAntes,
     `2 packs → ${dois.slice(0, 80)} · 1 pack → ${um} · livres depois: ${livres}`,
   );
 }
@@ -633,9 +758,12 @@ const c1 = await buy({ note: RECADO });
       (x) => String(x.message),
     );
     check("C17 7 packs num pedido → recusa (máx. 6)", /Máximo de 6/.test(seven), seven);
-    // Já foram 2; mais 35 (5×6 + 5) chega nos 37 do teto.
-    for (const q of [6, 6, 6, 6, 6, 5])
-      await buy({ items: [{ sku: "FERN-350-6", qty: q, unitPriceCents: 9499 }] });
+    // Compra até o teto (37) acabar, de 6 em 6 (outros testes já gastaram alguns).
+    for (let guard = 0; guard < 20; guard++) {
+      const livres = (await diag()).estoque["FERN-350-6"].livres;
+      if (livres <= 0) break;
+      await buy({ items: [{ sku: "FERN-350-6", qty: Math.min(6, livres), unitPriceCents: 9499 }] });
+    }
     const over = await buy({ items: [{ sku: "FERN-350-6", qty: 1, unitPriceCents: 9499 }] }).then(
       () => "",
       (x) => String(x.message),
