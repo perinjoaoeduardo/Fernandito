@@ -816,7 +816,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
         </form>
       )}
       {!o.origem && f?.label.meId && (f.stage === "ready" || f.stage === "posted") && (
-        <details className="group/re relative">
+        <details className="group/re w-full lg:w-auto">
           <summary
             className={`${btn(f.label.status === "canceled" ? "primary" : "ghost", "sm")} cursor-pointer list-none`}
           >
@@ -825,7 +825,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           </summary>
           <form
             action={refazerEtiqueta}
-            className="border-lk-border bg-lk-paper absolute right-0 z-20 mt-2 w-72 space-y-3 rounded-lg border p-3 text-left text-xs shadow-lg"
+            className="border-lk-border bg-lk-paper mt-2 w-full max-w-80 space-y-3 rounded-lg border p-3 text-left text-xs shadow-lg"
           >
             <input type="hidden" name="id" value={o.id} />
             <input type="hidden" name="back" value={href({})} />
