@@ -418,9 +418,10 @@ const c1 = await buy({ note: RECADO });
   const page = await ctx.newPage();
   await page.goto(`${B}/painel?q=${id}`, { waitUntil: "load" });
   const row = page.locator("tr", { hasText: `#${id}` }).first();
-  await row.locator("summary", { hasText: "Etiqueta nova" }).click();
-  await row.getByLabel(/Confirmo/).check();
-  await row.getByRole("button", { name: "Comprar etiqueta nova" }).click();
+  await row.getByRole("button", { name: "Etiqueta nova" }).click();
+  const modal = page.getByRole("dialog");
+  await modal.getByLabel(/Confirmo/).check();
+  await modal.getByRole("button", { name: "Comprar etiqueta nova" }).click();
   await page.waitForLoadState("load");
   await page.waitForTimeout(1500);
   const texto = (await page.locator("main").innerText()).replace(/\s+/g, " ");
@@ -439,8 +440,12 @@ const c1 = await buy({ note: RECADO });
     JSON.stringify(depois),
   );
   check(
-    "C3i painel mostra 'Etiqueta refeita · antes: LATAM Cargo'",
-    texto.includes("Etiqueta refeita · antes: LATAM Cargo"),
+    "C3i painel mostra 'Etiqueta nova pela J&T Express · a da LATAM Cargo foi cancelada'",
+    texto.includes("Etiqueta nova pela J&T Express · a da LATAM Cargo foi cancelada"),
+  );
+  check(
+    "C3i painel mostra a transportadora nova no lugar da LATAM",
+    /J&T Express · pago|J&T Express/.test(texto),
   );
   await ctl(ME, { flags: { variasOpcoes: false } });
 }

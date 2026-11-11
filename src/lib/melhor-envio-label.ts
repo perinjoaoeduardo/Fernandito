@@ -178,7 +178,7 @@ export async function trackShipment(id: string): Promise<MeShipment> {
   });
   const rank = (s: string) =>
     ["pending", "released", "generated", "posted", "delivered"].indexOf(s);
-  return rank(merged.status) >= rank(base.status) ? merged : base;
+  return rank(merged.status) >= rank(base.status) ? { ...merged, carrier: base.carrier } : base;
 }
 
 /** Serviço liberado mais barato pro CEP (quando o pedido foi pela tabela fixa). */

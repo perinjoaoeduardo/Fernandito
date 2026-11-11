@@ -80,6 +80,8 @@ export type Fulfillment = {
     deliveredAt?: string | null;
     /** Última vez que o rastreio foi conferido no Melhor Envio. */
     checkedAt?: string;
+    /** Transportadora da etiqueta (pode mudar se a etiqueta foi refeita). */
+    carrier?: string | null;
   };
   error: string | null;
   updatedAt: string;
@@ -334,6 +336,7 @@ async function stepLabel(order: StoredOrder, f: Fulfillment) {
   }
 
   f.label.status = shipment.status;
+  if (shipment.carrier) f.label.carrier = shipment.carrier;
   f.label.tracking = shipment.tracking ?? shipment.selfTracking;
   f.label.trackingUrl = shipment.trackingUrl;
   // Chegou até aqui sem erro: o erro gravado é de uma tentativa anterior.
@@ -399,6 +402,7 @@ async function stepTrack(order: StoredOrder, f: Fulfillment) {
   if (!f.label.meId) return false;
   const shipment = await trackShipment(f.label.meId);
   f.label.status = shipment.status;
+  if (shipment.carrier) f.label.carrier = shipment.carrier;
   f.label.tracking = shipment.tracking ?? shipment.selfTracking ?? f.label.tracking;
   f.label.trackingUrl = shipment.trackingUrl ?? f.label.trackingUrl;
   f.label.postedAt = shipment.postedAt ?? f.label.postedAt ?? null;

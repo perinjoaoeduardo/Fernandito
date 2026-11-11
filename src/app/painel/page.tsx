@@ -45,6 +45,7 @@ import { atualizar, marcarEntregue, marcarPostado, refazerEtiqueta, sair } from 
 import { advanceAvulsos, avulsoAsRow, listAvulsos } from "@/lib/store/avulsos";
 import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
+import { EtiquetaNova } from "./EtiquetaNova";
 import { SubmitButton } from "./SubmitButton";
 import { Producao } from "./Producao";
 import {
@@ -285,6 +286,11 @@ function greeting() {
       {date}
     </>
   );
+}
+
+/** Transportadora que vale: a da etiqueta refeita, se houver; senão a da compra. */
+function carrierOf(r: { order: { shipping: { carrier: string } }; f: Fulfillment | null }) {
+  return (r.f?.reship && r.f.label.carrier) || r.order.shipping.carrier;
 }
 
 export default async function PainelPage(props: PageProps<"/painel">) {
@@ -766,8 +772,8 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       )}
       {f?.reship && (
         <p className="text-lk-ink3 text-xs">
-          Etiqueta refeita · antes: {f.reship.previous.at(-1)?.carrier ?? "outra transportadora"}
-          {f.reship.previous.at(-1)?.tracking ? ` (${f.reship.previous.at(-1)?.tracking})` : ""}
+          Etiqueta nova{f.label.carrier ? ` pela ${f.label.carrier}` : ""} · a da{" "}
+          {f.reship.previous.at(-1)?.carrier ?? "transportadora anterior"} foi cancelada
         </p>
       )}
       <p className="flex flex-wrap gap-x-3">
@@ -816,34 +822,14 @@ export default async function PainelPage(props: PageProps<"/painel">) {
         </form>
       )}
       {!o.origem && f?.label.meId && (f.stage === "ready" || f.stage === "posted") && (
-        <details className="group/re w-full lg:w-auto">
-          <summary
-            className={`${btn(f.label.status === "canceled" ? "primary" : "ghost", "sm")} cursor-pointer list-none`}
-          >
-            <RotateCcw aria-hidden />
-            Etiqueta nova
-          </summary>
-          <form
-            action={refazerEtiqueta}
-            className="border-lk-border bg-lk-paper mt-2 w-full max-w-80 space-y-3 rounded-lg border p-3 text-left text-xs shadow-lg"
-          >
-            <input type="hidden" name="id" value={o.id} />
-            <input type="hidden" name="back" value={href({})} />
-            <p className="text-lk-ink">
-              A transportadora recusou ou devolveu o pacote? Compra uma etiqueta nova por{" "}
-              <b>outra transportadora</b> (a mais barata), com a mesma nota e o mesmo endereço. Usa
-              saldo do Melhor Envio. O pedido volta pra Imprimir.
-            </p>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" name="confirmo" required />
-              Confirmo: a etiqueta antiga já foi cancelada/estornada
-            </label>
-            <SubmitButton variant="primary" size="sm">
-              <RotateCcw aria-hidden />
-              Comprar etiqueta nova
-            </SubmitButton>
-          </form>
-        </details>
+        <EtiquetaNova
+          action={refazerEtiqueta}
+          id={o.id}
+          back={href({})}
+          nome={o.customer.name}
+          antiga={f.reship?.previous.at(-1)?.carrier ?? f.label.carrier ?? o.shipping.carrier}
+          destaque={f.label.status === "canceled"}
+        />
       )}
       {!f?.invoice.danfeUrl && o.nfLink && (
         <a className={btn("ghost", "sm")} href={o.nfLink} {...ext}>
@@ -989,7 +975,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                       <td className={TD}>{cliente(r)}</td>
                       <td className={`${TD} text-right`}>
                         <p className="font-medium">{brl(r.order.totalCents)}</p>
-                        <p className="text-lk-muted text-xs">{r.order.shipping.carrier}</p>
+                        <p className="text-lk-muted text-xs">{carrierOf(r)}</p>
                       </td>
                       <td className={`${TD} text-lk-muted`}>{when(r.order.paidAt)}</td>
                       <td className={TD}>{estado(r)}</td>
@@ -1010,7 +996,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                   {cliente(r)}
                   <p className="text-lk-muted text-xs">
                     <span className="text-lk-ink font-medium">{brl(r.order.totalCents)}</span> ·{" "}
-                    {r.order.shipping.carrier} · pago {when(r.order.paidAt)}
+                    {carrierOf(r)} · pago {when(r.order.paidAt)}
                   </p>
                   {estado(r)}
                   {acoes(r)}
