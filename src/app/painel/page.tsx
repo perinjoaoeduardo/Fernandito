@@ -669,7 +669,20 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       const row = every.find((r) => r.order.id === a.orderId);
       return !(row?.f && !row.f.error && row.f.stage !== "invoice" && row.f.stage !== "label");
     })
+    // Problema de nota/etiqueta só aparece enquanto o pedido ainda está com
+    // erro. Resolveu (etiqueta nova comprada, nota reemitida), o alerta some.
+    .filter((a) => {
+      if (!/etiqueta cancelada|nota (rejeitada|cancelada|denegada|bloqueada)/i.test(a.problem))
+        return true;
+      const row = every.find((r) => r.order.id === a.orderId);
+      return !row?.f || Boolean(row.f.error);
+    })
+    // Mesmo aviso repetido no mesmo pedido: fica só o mais novo.
     .sort((a, b) => b.at.localeCompare(a.at))
+    .filter(
+      (a, i, list) =>
+        list.findIndex((x) => x.orderId === a.orderId && x.problem === a.problem) === i,
+    )
     .slice(0, 10);
 
   const counts: Record<string, number> = {

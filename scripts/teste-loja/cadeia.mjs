@@ -469,6 +469,11 @@ const c1 = await buy({ note: RECADO });
   const texto = (await page.locator("main").innerText()).replace(/\s+/g, " ");
   // 2ª refeita: a nova (J&T) também é cancelada. A próxima não pode cair na
   // LATAM nem na J&T → sobra a Jadlog (a mais barata entre as que restam).
+  check(
+    "C3i etiqueta nova comprada → o alerta de 'etiqueta cancelada' some do painel",
+    !texto.includes('usar "Etiqueta nova"'),
+    texto.match(/alerta.{0,160}/)?.[0],
+  );
   const segunda = (await doPedido()).find((o) => o.id !== antiga.id);
   await ctl(ME, { set: { id: segunda.id, status: "canceled" } });
   await page.goto(`${B}/painel?q=${id}`, { waitUntil: "load" });
