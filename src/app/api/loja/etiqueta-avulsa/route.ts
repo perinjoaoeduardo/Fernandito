@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { isAdmin } from "@/lib/leads";
 import { getAvulso, saveAvulso, type Avulso } from "@/lib/store/avulsos";
-import { quoteMelhorEnvio } from "@/lib/melhor-envio";
+import { quoteAllMelhorEnvio, quoteMelhorEnvio } from "@/lib/melhor-envio";
 import {
   addToCart,
   findShipmentByTag,
@@ -17,7 +17,8 @@ import {
  *
  *  1) cotar (de graça):
  *     /api/loja/etiqueta-avulsa?key=…&acao=cotar&cep=88063000&caixa=40x27x8&kg=2&valor=179.80
- *     → lista as transportadoras liberadas com preço e prazo.
+ *     → lista as transportadoras liberadas com preço e prazo. Com `&todas=1`
+ *       lista TODOS os serviços do Melhor Envio pro CEP (Correios etc.).
  *  2) comprar (GASTA o saldo do Melhor Envio):
  *     … &acao=comprar&servico=me-3 &nome=…&fone=…&rua=…&numero=…&bairro=…&cidade=…&uf=…
  *       &nf=<chave de 44 dígitos> [&compl=…&cpf=…&email=…&item=…&qtd=…&ref=…]
@@ -59,6 +60,22 @@ export async function GET(request: NextRequest) {
   const acao = p.get("acao") ?? "cotar";
   if (acao === "cotar") {
     try {
+      // `&todas=1`: tudo que o Melhor Envio devolve pro CEP (Correios, Azul,
+      // etc.), não só as transportadoras que o site libera.
+      if (p.get("todas") === "1") {
+        const todas = await quoteAllMelhorEnvio(cep, [
+          { qty: 1, priceCents: Math.round(valor * 100), ...box },
+        ]);
+        return json({
+          ok: true,
+          cep,
+          caixa: `${length}x${width}x${height}`,
+          kg,
+          valor,
+          nota: "liberada = o site compra sozinho; as outras só pelo painel/link escolhendo o servico",
+          opcoes: todas,
+        });
+      }
       const options = await quoteMelhorEnvio(cep, [
         { qty: 1, priceCents: Math.round(valor * 100), ...box },
       ]);

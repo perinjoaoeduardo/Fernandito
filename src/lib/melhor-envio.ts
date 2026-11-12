@@ -187,6 +187,58 @@ export async function quoteMelhorEnvio(
   return options;
 }
 
+/**
+ * Cotação CRUA (só pro admin, no link de cotar com `&todas=1`): todos os
+ * serviços que o Melhor Envio devolve pro CEP — Correios, Azul, Latam,
+ * Jadlog, Loggi, J&T… — inclusive os que não atendem (com o motivo).
+ * `liberada` diz se o site compraria sozinho aquela transportadora.
+ */
+export async function quoteAllMelhorEnvio(destinationCep: string, items: ShippingItem[]) {
+  const token = await meToken();
+  if (!token) throw new Error("Melhor Envio não configurado (MELHOR_ENVIO_TOKEN)");
+  const response = await fetch(`${BASE}/api/v2/me/shipment/calculate`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "User-Agent": USER_AGENT,
+    },
+    body: JSON.stringify({
+      from: { postal_code: ORIGIN_CEP },
+      to: { postal_code: destinationCep.replace(/\D/g, "") },
+      products: items.map((item, index) => ({
+        id: String(index + 1),
+        width: item.widthCm,
+        height: item.heightCm,
+        length: item.lengthCm,
+        weight: item.weightKg,
+        insurance_value: item.priceCents / 100,
+        quantity: item.qty,
+      })),
+      options: { receipt: false, own_hand: false },
+    }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!response.ok) throw new Error(`Melhor Envio ${response.status}`);
+  const services = (await response.json()) as MeService[];
+  return services
+    .map((s) => {
+      const days = s.custom_delivery_range ?? s.delivery_range;
+      const price = s.custom_price ?? s.price;
+      return {
+        servico: `me-${s.id}`,
+        transportadora: `${s.company?.name ?? "?"} ${s.name}`.trim(),
+        preco: price ? Number(price).toFixed(2) : null,
+        prazo: days ? `${days.min}-${days.max} dias úteis` : null,
+        liberada: isAllowedCarrier(s.company?.name),
+        indisponivel: s.error ?? null,
+      };
+    })
+    .sort((a, b) => Number(a.preco ?? 9e9) - Number(b.preco ?? 9e9));
+}
+
 async function quoteReal(
   cep: string,
   items: ShippingItem[],
