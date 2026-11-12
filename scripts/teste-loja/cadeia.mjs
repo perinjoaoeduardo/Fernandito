@@ -424,6 +424,24 @@ const c1 = await buy({ note: RECADO });
   const again = await fetch(`${B}/api/loja/etiqueta-avulsa?${q}`).then((x) => x.json());
   check("C3g abrir o link de novo não compra outra", again.jaExistia === true);
 }
+// Abre "Etiqueta nova", espera a cotação do modal, escolhe a transportadora
+// pelo nome e confirma. Devolve o texto de cada opção mostrada.
+async function refazerNoPainel(page, id, transportadora) {
+  await page.goto(`${B}/painel?q=${id}`, { waitUntil: "load" });
+  const row = page.locator("tr", { hasText: `#${id}` }).first();
+  await row.getByRole("button", { name: "Etiqueta nova" }).click();
+  const modal = page.getByRole("dialog");
+  await modal.getByRole("radio").first().waitFor({ timeout: 15000 });
+  const textos = (await modal.locator("fieldset label").allInnerTexts()).map((t) =>
+    t.replace(/\s+/g, " "),
+  );
+  await modal.locator("fieldset label", { hasText: transportadora }).first().click();
+  await modal.getByLabel(/Confirmo/).check();
+  await modal.getByRole("button", { name: "Comprar etiqueta nova" }).click();
+  await page.waitForLoadState("load");
+  await page.waitForTimeout(1500);
+  return textos;
+}
 // C3i transportadora recusou (ex.: LATAM devolveu): "Etiqueta nova" no painel
 // compra outra etiqueta, mesma nota, por OUTRA transportadora; volta pra Imprimir.
 {
@@ -458,17 +476,18 @@ const c1 = await buy({ note: RECADO });
   const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
   await ctx.addCookies([{ name: "fernandito_painel", value, url: `${B}/painel` }]);
   const page = await ctx.newPage();
-  await page.goto(`${B}/painel?q=${id}`, { waitUntil: "load" });
-  const row = page.locator("tr", { hasText: `#${id}` }).first();
-  await row.getByRole("button", { name: "Etiqueta nova" }).click();
-  const modal = page.getByRole("dialog");
-  await modal.getByLabel(/Confirmo/).check();
-  await modal.getByRole("button", { name: "Comprar etiqueta nova" }).click();
-  await page.waitForLoadState("load");
-  await page.waitForTimeout(1500);
+  // 1ª refeita: o modal mostra a cotação dos 4 liberados; escolho a Jadlog
+  // (a LATAM aparece marcada como "já deu problema neste pedido").
+  const opcoes1 = await refazerNoPainel(page, id, "Jadlog");
   const texto = (await page.locator("main").innerText()).replace(/\s+/g, " ");
-  // 2ª refeita: a nova (J&T) também é cancelada. A próxima não pode cair na
-  // LATAM nem na J&T → sobra a Jadlog (a mais barata entre as que restam).
+  check(
+    "C3i modal mostra a cotação das 4 transportadoras liberadas, com preço, e marca a que falhou",
+    opcoes1.length === 4 &&
+      opcoes1.every((t) => /R\$/.test(t) && /dias úteis/.test(t)) &&
+      opcoes1.some((t) => /LATAM/i.test(t) && /já deu problema/.test(t)) &&
+      opcoes1.filter((t) => /já deu problema/.test(t)).length === 1,
+    JSON.stringify(opcoes1),
+  );
   check(
     "C3i etiqueta nova comprada → o alerta de 'etiqueta cancelada' some do painel",
     !texto.includes('usar "Etiqueta nova"'),
@@ -476,18 +495,14 @@ const c1 = await buy({ note: RECADO });
   );
   const segunda = (await doPedido()).find((o) => o.id !== antiga.id);
   await ctl(ME, { set: { id: segunda.id, status: "canceled" } });
-  await page.goto(`${B}/painel?q=${id}`, { waitUntil: "load" });
-  const row2 = page.locator("tr", { hasText: `#${id}` }).first();
-  await row2.getByRole("button", { name: "Etiqueta nova" }).click();
-  const modal2 = page.getByRole("dialog");
-  await modal2.getByLabel(/Confirmo/).check();
-  await modal2.getByRole("button", { name: "Comprar etiqueta nova" }).click();
-  await page.waitForLoadState("load");
-  await page.waitForTimeout(1500);
+  // 2ª refeita: a Jadlog (a de agora) e a LATAM aparecem marcadas; escolho J&T.
+  const opcoes2 = await refazerNoPainel(page, id, "J&T");
   const terceira = (await doPedido()).find((o) => o.id !== antiga.id && o.id !== segunda.id);
   check(
-    "C3i 2ª etiqueta refeita evita TODAS as que já falharam (LATAM e J&T) → Jadlog",
-    terceira?.service?.company?.name === "Jadlog",
+    "C3i 2ª refeita: modal marca LATAM e Jadlog como 'já deu problema'; a escolhida (J&T) é a comprada",
+    opcoes2.filter((t) => /já deu problema/.test(t)).length === 2 &&
+      opcoes2.some((t) => /Jadlog/.test(t) && /já deu problema/.test(t)) &&
+      terceira?.service?.company?.name === "J&T Express",
     JSON.stringify((await doPedido()).map((o) => [o.id, o.status, o.service?.company?.name])),
   );
   await browser.close();
@@ -495,8 +510,8 @@ const c1 = await buy({ note: RECADO });
   const nova = todas.find((o) => o.id !== antiga.id);
   const depois = await envio(id);
   check(
-    "C3i etiqueta nova comprada por outra transportadora (não LATAM)",
-    Boolean(nova) && !/latam/i.test(nova.service?.company?.name ?? "") && todas.length === 2,
+    "C3i etiqueta nova comprada pela transportadora escolhida no modal (Jadlog)",
+    Boolean(nova) && nova.service?.company?.name === "Jadlog" && todas.length === 2,
     JSON.stringify(todas.map((o) => [o.id, o.status, o.service?.company?.name])),
   );
   check(
@@ -505,12 +520,36 @@ const c1 = await buy({ note: RECADO });
     JSON.stringify(depois),
   );
   check(
-    "C3i painel mostra 'Etiqueta nova pela J&T Express · a da LATAM Cargo foi cancelada'",
-    texto.includes("Etiqueta nova pela J&T Express · a da LATAM Cargo foi cancelada"),
+    "C3i painel mostra 'Etiqueta nova pela Jadlog · a da LATAM Cargo foi cancelada'",
+    texto.includes("Etiqueta nova pela Jadlog · a da LATAM Cargo foi cancelada"),
   );
   check(
     "C3i painel mostra a transportadora nova no lugar da LATAM",
-    /J&T Express · pago|J&T Express/.test(texto),
+    /Jadlog · pago|Jadlog/.test(texto),
+  );
+  await ctl(ME, { flags: { variasOpcoes: false } });
+}
+// C3l cotação com TODOS os serviços (`&todas=1`): vem a lista crua do Melhor
+// Envio, com a marca de quais o site libera; sem a senha → 404.
+{
+  await ctl(ME, { flags: { variasOpcoes: true } });
+  const url = `${B}/api/loja/etiqueta-avulsa?key=${KEY}&acao=cotar&cep=88058500&caixa=19x19x6.5&kg=1.2&valor=89.9`;
+  const normal = await fetch(url).then((r) => r.json());
+  const todas = await fetch(url + "&todas=1").then((r) => r.json());
+  const semSenha = await fetch(url.replace(KEY, "errada") + "&todas=1");
+  check(
+    "C3l cotação com todos os serviços: lista crua, ordenada por preço, com 'liberada'",
+    todas.ok === true &&
+      todas.opcoes.length === 4 &&
+      todas.opcoes.every((o) => "liberada" in o && "indisponivel" in o) &&
+      Number(todas.opcoes[0].preco) <= Number(todas.opcoes[3].preco) &&
+      normal.opcoes.every((o) => "preco" in o),
+    JSON.stringify(todas.opcoes?.slice(0, 2)),
+  );
+  check(
+    "C3l cotação com todos sem a senha → 404",
+    semSenha.status === 404,
+    String(semSenha.status),
   );
   await ctl(ME, { flags: { variasOpcoes: false } });
 }
@@ -615,14 +654,7 @@ const c1 = await buy({ note: RECADO });
   const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
   await ctx.addCookies([{ name: "fernandito_painel", value, url: `${B}/painel` }]);
   const page = await ctx.newPage();
-  await page.goto(`${B}/painel?q=${id}`, { waitUntil: "load" });
-  const row = page.locator("tr", { hasText: `#${id}` }).first();
-  await row.getByRole("button", { name: "Etiqueta nova" }).click();
-  const modal = page.getByRole("dialog");
-  await modal.getByLabel(/Confirmo/).check();
-  await modal.getByRole("button", { name: "Comprar etiqueta nova" }).click();
-  await page.waitForLoadState("load");
-  await page.waitForTimeout(1500);
+  await refazerNoPainel(page, id, "Jadlog");
   await browser.close();
   const semSaldo = await envio(id);
   await ctl(ME, { flags: { noBalance: false } });

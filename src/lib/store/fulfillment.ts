@@ -23,7 +23,7 @@ import {
   kvSetNX,
 } from "@/lib/store/kv";
 import { getOrder, raiseAlert, type StoredOrder } from "@/lib/store/orders";
-import { isAllowedCarrier } from "@/lib/melhor-envio";
+import { isAllowedCarrier, quoteMelhorEnvio } from "@/lib/melhor-envio";
 
 /**
  * Depois do pago, tudo automático (sem mão):
@@ -91,6 +91,8 @@ export type Fulfillment = {
    * pode; `previous` guarda as etiquetas antigas (nunca reaproveitadas).
    */
   reship?: {
+    /** Serviço escolhido na cotação do modal (ex.: "me-27"); vale no lugar do automático. */
+    servico?: string;
     avoid: string;
     previous: { meId: string; carrier: string | null; tracking: string | null; at: string }[];
   };
@@ -274,7 +276,7 @@ async function stepLabel(order: StoredOrder, f: Fulfillment) {
     } else {
       f.label.meId = await addToCart({
         orderId: order.id,
-        shippingId: order.shipping.id,
+        shippingId: f.reship?.servico ?? order.shipping.id,
         invoiceKey: f.invoice.key!,
         to: {
           name: order.customer.name,
@@ -292,7 +294,8 @@ async function stepLabel(order: StoredOrder, f: Fulfillment) {
         items: order.items.map((i) => ({ name: i.name, qty: i.qty, unitCents: i.unitPriceCents })),
         totalProductsCents: order.subtotalCents,
         box: boxOf(order),
-        avoidCarrier: f.reship ? new RegExp(f.reship.avoid, "i") : undefined,
+        // Escolhido na cotação: vale o escolhido. Sem escolha: evita as que já falharam.
+        avoidCarrier: f.reship && !f.reship.servico ? new RegExp(f.reship.avoid, "i") : undefined,
       });
       console.info(`[envio ${order.id}] etiqueta no carrinho do Melhor Envio (${f.label.meId})`);
     }
@@ -459,7 +462,32 @@ export async function markPosted(orderId: string) {
  * etiqueta antiga, volta o pedido pra "gerar etiqueta" e compra na hora a
  * mais barata das outras transportadoras. O pedido volta pra "Imprimir".
  */
-export async function reshipLabel(orderId: string) {
+/**
+ * Cotação pro modal de "Etiqueta nova": só as transportadoras que o site
+ * libera, na mesma caixa da etiqueta. `falhou` marca as que já deram problema
+ * neste pedido (a atual e as anteriores).
+ */
+export async function reshipQuote(orderId: string) {
+  const order = await getOrder(orderId);
+  const f = await getFulfillment(orderId);
+  if (!order || !f) throw new Error("Pedido não encontrado");
+  const box = boxOf(order);
+  const options = await quoteMelhorEnvio(order.address.cep, [
+    { qty: 1, priceCents: order.subtotalCents, ...box },
+  ]);
+  const old = f.label.meId ? await getShipment(f.label.meId).catch(() => null) : null;
+  const falhadas = [old?.carrier, ...(f.reship?.previous ?? []).map((p) => p.carrier)]
+    .filter((c): c is string => Boolean(c))
+    .map((c) => (/latam/i.test(c) ? "latam" : c.split(/\s+/)[0].toLowerCase()));
+  return {
+    options: options.map((o) => ({
+      ...o,
+      falhou: falhadas.some((k) => o.carrier.toLowerCase().includes(k)),
+    })),
+  };
+}
+
+export async function reshipLabel(orderId: string, servico?: string) {
   const f = await getFulfillment(orderId);
   if (!f?.label.meId || !["ready", "posted", "label"].includes(f.stage))
     return { ok: false as const, error: "Esse pedido não tem etiqueta pra refazer" };
@@ -478,7 +506,14 @@ export async function reshipLabel(orderId: string) {
       .filter(Boolean)
       .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
       .join("|") || "latam";
+  if (servico) {
+    // Só vale um serviço da cotação liberada pro pedido (nunca um valor solto).
+    const { options } = await reshipQuote(orderId);
+    if (!options.some((o) => o.id === servico))
+      return { ok: false as const, error: "Essa opção não está mais disponível. Abre de novo." };
+  }
   f.reship = {
+    ...(servico ? { servico } : {}),
     avoid,
     previous: [
       ...(f.reship?.previous ?? []),

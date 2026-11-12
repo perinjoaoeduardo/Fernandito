@@ -69,7 +69,8 @@ export async function marcarPostado(form: FormData) {
 export async function refazerEtiqueta(form: FormData) {
   if (!(await painelAuthed())) redirect("/painel");
   if (form.get("confirmo") !== "on") redirect(backTo(form));
-  await reshipLabel(String(form.get("id") ?? ""));
+  const servico = String(form.get("servico") ?? "");
+  await reshipLabel(String(form.get("id") ?? ""), /^me-\d+$/.test(servico) ? servico : undefined);
   redirect(backTo(form));
 }
 
