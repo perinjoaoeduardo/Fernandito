@@ -467,10 +467,17 @@ export async function reshipLabel(orderId: string) {
   if (!order) return { ok: false as const, error: "Pedido não encontrado" };
   const old = await getShipment(f.label.meId).catch(() => null);
   const carrier = old?.carrier ?? order.shipping.carrier ?? null;
-  // A que recusou: a do envio antigo (ou a escolhida na compra).
-  const avoid = /latam/i.test(carrier ?? "")
-    ? "latam"
-    : (carrier ?? "").split(/\s+/)[0]?.replace(/[^\p{L}\p{N}&]/gu, "") || "latam";
+  // As que já falharam neste pedido: a de agora e as das etiquetas anteriores
+  // (2ª refeita não pode cair de volta na 1ª transportadora).
+  const chave = (nome: string | null) =>
+    /latam/i.test(nome ?? "")
+      ? "latam"
+      : (nome ?? "").split(/\s+/)[0]?.replace(/[^\p{L}\p{N}&]/gu, "") || "";
+  const avoid =
+    [...new Set([carrier, ...(f.reship?.previous ?? []).map((p) => p.carrier)].map(chave))]
+      .filter(Boolean)
+      .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join("|") || "latam";
   f.reship = {
     avoid,
     previous: [

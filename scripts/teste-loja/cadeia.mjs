@@ -467,8 +467,26 @@ const c1 = await buy({ note: RECADO });
   await page.waitForLoadState("load");
   await page.waitForTimeout(1500);
   const texto = (await page.locator("main").innerText()).replace(/\s+/g, " ");
+  // 2ª refeita: a nova (J&T) também é cancelada. A próxima não pode cair na
+  // LATAM nem na J&T → sobra a Jadlog (a mais barata entre as que restam).
+  const segunda = (await doPedido()).find((o) => o.id !== antiga.id);
+  await ctl(ME, { set: { id: segunda.id, status: "canceled" } });
+  await page.goto(`${B}/painel?q=${id}`, { waitUntil: "load" });
+  const row2 = page.locator("tr", { hasText: `#${id}` }).first();
+  await row2.getByRole("button", { name: "Etiqueta nova" }).click();
+  const modal2 = page.getByRole("dialog");
+  await modal2.getByLabel(/Confirmo/).check();
+  await modal2.getByRole("button", { name: "Comprar etiqueta nova" }).click();
+  await page.waitForLoadState("load");
+  await page.waitForTimeout(1500);
+  const terceira = (await doPedido()).find((o) => o.id !== antiga.id && o.id !== segunda.id);
+  check(
+    "C3i 2ª etiqueta refeita evita TODAS as que já falharam (LATAM e J&T) → Jadlog",
+    terceira?.service?.company?.name === "Jadlog",
+    JSON.stringify((await doPedido()).map((o) => [o.id, o.status, o.service?.company?.name])),
+  );
   await browser.close();
-  const todas = await doPedido();
+  const todas = (await doPedido()).filter((o) => o.id !== terceira?.id);
   const nova = todas.find((o) => o.id !== antiga.id);
   const depois = await envio(id);
   check(
