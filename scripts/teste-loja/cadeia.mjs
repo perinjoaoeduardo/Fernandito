@@ -381,6 +381,25 @@ const c1 = await buy({ note: RECADO });
       `caixa=${caixa} ${page.url()}`,
     );
   }
+  // C3k celular: nenhum número grande dos cartões do topo fica cortado.
+  {
+    await page.setViewportSize({ width: 390, height: 844 });
+    for (const aba of ["pedidos", "resultados", "compras"]) {
+      await page.goto(`${B}/painel?aba=${aba}`, { waitUntil: "load" });
+      await page.waitForTimeout(1500);
+      const cortados = await page.evaluate(() =>
+        [...document.querySelectorAll("main span.tabular-nums")]
+          .filter((e) => e.scrollWidth > e.clientWidth + 1)
+          .map((e) => e.textContent),
+      );
+      check(
+        `C3k celular: cartões do topo sem número cortado (${aba})`,
+        cortados.length === 0,
+        JSON.stringify(cortados),
+      );
+    }
+    await page.setViewportSize({ width: 1280, height: 900 });
+  }
   // C3j "Imprimir todas": um PDF só com as etiquetas do filtro Imprimir.
   {
     const t = await painel("?ver=imprimir");

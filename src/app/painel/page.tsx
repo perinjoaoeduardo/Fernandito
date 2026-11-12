@@ -516,6 +516,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   // "Imprimir todas": etiquetas prontas (não canceladas) da lista que está na
   // tela — com o filtro Imprimir, são todas pra imprimir e postar.
   const paraImprimir = rows
+    .filter((r) => !r.order.refundedAt && !r.f?.error)
     .filter((r) => r.f?.stage === "ready" && r.f.label.meId && r.f.label.status !== "canceled")
     .map((r) => r.f!.label.meId!);
   const href = (o: { ver?: string; p?: number; q?: string; ordem?: string; dir?: string }) => {

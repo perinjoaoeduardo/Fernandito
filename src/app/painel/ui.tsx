@@ -356,7 +356,7 @@ export function Tile({
         {label}
       </span>
       <span
-        className={`text-[28px] leading-none font-semibold tracking-[-0.02em] tabular-nums ${
+        className={`min-w-0 text-[clamp(1.25rem,5.6vw,1.75rem)] leading-none font-semibold tracking-[-0.02em] tabular-nums ${
           empty ? "text-lk-muted/45" : TEXT[tone]
         }`}
       >
@@ -429,7 +429,7 @@ export function Segmented({
 export const TH =
   "h-10 bg-lk-soft px-4 text-left text-xs font-medium text-lk-muted first:pl-5 last:pr-5";
 export const TD = "px-4 py-3 align-top first:pl-5 last:pr-5";
-export const TABLE_WRAP = "overflow-hidden rounded-xl border border-lk-border bg-white";
+export const TABLE_WRAP = "overflow-x-auto rounded-xl border border-lk-border bg-white";
 
 /** Lista vazia: cartão tracejado com uma linha. */
 export function Empty({ children }: { children: React.ReactNode }) {

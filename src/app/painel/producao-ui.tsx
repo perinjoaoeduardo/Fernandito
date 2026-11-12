@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore, useEffect } from "react";
 import { ChevronRight, CircleHelp, Trash2, X, type LucideIcon } from "lucide-react";
 import { btn } from "./ui";
 
@@ -56,6 +56,14 @@ export function Drawer({
   onDelete: () => void;
   children: React.ReactNode;
 }) {
+  // Esc fecha a gaveta (igual a um diálogo comum).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onCancel]);
   return (
     <div
       className="fixed inset-0 z-[600] flex justify-end"
