@@ -129,10 +129,10 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     images: [
       {
-        url: "/og-image.jpg",
+        url: "/og-image-2.jpg",
         width: 1200,
         height: 630,
-        alt: "Fernandito — fernet com cola em lata, 350ml",
+        alt: "Fernet com cola Fernandito sendo servido num copo com gelo",
       },
     ],
   },
@@ -140,7 +140,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: TITLE,
     description: DESCRIPTION,
-    images: ["/og-image.jpg"],
+    images: ["/og-image-2.jpg"],
   },
   robots: {
     index: true,
@@ -187,7 +187,7 @@ const JSON_LD = {
       taxID: "69.252.946/0001-41",
       url: SITE_URL,
       logo: `${SITE_URL}/logo/fernandito-horse-illustration.png`,
-      image: `${SITE_URL}/og-image.jpg`,
+      image: `${SITE_URL}/og-image-2.jpg`,
       address: {
         "@type": "PostalAddress",
         streetAddress: "Rua Castro Alves, 433",
@@ -213,7 +213,7 @@ const JSON_LD = {
       description:
         "Fernandito em lata: fernet com cola pronto pra beber, bebida alcoólica mista gaseificada, 8% v/v, lata de 350ml, feita no Rio Grande do Sul.",
       brand: { "@id": ORG_ID },
-      image: `${SITE_URL}/og-image.jpg`,
+      image: `${SITE_URL}/og-image-2.jpg`,
       category: "Bebida alcoólica mista gaseificada",
       additionalProperty: [
         { "@type": "PropertyValue", name: "Volume", value: "350 ml" },
