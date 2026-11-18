@@ -482,22 +482,11 @@ export async function reshipQuote(orderId: string) {
   const deste = [old?.carrier, ...(f.reship?.previous ?? []).map((p) => p.carrier)]
     .filter((c): c is string => Boolean(c))
     .map(chave);
-  // Quantas etiquetas de cada transportadora já deram problema em TODOS os
-  // pedidos (etiquetas refeitas): ajuda a escolher a que costuma funcionar.
-  const todos = await kvSMembers("orders:all");
-  const globais = new Map<string, number>();
-  for (const g of await getFulfillments(todos))
-    for (const p of g?.reship?.previous ?? [])
-      if (p.carrier) globais.set(chave(p.carrier), (globais.get(chave(p.carrier)) ?? 0) + 1);
   return {
-    options: options.map((o) => {
-      const k = chave(o.carrier);
-      return {
-        ...o,
-        falhou: deste.some((d) => o.carrier.toLowerCase().includes(d)),
-        falhas: globais.get(k) ?? 0,
-      };
-    }),
+    options: options.map((o) => ({
+      ...o,
+      falhou: deste.some((d) => o.carrier.toLowerCase().includes(d)),
+    })),
   };
 }
 

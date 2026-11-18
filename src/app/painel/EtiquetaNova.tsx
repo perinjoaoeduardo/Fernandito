@@ -12,8 +12,6 @@ type Opcao = {
   priceCents: number;
   days: { min: number; max: number };
   falhou: boolean;
-  /** Quantas etiquetas dessa transportadora já deram problema em todos os pedidos. */
-  falhas: number;
 };
 
 const brl = (cents: number) =>
@@ -61,12 +59,8 @@ export function EtiquetaNova({
         } | null;
         if (!r.ok || !data?.options) throw new Error(data?.erro ?? `Erro ${r.status}`);
         setOpcoes(data.options);
-        // Já deixa marcada: sem problema neste pedido, com menos falhas nos teus
-        // pedidos e a mais barata (as opções já vêm por preço).
-        const ordem = [...data.options].sort(
-          (a, b) => Number(a.falhou) - Number(b.falhou) || a.falhas - b.falhas,
-        );
-        const livre = ordem[0];
+        // Já deixa marcada a mais barata que ainda não foi usada neste pedido.
+        const livre = data.options.find((o) => !o.falhou) ?? data.options[0];
         setEscolhida(livre?.id ?? "");
       })
       .catch((e: Error) => setErro(e.message));
@@ -159,14 +153,8 @@ export function EtiquetaNova({
                       {o.days.min}–{o.days.max} dias úteis
                     </span>
                     {o.falhou && (
-                      <span className="text-lk-fail block text-xs">
-                        já deu problema neste pedido
-                      </span>
-                    )}
-                    {!o.falhou && o.falhas > 0 && (
-                      <span className="text-lk-hold block text-xs">
-                        já deu problema em {o.falhas} etiqueta{o.falhas === 1 ? "" : "s"} tua
-                        {o.falhas === 1 ? "" : "s"}
+                      <span className="text-lk-muted block text-xs">
+                        já usada neste pedido (cancelada)
                       </span>
                     )}
                   </span>

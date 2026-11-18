@@ -477,15 +477,15 @@ async function refazerNoPainel(page, id, transportadora) {
   await ctx.addCookies([{ name: "fernandito_painel", value, url: `${B}/painel` }]);
   const page = await ctx.newPage();
   // 1ª refeita: o modal mostra a cotação dos 4 liberados; escolho a Jadlog
-  // (a LATAM aparece marcada como "já deu problema neste pedido").
+  // (a LATAM aparece marcada como "já usada neste pedido").
   const opcoes1 = await refazerNoPainel(page, id, "Jadlog");
   const texto = (await page.locator("main").innerText()).replace(/\s+/g, " ");
   check(
     "C3i modal mostra a cotação das 4 transportadoras liberadas, com preço, e marca a que falhou",
     opcoes1.length === 4 &&
       opcoes1.every((t) => /R\$/.test(t) && /dias úteis/.test(t)) &&
-      opcoes1.some((t) => /LATAM/i.test(t) && /já deu problema/.test(t)) &&
-      opcoes1.filter((t) => /já deu problema/.test(t)).length === 1,
+      opcoes1.some((t) => /LATAM/i.test(t) && /já usada neste pedido/.test(t)) &&
+      opcoes1.filter((t) => /já usada neste pedido/.test(t)).length === 1,
     JSON.stringify(opcoes1),
   );
   check(
@@ -499,9 +499,9 @@ async function refazerNoPainel(page, id, transportadora) {
   const opcoes2 = await refazerNoPainel(page, id, "J&T");
   const terceira = (await doPedido()).find((o) => o.id !== antiga.id && o.id !== segunda.id);
   check(
-    "C3i 2ª refeita: modal marca LATAM e Jadlog como 'já deu problema'; a escolhida (J&T) é a comprada",
-    opcoes2.filter((t) => /já deu problema/.test(t)).length === 2 &&
-      opcoes2.some((t) => /Jadlog/.test(t) && /já deu problema/.test(t)) &&
+    "C3i 2ª refeita: modal marca LATAM e Jadlog como 'já usada neste pedido'; a escolhida (J&T) é a comprada",
+    opcoes2.filter((t) => /já usada neste pedido/.test(t)).length === 2 &&
+      opcoes2.some((t) => /Jadlog/.test(t) && /já usada neste pedido/.test(t)) &&
       terceira?.service?.company?.name === "J&T Express",
     JSON.stringify((await doPedido()).map((o) => [o.id, o.status, o.service?.company?.name])),
   );
@@ -719,6 +719,43 @@ async function refazerNoPainel(page, id, transportadora) {
   check(
     "C23 painel diz que era entrega própria e foi pelo correio",
     /Era entrega própria · mandado pelo correio/.test(texto),
+  );
+}
+// C24 o painel se atualiza SOZINHO enquanto um pedido ainda está sendo
+// processado (nota na Sefaz): quando a nota autoriza, a linha vira "Imprimir e
+// postar" sem apertar "Atualizar agora" nem recarregar a página.
+{
+  await ctl(BL, { flags: { nfeStuck: true } });
+  const id = await buy();
+  await until(id, ["invoice"], 15000);
+  const { createRequire } = await import("node:module");
+  const { chromium } = createRequire(import.meta.url)("playwright");
+  const exp = String(Date.now() + 3600e3);
+  const value = `${exp}.${createHmac("sha256", KEY).update(`painel-v2.${exp}`).digest("hex")}`;
+  const browser = await chromium.launch();
+  const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+  await ctx.addCookies([{ name: "fernandito_painel", value, url: `${B}/painel` }]);
+  const page = await ctx.newPage();
+  await page.goto(`${B}/painel?q=${id}`, { waitUntil: "load" });
+  await page.waitForTimeout(1500);
+  const antes = (await page.locator("main").innerText()).replace(/\s+/g, " ");
+  await ctl(BL, { flags: { nfeStuck: false } });
+  const virou = await page
+    .waitForFunction(
+      (pid) => {
+        const row = [...document.querySelectorAll("tr")].find((r) => r.textContent?.includes(pid));
+        return Boolean(row && /Imprimir e postar/.test(row.textContent ?? ""));
+      },
+      id,
+      { timeout: 45000 },
+    )
+    .then(() => true)
+    .catch(() => false);
+  await browser.close();
+  check(
+    "C24 painel se atualiza sozinho: nota autoriza → linha vira 'Imprimir e postar' sem clicar em Atualizar",
+    !/Imprimir e postar/.test(antes.split(`#${id}`)[0].slice(-400)) && virou,
+    `virou=${virou}`,
   );
 }
 // C4 sem saldo no Melhor Envio

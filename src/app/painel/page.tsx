@@ -53,6 +53,7 @@ import { advanceAvulsos, avulsoAsRow, listAvulsos } from "@/lib/store/avulsos";
 import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
 import { EtiquetaNova } from "./EtiquetaNova";
+import { AutoAtualizar } from "./AutoAtualizar";
 import { SubmitButton } from "./SubmitButton";
 import { Producao } from "./Producao";
 import {
@@ -901,8 +902,15 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     </div>
   );
 
+  // Pedidos ainda sendo processados (nota saindo, etiqueta sendo comprada): a
+  // tela se atualiza sozinha até terminarem (sem precisar de "Atualizar agora").
+  const emAndamento = every
+    .filter((r) => r.f && !r.f.error && (r.f.stage === "invoice" || r.f.stage === "label"))
+    .map((r) => r.order.id)
+    .slice(0, 6);
   const pedidosView = (
     <>
+      <AutoAtualizar ids={emAndamento} />
       <PageHeader eyebrow={greeting()} title="Vendas" actions={actions} />
       {alertBox}
       <KpiStrip cols={4}>

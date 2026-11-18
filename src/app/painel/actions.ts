@@ -8,6 +8,7 @@ import { painelAuthed, painelLogin, painelLogout, passwordOk } from "@/lib/paine
 import { reconcileOpenOrders } from "@/lib/store/checkout";
 import {
   advanceAllFulfillments,
+  advanceFulfillment,
   markLocalDelivered,
   markPosted,
   reshipLabel,
@@ -48,6 +49,13 @@ export async function atualizar() {
   await advanceAvulsos().catch(() => {});
   await syncManualSales();
   redirect("/painel");
+}
+
+/** Empurra só os pedidos em andamento (nota/etiqueta) — usado pelo auto-atualizar da tela. */
+export async function avancarPedidos(ids: string[]) {
+  if (!(await painelAuthed())) return;
+  const validos = ids.filter((id) => /^[\w-]{6,40}$/.test(id)).slice(0, 6);
+  await Promise.all(validos.map((id) => advanceFulfillment(id).catch(() => null)));
 }
 
 const backTo = (form: FormData) => {
