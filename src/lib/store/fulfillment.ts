@@ -90,6 +90,8 @@ export type Fulfillment = {
    * mesma, a etiqueta nova sai por outra transportadora. `avoid` é a que não
    * pode; `previous` guarda as etiquetas antigas (nunca reaproveitadas).
    */
+  /** Era entrega própria e foi mandado pelo correio (serviço escolhido na cotação). */
+  porCorreio?: { servico: string; at: string };
   reship?: {
     /** Serviço escolhido na cotação do modal (ex.: "me-27"); vale no lugar do automático. */
     servico?: string;
@@ -276,7 +278,7 @@ async function stepLabel(order: StoredOrder, f: Fulfillment) {
     } else {
       f.label.meId = await addToCart({
         orderId: order.id,
-        shippingId: f.reship?.servico ?? order.shipping.id,
+        shippingId: f.reship?.servico ?? f.porCorreio?.servico ?? order.shipping.id,
         invoiceKey: f.invoice.key!,
         to: {
           name: order.customer.name,
@@ -476,15 +478,50 @@ export async function reshipQuote(orderId: string) {
     { qty: 1, priceCents: order.subtotalCents, ...box },
   ]);
   const old = f.label.meId ? await getShipment(f.label.meId).catch(() => null) : null;
-  const falhadas = [old?.carrier, ...(f.reship?.previous ?? []).map((p) => p.carrier)]
+  const chave = (c: string) => (/latam/i.test(c) ? "latam" : c.split(/\s+/)[0].toLowerCase());
+  const deste = [old?.carrier, ...(f.reship?.previous ?? []).map((p) => p.carrier)]
     .filter((c): c is string => Boolean(c))
-    .map((c) => (/latam/i.test(c) ? "latam" : c.split(/\s+/)[0].toLowerCase()));
+    .map(chave);
+  // Quantas etiquetas de cada transportadora já deram problema em TODOS os
+  // pedidos (etiquetas refeitas): ajuda a escolher a que costuma funcionar.
+  const todos = await kvSMembers("orders:all");
+  const globais = new Map<string, number>();
+  for (const g of await getFulfillments(todos))
+    for (const p of g?.reship?.previous ?? [])
+      if (p.carrier) globais.set(chave(p.carrier), (globais.get(chave(p.carrier)) ?? 0) + 1);
   return {
-    options: options.map((o) => ({
-      ...o,
-      falhou: falhadas.some((k) => o.carrier.toLowerCase().includes(k)),
-    })),
+    options: options.map((o) => {
+      const k = chave(o.carrier);
+      return {
+        ...o,
+        falhou: deste.some((d) => o.carrier.toLowerCase().includes(d)),
+        falhas: globais.get(k) ?? 0,
+      };
+    }),
   };
+}
+
+/**
+ * Pedido de ENTREGA PRÓPRIA que não vai dar pra entregar em mãos: manda pelo
+ * correio. Compra a etiqueta no Melhor Envio com a transportadora escolhida na
+ * cotação (a nota já está emitida e é a mesma) e o pedido vai pra "Imprimir e
+ * postar".
+ */
+export async function shipByMail(orderId: string, servico: string) {
+  const f = await getFulfillment(orderId);
+  if (!f || f.stage !== "local")
+    return { ok: false as const, error: "Esse pedido não está em entrega própria" };
+  if (!f.invoice.key) return { ok: false as const, error: "A nota ainda não foi emitida" };
+  const { options } = await reshipQuote(orderId);
+  if (!options.some((o) => o.id === servico))
+    return { ok: false as const, error: "Essa opção não está mais disponível. Abre de novo." };
+  f.porCorreio = { servico, at: new Date().toISOString() };
+  f.stage = "label";
+  f.error = null;
+  await save(orderId, f);
+  await kvSAdd(QUEUE, orderId);
+  const after = await advanceFulfillment(orderId);
+  return { ok: true as const, fulfillment: after };
 }
 
 export async function reshipLabel(orderId: string, servico?: string) {

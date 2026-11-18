@@ -11,6 +11,7 @@ import {
   markLocalDelivered,
   markPosted,
   reshipLabel,
+  shipByMail,
 } from "@/lib/store/fulfillment";
 import { advanceAvulsos, markAvulsoPosted } from "@/lib/store/avulsos";
 import { kvGet, kvSet, rateLimit } from "@/lib/store/kv";
@@ -71,6 +72,18 @@ export async function refazerEtiqueta(form: FormData) {
   if (form.get("confirmo") !== "on") redirect(backTo(form));
   const servico = String(form.get("servico") ?? "");
   await reshipLabel(String(form.get("id") ?? ""), /^me-\d+$/.test(servico) ? servico : undefined);
+  redirect(backTo(form));
+}
+
+/**
+ * "Enviar pelo correio": pedido de entrega própria que não vai ser entregue em
+ * mãos. Compra a etiqueta pela transportadora escolhida (mesma nota).
+ */
+export async function enviarPeloCorreio(form: FormData) {
+  if (!(await painelAuthed())) redirect("/painel");
+  if (form.get("confirmo") !== "on") redirect(backTo(form));
+  const servico = String(form.get("servico") ?? "");
+  if (/^me-\d+$/.test(servico)) await shipByMail(String(form.get("id") ?? ""), servico);
   redirect(backTo(form));
 }
 

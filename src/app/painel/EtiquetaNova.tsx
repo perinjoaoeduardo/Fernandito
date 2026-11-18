@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { LoaderCircle, RotateCcw, X } from "lucide-react";
+import { LoaderCircle, RotateCcw, Truck, X } from "lucide-react";
 import { btn } from "./ui";
 import { SubmitButton } from "./SubmitButton";
 
@@ -12,6 +12,8 @@ type Opcao = {
   priceCents: number;
   days: { min: number; max: number };
   falhou: boolean;
+  /** Quantas etiquetas dessa transportadora já deram problema em todos os pedidos. */
+  falhas: number;
 };
 
 const brl = (cents: number) =>
@@ -29,6 +31,7 @@ export function EtiquetaNova({
   nome,
   antiga,
   destaque,
+  modo = "refazer",
 }: {
   action: (form: FormData) => Promise<void>;
   id: string;
@@ -36,6 +39,8 @@ export function EtiquetaNova({
   nome: string;
   antiga: string;
   destaque: boolean;
+  /** "refazer": etiqueta cancelada → nova. "correio": entrega própria → manda pelo correio. */
+  modo?: "refazer" | "correio";
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -56,8 +61,12 @@ export function EtiquetaNova({
         } | null;
         if (!r.ok || !data?.options) throw new Error(data?.erro ?? `Erro ${r.status}`);
         setOpcoes(data.options);
-        // Já deixa marcada a mais barata que ainda não falhou neste pedido.
-        const livre = data.options.find((o) => !o.falhou) ?? data.options[0];
+        // Já deixa marcada: sem problema neste pedido, com menos falhas nos teus
+        // pedidos e a mais barata (as opções já vêm por preço).
+        const ordem = [...data.options].sort(
+          (a, b) => Number(a.falhou) - Number(b.falhou) || a.falhas - b.falhas,
+        );
+        const livre = ordem[0];
         setEscolhida(livre?.id ?? "");
       })
       .catch((e: Error) => setErro(e.message));
@@ -66,8 +75,8 @@ export function EtiquetaNova({
   return (
     <>
       <button type="button" className={btn(destaque ? "primary" : "ghost", "sm")} onClick={abrir}>
-        <RotateCcw aria-hidden />
-        Etiqueta nova
+        {modo === "correio" ? <Truck aria-hidden /> : <RotateCcw aria-hidden />}
+        {modo === "correio" ? "Enviar pelo correio" : "Etiqueta nova"}
       </button>
       <dialog
         ref={ref}
@@ -84,7 +93,7 @@ export function EtiquetaNova({
           <input type="hidden" name="servico" value={escolhida} />
           <div className="flex items-start justify-between gap-3">
             <h2 id={titleId} className="text-base font-semibold">
-              Etiqueta nova · {nome}
+              {modo === "correio" ? "Enviar pelo correio" : "Etiqueta nova"} · {nome}
             </h2>
             <button
               type="button"
@@ -95,11 +104,19 @@ export function EtiquetaNova({
               <X aria-hidden />
             </button>
           </div>
-          <p className="text-lk-ink">
-            A etiqueta da {antiga} foi cancelada? Escolhe a transportadora da nova. Vai com a{" "}
-            <b>mesma nota</b> e o mesmo endereço, usando o saldo do Melhor Envio. O pedido volta pra{" "}
-            <b>Imprimir</b>.
-          </p>
+          {modo === "correio" ? (
+            <p className="text-lk-ink">
+              Não vai dar pra entregar em mãos? Escolhe a transportadora. O site compra a etiqueta
+              no Melhor Envio com a <b>mesma nota</b> e o mesmo endereço, usando o saldo. O pedido
+              sai de &quot;Entregar&quot; e vai pra <b>Imprimir e postar</b>.
+            </p>
+          ) : (
+            <p className="text-lk-ink">
+              A etiqueta da {antiga} foi cancelada? Escolhe a transportadora da nova. Vai com a{" "}
+              <b>mesma nota</b> e o mesmo endereço, usando o saldo do Melhor Envio. O pedido volta
+              pra <b>Imprimir</b>.
+            </p>
+          )}
 
           {opcoes === null && !erro && (
             <p className="text-lk-muted flex items-center gap-2" role="status">
@@ -146,6 +163,12 @@ export function EtiquetaNova({
                         já deu problema neste pedido
                       </span>
                     )}
+                    {!o.falhou && o.falhas > 0 && (
+                      <span className="text-lk-hold block text-xs">
+                        já deu problema em {o.falhas} etiqueta{o.falhas === 1 ? "" : "s"} tua
+                        {o.falhas === 1 ? "" : "s"}
+                      </span>
+                    )}
                   </span>
                 </label>
               ))}
@@ -155,7 +178,9 @@ export function EtiquetaNova({
           <p className="text-lk-muted text-xs">Leva uns 10 a 30 segundos, não fecha a página.</p>
           <label className="flex items-start gap-2">
             <input type="checkbox" name="confirmo" required className="mt-1" />
-            Confirmo: a etiqueta antiga já foi cancelada/estornada no Melhor Envio
+            {modo === "correio"
+              ? "Confirmo: vou mandar pelo correio (gasta saldo do Melhor Envio)"
+              : "Confirmo: a etiqueta antiga já foi cancelada/estornada no Melhor Envio"}
           </label>
           <div className="flex justify-end gap-2">
             <button
@@ -166,8 +191,8 @@ export function EtiquetaNova({
               Cancelar
             </button>
             <SubmitButton variant="primary" size="sm" pending="Comprando etiqueta…">
-              <RotateCcw aria-hidden />
-              Comprar etiqueta nova
+              {modo === "correio" ? <Truck aria-hidden /> : <RotateCcw aria-hidden />}
+              Comprar etiqueta
             </SubmitButton>
           </div>
         </form>

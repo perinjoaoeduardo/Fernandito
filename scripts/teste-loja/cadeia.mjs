@@ -437,7 +437,7 @@ async function refazerNoPainel(page, id, transportadora) {
   );
   await modal.locator("fieldset label", { hasText: transportadora }).first().click();
   await modal.getByLabel(/Confirmo/).check();
-  await modal.getByRole("button", { name: "Comprar etiqueta nova" }).click();
+  await modal.getByRole("button", { name: "Comprar etiqueta" }).click();
   await page.waitForLoadState("load");
   await page.waitForTimeout(1500);
   return textos;
@@ -665,6 +665,60 @@ async function refazerNoPainel(page, id, transportadora) {
     "C22 etiqueta nova sem saldo → aviso 'Sem saldo'; com saldo → sai no Atualizar",
     /Sem saldo/.test(semSaldo?.erro ?? "") && comSaldo?.etapa === "ready" && !comSaldo?.erro,
     `${semSaldo?.erro} → ${comSaldo?.etapa} ${comSaldo?.erro}`,
+  );
+}
+// C23 entrega própria que não dá pra fazer em mãos: "Enviar pelo correio" no
+// painel mostra a cotação, compra a etiqueta pela escolhida (mesma nota) e o
+// pedido sai de "Entregar" pra "Imprimir e postar".
+{
+  await ctl(ME, { flags: { variasOpcoes: true } });
+  execSync(`redis-cli -p 6390 --scan --pattern 'frete:*' | xargs -r redis-cli -p 6390 del`);
+  const antes = (await ctl(ME)).calls.cart;
+  const id = await buy({ local: true });
+  const e0 = await until(id, ["local"]);
+  const { createRequire } = await import("node:module");
+  const { chromium } = createRequire(import.meta.url)("playwright");
+  const exp = String(Date.now() + 3600e3);
+  const value = `${exp}.${createHmac("sha256", KEY).update(`painel-v2.${exp}`).digest("hex")}`;
+  const browser = await chromium.launch();
+  const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+  await ctx.addCookies([{ name: "fernandito_painel", value, url: `${B}/painel` }]);
+  const page = await ctx.newPage();
+  await page.goto(`${B}/painel?q=${id}`, { waitUntil: "load" });
+  const row = page.locator("tr", { hasText: `#${id}` }).first();
+  await row.getByRole("button", { name: "Enviar pelo correio" }).click();
+  const modal = page.getByRole("dialog");
+  await modal.getByRole("radio").first().waitFor({ timeout: 15000 });
+  const opcoes = (await modal.locator("fieldset label").allInnerTexts()).map((t) =>
+    t.replace(/\s+/g, " "),
+  );
+  await modal.locator("fieldset label", { hasText: "Jadlog" }).first().click();
+  await modal.getByLabel(/Confirmo/).check();
+  await modal.getByRole("button", { name: "Comprar etiqueta" }).click();
+  await page.waitForLoadState("load");
+  await page.waitForTimeout(1500);
+  const texto = (await page.locator("main").innerText()).replace(/\s+/g, " ");
+  await browser.close();
+  const e1 = await until(id, ["ready"]);
+  const nova = (await ctl(ME)).orders.find((o) => o.tags.some((t) => t.tag === id));
+  await ctl(ME, { flags: { variasOpcoes: false } });
+  check(
+    "C23 entrega própria: 'Enviar pelo correio' mostra a cotação com preço e prazo",
+    e0?.etapa === "local" && opcoes.length >= 2 && opcoes.every((t) => /R\$/.test(t)),
+    JSON.stringify(opcoes),
+  );
+  check(
+    "C23 compra a etiqueta pela transportadora escolhida (Jadlog), com a mesma nota, e vai pra Imprimir",
+    e1?.etapa === "ready" &&
+      !e1?.erro &&
+      nova?.service?.company?.name === "Jadlog" &&
+      nova?.invoiceKey &&
+      (await ctl(ME)).calls.cart === antes + 1,
+    JSON.stringify({ e1: e1?.etapa, erro: e1?.erro, nova: nova?.service }),
+  );
+  check(
+    "C23 painel diz que era entrega própria e foi pelo correio",
+    /Era entrega própria · mandado pelo correio/.test(texto),
   );
 }
 // C4 sem saldo no Melhor Envio

@@ -41,7 +41,14 @@ import { getOrders, type StoredOrder } from "@/lib/store/orders";
 import { blingStock } from "@/lib/bling/orders";
 import { stockRemaining } from "@/lib/store/stock";
 import { ESPECIAL_LOTES } from "@/lib/especial";
-import { atualizar, marcarEntregue, marcarPostado, refazerEtiqueta, sair } from "./actions";
+import {
+  atualizar,
+  enviarPeloCorreio,
+  marcarEntregue,
+  marcarPostado,
+  refazerEtiqueta,
+  sair,
+} from "./actions";
 import { advanceAvulsos, avulsoAsRow, listAvulsos } from "@/lib/store/avulsos";
 import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
@@ -796,6 +803,11 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           {` · conferido ${f.label.checkedAt ? when(f.label.checkedAt) : "ainda não"}`}
         </p>
       )}
+      {f?.porCorreio && !f.reship && (
+        <p className="text-lk-ink3 text-xs">
+          Era entrega própria · mandado pelo correio{f.label.carrier ? ` (${f.label.carrier})` : ""}
+        </p>
+      )}
       {f?.reship && (
         <p className="text-lk-ink3 text-xs">
           Etiqueta nova{f.label.carrier ? ` pela ${f.label.carrier}` : ""} · a da{" "}
@@ -826,6 +838,17 @@ export default async function PainelPage(props: PageProps<"/painel">) {
             Marcar entregue
           </SubmitButton>
         </form>
+      )}
+      {f?.stage === "local" && !o.origem && (
+        <EtiquetaNova
+          modo="correio"
+          action={enviarPeloCorreio}
+          id={o.id}
+          back={href({})}
+          nome={o.customer.name}
+          antiga=""
+          destaque={false}
+        />
       )}
       {f?.label.printUrl && !byHand(f) && f.label.status !== "canceled" && (
         <a
