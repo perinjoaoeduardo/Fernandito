@@ -321,7 +321,7 @@ const c1 = await buy({ note: RECADO });
     cidade: "Campinas",
     uf: "SP",
     cep: "13025070",
-    caixa: "24x14x16.5",
+    caixa: "24x13.8x16.4",
     kg: "2.5",
     valor: "94.99",
     item: "Six pack (bonificação)",
