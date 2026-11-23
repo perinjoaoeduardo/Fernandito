@@ -84,6 +84,8 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
   // Recado opcional (presente, cartinha, pedido especial).
   const [note, setNote] = useState("");
   const [noteOpen, setNoteOpen] = useState(false);
+  // Cupom de frete grátis já conferido no servidor (código normalizado).
+  const [cupom, setCupom] = useState<string | null>(null);
   // Tentou seguir sem marcar o 18+: o cartão avisa em vermelho.
   const [ageError, setAgeError] = useState(false);
   // Pix gerado no passo do frete: o último passo já abre com o QR.
@@ -109,7 +111,8 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
   const reduceMotion = useReducedMotion();
 
   const shipping = options?.find((option) => option.id === shippingId) ?? null;
-  const totalCents = cart.subtotalCents + (shipping?.priceCents ?? 0);
+  // Com cupom o frete sai de graça (o servidor confere de novo no Pix).
+  const totalCents = cart.subtotalCents + (cupom ? 0 : (shipping?.priceCents ?? 0));
 
   // Itens pra cotação de frete (peso/dimensões por produto). Mudou o
   // carrinho depois de cotar → cota de novo.
@@ -246,6 +249,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
       ageConfirmedAt,
       marketingOptIn,
       note,
+      cupom: cupom ?? "",
     };
     const parsed = orderSchema.safeParse(candidate);
     if (!parsed.success) {
@@ -284,6 +288,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
       if (!response.ok || !data.order) {
         // Pedido mudou (frete/preço): nova tentativa = nova chave.
         idempotencyKey.current = null;
+        if (data.code === "cupom") setCupom(null);
         if (data.code === "shipping") {
           setOptions(null);
           goTo(1);
@@ -405,6 +410,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
           expanded={step === 3}
           locked={Boolean(pixOrder)}
           shipping={shipping}
+          cupom={cupom}
           totalCents={totalCents}
           recap={recap}
           onEdit={(i) => !pixOrder && goTo(i)}
@@ -735,6 +741,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                         </label>
                       );
                     })}
+                    <CupomCard applied={cupom} onChange={setCupom} />
                     <div className="border-fernandito-verde-escuro/10 mt-3 flex flex-col gap-3 border-t pt-5">
                       <ConfirmRow
                         checked={ageConfirmedAt !== null}
@@ -890,6 +897,134 @@ function NoteCard({ value, onChange }: { value: string; onChange: (value: string
         placeholder="Um pedido especial ou um recado…"
         className="text-body duration-base ease-out-standard border-fernandito-verde-escuro/25 focus:border-fernandito-verde-medio field-sizing-content max-h-40 min-h-[3.25rem] w-full resize-none rounded-xl border bg-white/70 px-4 py-2.5 shadow-[inset_0_1px_2px_rgba(36,48,34,0.06)] transition-[background-color,border-color,box-shadow] outline-none placeholder:opacity-40 focus:bg-white focus:shadow-[0_0_0_4px_rgba(64,81,57,0.18)]"
       />
+    </div>
+  );
+}
+
+/**
+ * Cupom de frete grátis: discreto como o recado (só vira campo se clicar).
+ * "Aplicar" confere no servidor; valendo, mostra o cupom com "Tirar".
+ */
+function CupomCard({
+  applied,
+  onChange,
+}: {
+  applied: string | null;
+  onChange: (codigo: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function apply() {
+    const codigo = value.trim();
+    if (!codigo || checking) return;
+    setChecking(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/cupom", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        codigo?: string;
+        error?: string;
+      };
+      if (!response.ok || !data.codigo) throw new Error(data.error ?? "Cupom inválido.");
+      onChange(data.codigo);
+      setValue("");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  if (applied)
+    return (
+      <div className="border-fernandito-verde-claro bg-fernandito-verde-claro/15 flex items-center justify-between gap-3 rounded-2xl border-2 border-dashed px-4 py-3 font-sans">
+        <p className="text-body min-w-0">
+          <span className="font-bold">Frete grátis</span>{" "}
+          <span className="opacity-70">· cupom {applied}</span>
+        </p>
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          className="text-label shrink-0 tracking-[0.08em] uppercase underline underline-offset-4 opacity-70 hover:opacity-100"
+        >
+          Tirar
+        </button>
+      </div>
+    );
+
+  if (!open)
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="text-fernandito-verde-medio border-fernandito-verde-medio/35 hover:bg-fernandito-verde-claro/15 hover:border-fernandito-verde-medio duration-base ease-out-standard inline-flex items-center gap-2 rounded-full border border-dashed px-4 py-2 font-sans text-[0.85rem] font-bold transition-colors"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className="h-4 w-4"
+          >
+            {/* Etiqueta de preço. */}
+            <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z" />
+            <circle cx="7.5" cy="7.5" r="1.5" />
+          </svg>
+          Tem cupom?
+        </button>
+      </div>
+    );
+
+  return (
+    <div className="flex flex-col gap-1.5 font-sans">
+      <label htmlFor="cupom" className="text-label font-bold tracking-[0.08em] uppercase">
+        Cupom
+      </label>
+      <div className="flex gap-2">
+        <input
+          id="cupom"
+          autoFocus
+          autoComplete="off"
+          autoCapitalize="characters"
+          maxLength={40}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void apply();
+            }
+          }}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "cupom-erro" : undefined}
+          placeholder="Digita o código"
+          className="text-body duration-base ease-out-standard border-fernandito-verde-escuro/25 focus:border-fernandito-verde-medio h-12 min-w-0 flex-1 rounded-xl border bg-white/70 px-4 uppercase shadow-[inset_0_1px_2px_rgba(36,48,34,0.06)] transition-[background-color,border-color,box-shadow] outline-none placeholder:normal-case placeholder:opacity-40 focus:bg-white focus:shadow-[0_0_0_4px_rgba(64,81,57,0.18)]"
+        />
+        <button
+          type="button"
+          onClick={() => void apply()}
+          disabled={!value.trim() || checking}
+          className="bg-fernandito-verde-escuro text-fernandito-off-white duration-base ease-out-standard h-12 shrink-0 rounded-xl px-5 text-[0.85rem] font-bold transition-opacity disabled:opacity-40"
+        >
+          {checking ? "Conferindo…" : "Aplicar"}
+        </button>
+      </div>
+      {error && (
+        <p id="cupom-erro" role="alert" className="text-label text-red-800">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -1156,6 +1291,7 @@ function NextButton({
  * os totais. No celular os itens e totais recolhem atrás de "Ver resumo". */
 function SummaryCard({
   shipping,
+  cupom = null,
   totalCents,
   recap,
   onEdit,
@@ -1163,6 +1299,8 @@ function SummaryCard({
   locked = false,
 }: {
   shipping: ShippingOption | null;
+  /** Cupom de frete grátis aplicado. */
+  cupom?: string | null;
   totalCents: number;
   recap: { label: string; value: string }[];
   onEdit: (index: number) => void;
@@ -1223,7 +1361,12 @@ function SummaryCard({
         <div className="flex justify-between gap-4">
           <dt className="opacity-75">Frete</dt>
           <dd className="text-right tabular-nums">
-            {shipping ? (
+            {shipping && cupom ? (
+              <>
+                <s className="mr-2 opacity-50">{formatBRL(shipping.priceCents)}</s>
+                Grátis
+              </>
+            ) : shipping ? (
               formatBRL(shipping.priceCents)
             ) : (
               <span aria-label="a calcular" className="opacity-60">

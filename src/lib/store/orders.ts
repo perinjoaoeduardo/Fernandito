@@ -52,6 +52,10 @@ export type StoredOrder = {
     qrCodeBase64: string;
     expiresAt: string;
   } | null;
+  /** Cupom de frete grátis usado (src/lib/cupom.ts): o frete do pedido é 0. */
+  cupom?: string;
+  /** Quanto o frete custaria sem o cupom (o que a Fernandito banca). */
+  freteDescontoCents?: number;
   /** Comprado pelo link especial (lote separado, src/lib/especial.ts). */
   especial?: boolean;
   /** Pago (ou a pagar) direto na chave Pix da conta — plano B. */

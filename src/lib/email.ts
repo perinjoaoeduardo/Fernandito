@@ -145,7 +145,7 @@ function itemsTable(order: StoredOrder) {
     .map((i) => row(`${i.qty}× ${esc(i.name)}`, formatBRL(i.unitPriceCents * i.qty)))
     .join("");
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 22px;border-top:1px solid ${C.linha}">${rows}
-${row(`Frete (${esc(order.shipping.service)})`, formatBRL(order.shipping.priceCents))}
+${row(`Frete (${esc(order.shipping.service)})`, order.cupom ? "Grátis (cupom)" : formatBRL(order.shipping.priceCents))}
 ${row("<b>Total</b>", `<b>${formatBRL(order.totalCents)}</b>`, `border-top:2px solid ${C.escuro};font-size:16px`)}</table>`;
 }
 

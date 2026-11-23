@@ -31,6 +31,7 @@ import { sendOrderConfirmed } from "@/lib/email";
 import { maybeAdvanceFulfillments } from "@/lib/store/fulfillment";
 import { OutOfStockError, releaseStock, reserveStock } from "@/lib/store/stock";
 import { ESPECIAL, ESPECIAL_SKU } from "@/lib/especial";
+import { cupomFreteGratis } from "@/lib/cupom";
 
 /** Erro "esperado" do checkout: vira resposta HTTP com mensagem pro cliente. */
 export class CheckoutError extends Error {
@@ -91,7 +92,26 @@ export async function priceOrder(input: Order) {
   if (!shipping)
     throw new CheckoutError("O frete mudou. Escolhe o frete de novo.", 409, "shipping");
 
-  return { items, subtotalCents, shipping, totalCents: subtotalCents + shipping.priceCents };
+  // Cupom de frete grátis: o frete do pedido vira 0 (a etiqueta continua
+  // saindo do saldo do Melhor Envio). Cupom que não vale mais → avisa.
+  const cupom = cupomFreteGratis(input.cupom);
+  if (input.cupom && !cupom)
+    throw new CheckoutError(
+      "Esse cupom não vale mais. Tira o cupom e tenta de novo.",
+      409,
+      "cupom",
+    );
+  const freteOriginalCents = shipping.priceCents;
+  if (cupom) shipping = { ...shipping, priceCents: 0 };
+
+  return {
+    items,
+    subtotalCents,
+    shipping,
+    cupom,
+    freteOriginalCents,
+    totalCents: subtotalCents + shipping.priceCents,
+  };
 }
 
 /**
@@ -177,6 +197,7 @@ export async function createPixOrder(
     marketingOptIn: input.marketingOptIn,
     ...(input.note ? { note: input.note } : {}),
     ...(especial ? { especial: true } : {}),
+    ...(priced.cupom ? { cupom: priced.cupom, freteDescontoCents: priced.freteOriginalCents } : {}),
     // Versões dos Termos/Privacidade vigentes quando a pessoa aceitou.
     ...(await getLegalVersions()),
     mpPaymentId: null,
@@ -256,6 +277,7 @@ export async function createPixOrder(
 
   console.info(
     `[pedido ${id}] criado · ${order.totalCents} centavos · ${order.shipping.id} · ` +
+      (order.cupom ? `cupom ${order.cupom} (frete grátis) · ` : "") +
       `${maskEmail(order.customer.email)} · CPF ${maskCpf(order.customer.cpf)}` +
       (order.simulated ? " · PIX SIMULADO" : ` · mp ${order.mpPaymentId}`),
   );
@@ -479,6 +501,7 @@ export async function renewOrder(order: StoredOrder) {
     ageConfirmedAt: order.ageConfirmedAt,
     marketingOptIn: order.marketingOptIn,
     note: order.note ?? "",
+    cupom: order.cupom ?? "",
   };
   const priced = await priceOrder(input);
   return createPixOrder(

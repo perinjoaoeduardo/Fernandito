@@ -72,16 +72,23 @@ export const orderSchema = z
       .transform((s) => s.replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, "").trim())
       .optional()
       .default(""),
+    // Cupom de frete grátis (src/lib/cupom.ts). Se vale ou não, só o
+    // servidor decide; aqui só a forma.
+    cupom: z.string().trim().max(40).optional().default(""),
   })
   .refine(
     (order) =>
       order.subtotalCents === order.items.reduce((sum, i) => sum + i.unitPriceCents * i.qty, 0),
     { message: "Subtotal não confere", path: ["subtotalCents"] },
   )
-  .refine((order) => order.totalCents === order.subtotalCents + order.shipping.priceCents, {
-    message: "Total não confere",
-    path: ["totalCents"],
-  });
+  .refine(
+    (order) =>
+      order.totalCents === order.subtotalCents + (order.cupom ? 0 : order.shipping.priceCents),
+    {
+      message: "Total não confere",
+      path: ["totalCents"],
+    },
+  );
 
 export type OrderItem = z.infer<typeof orderItemSchema>;
 export type Customer = z.infer<typeof customerSchema>;

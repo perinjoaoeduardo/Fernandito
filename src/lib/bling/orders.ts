@@ -386,13 +386,23 @@ async function createSalesOrder(order: StoredOrder) {
             : `Pix Mercado Pago ${order.mpPaymentId ?? ""}`.trim(),
         },
       ],
-      observacoes: `Pedido do site fernandito.com.br #${order.id}. Entrega: ${shipping.service} (${shipping.carrier}).`,
+      observacoes:
+        `Pedido do site fernandito.com.br #${order.id}. Entrega: ${shipping.service} (${shipping.carrier}).` +
+        (order.cupom ? " Frete grátis (cupom)." : ""),
       // Recado da pessoa nas observações INTERNAS: as "observações" comuns
       // podem ir pra nota fiscal, e um recado de presente não deve aparecer lá.
       observacoesInternas:
         (order.note ? `RECADO DO CLIENTE: ${order.note}\n\n` : "") +
         `Site #${order.id} · ${order.manualPix ? "Pix MANUAL na conta" : `Pix MP ${order.mpPaymentId ?? "-"}`} · pago em ${order.paidAt ?? "-"} · ` +
-        `frete ${shipping.id} (${shipping.source}) · maioridade declarada em ${order.ageConfirmedAt}` +
+        `frete ${shipping.id} (${shipping.source})` +
+        (order.cupom
+          ? ` · CUPOM ${order.cupom}: frete grátis (custaria R$ ${reais(
+              order.freteDescontoCents ?? 0,
+            )
+              .toFixed(2)
+              .replace(".", ",")})`
+          : "") +
+        ` · maioridade declarada em ${order.ageConfirmedAt}` +
         (order.termsVersion
           ? ` · aceitou Termos v${order.termsVersion} e Privacidade v${order.privacyVersion}`
           : "") +

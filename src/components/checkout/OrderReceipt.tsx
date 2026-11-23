@@ -47,7 +47,7 @@ export function OrderReceipt({ order }: { order: PublicOrder }) {
             </p>
           </div>
           <span className="whitespace-nowrap tabular-nums">
-            {formatBRL(order.shipping.priceCents)}
+            {order.shipping.priceCents === 0 ? "Grátis" : formatBRL(order.shipping.priceCents)}
           </span>
         </li>
       </ul>
