@@ -1,5 +1,6 @@
 // Cupom de frete grátis (src/lib/cupom.ts): confere, zera o frete, recusa o
-// falso. Mesmo servidor local da bateria de cenários (LANCAMENTO.md →
+// falso. Rodar o servidor com CUPOM_FRETE_GRATIS=AMIGODOFERNANDITO (só no
+// teste local). Mesmo servidor da bateria de cenários (LANCAMENTO.md →
 // "Testar a loja"), com o pack de 6 (o kit de pré-venda esgotou).
 import { randomUUID } from "node:crypto";
 const B = "http://localhost:3160";

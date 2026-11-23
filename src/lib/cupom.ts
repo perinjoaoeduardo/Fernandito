@@ -8,17 +8,16 @@ import "server-only";
  * etiqueta continua sendo comprada no Melhor Envio normalmente, com o saldo
  * da conta (quem paga o frete é a Fernandito).
  *
- * Os códigos ficam no env `CUPOM_FRETE_GRATIS` (vários separados por
- * vírgula). Sem o env, vale o `CUPOM_PADRAO`. Env vazio (`""`) desliga todos.
- * Maiúscula/minúscula e espaços não importam.
+ * Os códigos ficam SÓ no env `CUPOM_FRETE_GRATIS` da Vercel (vários
+ * separados por vírgula). Sem o env (ou vazio), nenhum cupom vale. Nunca
+ * escrever um código aqui: o repositório é público. Maiúscula/minúscula e
+ * espaços não importam.
  */
-export const CUPOM_PADRAO = "AMIGODOFERNANDITO";
 
 export const normalizeCupom = (value: string) => value.trim().toUpperCase().replace(/\s+/g, "");
 
 function cupons() {
-  const raw = process.env.CUPOM_FRETE_GRATIS;
-  return (raw === undefined ? CUPOM_PADRAO : raw).split(",").map(normalizeCupom).filter(Boolean);
+  return (process.env.CUPOM_FRETE_GRATIS ?? "").split(",").map(normalizeCupom).filter(Boolean);
 }
 
 /** Código normalizado se o cupom vale; `null` se não vale (ou veio vazio). */

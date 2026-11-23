@@ -4,6 +4,7 @@ import { ALL_SET } from "@/lib/store/checkout";
 import { kvSMembers } from "@/lib/store/kv";
 import { getOrder, type StoredOrder } from "@/lib/store/orders";
 import { getFulfillment } from "@/lib/store/fulfillment";
+import { csvSafe } from "@/lib/csv";
 
 /**
  * Planilha de pedidos — o registro final, que NÃO depende do Bling:
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
   const br = (iso: string | null) =>
     iso ? new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "";
   const money = (cents: number) => (cents / 100).toFixed(2).replace(".", ",");
-  const cell = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
+  const cell = (value: string | number) => `"${csvSafe(String(value)).replace(/"/g, '""')}"`;
   const header = [
     "pedido",
     "situação",

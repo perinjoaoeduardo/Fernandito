@@ -3,6 +3,7 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { BLING_ADMIN_KEY } from "@/lib/bling/client";
 import { kvMGet, kvSAdd, kvSet, kvSMembers } from "@/lib/store/kv";
+import { csvSafe } from "@/lib/csv";
 
 /**
  * Leads da página Contato (geral, evento, revenda): cada envio fica guardado no Redis (`lead:<id>`, conjunto `leads`) antes de
@@ -46,7 +47,7 @@ export function isAdmin(key: string | null) {
 /** Planilha: data, tipo e uma coluna por campo. */
 export function leadsCsv(leads: Lead[]) {
   const columns = [...new Set(leads.flatMap((l) => Object.keys(l.fields)))];
-  const cell = (value: string) => `"${value.replace(/"/g, '""')}"`;
+  const cell = (value: string) => `"${csvSafe(value).replace(/"/g, '""')}"`;
   const rows = [
     ["recebido em", "motivo", ...columns].map(cell).join(";"),
     ...leads.map((l) =>

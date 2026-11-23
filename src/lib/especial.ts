@@ -27,7 +27,7 @@ export const ESPECIAL = {
  * Lote novo = contador zerado com o teto exato do que sobrou, sem depender de
  * quantos o lote anterior vendeu. Os antigos ficam aqui só pra devolver Pix
  * vencido no contador certo e pro painel contar o que já saiu.
- *   1º (05/11): 4 kits — 2 vendidos (Gabriel Welter #148, Victor M. #149).
+ *   1º (05/11): 4 kits — 2 vendidos.
  *   2º (06/11): os 2 últimos kits pré-venda. Vendeu esses, acabou.
  */
 export const ESPECIAL_LOTES = [
