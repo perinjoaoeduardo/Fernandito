@@ -156,8 +156,8 @@ export const PRODUCTS: Product[] = [
     ],
     // Até 6 packs por pedido.
     maxQty: 6,
-    // Igual ao cadastro no Bling: caixa 24 × 14 × 16,5 cm, 2,5 kg.
-    shipping: { weightKg: 2.5, widthCm: 24, heightCm: 16.5, lengthCm: 14 },
+    // Igual ao cadastro no Bling: caixa 24 (compr.) × 13,8 (larg.) × 16,4 (alt.) cm, 2,5 kg.
+    shipping: { weightKg: 2.5, widthCm: 13.8, heightCm: 16.4, lengthCm: 24 },
     // Contagem de 06/11: 252 latas = 42 packs. O site libera 37 e deixa 5 de
     // reserva. Pack que sai do site conta aqui; venda por fora não (o Bling
     // limita junto: vale o menor). Pra liberar mais: sobe este número.
