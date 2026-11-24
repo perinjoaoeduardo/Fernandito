@@ -578,10 +578,13 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                     error={errors["customer.cpf"]}
                     aside="Só pra nota fiscal"
                   />
-                  {/* Recado opcional, discreto: só vira campo se clicar. */}
-                  <div className="sm:col-span-2">
+                  {/* Recado e cupom lado a lado (botões); aberto, cada um vira
+                      um campo com a largura toda. */}
+                  <div className="flex flex-wrap items-start gap-3 sm:col-span-2">
                     {noteOpen || note ? (
-                      <NoteCard value={note} onChange={setNote} />
+                      <div className="w-full">
+                        <NoteCard value={note} onChange={setNote} />
+                      </div>
                     ) : (
                       <button
                         type="button"
@@ -602,13 +605,13 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                               serve pra qualquer pedido, não só pra presente). */}
                           <path d="M20.5 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 20.5 12Z" />
                         </svg>
-                        Algum pedido ou recado?
+                        {/* Celular: curto, pra caber do lado do cupom. */}
+                        <span className="sm:hidden">Recado?</span>
+                        <span className="hidden sm:inline">Algum pedido ou recado?</span>
                       </button>
                     )}
-                  </div>
-                  {/* Cupom logo no começo (frete grátis): quem tem o código
-                      já vê o frete zerado quando chegar na escolha. */}
-                  <div className="sm:col-span-2">
+                    {/* Cupom logo no começo (frete grátis): quem tem o código
+                        já vê o frete zerado quando chegar na escolha. */}
                     <CupomCard applied={cupom} onChange={setCupom} />
                   </div>
                 </div>
@@ -1035,7 +1038,7 @@ function CupomCard({
 
   if (applied)
     return (
-      <div className="border-fernandito-verde-claro bg-fernandito-verde-claro/15 flex items-center justify-between gap-3 rounded-2xl border-2 border-dashed px-4 py-3 font-sans">
+      <div className="border-fernandito-verde-claro bg-fernandito-verde-claro/15 flex w-full items-center justify-between gap-3 rounded-2xl border-2 border-dashed px-4 py-3 font-sans">
         <p className="text-body min-w-0">
           <span className="font-bold">Frete grátis</span>{" "}
           <span className="opacity-70">· cupom {applied}</span>
@@ -1052,33 +1055,32 @@ function CupomCard({
 
   if (!open)
     return (
-      <div>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="text-fernandito-verde-medio border-fernandito-verde-medio/35 hover:bg-fernandito-verde-claro/15 hover:border-fernandito-verde-medio duration-base ease-out-standard inline-flex items-center gap-2 rounded-full border border-dashed px-4 py-2 font-sans text-[0.85rem] font-bold transition-colors"
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        // Cheio (não tracejado como o recado): chama mais a atenção.
+        className="bg-fernandito-verde-claro text-fernandito-off-white hover:bg-fernandito-verde-medio duration-base ease-out-standard inline-flex items-center gap-2 rounded-full border border-transparent px-4 py-2 font-sans text-[0.85rem] font-bold shadow-[0_6px_16px_rgba(36,48,34,0.18)] transition-colors"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          className="h-4 w-4"
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            className="h-4 w-4"
-          >
-            {/* Etiqueta de preço. */}
-            <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z" />
-            <circle cx="7.5" cy="7.5" r="1.5" />
-          </svg>
-          Tem cupom?
-        </button>
-      </div>
+          {/* Etiqueta de preço. */}
+          <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z" />
+          <circle cx="7.5" cy="7.5" r="1.5" />
+        </svg>
+        Tem cupom? <span className="hidden font-normal opacity-90 sm:inline">Frete grátis</span>
+      </button>
     );
 
   return (
-    <div className="flex flex-col gap-1.5 font-sans">
+    <div className="flex w-full flex-col gap-1.5 font-sans">
       <label htmlFor="cupom" className="text-label font-bold tracking-[0.08em] uppercase">
         Cupom
       </label>
