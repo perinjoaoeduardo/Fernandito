@@ -54,6 +54,44 @@ type AddressForm = {
 };
 
 const EMPTY_CONTACT: Contact = { name: "", email: "", phone: "", cpf: "" };
+
+/**
+ * "Lembrar meus dados neste aparelho": contato e endereço ficam SÓ no
+ * navegador da pessoa (localStorage), nunca num cadastro no servidor. Só
+ * grava se ela marcar a caixa; desmarcar (ou "Não sou eu") apaga.
+ */
+const SAVED_KEY = "fernandito:dados:v1";
+type Saved = { contact: Contact; address: AddressForm };
+
+function readSaved(): Saved | null {
+  try {
+    const raw = window.localStorage.getItem(SAVED_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw) as { contact?: unknown; address?: unknown };
+    // Só texto, com tamanho de campo: nada estranho entra no formulário.
+    const pick = <T extends Record<string, string>>(from: unknown, empty: T): T =>
+      Object.fromEntries(
+        Object.keys(empty).map((key) => {
+          const value = (from as Record<string, unknown> | null)?.[key];
+          return [key, typeof value === "string" ? value.slice(0, 160) : ""];
+        }),
+      ) as T;
+    const contact = pick(data.contact, EMPTY_CONTACT);
+    const address = pick(data.address, EMPTY_ADDRESS);
+    return contact.name && address.cep ? { contact, address } : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSaved(saved: Saved | null) {
+  try {
+    if (saved) window.localStorage.setItem(SAVED_KEY, JSON.stringify(saved));
+    else window.localStorage.removeItem(SAVED_KEY);
+  } catch {
+    // Sem storage (aba anônima, bloqueado): só não lembra.
+  }
+}
 const EMPTY_ADDRESS: AddressForm = {
   cep: "",
   street: "",
@@ -84,6 +122,20 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
   // Recado opcional (presente, cartinha, pedido especial).
   const [note, setNote] = useState("");
   const [noteOpen, setNoteOpen] = useState(false);
+  // Lembrar os dados neste aparelho (desmarcado, a não ser que já estivessem
+  // salvos) e o primeiro nome de quem voltou (mostra o "Oi, fulano").
+  const [remember, setRemember] = useState(false);
+  const [returning, setReturning] = useState<string | null>(null);
+  useEffect(() => {
+    const saved = readSaved();
+    if (!saved) return;
+    // Carregar o que ficou salvo neste aparelho (só existe no navegador).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setContact(saved.contact);
+    setAddress(saved.address);
+    setRemember(true);
+    setReturning(saved.contact.name.trim().split(/\s+/)[0] ?? "");
+  }, []);
   // Cupom de frete grátis já conferido no servidor (código normalizado).
   const [cupom, setCupom] = useState<string | null>(null);
   // Tentou seguir sem marcar o 18+: o cartão avisa em vermelho.
@@ -295,6 +347,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
         }
         throw new Error(data.error ?? "Não deu pra gerar o Pix. Tenta de novo.");
       }
+      writeSaved(remember ? { contact, address } : null);
       setPixOrder(data.order as PublicOrder);
       setPaying(false);
       goTo(3);
@@ -454,6 +507,32 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
             )}
 
             <div className="mt-6">
+              {step === 0 && returning !== null && (
+                <WelcomeBack
+                  name={returning}
+                  summary={`${address.street}, ${address.number} · ${address.city}/${address.uf}`}
+                  onUse={() => {
+                    // Confere tudo de uma vez e pula direto pra escolha do frete.
+                    const c = customerSchema.safeParse(contact);
+                    const a = addressSchema.safeParse(address);
+                    if (!c.success) return submitContact();
+                    if (!a.success) {
+                      setErrors(prefix("address", fieldErrors(a.error)));
+                      return goTo(1);
+                    }
+                    setErrors({});
+                    goTo(2);
+                    void quote();
+                  }}
+                  onForget={() => {
+                    writeSaved(null);
+                    setContact(EMPTY_CONTACT);
+                    setAddress(EMPTY_ADDRESS);
+                    setRemember(false);
+                    setReturning(null);
+                  }}
+                />
+              )}
               {step === 0 && (
                 <div className="grid gap-4 sm:grid-cols-2 lg:gap-x-4 lg:gap-y-3.5">
                   <Field
@@ -526,6 +605,11 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                         Algum pedido ou recado?
                       </button>
                     )}
+                  </div>
+                  {/* Cupom logo no começo (frete grátis): quem tem o código
+                      já vê o frete zerado quando chegar na escolha. */}
+                  <div className="sm:col-span-2">
+                    <CupomCard applied={cupom} onChange={setCupom} />
                   </div>
                 </div>
               )}
@@ -741,7 +825,8 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                         </label>
                       );
                     })}
-                    <CupomCard applied={cupom} onChange={setCupom} />
+                    {/* Na escolha do frete só lembra o cupom (ele entra na 1ª etapa). */}
+                    {cupom && <CupomCard applied={cupom} onChange={setCupom} />}
                     <div className="border-fernandito-verde-escuro/10 mt-3 flex flex-col gap-3 border-t pt-5">
                       <ConfirmRow
                         checked={ageConfirmedAt !== null}
@@ -757,6 +842,12 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                         }
                         error={ageError}
                         required
+                      />
+                      <ConfirmRow
+                        checked={remember}
+                        onChange={setRemember}
+                        title="Lembrar meus dados neste aparelho"
+                        hint="Nome, contato e endereço ficam só aqui, pra próxima compra ser mais rápida. Não marca em aparelho dos outros."
                       />
                     </div>
                   </fieldset>
@@ -1025,6 +1116,46 @@ function CupomCard({
           {error}
         </p>
       )}
+    </div>
+  );
+}
+
+/** Quem já comprou neste aparelho (e pediu pra lembrar): um clique pro frete. */
+function WelcomeBack({
+  name,
+  summary,
+  onUse,
+  onForget,
+}: {
+  name: string;
+  summary: string;
+  onUse: () => void;
+  onForget: () => void;
+}) {
+  return (
+    <div className="border-fernandito-verde-claro bg-fernandito-verde-claro/15 mb-6 flex flex-col gap-4 rounded-2xl border-2 px-5 py-4 font-sans">
+      <div className="min-w-0">
+        <p className="text-body font-bold">Oi de novo{name ? `, ${name}` : ""}!</p>
+        <p className="text-label mt-1 tracking-[0.04em] opacity-70">
+          Teus dados estão salvos neste aparelho · {summary}
+        </p>
+      </div>
+      <div className="flex flex-row-reverse flex-wrap items-center justify-end gap-x-5 gap-y-3">
+        <button
+          type="button"
+          onClick={onForget}
+          className="text-label tracking-[0.08em] uppercase underline underline-offset-4 opacity-70 hover:opacity-100"
+        >
+          Não sou eu
+        </button>
+        <button
+          type="button"
+          onClick={onUse}
+          className="bg-fernandito-verde-escuro text-fernandito-off-white duration-base ease-out-standard rounded-full px-5 py-2.5 text-[0.9rem] font-bold transition-opacity hover:opacity-90"
+        >
+          Usar e escolher o frete →
+        </button>
+      </div>
     </div>
   );
 }
@@ -1361,9 +1492,9 @@ function SummaryCard({
         <div className="flex justify-between gap-4">
           <dt className="opacity-75">Frete</dt>
           <dd className="text-right tabular-nums">
-            {shipping && cupom ? (
+            {cupom ? (
               <>
-                <s className="mr-2 opacity-50">{formatBRL(shipping.priceCents)}</s>
+                {shipping && <s className="mr-2 opacity-50">{formatBRL(shipping.priceCents)}</s>}
                 Grátis
               </>
             ) : shipping ? (

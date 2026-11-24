@@ -1,8 +1,8 @@
 ---
 title: Política de Privacidade
 description: Como a Fernandito coleta, usa, compartilha e protege seus dados pessoais, conforme a LGPD.
-version: "1.2"
-updatedAt: "23/10/2026"
+version: "1.3"
+updatedAt: "24/11/2026"
 ---
 
 ## 1. Quem é responsável pelos seus dados
@@ -112,6 +112,7 @@ Você também pode reclamar à **Autoridade Nacional de Proteção de Dados (ANP
 Usamos:
 
 - **Armazenamento local do navegador (essencial):** guarda o seu carrinho e a confirmação de que você tem 18 anos ou mais, para você não precisar repetir. Fica só no seu aparelho e você pode apagar quando quiser nas configurações do navegador
+- **Lembrar meus dados (opcional):** se você marcar "Lembrar meus dados neste aparelho" no checkout, seu nome, e-mail, telefone, CPF e endereço ficam guardados **só no armazenamento local do seu navegador**, para preencher a próxima compra. Esses dados não vão para nenhum cadastro nosso por esse recurso. Para apagar, toque em "Não sou eu" no checkout, desmarque a opção na próxima compra ou limpe os dados do navegador. Não marque em aparelhos compartilhados
 - **Cookies essenciais:** necessários para o funcionamento do site e da área de pedido
 - **Análise de uso:** usamos o Vercel Analytics, que **não usa cookies** e não identifica você individualmente. Se passarmos a usar ferramentas que usam cookies, avisaremos aqui e no aviso de cookies do site
 
