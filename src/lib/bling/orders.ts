@@ -40,6 +40,10 @@ import { queueFulfillment } from "@/lib/store/fulfillment";
  */
 
 const RETRY_SET = "bling:retry";
+// Baixas de estoque que o Bling recusou (ex.: 429 com várias vendas no mesmo
+// segundo): tentadas de novo sozinhas; alerta só depois de BAIXA_TRIES.
+const BAIXA_RETRY_SET = "bling:baixa:retry";
+const BAIXA_TRIES = 4;
 const SYNC_ENABLED = IS_PRODUCTION || process.env.BLING_SYNC_PREVIEW === "1";
 const FORMA_PAGAMENTO_ID = Number(process.env.BLING_FORMA_PAGAMENTO_ID) || 0;
 // Loja/canal "Site Fernandito": o "código da loja (API)" dela no Bling.
@@ -264,11 +268,39 @@ export async function baixarEstoqueBling(order: StoredOrder) {
       });
     }
     console.info(`[bling] baixa de estoque do pedido ${order.id}`);
+    await kvSRem(BAIXA_RETRY_SET, order.id).catch(() => {});
   } catch (error) {
     await kvDel(`bling:baixa:${order.id}`).catch(() => {});
     const message = (error as Error).message;
     console.error("[bling] baixa de estoque:", message);
-    await raiseAlert(order.id, `Baixa de estoque no Bling falhou (${message}) — dar a baixa à mão`);
+    // Tenta de novo sozinho (fila); só pede a baixa à mão depois de várias.
+    const triesKey = `bling:baixa:tries:${order.id}`;
+    const tries = Number((await kvGet(triesKey).catch(() => null)) ?? 0) + 1;
+    await kvSet(triesKey, String(tries), 60 * 60 * 24 * 30).catch(() => {});
+    if (tries < BAIXA_TRIES) {
+      await kvSAdd(BAIXA_RETRY_SET, order.id).catch(() => {});
+    } else {
+      await kvSRem(BAIXA_RETRY_SET, order.id).catch(() => {});
+      await raiseAlert(
+        order.id,
+        `Baixa de estoque no Bling falhou ${tries}x (${message}) — dar a baixa à mão`,
+      );
+    }
+  }
+}
+
+/** Refaz as baixas de estoque que o Bling recusou (uma por vez, com folga). */
+export async function retryPendingBaixas() {
+  const ids = await kvSMembers(BAIXA_RETRY_SET);
+  for (const id of ids) {
+    const order = await getOrder(id);
+    if (!order) {
+      await kvSRem(BAIXA_RETRY_SET, id);
+      continue;
+    }
+    await baixarEstoqueBling(order);
+    // Folga pro limite do Bling (~3 chamadas por segundo).
+    await new Promise((resolve) => setTimeout(resolve, 1200));
   }
 }
 
@@ -481,6 +513,12 @@ export async function maybeRetryBling() {
     if (!SYNC_ENABLED) return;
     if (Date.now() - lastRetryCheck < 60_000) return;
     lastRetryCheck = Date.now();
+    // Baixas de estoque recusadas: refaz a cada ~2 min (independe da fila de pedidos).
+    if (
+      (await kvSMembers(BAIXA_RETRY_SET)).length > 0 &&
+      (await kvSetNX("bling:baixa:retry-tick", "1", 2 * 60))
+    )
+      await retryPendingBaixas();
     // Fila vazia → nem gasta a vez (o próximo pedido que falhar não espera 10 min).
     if ((await kvSMembers(RETRY_SET)).length === 0) return;
     if (!(await kvSetNX("bling:retry-tick", "1", 10 * 60))) return;

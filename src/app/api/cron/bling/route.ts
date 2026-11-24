@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { isBlingConnected, refreshTokens } from "@/lib/bling/client";
 import { syncManualSales } from "@/lib/bling/manual";
-import { retryPendingBlingOrders } from "@/lib/bling/orders";
+import { retryPendingBaixas, retryPendingBlingOrders } from "@/lib/bling/orders";
 import { reconcileOpenOrders } from "@/lib/store/checkout";
 import { advanceAllFulfillments } from "@/lib/store/fulfillment";
 import { isAdmin } from "@/lib/leads";
@@ -39,6 +39,7 @@ export async function GET(request: Request) {
     console.error("[cron bling] renovação falhou:", (error as Error).message);
   }
   const retried = await retryPendingBlingOrders();
+  await retryPendingBaixas();
   const shipping = await advanceAllFulfillments().catch((error: Error) => error.message);
   const foraDoSite = (await syncManualSales())?.sales.length ?? 0;
   return Response.json({ connected: true, reconciled, retried, shipping, foraDoSite });
