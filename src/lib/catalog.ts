@@ -158,10 +158,12 @@ export const PRODUCTS: Product[] = [
     maxQty: 6,
     // Igual ao cadastro no Bling: caixa 24 (compr.) × 13,8 (larg.) × 16,4 (alt.) cm, 2,5 kg.
     shipping: { weightKg: 2.5, widthCm: 13.8, heightCm: 16.4, lengthCm: 24 },
-    // Contagem de 06/11: 252 latas = 42 packs. O site libera 37 e deixa 5 de
-    // reserva. Pack que sai do site conta aqui; venda por fora não (o Bling
-    // limita junto: vale o menor). Pra liberar mais: sobe este número.
-    stockCap: 37,
+    // Teto ACUMULADO de packs vendidos pelo site (o contador nunca zera).
+    // 1º lote (06/11): 37, esgotado. 2º lote (24/11): +100 → 137. Pack que sai
+    // do site conta aqui; venda por fora não (o Bling limita junto: vale o
+    // menor; Bling em 24/11: 600 latas = 100 packs). Pra liberar mais: sobe
+    // este número (e o estoque das latas no Bling).
+    stockCap: 137,
     // No Bling o pack é composição de 6 latas: a baixa sai das latas.
     stockComponents: [{ sku: "FERN-350", qty: 6 }],
     active: true,
