@@ -581,6 +581,9 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                   {/* Recado e cupom lado a lado (botões); aberto, cada um vira
                       um campo com a largura toda. */}
                   <div className="flex flex-wrap items-start gap-3 sm:col-span-2">
+                    {/* Cupom primeiro (à esquerda), logo no começo (frete grátis): quem tem o código
+                        já vê o frete zerado quando chegar na escolha. */}
+                    <CupomCard applied={cupom} onChange={setCupom} />
                     {noteOpen || note ? (
                       <div className="w-full">
                         <NoteCard value={note} onChange={setNote} />
@@ -610,9 +613,6 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
                         <span className="hidden sm:inline">Algum pedido ou recado?</span>
                       </button>
                     )}
-                    {/* Cupom logo no começo (frete grátis): quem tem o código
-                        já vê o frete zerado quando chegar na escolha. */}
-                    <CupomCard applied={cupom} onChange={setCupom} />
                   </div>
                 </div>
               )}
