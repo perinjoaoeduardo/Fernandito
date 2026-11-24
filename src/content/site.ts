@@ -130,9 +130,9 @@ export const ANNOUNCEMENT = {
  * ainda depende de `STORE.enabled`.
  */
 export const SECTIONS = [
-  // Chamada do six pack logo depois da Hero: fora da home por enquanto
-  // (pedido explícito). A loja segue em /comprar. Pra voltar: on: true.
-  { key: "kit", on: false, id: "kit", label: "Six pack" },
+  // Chamada do six pack logo depois da Hero (de volta em 24/11, com o 2º
+  // lote). Pra tirar da home: on: false (a loja segue em /comprar).
+  { key: "kit", on: true, id: "kit", label: "Six pack" },
   { key: "oQueE", on: true, id: "o-que-e", label: "O que é" },
   { key: "galeria", on: true, id: "galeria", label: "Fotos" },
   // Manifesto fora do ar por enquanto (texto em `MANIFESTO` e cartão em

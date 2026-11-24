@@ -1,6 +1,10 @@
 import type { NextRequest } from "next/server";
 import { bling, BLING_CONFIGURED, isBlingConnected } from "@/lib/bling/client";
-import { FEATURED_PRODUCT, TEST_PRICE } from "@/lib/catalog";
+import { ACTIVE_PRODUCTS, TEST_PRICE } from "@/lib/catalog";
+import { stockRemaining } from "@/lib/store/stock";
+
+// Produto da cotação de teste: o mais novo à venda (hoje o six pack).
+const QUOTE_PRODUCT = ACTIVE_PRODUCTS[ACTIVE_PRODUCTS.length - 1];
 import { isAdmin } from "@/lib/leads";
 import {
   BASE as ME_BASE,
@@ -49,7 +53,7 @@ const env = (name: string) => Boolean(process.env[name]?.trim());
 async function meQuote(cep: string) {
   const token = await meToken();
   if (!token) throw new Error("sem token");
-  const s = FEATURED_PRODUCT.shipping;
+  const s = QUOTE_PRODUCT.shipping;
   const started = Date.now();
   const response = await fetch(`${ME_BASE}/api/v2/me/shipment/calculate`, {
     method: "POST",
@@ -69,7 +73,7 @@ async function meQuote(cep: string) {
           height: s.heightCm,
           length: s.lengthCm,
           weight: s.weightKg,
-          insurance_value: FEATURED_PRODUCT.priceCents / 100,
+          insurance_value: QUOTE_PRODUCT.priceCents / 100,
           quantity: 1,
         },
       ],
@@ -155,41 +159,46 @@ export async function GET(request: NextRequest) {
         : "app não configurado",
     fix: "Abrir /api/bling/connect e autorizar.",
   });
-  if (connected && FEATURED_PRODUCT) {
-    const product = await safe(() =>
-      bling<{ data: { id: number; preco?: number; codigo: string }[] }>(
-        `/produtos?codigos[]=${encodeURIComponent(FEATURED_PRODUCT.sku)}`,
-      ),
-    );
-    const p = product.ok ? product.value.data[0] : null;
-    add({
-      area: "Bling",
-      item: `Produto ${FEATURED_PRODUCT.sku}`,
-      status: !p
-        ? "fail"
-        : Math.round((p.preco ?? 0) * 100) === FEATURED_PRODUCT.priceCents
-          ? "ok"
-          : "warn",
-      detail: !product.ok
-        ? product.error
-        : !p
-          ? "não existe no Bling"
-          : `preço no Bling R$ ${p.preco} · no site R$ ${FEATURED_PRODUCT.priceCents / 100}`,
-      fix: "O SKU e o preço têm que ser iguais no site e no Bling.",
-    });
-    if (p) {
+  if (connected) {
+    // Cada produto à venda: SKU e preço iguais no Bling, e o Bling com pelo
+    // menos o que o site ainda deixa vender (vende o menor dos dois).
+    for (const product of ACTIVE_PRODUCTS) {
+      const found = await safe(() =>
+        bling<{ data: { id: number; preco?: number; codigo: string }[] }>(
+          `/produtos?codigos[]=${encodeURIComponent(product.sku)}`,
+        ),
+      );
+      const p = found.ok ? found.value.data[0] : null;
+      add({
+        area: "Bling",
+        item: `Produto ${product.sku}`,
+        status: !p
+          ? "fail"
+          : Math.round((p.preco ?? 0) * 100) === product.priceCents
+            ? "ok"
+            : "warn",
+        detail: !found.ok
+          ? found.error
+          : !p
+            ? "não existe no Bling"
+            : `preço no Bling R$ ${p.preco} · no site R$ ${product.priceCents / 100}`,
+        fix: "O SKU e o preço têm que ser iguais no site e no Bling.",
+      });
+      if (!p) continue;
       const stock = await safe(() =>
         bling<{ data: { saldoVirtualTotal: number }[] }>(`/estoques/saldos?idsProdutos[]=${p.id}`),
       );
       const saldo = stock.ok ? (stock.value.data[0]?.saldoVirtualTotal ?? 0) : null;
+      const livres = await stockRemaining(product.sku).catch(() => null);
       add({
         area: "Bling",
-        item: "Estoque do kit",
-        status: saldo === null ? "fail" : saldo >= (FEATURED_PRODUCT.stockCap ?? 0) ? "ok" : "warn",
+        item: `Estoque ${product.sku}`,
+        status: saldo === null ? "fail" : livres === null || saldo >= livres ? "ok" : "warn",
         detail:
           saldo === null
             ? (stock as { error: string }).error
-            : `Bling ${saldo} · teto do site ${FEATURED_PRODUCT.stockCap} (vende o menor)`,
+            : `Bling ${saldo} · site deixa vender ${livres ?? "sem teto"} (vende o menor)` +
+              (livres === 0 ? " · esgotado no site" : ""),
         fix: "Lançar a entrada/balanço no Bling ou ajustar stockCap.",
       });
     }
