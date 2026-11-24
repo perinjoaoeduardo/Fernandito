@@ -18,7 +18,6 @@ export function KitTeaserSection() {
   if (!product) return null;
   const { main } = splitName(product.name);
   const href = `/comprar/${product.slug}`;
-  const eyebrow = product.badge ?? PAGES.kitTeaser.eyebrow;
   return (
     <section
       id="kit"
@@ -40,13 +39,8 @@ export function KitTeaserSection() {
           </div>
         </NextLink>
         <div className="flex flex-col items-start font-sans">
-          <p className="font-accent text-label text-fernandito-verde-medio tracking-[0.18em] uppercase">
-            {eyebrow}
-          </p>
-          <h2
-            id="kit-titulo"
-            className="font-rampart mt-3 text-[clamp(2.2rem,4vw,3.4rem)] leading-[1]"
-          >
+          {/* Enxuto (pedido em 24/11): só nome, uma linha, preço e botão. */}
+          <h2 id="kit-titulo" className="font-rampart text-[clamp(2.2rem,4vw,3.4rem)] leading-[1]">
             {main}
           </h2>
           <p className="text-body-lg mt-4 max-w-md opacity-85">{product.description}</p>
