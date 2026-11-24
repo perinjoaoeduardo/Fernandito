@@ -6,6 +6,7 @@ import { reconcileOpenOrders } from "@/lib/store/checkout";
 import { advanceAllFulfillments } from "@/lib/store/fulfillment";
 import { isAdmin } from "@/lib/leads";
 import { meToken } from "@/lib/melhor-envio";
+import { adminKeyOf } from "@/lib/admin-key";
 
 // Cron diário (vercel.json): confere no Mercado Pago os Pix abertos, renova
 // o token do Bling (o refresh token vence se ficar sem uso) e reenvia
@@ -22,7 +23,7 @@ function authorized(header: string | null, secret: string | undefined) {
 export const maxDuration = 60;
 
 export async function GET(request: Request) {
-  const manual = isAdmin(new URL(request.url).searchParams.get("key"));
+  const manual = isAdmin(adminKeyOf(request));
   if (!manual && !authorized(request.headers.get("authorization"), process.env.CRON_SECRET))
     return new Response("Não autorizado", { status: 401 });
   // Renova o token do Melhor Envio se estiver perto de vencer.

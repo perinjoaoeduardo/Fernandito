@@ -14,6 +14,7 @@ import { MP_API } from "@/lib/mercadopago";
 import { HAS_REDIS, IS_PRODUCTION, kvDel, kvGet, kvSet } from "@/lib/store/kv";
 import { STORE } from "@/content/site";
 import { EMAIL_ENABLED, sendSampleEmails, sendTestEmail } from "@/lib/email";
+import { adminKeyOf } from "@/lib/admin-key";
 
 /**
  * Check-up da loja, em português, pra abrir no navegador:
@@ -122,8 +123,7 @@ async function mpGet(path: string) {
 }
 
 export async function GET(request: NextRequest) {
-  if (!isAdmin(request.nextUrl.searchParams.get("key")))
-    return new Response("Não encontrado", { status: 404 });
+  if (!isAdmin(adminKeyOf(request))) return new Response("Não encontrado", { status: 404 });
   const rows: Row[] = [];
   const add = (r: Row) => rows.push(r);
 

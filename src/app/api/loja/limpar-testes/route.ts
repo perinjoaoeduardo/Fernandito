@@ -4,6 +4,7 @@ import { isAdmin, listLeads } from "@/lib/leads";
 import { ALL_SET, MANUAL_SET } from "@/lib/store/checkout";
 import { kvDel, kvSMembers } from "@/lib/store/kv";
 import { getOrder } from "@/lib/store/orders";
+import { adminKeyOf } from "@/lib/admin-key";
 
 /**
  * Limpa os dados de TESTE do site antes de abrir a venda (painel, contagem de
@@ -20,7 +21,7 @@ import { getOrder } from "@/lib/store/orders";
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
-  if (!isAdmin(params.get("key"))) return new Response("Não encontrado", { status: 404 });
+  if (!isAdmin(adminKeyOf(request))) return new Response("Não encontrado", { status: 404 });
   const apagar = params.get("apagar") === "1";
 
   const ids = await kvSMembers(ALL_SET);

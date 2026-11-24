@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { isAdmin } from "@/lib/leads";
 import { getAvulso, saveAvulso, type Avulso } from "@/lib/store/avulsos";
 import { quoteAllMelhorEnvio, quoteMelhorEnvio } from "@/lib/melhor-envio";
+import { adminKeyOf } from "@/lib/admin-key";
 import {
   addToCart,
   findShipmentByTag,
@@ -37,7 +38,7 @@ import {
  */
 export async function GET(request: NextRequest) {
   const p = request.nextUrl.searchParams;
-  if (!isAdmin(p.get("key"))) return new Response("Não encontrado", { status: 404 });
+  if (!isAdmin(adminKeyOf(request))) return new Response("Não encontrado", { status: 404 });
 
   const text = (name: string, max = 120) => (p.get(name) ?? "").trim().slice(0, max);
   const digits = (name: string) => text(name, 60).replace(/\D/g, "");

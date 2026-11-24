@@ -5,6 +5,7 @@ import { kvSMembers } from "@/lib/store/kv";
 import { getOrder, type StoredOrder } from "@/lib/store/orders";
 import { getFulfillment } from "@/lib/store/fulfillment";
 import { csvSafe } from "@/lib/csv";
+import { adminKeyOf } from "@/lib/admin-key";
 
 /**
  * Planilha de pedidos — o registro final, que NÃO depende do Bling:
@@ -16,7 +17,7 @@ import { csvSafe } from "@/lib/csv";
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
-  if (!isAdmin(params.get("key"))) return new Response("Não encontrado", { status: 404 });
+  if (!isAdmin(adminKeyOf(request))) return new Response("Não encontrado", { status: 404 });
   const all = params.get("todos") === "1";
 
   const ids = await kvSMembers(ALL_SET);

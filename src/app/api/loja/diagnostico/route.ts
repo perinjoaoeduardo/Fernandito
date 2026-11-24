@@ -11,6 +11,7 @@ import { getOrder } from "@/lib/store/orders";
 import { stockRemaining } from "@/lib/store/stock";
 import { ACTIVE_PRODUCTS } from "@/lib/catalog";
 import { STORE } from "@/content/site";
+import { adminKeyOf } from "@/lib/admin-key";
 
 /**
  * Painel da loja: /api/loja/diagnostico?key=<BLING_ADMIN_KEY>. Sem a chave
@@ -29,7 +30,7 @@ import { STORE } from "@/content/site";
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
-  if (!isAdmin(params.get("key"))) return new Response("Não encontrado", { status: 404 });
+  if (!isAdmin(adminKeyOf(request))) return new Response("Não encontrado", { status: 404 });
 
   const env = (name: string) => Boolean(process.env[name]?.trim());
   const token = process.env.MERCADOPAGO_ACCESS_TOKEN?.trim() ?? "";

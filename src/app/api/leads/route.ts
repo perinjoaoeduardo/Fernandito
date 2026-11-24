@@ -1,5 +1,6 @@
 import { leadSchema, leadsCsv, listLeads, isAdmin, saveLead } from "@/lib/leads";
 import { clientIp, json } from "@/lib/store/http";
+import { adminKeyOf } from "@/lib/admin-key";
 import { rateLimit } from "@/lib/store/kv";
 
 // Lead da página Contato (qualquer motivo). O navegador manda com sendBeacon, logo
@@ -28,8 +29,7 @@ export async function POST(request: Request) {
 
 // Exportar os leads: /api/leads?key=<BLING_ADMIN_KEY> → planilha CSV.
 export async function GET(request: Request) {
-  const key = new URL(request.url).searchParams.get("key");
-  if (!isAdmin(key)) return json({ error: "Não autorizado" }, 401);
+  if (!isAdmin(adminKeyOf(request))) return json({ error: "Não autorizado" }, 401);
   const csv = leadsCsv(await listLeads());
   return new Response(csv, {
     headers: {

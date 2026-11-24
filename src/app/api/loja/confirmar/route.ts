@@ -6,6 +6,7 @@ import { markLocalDelivered } from "@/lib/store/fulfillment";
 import { kvSMembers, kvSRem } from "@/lib/store/kv";
 import { getOrder, saveOrder } from "@/lib/store/orders";
 import { releaseStock } from "@/lib/store/stock";
+import { adminKeyOf } from "@/lib/admin-key";
 
 /**
  * Plano B (Pix na chave da conta): depois de ver o comprovante E o dinheiro
@@ -26,7 +27,7 @@ import { releaseStock } from "@/lib/store/stock";
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
-  if (!isAdmin(params.get("key"))) return new Response("Não encontrado", { status: 404 });
+  if (!isAdmin(adminKeyOf(request))) return new Response("Não encontrado", { status: 404 });
   const id = params.get("pedido") ?? "";
   const action = params.get("acao");
   // Código digitado de um print: 0/O e l/I/1 se confundem. Não achou exato →

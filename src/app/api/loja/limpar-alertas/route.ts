@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { isAdmin } from "@/lib/leads";
 import { kvDel, kvSMembers } from "@/lib/store/kv";
+import { adminKeyOf } from "@/lib/admin-key";
 
 /**
  * Limpa os alertas do painel (a caixa vermelha) depois que o problema foi
@@ -10,7 +11,7 @@ import { kvDel, kvSMembers } from "@/lib/store/kv";
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
-  if (!isAdmin(params.get("key"))) return new Response("Não encontrado", { status: 404 });
+  if (!isAdmin(adminKeyOf(request))) return new Response("Não encontrado", { status: 404 });
   const alertas = await kvSMembers("loja:alertas");
   if (params.get("apagar") !== "1") {
     return Response.json({
