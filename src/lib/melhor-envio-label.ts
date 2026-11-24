@@ -216,6 +216,9 @@ export type LabelInput = {
     phone: string;
     email: string;
     cpf: string;
+    /** Destinatário empresa: CNPJ e IE (só números). */
+    cnpj?: string;
+    ie?: string;
     street: string;
     number: string;
     complement: string;
@@ -232,6 +235,11 @@ export type LabelInput = {
   avoidCarrier?: RegExp;
   /** Caixa (soma do pedido). */
   box: { weightKg: number; widthCm: number; heightCm: number; lengthCm: number };
+  /** Quantas caixas iguais a `box` vão no MESMO envio (multivolume, ex.: 10
+   * six packs soltos com uma etiqueta 1/10, 2/10…). Padrão 1. Só algumas
+   * transportadoras aceitam (Jadlog, Latam…); as outras o Melhor Envio recusa
+   * já no carrinho, antes de pagar. */
+  volumes?: number;
 };
 
 function packageOf(input: LabelInput) {
@@ -259,6 +267,9 @@ export async function addToCart(input: LabelInput): Promise<string> {
       phone: input.to.phone,
       email: input.to.email,
       document: input.to.cpf,
+      // Empresa (venda B2B): CNPJ e inscrição estadual do destinatário.
+      ...(input.to.cnpj ? { company_document: input.to.cnpj } : {}),
+      ...(input.to.ie ? { state_register: input.to.ie } : {}),
       address: input.to.street,
       number: input.to.number,
       complement: input.to.complement,
@@ -273,14 +284,12 @@ export async function addToCart(input: LabelInput): Promise<string> {
       quantity: i.qty,
       unitary_value: i.unitCents / 100,
     })),
-    volumes: [
-      {
-        height: input.box.heightCm,
-        width: input.box.widthCm,
-        length: input.box.lengthCm,
-        weight: input.box.weightKg,
-      },
-    ],
+    volumes: Array.from({ length: Math.max(1, input.volumes ?? 1) }, () => ({
+      height: input.box.heightCm,
+      width: input.box.widthCm,
+      length: input.box.lengthCm,
+      weight: input.box.weightKg,
+    })),
     options: {
       insurance_value: input.totalProductsCents / 100,
       receipt: false,

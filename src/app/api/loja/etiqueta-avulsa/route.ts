@@ -26,6 +26,10 @@ import {
  *       PDF e o rastreio. A `ref` (padrão: final da chave da nota) é a tag do
  *       envio: abrir o link de novo NÃO compra outra etiqueta.
  *
+ * Vários volumes no MESMO envio (ex.: 10 six packs, cada um na sua caixa,
+ * etiquetas 1/10…10/10, uma nota só): `&vol=10` — `caixa` e `kg` são de UMA
+ * caixa. Vale no cotar e no comprar. Empresa: `&cnpj=…&ie=…` no lugar do cpf.
+ *
  * Já comprou e quer só registrar no painel (ou a busca não achou)? Acrescenta
  * `&envio=<código do envio>` (vem na resposta da compra, campo "envio").
  *
@@ -56,6 +60,8 @@ export async function GET(request: NextRequest) {
   if (!(kg > 0 && kg <= 30)) return fail("kg: de 0,1 a 30");
   if (!(valor > 0 && valor <= 5000)) return fail("valor: valor declarado em reais, ex.: 179.80");
   const box = { weightKg: kg, widthCm: width, heightCm: height, lengthCm: length };
+  // Caixas iguais no mesmo envio (multivolume). `caixa`/`kg` = uma caixa.
+  const vol = Math.min(20, Math.max(1, Math.round(Number(p.get("vol") ?? 1)) || 1));
 
   const acao = p.get("acao") ?? "cotar";
   if (acao === "cotar") {
@@ -64,26 +70,28 @@ export async function GET(request: NextRequest) {
       // etc.), não só as transportadoras que o site libera.
       if (p.get("todas") === "1") {
         const todas = await quoteAllMelhorEnvio(cep, [
-          { qty: 1, priceCents: Math.round(valor * 100), ...box },
+          { qty: vol, priceCents: Math.round((valor * 100) / vol), ...box },
         ]);
         return json({
           ok: true,
           cep,
           caixa: `${length}x${width}x${height}`,
           kg,
+          vol,
           valor,
           nota: "liberada = o site compra sozinho; as outras só pelo painel/link escolhendo o servico",
           opcoes: todas,
         });
       }
       const options = await quoteMelhorEnvio(cep, [
-        { qty: 1, priceCents: Math.round(valor * 100), ...box },
+        { qty: vol, priceCents: Math.round((valor * 100) / vol), ...box },
       ]);
       return json({
         ok: true,
         cep,
         caixa: `${length}x${width}x${height}`,
         kg,
+        vol,
         valor,
         opcoes: options.map((o) => ({
           servico: o.id,
@@ -126,6 +134,8 @@ export async function GET(request: NextRequest) {
       phone: fone,
       email: text("email", 80),
       cpf: digits("cpf"),
+      cnpj: digits("cnpj"),
+      ie: digits("ie"),
       street: rua,
       number: numero,
       complement: text("compl", 40),
@@ -143,6 +153,7 @@ export async function GET(request: NextRequest) {
     ],
     totalProductsCents: Math.round(valor * 100),
     box,
+    volumes: vol,
   };
 
   try {
