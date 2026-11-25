@@ -397,9 +397,9 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const comEnvio = new Set(avulsosRaw.map((a) => nfNum(a.nf.numero)));
   // Venda manual / bonificação lida do Bling SEM envio registrado: entra na
   // mesma tabela (só com a nota), pra ter tudo num lugar só.
-  // Nota rejeitada (4) ou denegada (9) nunca valeu: não aparece.
+  // Nota cancelada (2), rejeitada (4) ou denegada (9) não vale: não aparece.
   const notasFora = (manual?.sales ?? []).filter(
-    (m) => !comEnvio.has(nfNum(m.numero)) && ![4, 9].includes(m.situacao),
+    (m) => !comEnvio.has(nfNum(m.numero)) && ![2, 4, 9].includes(m.situacao),
   );
   // Brinde/venda por fora entregue em mãos: "Entregar em mãos" até marcar
   // entregue (só das notas a partir de 25/11; as antigas já foram entregues).
@@ -1363,7 +1363,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
             actions={actions}
             pendentesNotas={
               (manual?.sales ?? []).filter(
-                (m) => !NFE_OK.includes(m.situacao) && ![4, 9].includes(m.situacao),
+                (m) => !NFE_OK.includes(m.situacao) && ![2, 4, 9].includes(m.situacao),
               ).length
             }
             erroNotas={manual?.error ?? null}
