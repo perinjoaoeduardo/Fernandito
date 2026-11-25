@@ -117,14 +117,38 @@ export function resumoCaixas(registros: RegistroCaixa[]): ResumoPessoa[] {
  * vez que a aba abre. Uma vez só: se alguém apagar depois, não voltam.
  */
 const INICIAIS: Omit<RegistroCaixa, "criadoEm">[] = [
-  { id: "joao-20261125-pegou15", pessoa: "João", tipo: "pegou", qtd: 15, destino: "", para: null, nota: "Peguei 15 six packs: 3 pra Caxias, 2 pra POA, 10 ficam comigo.", data: "2026-11-25" },
-  { id: "joao-20261125-cli1", pessoa: "João", tipo: "vendeu", qtd: 1, destino: "Cliente 1 · Caxias do Sul", para: null, nota: "Venda, entrega em mãos.", data: "2026-11-25" },
+  { id: "joao-20261125-pegou15", pessoa: "João", tipo: "pegou", qtd: 15, destino: "", para: null, nota: "Peguei 15 six packs: 3 pra Caxias, 2 pra Bruna em POA, 10 ficam comigo.", data: "2026-11-25" },
+  { id: "joao-20261125-cli1", pessoa: "João", tipo: "vendeu", qtd: 1, destino: "Elisete · Caxias do Sul", para: null, nota: "Venda, entrega em mãos.", data: "2026-11-25" },
   { id: "joao-20261125-cli2", pessoa: "João", tipo: "vendeu", qtd: 2, destino: "Cliente 2 · Caxias do Sul", para: null, nota: "Venda, comprou 2 caixas, entrega em mãos.", data: "2026-11-25" },
-  { id: "joao-20261125-cli3", pessoa: "João", tipo: "vendeu", qtd: 2, destino: "Cliente 3 · Porto Alegre", para: null, nota: "Venda, comprou 2 caixas, entrega em mãos.", data: "2026-11-25" },
+  { id: "joao-20261125-cli3", pessoa: "João", tipo: "vendeu", qtd: 2, destino: "Bruna · Porto Alegre", para: null, nota: "Venda, comprou 2 caixas, entrega em mãos.", data: "2026-11-25" },
 ];
 const SEED_KEY = "caixas:seed:v1";
 
+/** Troca "Cliente N" pelo primeiro nome nos lançamentos que já foram gravados. */
+const NOMES: Record<string, [string, string]> = {
+  "joao-20261125-cli1": ["Cliente 1 · Caxias do Sul", "Elisete · Caxias do Sul"],
+  "joao-20261125-cli3": ["Cliente 3 · Porto Alegre", "Bruna · Porto Alegre"],
+};
+const NOMES_KEY = "caixas:seed:v2";
+
 export async function garantirIniciais() {
+  await semear();
+  if (await kvGet(NOMES_KEY)) return;
+  const atual = await listarCaixas();
+  let mudou = false;
+  const novos = atual.map((r) => {
+    const t = NOMES[r.id];
+    if (t && r.destino === t[0]) {
+      mudou = true;
+      return { ...r, destino: t[1] };
+    }
+    return r;
+  });
+  if (mudou) await gravar(novos);
+  await kvSet(NOMES_KEY, "1");
+}
+
+async function semear() {
   if (await kvGet(SEED_KEY)) return;
   const atual = await listarCaixas();
   const ids = new Set(atual.map((r) => r.id));
