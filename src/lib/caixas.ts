@@ -16,8 +16,9 @@ export type Pessoa = (typeof PESSOAS)[number];
 /** O que aconteceu. `sinal`: soma (+1) ou tira (−1) do saldo de quem registrou. */
 export const TIPOS_CAIXA = {
   pegou: { label: "Pegou caixas", sinal: 1 },
-  vendeu: { label: "Entregou venda", sinal: -1 },
-  brinde: { label: "Deu de brinde / bonificação", sinal: -1 },
+  vendeu: { label: "Entregou pra venda", sinal: -1 },
+  brinde: { label: "Brinde / bonificação", sinal: -1 },
+  consumo: { label: "Consumo próprio", sinal: -1 },
   passou: { label: "Passou pra outra pessoa", sinal: -1 },
   devolveu: { label: "Devolveu pro estoque", sinal: -1 },
   ajuste: { label: "Ajuste de contagem", sinal: 1 },
@@ -87,6 +88,7 @@ export type ResumoPessoa = {
   pegou: number;
   vendeu: number;
   brinde: number;
+  consumo: number;
   recebeu: number;
   passou: number;
 };
@@ -95,7 +97,7 @@ export function resumoCaixas(registros: RegistroCaixa[]): ResumoPessoa[] {
   const m = new Map<Pessoa, ResumoPessoa>(
     PESSOAS.map((p) => [
       p,
-      { pessoa: p, saldo: 0, pegou: 0, vendeu: 0, brinde: 0, recebeu: 0, passou: 0 },
+      { pessoa: p, saldo: 0, pegou: 0, vendeu: 0, brinde: 0, consumo: 0, recebeu: 0, passou: 0 },
     ]),
   );
   for (const r of registros) {
@@ -104,6 +106,7 @@ export function resumoCaixas(registros: RegistroCaixa[]): ResumoPessoa[] {
     if (r.tipo === "pegou") me.pegou += r.qtd;
     if (r.tipo === "vendeu") me.vendeu += r.qtd;
     if (r.tipo === "brinde") me.brinde += r.qtd;
+    if (r.tipo === "consumo") me.consumo += r.qtd;
     if (r.tipo === "passou") {
       me.passou += r.qtd;
       if (r.para) m.get(r.para)!.recebeu += r.qtd;

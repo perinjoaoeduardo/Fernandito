@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRightLeft, Download, Gift, HandCoins, PackageOpen, Trash2 } from "lucide-react";
+import { Beer, Download, Gift, HandCoins, PackageOpen, Trash2 } from "lucide-react";
 import {
   PESSOAS,
   TIPOS_CAIXA,
@@ -34,6 +34,7 @@ const TOM: Record<keyof typeof TIPOS_CAIXA, Tone> = {
   pegou: "action",
   vendeu: "pass",
   brinde: "review",
+  consumo: "hold",
   passou: "running",
   devolveu: "muted",
   ajuste: "hold",
@@ -62,6 +63,7 @@ export function CaixasView({
   const comEquipe = resumo.reduce((n, r) => n + r.saldo, 0);
   const vendidas = resumo.reduce((n, r) => n + r.vendeu, 0);
   const brindes = resumo.reduce((n, r) => n + r.brinde, 0);
+  const consumo = resumo.reduce((n, r) => n + r.consumo, 0);
   const pegas = resumo.reduce((n, r) => n + r.pegou, 0);
   const lista = [...registros]
     .filter((r) => !pessoa || r.pessoa === pessoa || r.para === pessoa)
@@ -89,23 +91,17 @@ export function CaixasView({
           icon={PackageOpen}
           label="Com a equipe agora"
           value={comEquipe}
-          note="soma dos saldos"
+          note={`de ${pegas} pegas no total`}
         />
         <Tile
           icon={HandCoins}
-          label="Entregues em vendas"
+          label="Entregues pra venda"
           value={vendidas}
           note="caixas"
           tone="pass"
         />
         <Tile icon={Gift} label="Brindes" value={brindes} note="caixas" tone="review" />
-        <Tile
-          icon={ArrowRightLeft}
-          label="Pegas no total"
-          value={pegas}
-          note="caixas"
-          tone="running"
-        />
+        <Tile icon={Beer} label="Consumo próprio" value={consumo} note="caixas" tone="hold" />
       </KpiStrip>
 
       {/* Uma ficha por pessoa: saldo grande + o resumo. Clicar filtra o histórico. */}
@@ -140,7 +136,8 @@ export function CaixasView({
                 pegou {r.pegou}
                 {r.recebeu ? ` · recebeu ${r.recebeu}` : ""}
                 <br />
-                vendeu {r.vendeu} · brinde {r.brinde}
+                venda {r.vendeu} · brinde {r.brinde}
+                {r.consumo ? ` · consumo ${r.consumo}` : ""}
                 {r.passou ? ` · passou ${r.passou}` : ""}
               </span>
             </Link>
