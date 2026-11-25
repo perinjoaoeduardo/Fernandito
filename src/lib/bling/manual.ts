@@ -25,6 +25,8 @@ export type ManualSale = {
   nfPara?: string;
   cidade: string;
   uf: string;
+  /** Endereço de entrega (etiqueta do pedido ou o do cliente), pra entregar em mãos. */
+  endereco?: { rua: string; numero: string; complemento: string; bairro: string; cep: string };
   itens: { codigo: string; descricao: string; quantidade: number; valor: number }[];
   totalCents: number;
   danfeUrl: string | null;
@@ -41,7 +43,7 @@ type Store = {
 };
 
 const KEY = "bling:manual";
-const VERSION = 2;
+const VERSION = 3;
 const DAYS = 180;
 const FRESH_MS = 10 * 60 * 1000;
 // O Bling limita ~3 req/s: no máximo 25 notas novas por conferência, com
@@ -57,6 +59,15 @@ const SITE_LOJA = Number(process.env.BLING_LOJA_ID) || null;
 
 type Page<T> = { data: T[] };
 type NfeListItem = { id: number; situacao: number; numero?: string };
+type Endereco = {
+  endereco?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cep?: string;
+  municipio?: string;
+  uf?: string;
+};
 type NfeDetail = {
   id: number;
   numero?: string;
@@ -65,8 +76,8 @@ type NfeDetail = {
   numeroPedidoLoja?: string;
   loja?: { id?: number };
   naturezaOperacao?: { id?: number };
-  contato?: { nome?: string; endereco?: { municipio?: string; uf?: string } };
-  transporte?: { etiqueta?: { nome?: string; municipio?: string; uf?: string } };
+  contato?: { nome?: string; endereco?: Endereco };
+  transporte?: { etiqueta?: Endereco & { nome?: string } };
   itens?: {
     codigo?: string;
     descricao?: string;
@@ -87,18 +98,30 @@ function whoGets(nfe: NfeDetail) {
   const nota = nfe.contato?.nome ?? "";
   const etiqueta = nfe.transporte?.etiqueta;
   const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+  const endereco = (e?: Endereco) =>
+    e?.endereco
+      ? {
+          rua: e.endereco,
+          numero: e.numero ?? "",
+          complemento: e.complemento ?? "",
+          bairro: e.bairro ?? "",
+          cep: e.cep ?? "",
+        }
+      : undefined;
   if (etiqueta?.nome && nota && !same(etiqueta.nome, nota)) {
     return {
       cliente: etiqueta.nome,
       nfPara: nota,
       cidade: etiqueta.municipio ?? "",
       uf: etiqueta.uf ?? "",
+      endereco: endereco(etiqueta),
     };
   }
   return {
     cliente: nota,
     cidade: nfe.contato?.endereco?.municipio ?? "",
     uf: nfe.contato?.endereco?.uf ?? "",
+    endereco: endereco(etiqueta?.endereco ? etiqueta : nfe.contato?.endereco),
   };
 }
 

@@ -50,6 +50,7 @@ import {
   sair,
 } from "./actions";
 import { advanceAvulsos, avulsoAsRow, listAvulsos } from "@/lib/store/avulsos";
+import { entreguesFora } from "@/lib/store/fora-do-site";
 import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
 import { EtiquetaNova } from "./EtiquetaNova";
@@ -223,6 +224,9 @@ const ME_STATUS: Record<string, string> = {
 /** Entregue em mãos: a etiqueta (se houve) foi cancelada, então não mostra botão nem rastreio. */
 const byHand = (f: Fulfillment) => f.stage === "local-delivered";
 
+/** A partir daqui, brinde/venda por fora (só a nota) entra como "Entregar em mãos". */
+const ENTREGA_FORA_DESDE = "2026-11-25T03:00:00.000Z";
+
 function status(o: StoredOrder, f: Fulfillment | null): St {
   if (o.refundedAt) return { label: "Estornado", tone: "muted", icon: Undo2 };
   if (o.status === "manual")
@@ -383,42 +387,73 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const comEnvio = new Set(avulsosRaw.map((a) => nfNum(a.nf.numero)));
   // Venda manual / bonificação lida do Bling SEM envio registrado: entra na
   // mesma tabela (só com a nota), pra ter tudo num lugar só.
-  const soNota = (manual?.sales ?? [])
-    .filter((m) => !comEnvio.has(nfNum(m.numero)))
-    .map((m) => {
-      const quando = m.data ? iso(m.data) : new Date().toISOString();
-      const order = {
-        id: `NF ${m.numero}`,
-        status: "paid",
-        items: m.itens.map((i) => ({
-          sku: i.codigo,
-          name: i.descricao,
-          qty: i.quantidade,
-          unitPriceCents: 0,
-        })),
-        customer: { name: m.cliente || "—", email: "", phone: "", cpf: "" },
-        address: {
-          cep: "",
-          street: "",
-          number: "",
-          complement: "",
-          neighborhood: "",
-          city: m.cidade ?? "",
-          uf: m.uf ?? "",
-        },
-        shipping: { carrier: "Sem envio registrado", priceCents: 0 },
-        subtotalCents: m.totalCents,
-        totalCents: m.totalCents,
-        paidAt: quando,
-        createdAt: quando,
-        simulated: false,
-        origem: m.tipo === "bonificacao" ? "bonificacao" : "manual",
-        nfLink: m.danfeUrl ?? null,
-        nfNumero: String(m.numero),
-        nfPendente: !NFE_OK.includes(m.situacao),
-      } as unknown as StoredOrder;
-      return { order, f: null as Fulfillment | null };
-    });
+  // Nota rejeitada (4) ou denegada (9) nunca valeu: não aparece.
+  const notasFora = (manual?.sales ?? []).filter(
+    (m) => !comEnvio.has(nfNum(m.numero)) && ![4, 9].includes(m.situacao),
+  );
+  // Brinde/venda por fora entregue em mãos: "Entregar em mãos" até marcar
+  // entregue (só das notas a partir de 25/11; as antigas já foram entregues).
+  const entregues = await entreguesFora(notasFora.map((m) => m.numero)).catch(
+    () => new Map<string, string>(),
+  );
+  const soNota = notasFora.map((m) => {
+    const quando = m.data ? iso(m.data) : new Date().toISOString();
+    const emMaos = quando >= ENTREGA_FORA_DESDE && NFE_OK.includes(m.situacao);
+    const order = {
+      id: `NF ${m.numero}`,
+      status: "paid",
+      items: m.itens.map((i) => ({
+        sku: i.codigo,
+        name: i.descricao,
+        qty: i.quantidade,
+        unitPriceCents: 0,
+      })),
+      customer: { name: m.cliente || "—", email: "", phone: "", cpf: "" },
+      address: {
+        cep: m.endereco?.cep ?? "",
+        street: m.endereco?.rua ?? "",
+        number: m.endereco?.numero ?? "",
+        complement: m.endereco?.complemento ?? "",
+        neighborhood: m.endereco?.bairro ?? "",
+        city: m.cidade ?? "",
+        uf: m.uf ?? "",
+      },
+      shipping: { carrier: emMaos ? "Entrega em mãos" : "Sem envio registrado", priceCents: 0 },
+      subtotalCents: m.totalCents,
+      totalCents: m.totalCents,
+      paidAt: quando,
+      createdAt: quando,
+      simulated: false,
+      origem: m.tipo === "bonificacao" ? "bonificacao" : "manual",
+      nfLink: m.danfeUrl ?? null,
+      nfNumero: String(m.numero),
+      nfPendente: !NFE_OK.includes(m.situacao),
+    } as unknown as StoredOrder;
+    const f: Fulfillment | null = emMaos
+      ? {
+          stage: entregues.has(String(nfNum(m.numero))) ? "local-delivered" : "local",
+          invoice: {
+            id: m.id,
+            number: m.numero,
+            key: null,
+            status: m.situacao,
+            sentAt: null,
+            danfeUrl: m.danfeUrl ?? null,
+          },
+          label: {
+            meId: null,
+            status: null,
+            tracking: null,
+            trackingUrl: null,
+            printUrl: null,
+            savedInBling: true,
+          },
+          error: null,
+          updatedAt: entregues.get(String(nfNum(m.numero))) ?? quando,
+        }
+      : null;
+    return { order, f };
+  });
   const every = [
     ...orders.map((order, i) => ({
       order,
@@ -771,11 +806,17 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       {o.address.street && (
         <p className="text-lk-ink3 text-xs">
           {o.address.street}, {o.address.number}
-          {o.address.complement ? ` (${o.address.complement})` : ""} · {o.address.neighborhood} ·
-          CEP {o.address.cep} ·{" "}
-          <a className={`${LINK} font-normal`} href={waLink(o.customer.phone)} {...ext}>
-            {o.customer.phone ? phone(o.customer.phone) : ""}
-          </a>
+          {o.address.complement ? ` (${o.address.complement})` : ""}
+          {o.address.neighborhood ? ` · ${o.address.neighborhood}` : ""}
+          {o.address.cep ? ` · CEP ${o.address.cep}` : ""}
+          {o.customer.phone && (
+            <>
+              {" · "}
+              <a className={`${LINK} font-normal`} href={waLink(o.customer.phone)} {...ext}>
+                {phone(o.customer.phone)}
+              </a>
+            </>
+          )}
         </p>
       )}
       {o.note && (
@@ -830,7 +871,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
 
   const acoes = ({ order: o, f }: Row) => (
     <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-      {f?.stage === "local" && (
+      {(f?.stage === "local" || (o.origem && (f?.stage === "ready" || f?.stage === "posted"))) && (
         <form action={marcarEntregue}>
           <input type="hidden" name="id" value={o.id} />
           <input type="hidden" name="back" value={href({})} />
@@ -1304,7 +1345,9 @@ export default async function PainelPage(props: PageProps<"/painel">) {
             latas={LATAS_SKU}
             actions={actions}
             pendentesNotas={
-              (manual?.sales ?? []).filter((m) => !NFE_OK.includes(m.situacao)).length
+              (manual?.sales ?? []).filter(
+                (m) => !NFE_OK.includes(m.situacao) && ![4, 9].includes(m.situacao),
+              ).length
             }
             erroNotas={manual?.error ?? null}
           />

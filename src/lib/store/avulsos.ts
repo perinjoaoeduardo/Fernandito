@@ -78,6 +78,15 @@ export async function markAvulsoPosted(id: string) {
   return a;
 }
 
+/** "Marcar entregue" no painel (a transportadora entregou e o rastreio não atualizou). */
+export async function markAvulsoDelivered(id: string) {
+  const a = await getAvulso(id);
+  if (!a || a.stage === "delivered") return null;
+  a.stage = "delivered";
+  await saveAvulso(a);
+  return a;
+}
+
 /** Confere o rastreio no Melhor Envio (mesma regra dos pedidos do site). */
 export async function advanceAvulsos() {
   for (const a of await listAvulsos()) {

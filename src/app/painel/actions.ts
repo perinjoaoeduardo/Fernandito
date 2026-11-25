@@ -14,7 +14,8 @@ import {
   reshipLabel,
   shipByMail,
 } from "@/lib/store/fulfillment";
-import { advanceAvulsos, markAvulsoPosted } from "@/lib/store/avulsos";
+import { advanceAvulsos, markAvulsoDelivered, markAvulsoPosted } from "@/lib/store/avulsos";
+import { markNfDelivered } from "@/lib/store/fora-do-site";
 import { kvGet, kvSet, rateLimit } from "@/lib/store/kv";
 import {
   PRODUCAO_BACKUP_V1,
@@ -98,7 +99,11 @@ export async function enviarPeloCorreio(form: FormData) {
 /** Entrega própria (Porto Alegre) feita: tira da lista "pra entregar". */
 export async function marcarEntregue(form: FormData) {
   if (!(await painelAuthed())) redirect("/painel");
-  await markLocalDelivered(String(form.get("id") ?? ""));
+  const id = String(form.get("id") ?? "");
+  // Fora do site: brinde/venda só com a nota ("NF 000209") ou envio avulso
+  // (etiqueta pelo link); senão, pedido do site com entrega própria.
+  if (id.startsWith("NF ")) await markNfDelivered(id.slice(3));
+  else if (!(await markAvulsoDelivered(id))) await markLocalDelivered(id);
   // Volta pra mesma lista (filtro, busca e página) em que a pessoa estava.
   redirect(backTo(form));
 }
