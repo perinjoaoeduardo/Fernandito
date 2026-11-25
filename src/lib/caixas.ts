@@ -51,6 +51,11 @@ export async function listarCaixas(): Promise<RegistroCaixa[]> {
   return parsed.success ? parsed.data : [];
 }
 
+/** Regrava a lista inteira (com cópia de segurança da anterior). */
+export async function salvarCaixas(registros: RegistroCaixa[]) {
+  await gravar(registros);
+}
+
 async function gravar(registros: RegistroCaixa[]) {
   // Cópia do anterior por 30 dias (desfazer um erro de lançamento).
   const before = await kvGet(KEY);
