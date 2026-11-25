@@ -51,7 +51,7 @@ import {
 } from "./actions";
 import { advanceAvulsos, avulsoAsRow, listAvulsos } from "@/lib/store/avulsos";
 import { entreguesFora } from "@/lib/store/fora-do-site";
-import { listarCaixas, PESSOAS, type Pessoa } from "@/lib/caixas";
+import { garantirIniciais, listarCaixas, PESSOAS, type Pessoa } from "@/lib/caixas";
 import { CaixasView } from "./Caixas";
 import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
@@ -1302,7 +1302,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
         </>
       ) : aba === "caixas" ? (
         <CaixasView
-          registros={await listarCaixas().catch(() => [])}
+          registros={await garantirIniciais().catch(() => {}).then(() => listarCaixas()).catch(() => [])}
           pessoa={PESSOAS.includes(String(sp.p ?? "") as Pessoa) ? (String(sp.p) as Pessoa) : null}
           hoje={hoje}
           actions={actions}

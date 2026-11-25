@@ -111,3 +111,25 @@ export function resumoCaixas(registros: RegistroCaixa[]): ResumoPessoa[] {
   }
   return [...m.values()];
 }
+
+/**
+ * Primeiros lançamentos (teste do João, 25/11), gravados sozinhos na primeira
+ * vez que a aba abre. Uma vez só: se alguém apagar depois, não voltam.
+ */
+const INICIAIS: Omit<RegistroCaixa, "criadoEm">[] = [
+  { id: "joao-20261125-pegou15", pessoa: "João", tipo: "pegou", qtd: 15, destino: "", para: null, nota: "Peguei 15 six packs: 3 pra Caxias, 2 pra POA, 10 ficam comigo.", data: "2026-11-25" },
+  { id: "joao-20261125-cli1", pessoa: "João", tipo: "vendeu", qtd: 1, destino: "Cliente 1 · Caxias do Sul", para: null, nota: "Venda, entrega em mãos.", data: "2026-11-25" },
+  { id: "joao-20261125-cli2", pessoa: "João", tipo: "vendeu", qtd: 2, destino: "Cliente 2 · Caxias do Sul", para: null, nota: "Venda, comprou 2 caixas, entrega em mãos.", data: "2026-11-25" },
+  { id: "joao-20261125-cli3", pessoa: "João", tipo: "vendeu", qtd: 2, destino: "Cliente 3 · Porto Alegre", para: null, nota: "Venda, comprou 2 caixas, entrega em mãos.", data: "2026-11-25" },
+];
+const SEED_KEY = "caixas:seed:v1";
+
+export async function garantirIniciais() {
+  if (await kvGet(SEED_KEY)) return;
+  const atual = await listarCaixas();
+  const ids = new Set(atual.map((r) => r.id));
+  const criadoEm = new Date().toISOString();
+  const novos = INICIAIS.filter((r) => !ids.has(r.id)).map((r) => ({ ...r, criadoEm }));
+  if (novos.length) await gravar([...atual, ...novos]);
+  await kvSet(SEED_KEY, "1");
+}
