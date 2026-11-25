@@ -51,6 +51,8 @@ import {
 } from "./actions";
 import { advanceAvulsos, avulsoAsRow, listAvulsos } from "@/lib/store/avulsos";
 import { entreguesFora } from "@/lib/store/fora-do-site";
+import { listarCaixas, PESSOAS, type Pessoa } from "@/lib/caixas";
+import { CaixasView } from "./Caixas";
 import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
 import { EtiquetaNova } from "./EtiquetaNova";
@@ -270,7 +272,15 @@ const FILTER_GROUPS = [
   { title: "Atenção", keys: ["olho", "estornados"] },
 ] as const;
 
-const ABAS: Aba[] = ["pedidos", "clientes", "estoque", "producao", "compras", "resultados"];
+const ABAS: Aba[] = [
+  "pedidos",
+  "clientes",
+  "estoque",
+  "caixas",
+  "producao",
+  "compras",
+  "resultados",
+];
 // Endereços antigos continuam abrindo a aba certa.
 const ABA_ANTIGA: Record<string, Aba> = { fora: "pedidos", vendas: "pedidos", lista: "clientes" };
 // Abas que leem o cadastro de produção (lotes, insumos, compras).
@@ -1290,6 +1300,13 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           />
           <Producao key={aba} initial={producao} modo={aba} />
         </>
+      ) : aba === "caixas" ? (
+        <CaixasView
+          registros={await listarCaixas().catch(() => [])}
+          pessoa={PESSOAS.includes(String(sp.p ?? "") as Pessoa) ? (String(sp.p) as Pessoa) : null}
+          hoje={hoje}
+          actions={actions}
+        />
       ) : aba === "estoque" ? (
         estoqueView
       ) : aba === "clientes" ? (

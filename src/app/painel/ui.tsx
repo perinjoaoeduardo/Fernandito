@@ -1,6 +1,15 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { Boxes, ChartLine, Factory, Inbox, ShoppingBag, ShoppingCart, Users } from "lucide-react";
+import {
+  Boxes,
+  ChartLine,
+  Factory,
+  Inbox,
+  PackageOpen,
+  ShoppingBag,
+  ShoppingCart,
+  Users,
+} from "lucide-react";
 
 // Peças do painel, no visual do Lakeshore Funding (docs/design-rules.md e
 // docs/rules/* daquele repositório). Regras que valem aqui:
@@ -88,7 +97,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 // ── Menu lateral (docs/rules/sidebar.md do Lakeshore) ─────────────────────
 
 export type Aba =
-  "pedidos" | "vendas" | "clientes" | "estoque" | "producao" | "compras" | "resultados";
+  "pedidos" | "vendas" | "clientes" | "estoque" | "caixas" | "producao" | "compras" | "resultados";
 
 /** O menu em 3 grupos: vendas, operação (fábrica) e gestão. */
 const GRUPOS: { titulo: string; itens: { aba: Aba; label: string; icon: LucideIcon }[] }[] = [
@@ -103,6 +112,7 @@ const GRUPOS: { titulo: string; itens: { aba: Aba; label: string; icon: LucideIc
     titulo: "Operação",
     itens: [
       { aba: "estoque", label: "Estoque de produtos", icon: Boxes },
+      { aba: "caixas", label: "Caixas da equipe", icon: PackageOpen },
       { aba: "producao", label: "Produção", icon: Factory },
       { aba: "compras", label: "Compras e insumos", icon: ShoppingCart },
     ],

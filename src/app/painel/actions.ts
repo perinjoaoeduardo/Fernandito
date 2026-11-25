@@ -16,6 +16,7 @@ import {
 } from "@/lib/store/fulfillment";
 import { advanceAvulsos, markAvulsoDelivered, markAvulsoPosted } from "@/lib/store/avulsos";
 import { markNfDelivered } from "@/lib/store/fora-do-site";
+import { adicionarCaixa, apagarCaixa, type Pessoa, type TipoCaixa } from "@/lib/caixas";
 import { kvGet, kvSet, rateLimit } from "@/lib/store/kv";
 import {
   PRODUCAO_BACKUP_V1,
@@ -125,4 +126,31 @@ export async function salvarProducao(
   if (before) await kvSet(`${PRODUCAO_KEY}:bak:${at}`, before, 60 * 60 * 24 * 30).catch(() => {});
   await kvSet(PRODUCAO_KEY, JSON.stringify({ ...parsed.data, atualizadoEm: at }));
   return { ok: true, at };
+}
+
+/** Caixas da equipe: lança um movimento (pegou, entregou, brinde, passou…). */
+export async function registrarCaixas(form: FormData) {
+  if (!(await painelAuthed())) redirect("/painel");
+  const para = String(form.get("para") ?? "");
+  const tipo = String(form.get("tipo") ?? "");
+  await adicionarCaixa({
+    id: crypto.randomUUID(),
+    pessoa: String(form.get("pessoa") ?? "") as Pessoa,
+    tipo: tipo as TipoCaixa,
+    qtd: Math.trunc(Number(form.get("qtd") ?? 0)),
+    destino: String(form.get("destino") ?? ""),
+    // "Passou pra": só vale no tipo "passou" e pra outra pessoa.
+    para: tipo === "passou" && para && para !== form.get("pessoa") ? (para as Pessoa) : null,
+    nota: String(form.get("nota") ?? ""),
+    data: String(form.get("data") ?? ""),
+    criadoEm: new Date().toISOString(),
+  }).catch(() => {});
+  redirect(backTo(form));
+}
+
+/** Caixas da equipe: apaga um lançamento errado (fica cópia por 30 dias). */
+export async function apagarRegistroCaixa(form: FormData) {
+  if (!(await painelAuthed())) redirect("/painel");
+  await apagarCaixa(String(form.get("id") ?? ""));
+  redirect(backTo(form));
 }
