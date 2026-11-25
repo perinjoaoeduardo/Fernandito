@@ -88,6 +88,7 @@ Só se um dia você quiser ver ou mexer no código do site junto com o João.
 | Six pack (`FERN-350-6`) | produto **16718234925**: *composição* de 6 latas, o estoque fica nas latas |
 | Kit | produto 16718236657 |
 | Press kit | produto 16720690766 |
+| Litro do barril (`FERN-BARRIL-L`) | produto 16740716066, unidade L |
 | Depósito (único) | **14889218318** |
 | Forma de pagamento padrão | 11331737 |
 | Categoria do pedido de venda | 14747067217 |
@@ -165,9 +166,16 @@ Esquecer a baixa faz o site vender estoque que não existe.
   constar, ninguém paga. Também tem baixa manual.
 - **Venda para outro estado:** confirme a natureza e o ICMS-ST com a
   contadora antes, como foi feito com o RJ.
-- **Barril / venda por litro:** **ainda não está cadastrado.** Os sócios
-  estão decidindo como (preço por litro × litros). Não invente: espere o
-  produto ser criado no Bling e a contadora dizer a natureza.
+- **Barril / venda por litro:** produto **"Fernandito - Litro do barril
+  (chopp)"**, código `FERN-BARRIL-L`, ID **16740716066**, unidade **L**,
+  R$ 24,50 o litro.
+  - Barril de 20 L = **20 L** na nota. Desconto vai no pedido/nota.
+  - Ex.: 20 L × 24,50 = R$ 490, desconto R$ 80, total R$ 410.
+  - Sem baixa de estoque, por enquanto não é controlado.
+  - Venda para bar ou empresa no RS: mesma pendência da natureza e do ST
+    (Parte 3).
+  - Se o barril (vasilhame) volta para a Fernandito, confirme com a
+    contadora se precisa de nota de comodato ou remessa.
 - **Envio por transportadora fora do site** (ex.: Buslog): a etiqueta é
   feita pelo João no Melhor Envio. Combine com ele.
 
