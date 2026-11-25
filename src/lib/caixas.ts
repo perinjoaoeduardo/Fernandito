@@ -116,14 +116,18 @@ export function resumoCaixas(registros: RegistroCaixa[]): ResumoPessoa[] {
 }
 
 /**
- * Primeiros lançamentos (teste do João, 25/11), gravados sozinhos na primeira
- * vez que a aba abre. Uma vez só: se alguém apagar depois, não voltam.
+ * Lançamentos combinados no chat, gravados sozinhos quando a aba abre. Cada um
+ * entra uma vez só: se alguém apagar depois, não volta. Pra lançar mais, é só
+ * acrescentar aqui com um id novo.
  */
 const INICIAIS: Omit<RegistroCaixa, "criadoEm">[] = [
   { id: "joao-20261125-pegou15", pessoa: "João", tipo: "pegou", qtd: 15, destino: "", para: null, nota: "Peguei 15 six packs: 3 pra Caxias, 2 pra Bruna em POA, 10 ficam comigo.", data: "2026-11-25" },
   { id: "joao-20261125-cli1", pessoa: "João", tipo: "vendeu", qtd: 1, destino: "Elisete · Caxias do Sul", para: null, nota: "Venda, entrega em mãos.", data: "2026-11-25" },
   { id: "joao-20261125-cli2", pessoa: "João", tipo: "vendeu", qtd: 2, destino: "Cliente 2 · Caxias do Sul", para: null, nota: "Venda, comprou 2 caixas, entrega em mãos.", data: "2026-11-25" },
   { id: "joao-20261125-cli3", pessoa: "João", tipo: "vendeu", qtd: 2, destino: "Bruna · Porto Alegre", para: null, nota: "Venda, comprou 2 caixas, entrega em mãos.", data: "2026-11-25" },
+  { id: "matheus-20261125-pegou30", pessoa: "Matheus", tipo: "pegou", qtd: 30, destino: "", para: null, nota: "Pegou 30 six packs.", data: "2026-11-25" },
+  { id: "lorenzo-20261125-pegou30", pessoa: "Lorenzo", tipo: "pegou", qtd: 30, destino: "", para: null, nota: "Pegou 30 six packs.", data: "2026-11-25" },
+  { id: "matheus-20261125-adriano", pessoa: "Matheus", tipo: "vendeu", qtd: 5, destino: "Adriano · Porto Alegre", para: null, nota: "Venda de 30 latas (5 caixas) × R$ 13,86 = R$ 415,80.", data: "2026-11-25" },
 ];
 const SEED_KEY = "caixas:seed:v1";
 
@@ -151,12 +155,20 @@ export async function garantirIniciais() {
   await kvSet(NOMES_KEY, "1");
 }
 
+const SEEDED_KEY = "caixas:seed:ids";
+
 async function semear() {
-  if (await kvGet(SEED_KEY)) return;
+  // Ids que já entraram alguma vez (os 4 primeiros vieram pela versão antiga).
+  const raw = await kvGet(SEEDED_KEY);
+  const feitos = new Set<string>(raw ? (JSON.parse(raw) as string[]) : []);
+  if (!raw && (await kvGet(SEED_KEY))) INICIAIS.slice(0, 4).forEach((r) => feitos.add(r.id));
+  const faltam = INICIAIS.filter((r) => !feitos.has(r.id));
+  if (!faltam.length) return;
   const atual = await listarCaixas();
   const ids = new Set(atual.map((r) => r.id));
   const criadoEm = new Date().toISOString();
-  const novos = INICIAIS.filter((r) => !ids.has(r.id)).map((r) => ({ ...r, criadoEm }));
+  const novos = faltam.filter((r) => !ids.has(r.id)).map((r) => ({ ...r, criadoEm }));
   if (novos.length) await gravar([...atual, ...novos]);
-  await kvSet(SEED_KEY, "1");
+  faltam.forEach((r) => feitos.add(r.id));
+  await kvSet(SEEDED_KEY, JSON.stringify([...feitos]));
 }
