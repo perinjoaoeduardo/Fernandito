@@ -121,25 +121,206 @@ export function resumoCaixas(registros: RegistroCaixa[]): ResumoPessoa[] {
  * acrescentar aqui com um id novo.
  */
 const INICIAIS: Omit<RegistroCaixa, "criadoEm">[] = [
-  { id: "joao-20261125-pegou15", pessoa: "João", tipo: "pegou", qtd: 15, destino: "", para: null, nota: "Peguei 15 six packs: 3 pra Caxias, 2 pra Bruna em POA, 10 ficam comigo.", data: "2026-11-25" },
-  { id: "joao-20261125-cli1", pessoa: "João", tipo: "vendeu", qtd: 1, destino: "Elisete · Caxias do Sul", para: null, nota: "Venda, entrega em mãos.", data: "2026-11-25" },
-  { id: "joao-20261125-cli2", pessoa: "João", tipo: "vendeu", qtd: 2, destino: "Cliente 2 · Caxias do Sul", para: null, nota: "Venda, comprou 2 caixas, entrega em mãos.", data: "2026-11-25" },
-  { id: "joao-20261125-cli3", pessoa: "João", tipo: "vendeu", qtd: 2, destino: "Bruna · Porto Alegre", para: null, nota: "Venda, comprou 2 caixas, entrega em mãos.", data: "2026-11-25" },
-  { id: "matheus-20261125-pegou30", pessoa: "Matheus", tipo: "pegou", qtd: 30, destino: "", para: null, nota: "Pegou 30 six packs.", data: "2026-11-25" },
-  { id: "lorenzo-20261125-pegou30", pessoa: "Lorenzo", tipo: "pegou", qtd: 30, destino: "", para: null, nota: "Pegou 30 six packs.", data: "2026-11-25" },
-  { id: "matheus-20261125-adriano", pessoa: "Matheus", tipo: "vendeu", qtd: 5, destino: "Adriano · Porto Alegre", para: null, nota: "Venda de 30 latas (5 caixas) × R$ 13,86 = R$ 415,80.", data: "2026-11-25" },
-  { id: "joao-20261126-consumo1", pessoa: "João", tipo: "consumo", qtd: 1, destino: "", para: null, nota: "1 six pack pra consumo pessoal.", data: "2026-11-26" },
-  { id: "lorenzo-20261126-vendas13", pessoa: "Lorenzo", tipo: "vendeu", qtd: 13, destino: "Vendas em mãos (clientes a detalhar)", para: null, nota: "Entregou 13 caixas em mãos, de vendas.", data: "2026-11-26" },
-  { id: "matheus-20261126-leticia3", pessoa: "Matheus", tipo: "vendeu", qtd: 3, destino: "Leticia", para: null, nota: "3 caixas entregues pra Leticia (compra).", data: "2026-11-26" },
-  { id: "matheus-20261126-amostras2", pessoa: "Matheus", tipo: "brinde", qtd: 2, destino: "Amostras", para: null, nota: "2 caixas usadas como amostras.", data: "2026-11-26" },
-  { id: "matheus-20261126-vendas20", pessoa: "Matheus", tipo: "vendeu", qtd: 20, destino: "Vendas (15 enviadas pra POA com o motorista + 5 restantes, incl. Ponto 24h)", para: null, nota: "Tudo o que o Matheus pegou virou venda: as 30 vão ser entregues.", data: "2026-11-26" },  { id: "lorenzo-20261126-lote1-2", pessoa: "Lorenzo", tipo: "vendeu", qtd: 2, destino: "Clientes do 1º lote · em mãos", para: null, nota: "2 caixas entregues em mãos pra quem tinha comprado no primeiro lote.", data: "2026-11-26" },
-  { id: "lorenzo-20261126-envio4", pessoa: "Lorenzo", tipo: "vendeu", qtd: 4, destino: "Envio hoje", para: null, nota: "4 caixas pra enviar hoje.", data: "2026-11-26" },
-  { id: "lorenzo-20261126-pai1", pessoa: "Lorenzo", tipo: "vendeu", qtd: 1, destino: "Pai do Lorenzo", para: null, nota: "1 caixa que o pai comprou.", data: "2026-11-26" },
-  { id: "lorenzo-20261126-praia3", pessoa: "Lorenzo", tipo: "vendeu", qtd: 3, destino: "Amigos do pai (praia) · entrega pelo pai", para: null, nota: "O pai entrega 3 caixas pra amigos que compraram na praia.", data: "2026-11-26" },
-  { id: "lorenzo-20261126-revendedor1", pessoa: "Lorenzo", tipo: "brinde", qtd: 1, destino: "Potencial revendedor", para: null, nota: "1 caixa de presente pra um cara que pode virar vendedor.", data: "2026-11-26" },
-  { id: "lorenzo-20261126-nando4", pessoa: "Lorenzo", tipo: "passou", qtd: 4, destino: "", para: "Fernando", nota: "4 caixas levadas pro Nando.", data: "2026-11-26" },
-  { id: "lorenzo-20261126-pegou30b", pessoa: "Lorenzo", tipo: "pegou", qtd: 30, destino: "", para: null, nota: "Pegou mais 30 caixas.", data: "2026-11-26" },
-  { id: "lorenzo-20261126-nando15", pessoa: "Lorenzo", tipo: "passou", qtd: 15, destino: "Casa do Nando", para: "Fernando", nota: "Deixou 15 das 30 novas na casa do Nando.", data: "2026-11-26" },
+  {
+    id: "joao-20261125-pegou15",
+    pessoa: "João",
+    tipo: "pegou",
+    qtd: 15,
+    destino: "",
+    para: null,
+    nota: "Peguei 15 six packs: 3 pra Caxias, 2 pra Bruna em POA, 10 ficam comigo.",
+    data: "2026-11-25",
+  },
+  {
+    id: "joao-20261125-cli1",
+    pessoa: "João",
+    tipo: "vendeu",
+    qtd: 1,
+    destino: "Elisete · Caxias do Sul",
+    para: null,
+    nota: "Venda, entrega em mãos.",
+    data: "2026-11-25",
+  },
+  {
+    id: "joao-20261125-cli2",
+    pessoa: "João",
+    tipo: "vendeu",
+    qtd: 2,
+    destino: "Cliente 2 · Caxias do Sul",
+    para: null,
+    nota: "Venda, comprou 2 caixas, entrega em mãos.",
+    data: "2026-11-25",
+  },
+  {
+    id: "joao-20261125-cli3",
+    pessoa: "João",
+    tipo: "vendeu",
+    qtd: 2,
+    destino: "Bruna · Porto Alegre",
+    para: null,
+    nota: "Venda, comprou 2 caixas, entrega em mãos.",
+    data: "2026-11-25",
+  },
+  {
+    id: "matheus-20261125-pegou30",
+    pessoa: "Matheus",
+    tipo: "pegou",
+    qtd: 30,
+    destino: "",
+    para: null,
+    nota: "Pegou 30 six packs.",
+    data: "2026-11-25",
+  },
+  {
+    id: "lorenzo-20261125-pegou30",
+    pessoa: "Lorenzo",
+    tipo: "pegou",
+    qtd: 30,
+    destino: "",
+    para: null,
+    nota: "Pegou 30 six packs.",
+    data: "2026-11-25",
+  },
+  {
+    id: "matheus-20261125-adriano",
+    pessoa: "Matheus",
+    tipo: "vendeu",
+    qtd: 5,
+    destino: "Adriano · Porto Alegre",
+    para: null,
+    nota: "Venda de 30 latas (5 caixas) × R$ 13,86 = R$ 415,80.",
+    data: "2026-11-25",
+  },
+  {
+    id: "joao-20261126-consumo1",
+    pessoa: "João",
+    tipo: "consumo",
+    qtd: 1,
+    destino: "",
+    para: null,
+    nota: "1 six pack pra consumo pessoal.",
+    data: "2026-11-26",
+  },
+  {
+    id: "lorenzo-20261126-vendas13",
+    pessoa: "Lorenzo",
+    tipo: "vendeu",
+    qtd: 13,
+    destino: "Vendas em mãos (clientes a detalhar)",
+    para: null,
+    nota: "Entregou 13 caixas em mãos, de vendas.",
+    data: "2026-11-26",
+  },
+  {
+    id: "matheus-20261126-leticia3",
+    pessoa: "Matheus",
+    tipo: "vendeu",
+    qtd: 3,
+    destino: "Leticia",
+    para: null,
+    nota: "3 caixas entregues pra Leticia (compra).",
+    data: "2026-11-26",
+  },
+  {
+    id: "matheus-20261126-amostras2",
+    pessoa: "Matheus",
+    tipo: "brinde",
+    qtd: 2,
+    destino: "Amostras",
+    para: null,
+    nota: "2 caixas usadas como amostras.",
+    data: "2026-11-26",
+  },
+  {
+    id: "matheus-20261126-vendas20",
+    pessoa: "Matheus",
+    tipo: "vendeu",
+    qtd: 20,
+    destino: "Vendas (15 enviadas pra POA com o motorista + 5 restantes, incl. Ponto 24h)",
+    para: null,
+    nota: "Tudo o que o Matheus pegou virou venda: as 30 vão ser entregues.",
+    data: "2026-11-26",
+  },
+  {
+    id: "lorenzo-20261126-lote1-2",
+    pessoa: "Lorenzo",
+    tipo: "vendeu",
+    qtd: 2,
+    destino: "Clientes do 1º lote · em mãos",
+    para: null,
+    nota: "2 caixas entregues em mãos pra quem tinha comprado no primeiro lote.",
+    data: "2026-11-26",
+  },
+  {
+    id: "lorenzo-20261126-envio4",
+    pessoa: "Lorenzo",
+    tipo: "vendeu",
+    qtd: 4,
+    destino: "Envio hoje",
+    para: null,
+    nota: "4 caixas pra enviar hoje.",
+    data: "2026-11-26",
+  },
+  {
+    id: "lorenzo-20261126-pai1",
+    pessoa: "Lorenzo",
+    tipo: "vendeu",
+    qtd: 1,
+    destino: "Pai do Lorenzo",
+    para: null,
+    nota: "1 caixa que o pai comprou.",
+    data: "2026-11-26",
+  },
+  {
+    id: "lorenzo-20261126-praia3",
+    pessoa: "Lorenzo",
+    tipo: "vendeu",
+    qtd: 3,
+    destino: "Amigos do pai (praia) · entrega pelo pai",
+    para: null,
+    nota: "O pai entrega 3 caixas pra amigos que compraram na praia.",
+    data: "2026-11-26",
+  },
+  {
+    id: "lorenzo-20261126-revendedor1",
+    pessoa: "Lorenzo",
+    tipo: "brinde",
+    qtd: 1,
+    destino: "Potencial revendedor",
+    para: null,
+    nota: "1 caixa de presente pra um cara que pode virar vendedor.",
+    data: "2026-11-26",
+  },
+  {
+    id: "lorenzo-20261126-nando4",
+    pessoa: "Lorenzo",
+    tipo: "passou",
+    qtd: 4,
+    destino: "",
+    para: "Fernando",
+    nota: "4 caixas levadas pro Nando.",
+    data: "2026-11-26",
+  },
+  {
+    id: "lorenzo-20261126-pegou30b",
+    pessoa: "João",
+    tipo: "pegou",
+    qtd: 30,
+    destino: "",
+    para: null,
+    nota: "João pegou mais 30 caixas.",
+    data: "2026-11-26",
+  },
+  {
+    id: "lorenzo-20261126-nando15",
+    pessoa: "João",
+    tipo: "passou",
+    qtd: 15,
+    destino: "Casa do Nando",
+    para: "Fernando",
+    nota: "João deixou 15 das 30 novas na casa do Nando.",
+    data: "2026-11-26",
+  },
 ];
 const SEED_KEY = "caixas:seed:v1";
 
@@ -150,8 +331,37 @@ const NOMES: Record<string, [string, string]> = {
 };
 const NOMES_KEY = "caixas:seed:v2";
 
+/**
+ * Correções em lançamentos que já entraram (id → campos certos). Cada versão
+ * roda uma vez. 26/11: as 30 novas e as 15 pro Fernando foram do João, não do
+ * Lorenzo.
+ */
+const CORRECOES: Record<string, Partial<Pick<RegistroCaixa, "pessoa" | "nota">>> = {
+  "lorenzo-20261126-pegou30b": { pessoa: "João", nota: "João pegou mais 30 caixas." },
+  "lorenzo-20261126-nando15": {
+    pessoa: "João",
+    nota: "João deixou 15 das 30 novas na casa do Nando.",
+  },
+};
+const CORRECOES_KEY = "caixas:fix:v1";
+
+async function corrigir() {
+  if (await kvGet(CORRECOES_KEY)) return;
+  const atual = await listarCaixas();
+  let mudou = false;
+  const novos = atual.map((r) => {
+    const fix = CORRECOES[r.id];
+    if (!fix) return r;
+    mudou = true;
+    return { ...r, ...fix };
+  });
+  if (mudou) await gravar(novos);
+  await kvSet(CORRECOES_KEY, "1");
+}
+
 export async function garantirIniciais() {
   await semear();
+  await corrigir();
   if (await kvGet(NOMES_KEY)) return;
   const atual = await listarCaixas();
   let mudou = false;
