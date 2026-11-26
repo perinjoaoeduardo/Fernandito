@@ -54,6 +54,8 @@ import { advanceAvulsos, avulsoAsRow, listAvulsos } from "@/lib/store/avulsos";
 import { entreguesFora } from "@/lib/store/fora-do-site";
 import { garantirIniciais, listarCaixas, PESSOAS, type Pessoa } from "@/lib/caixas";
 import { CaixasView } from "./Caixas";
+import { garantirIdeiasIniciais, listarIdeias } from "@/lib/ideias";
+import { IdeiasView } from "./Ideias";
 import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
 import { EtiquetaNova } from "./EtiquetaNova";
@@ -281,6 +283,7 @@ const ABAS: Aba[] = [
   "producao",
   "compras",
   "resultados",
+  "ideias",
 ];
 // Endereços antigos continuam abrindo a aba certa.
 const ABA_ANTIGA: Record<string, Aba> = { fora: "pedidos", vendas: "pedidos", lista: "clientes" };
@@ -1312,6 +1315,15 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           />
           <Producao key={aba} initial={producao} modo={aba} />
         </>
+      ) : aba === "ideias" ? (
+        <IdeiasView
+          ideias={await garantirIdeiasIniciais()
+            .catch(() => {})
+            .then(() => listarIdeias())
+            .catch(() => [])}
+          hoje={hoje}
+          actions={actions}
+        />
       ) : aba === "caixas" ? (
         <CaixasView
           registros={await garantirIniciais()

@@ -17,6 +17,7 @@ import {
 import { advanceAvulsos, markAvulsoDelivered, markAvulsoPosted } from "@/lib/store/avulsos";
 import { markNfDelivered } from "@/lib/store/fora-do-site";
 import { adicionarCaixa, apagarCaixa, type Pessoa, type TipoCaixa } from "@/lib/caixas";
+import { adicionarIdeia, apagarIdeia, type Categoria } from "@/lib/ideias";
 import { kvDel, kvGet, kvSet, rateLimit } from "@/lib/store/kv";
 import {
   PRODUCAO_BACKUP_V1,
@@ -160,4 +161,24 @@ export async function limparAlertas() {
   if (!(await painelAuthed())) redirect("/painel");
   await kvDel("loja:alertas");
   redirect("/painel");
+}
+
+/** Ideias: cola um post-it novo no mural. */
+export async function registrarIdeia(form: FormData) {
+  if (!(await painelAuthed())) redirect("/painel");
+  await adicionarIdeia({
+    id: crypto.randomUUID(),
+    categoria: String(form.get("categoria") ?? "outras") as Categoria,
+    texto: String(form.get("texto") ?? ""),
+    data: String(form.get("data") ?? ""),
+    criadoEm: new Date().toISOString(),
+  }).catch(() => {});
+  redirect("/painel?aba=ideias");
+}
+
+/** Ideias: tira um post-it do mural (fica cópia por 30 dias). */
+export async function apagarIdeiaAction(form: FormData) {
+  if (!(await painelAuthed())) redirect("/painel");
+  await apagarIdeia(String(form.get("id") ?? ""));
+  redirect("/painel?aba=ideias");
 }

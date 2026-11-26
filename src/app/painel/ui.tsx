@@ -5,6 +5,7 @@ import {
   ChartLine,
   Factory,
   Inbox,
+  Lightbulb,
   PackageOpen,
   ShoppingBag,
   ShoppingCart,
@@ -97,7 +98,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
 // ── Menu lateral (docs/rules/sidebar.md do Lakeshore) ─────────────────────
 
 export type Aba =
-  "pedidos" | "vendas" | "clientes" | "estoque" | "caixas" | "producao" | "compras" | "resultados";
+  | "pedidos"
+  | "vendas"
+  | "clientes"
+  | "estoque"
+  | "caixas"
+  | "producao"
+  | "compras"
+  | "resultados"
+  | "ideias";
 
 /** O menu em 3 grupos: vendas, operação (fábrica) e gestão. */
 const GRUPOS: { titulo: string; itens: { aba: Aba; label: string; icon: LucideIcon }[] }[] = [
@@ -119,7 +128,10 @@ const GRUPOS: { titulo: string; itens: { aba: Aba; label: string; icon: LucideIc
   },
   {
     titulo: "Gestão",
-    itens: [{ aba: "resultados", label: "Resultados", icon: ChartLine }],
+    itens: [
+      { aba: "resultados", label: "Resultados", icon: ChartLine },
+      { aba: "ideias", label: "Ideias", icon: Lightbulb },
+    ],
   },
 ];
 const NAV = GRUPOS.flatMap((g) => g.itens);
