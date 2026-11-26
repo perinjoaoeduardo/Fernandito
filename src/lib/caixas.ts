@@ -132,7 +132,12 @@ const INICIAIS: Omit<RegistroCaixa, "criadoEm">[] = [
   { id: "lorenzo-20261126-vendas13", pessoa: "Lorenzo", tipo: "vendeu", qtd: 13, destino: "Vendas em mãos (clientes a detalhar)", para: null, nota: "Entregou 13 caixas em mãos, de vendas.", data: "2026-11-26" },
   { id: "matheus-20261126-leticia3", pessoa: "Matheus", tipo: "vendeu", qtd: 3, destino: "Leticia", para: null, nota: "3 caixas entregues pra Leticia (compra).", data: "2026-11-26" },
   { id: "matheus-20261126-amostras2", pessoa: "Matheus", tipo: "brinde", qtd: 2, destino: "Amostras", para: null, nota: "2 caixas usadas como amostras.", data: "2026-11-26" },
-  { id: "matheus-20261126-vendas20", pessoa: "Matheus", tipo: "vendeu", qtd: 20, destino: "Vendas (15 enviadas pra POA com o motorista + 5 restantes, incl. Ponto 24h)", para: null, nota: "Tudo o que o Matheus pegou virou venda: as 30 vão ser entregues.", data: "2026-11-26" },
+  { id: "matheus-20261126-vendas20", pessoa: "Matheus", tipo: "vendeu", qtd: 20, destino: "Vendas (15 enviadas pra POA com o motorista + 5 restantes, incl. Ponto 24h)", para: null, nota: "Tudo o que o Matheus pegou virou venda: as 30 vão ser entregues.", data: "2026-11-26" },  { id: "lorenzo-20261126-lote1-2", pessoa: "Lorenzo", tipo: "vendeu", qtd: 2, destino: "Clientes do 1º lote · em mãos", para: null, nota: "2 caixas entregues em mãos pra quem tinha comprado no primeiro lote.", data: "2026-11-26" },
+  { id: "lorenzo-20261126-envio4", pessoa: "Lorenzo", tipo: "vendeu", qtd: 4, destino: "Envio hoje", para: null, nota: "4 caixas pra enviar hoje.", data: "2026-11-26" },
+  { id: "lorenzo-20261126-pai1", pessoa: "Lorenzo", tipo: "vendeu", qtd: 1, destino: "Pai do Lorenzo", para: null, nota: "1 caixa que o pai comprou.", data: "2026-11-26" },
+  { id: "lorenzo-20261126-praia3", pessoa: "Lorenzo", tipo: "vendeu", qtd: 3, destino: "Amigos do pai (praia) · entrega pelo pai", para: null, nota: "O pai entrega 3 caixas pra amigos que compraram na praia.", data: "2026-11-26" },
+  { id: "lorenzo-20261126-revendedor1", pessoa: "Lorenzo", tipo: "brinde", qtd: 1, destino: "Potencial revendedor", para: null, nota: "1 caixa de presente pra um cara que pode virar vendedor.", data: "2026-11-26" },
+  { id: "lorenzo-20261126-nando4", pessoa: "Lorenzo", tipo: "passou", qtd: 4, destino: "", para: "Fernando", nota: "4 caixas levadas pro Nando.", data: "2026-11-26" },
 ];
 const SEED_KEY = "caixas:seed:v1";
 
