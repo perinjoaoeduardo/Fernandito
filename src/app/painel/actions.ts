@@ -17,7 +17,7 @@ import {
 import { advanceAvulsos, markAvulsoDelivered, markAvulsoPosted } from "@/lib/store/avulsos";
 import { markNfDelivered } from "@/lib/store/fora-do-site";
 import { adicionarCaixa, apagarCaixa, type Pessoa, type TipoCaixa } from "@/lib/caixas";
-import { kvGet, kvSet, rateLimit } from "@/lib/store/kv";
+import { kvDel, kvGet, kvSet, rateLimit } from "@/lib/store/kv";
 import {
   PRODUCAO_BACKUP_V1,
   PRODUCAO_KEY,
@@ -153,4 +153,11 @@ export async function apagarRegistroCaixa(form: FormData) {
   if (!(await painelAuthed())) redirect("/painel");
   await apagarCaixa(String(form.get("id") ?? ""));
   redirect(backTo(form));
+}
+
+/** Apaga os alertas do painel (a caixa vermelha). Pedidos e o resto ficam. */
+export async function limparAlertas() {
+  if (!(await painelAuthed())) redirect("/painel");
+  await kvDel("loja:alertas");
+  redirect("/painel");
 }

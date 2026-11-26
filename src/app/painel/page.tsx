@@ -43,6 +43,7 @@ import { stockRemaining } from "@/lib/store/stock";
 import { ESPECIAL_LOTES } from "@/lib/especial";
 import {
   atualizar,
+  limparAlertas,
   enviarPeloCorreio,
   marcarEntregue,
   marcarPostado,
@@ -782,10 +783,17 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       aria-label="Alertas"
       className="border-lk-fail/25 bg-lk-fail-bg text-lk-fail rounded-xl border px-5 py-4 text-sm"
     >
-      <p className="flex items-center gap-2 font-semibold">
-        <TriangleAlert aria-hidden className="size-4" />
-        {alerts.length === 1 ? "1 alerta" : `${alerts.length} alertas`}
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="flex items-center gap-2 font-semibold">
+          <TriangleAlert aria-hidden className="size-4" />
+          {alerts.length === 1 ? "1 alerta" : `${alerts.length} alertas`}
+        </p>
+        <form action={limparAlertas}>
+          <button className="text-xs font-medium underline underline-offset-4 opacity-80 hover:opacity-100">
+            Limpar alertas
+          </button>
+        </form>
+      </div>
       <ul className="text-lk-ink mt-2 space-y-1.5">
         {alerts.map((a) => (
           <li key={a.at + a.orderId} className="flex flex-wrap items-baseline gap-x-2">

@@ -333,6 +333,7 @@ async function stepLabel(order: StoredOrder, f: Fulfillment) {
       shipment = { ...shipment, status: "generated" };
   }
   if (shipment.status === "canceled") {
+    if (order.cupom) return toHandDelivery(order.id, f);
     const msg = "Etiqueta cancelada no Melhor Envio — conferir";
     if (f.error !== msg) await raiseAlert(order.id, msg);
     f.error = msg;
@@ -416,6 +417,7 @@ async function stepTrack(order: StoredOrder, f: Fulfillment) {
   // Etiqueta cancelada/estornada depois de gerada (ex.: a transportadora
   // recusou e devolveu o pacote): avisa e o painel oferece "Etiqueta nova".
   if (shipment.status === "canceled") {
+    if (order.cupom) return toHandDelivery(order.id, f);
     const msg = CANCELED_MSG;
     if (f.error !== msg) await raiseAlert(order.id, msg);
     f.error = msg;
@@ -565,6 +567,18 @@ export async function reshipLabel(orderId: string, servico?: string) {
   await kvSAdd(QUEUE, orderId);
   const after = await advanceFulfillment(orderId);
   return { ok: true as const, avoid, fulfillment: after };
+}
+
+/**
+ * Cupom dos amigos (entrega em mãos) com etiqueta cancelada no Melhor Envio:
+ * não é problema, o pedido só vira "Entregar em mãos" (sem alerta).
+ */
+async function toHandDelivery(orderId: string, f: Fulfillment) {
+  f.stage = "local";
+  f.error = null;
+  await save(orderId, f);
+  console.info(`[envio ${orderId}] cupom: etiqueta cancelada → entrega em mãos`);
+  return true;
 }
 
 /** Marca a entrega própria como feita (botão do painel ou `&acao=entregue`). */
