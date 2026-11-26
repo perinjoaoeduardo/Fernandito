@@ -40,7 +40,10 @@ export function OrderTimeline({
         {
           title: "Saiu pra entrega",
           done: reached(["local", "local-delivered"]),
-          note: `Entrega própria em ${localCity(shippingId)}`,
+          note:
+            shippingId === "local-amigos"
+              ? "Entrega em mãos pela equipe Fernandito"
+              : `Entrega própria em ${localCity(shippingId)}`,
         },
         { title: "Entregue", done: reached(["local-delivered"]), note: null },
       ]

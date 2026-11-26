@@ -92,8 +92,9 @@ export async function priceOrder(input: Order) {
   if (!shipping)
     throw new CheckoutError("O frete mudou. Escolhe o frete de novo.", 409, "shipping");
 
-  // Cupom de frete grátis: o frete do pedido vira 0 (a etiqueta continua
-  // saindo do saldo do Melhor Envio). Cupom que não vale mais → avisa.
+  // Cupom dos amigos: frete 0 e ENTREGA EM MÃOS (src/lib/cupom.ts), seja qual
+  // for o endereço — nada de etiqueta no Melhor Envio. Cupom que não vale
+  // mais → avisa.
   const cupom = cupomFreteGratis(input.cupom);
   if (input.cupom && !cupom)
     throw new CheckoutError(
@@ -102,7 +103,15 @@ export async function priceOrder(input: Order) {
       "cupom",
     );
   const freteOriginalCents = shipping.priceCents;
-  if (cupom) shipping = { ...shipping, priceCents: 0 };
+  if (cupom)
+    shipping = {
+      id: "local-amigos",
+      service: "Entrega em mãos (cupom)",
+      carrier: "Fernandito",
+      priceCents: 0,
+      days: { min: 5, max: 5 },
+      source: "local",
+    };
 
   return {
     items,

@@ -1,12 +1,13 @@
 import "server-only";
 
 /**
- * Cupom de frete grátis (pros amigos da Fernandito).
+ * Cupom dos amigos: frete grátis porque a equipe ENTREGA EM MÃOS.
  *
- * A pessoa digita o código no checkout, na etapa do frete. Valendo, o frete
- * do pedido vira R$ 0: o Pix, o e-mail, o Bling e a nota saem sem frete. A
- * etiqueta continua sendo comprada no Melhor Envio normalmente, com o saldo
- * da conta (quem paga o frete é a Fernandito).
+ * A pessoa digita o código no checkout. Valendo, o frete do pedido vira R$ 0
+ * e o pedido vira entrega em mãos (`local-amigos`), seja qual for o endereço:
+ * NÃO compra etiqueta no Melhor Envio. O Pix, o e-mail, o Bling e a nota saem
+ * sem frete; no painel fica "Entregar em mãos" até marcar entregue.
+ * (Frete grátis COM etiqueta paga pela Fernandito seria outro cupom, a criar.)
  *
  * Os códigos ficam SÓ no env `CUPOM_FRETE_GRATIS` da Vercel (vários
  * separados por vírgula). Sem o env (ou vazio), nenhum cupom vale. Nunca

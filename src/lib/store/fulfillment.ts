@@ -572,7 +572,13 @@ export async function markLocalDelivered(orderId: string, force = false) {
   const f = await getFulfillment(orderId);
   // `force` (só pelo link de admin, `&forcar=1`): caso raro de pedido com etiqueta
   // que acabou entregue em mãos. Valor e nota não mudam.
-  const allowed = force ? ["local", "ready", "posted"] : ["local"];
+  // Cupom dos amigos (entrega em mãos) que ainda ganhou etiqueta (pedidos de
+  // antes da regra): também pode marcar entregue direto.
+  const amigos =
+    f && !force && ["label", "ready", "posted"].includes(f.stage)
+      ? Boolean((await getOrder(orderId))?.cupom)
+      : false;
+  const allowed = force || amigos ? ["local", "label", "ready", "posted"] : ["local"];
   if (!f || !allowed.includes(f.stage)) return null;
   f.stage = "local-delivered";
   f.error = null;

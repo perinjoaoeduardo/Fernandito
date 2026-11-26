@@ -71,6 +71,11 @@ check(
     comCupom.data.order.totalCents === PRICE,
   JSON.stringify(comCupom.data.order?.totalCents ?? comCupom.data),
 );
+check(
+  "C3b cupom → entrega em mãos (sem etiqueta no Melhor Envio), mesmo em SP",
+  comCupom.data.order?.shipping?.id === "local-amigos",
+  JSON.stringify(comCupom.data.order?.shipping ?? comCupom.data),
+);
 const falso = await pix("CHUTE123");
 check(
   "C4 Pix com cupom falso → recusado",

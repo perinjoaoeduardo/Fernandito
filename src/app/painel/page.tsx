@@ -881,7 +881,11 @@ export default async function PainelPage(props: PageProps<"/painel">) {
 
   const acoes = ({ order: o, f }: Row) => (
     <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-      {(f?.stage === "local" || (o.origem && (f?.stage === "ready" || f?.stage === "posted"))) && (
+      {(f?.stage === "local" ||
+        ((o.origem || o.cupom) &&
+          (f?.stage === "ready" ||
+            f?.stage === "posted" ||
+            (o.cupom && f?.stage === "label")))) && (
         <form action={marcarEntregue}>
           <input type="hidden" name="id" value={o.id} />
           <input type="hidden" name="back" value={href({})} />
@@ -1302,7 +1306,10 @@ export default async function PainelPage(props: PageProps<"/painel">) {
         </>
       ) : aba === "caixas" ? (
         <CaixasView
-          registros={await garantirIniciais().catch(() => {}).then(() => listarCaixas()).catch(() => [])}
+          registros={await garantirIniciais()
+            .catch(() => {})
+            .then(() => listarCaixas())
+            .catch(() => [])}
           pessoa={PESSOAS.includes(String(sp.p ?? "") as Pessoa) ? (String(sp.p) as Pessoa) : null}
           hoje={hoje}
           actions={actions}

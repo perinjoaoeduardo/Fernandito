@@ -1040,7 +1040,7 @@ function CupomCard({
     return (
       <div className="border-fernandito-verde-claro bg-fernandito-verde-claro/15 flex w-full items-center justify-between gap-3 rounded-2xl border-2 border-dashed px-4 py-3 font-sans">
         <p className="text-body min-w-0">
-          <span className="font-bold">Frete grátis</span>{" "}
+          <span className="font-bold">Frete grátis · entrega em mãos</span>{" "}
           <span className="opacity-70">· cupom {applied}</span>
         </p>
         <button
