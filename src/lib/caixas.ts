@@ -331,6 +331,16 @@ const INICIAIS: Omit<RegistroCaixa, "criadoEm">[] = [
     nota: "1 caixa de consumo próprio.",
     data: "2026-11-26",
   },
+  {
+    id: "lorenzo-20261126-amostras1",
+    pessoa: "Lorenzo",
+    tipo: "brinde",
+    qtd: 1,
+    destino: "Potenciais clientes (amostras)",
+    para: null,
+    nota: "1 caixa pra distribuir em potenciais clientes. Sobraram 5 com ele.",
+    data: "2026-11-26",
+  },
 ];
 const SEED_KEY = "caixas:seed:v1";
 
