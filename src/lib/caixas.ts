@@ -130,6 +130,8 @@ const INICIAIS: Omit<RegistroCaixa, "criadoEm">[] = [
   { id: "matheus-20261125-adriano", pessoa: "Matheus", tipo: "vendeu", qtd: 5, destino: "Adriano · Porto Alegre", para: null, nota: "Venda de 30 latas (5 caixas) × R$ 13,86 = R$ 415,80.", data: "2026-11-25" },
   { id: "joao-20261126-consumo1", pessoa: "João", tipo: "consumo", qtd: 1, destino: "", para: null, nota: "1 six pack pra consumo pessoal.", data: "2026-11-26" },
   { id: "lorenzo-20261126-vendas13", pessoa: "Lorenzo", tipo: "vendeu", qtd: 13, destino: "Vendas em mãos (clientes a detalhar)", para: null, nota: "Entregou 13 caixas em mãos, de vendas.", data: "2026-11-26" },
+  { id: "matheus-20261126-leticia3", pessoa: "Matheus", tipo: "vendeu", qtd: 3, destino: "Leticia", para: null, nota: "3 caixas entregues pra Leticia (compra).", data: "2026-11-26" },
+  { id: "matheus-20261126-amostras2", pessoa: "Matheus", tipo: "brinde", qtd: 2, destino: "Amostras", para: null, nota: "2 caixas usadas como amostras.", data: "2026-11-26" },
 ];
 const SEED_KEY = "caixas:seed:v1";
 
