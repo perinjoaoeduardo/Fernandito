@@ -305,10 +305,30 @@ const INICIAIS: Omit<RegistroCaixa, "criadoEm">[] = [
     id: "lorenzo-20261126-nando15",
     pessoa: "João",
     tipo: "passou",
-    qtd: 15,
+    qtd: 16,
     destino: "Casa do Nando",
     para: "Fernando",
-    nota: "João deixou 15 das 30 novas na casa do Nando.",
+    nota: "João deixou 16 das 30 novas na casa do Nando.",
+    data: "2026-11-26",
+  },
+  {
+    id: "fernando-20261126-vendas7",
+    pessoa: "Fernando",
+    tipo: "vendeu",
+    qtd: 7,
+    destino: "Clientes do Nando (entrega em mãos)",
+    para: null,
+    nota: "Das 16 que o João deixou: 7 vendidas, o Nando entrega.",
+    data: "2026-11-26",
+  },
+  {
+    id: "fernando-20261126-consumo1",
+    pessoa: "Fernando",
+    tipo: "consumo",
+    qtd: 1,
+    destino: "",
+    para: null,
+    nota: "1 caixa de consumo próprio.",
     data: "2026-11-26",
   },
 ];
@@ -326,14 +346,14 @@ const NOMES_KEY = "caixas:seed:v2";
  * roda uma vez. 26/11: as 30 novas e as 15 pro Fernando foram do João, não do
  * Lorenzo.
  */
-const CORRECOES: Record<string, Partial<Pick<RegistroCaixa, "pessoa" | "nota">>> = {
+type Fix = Partial<Pick<RegistroCaixa, "pessoa" | "nota" | "qtd">>;
+const CORRECOES: Record<string, Fix> = {
   "lorenzo-20261126-pegou30b": { pessoa: "João", nota: "João pegou mais 30 caixas." },
   "lorenzo-20261126-nando15": {
     pessoa: "João",
     nota: "João deixou 15 das 30 novas na casa do Nando.",
   },
 };
-const CORRECOES_KEY = "caixas:fix:v1";
 
 /** Lançamentos que não aconteceram: saem da lista (uma vez só). 26/11: as 4
  * do Lorenzo pro Nando não foram; quem levou foi o João, dentro das 15. */
@@ -348,19 +368,32 @@ async function remover() {
   await kvSet(REMOVER_KEY, "1");
 }
 
+/** 26/11: o João deixou 16 (não 15) na casa do Nando. */
+const CORRECOES_V3: Record<string, Fix> = {
+  "lorenzo-20261126-nando15": {
+    qtd: 16,
+    nota: "João deixou 16 das 30 novas na casa do Nando.",
+  },
+};
+
 async function corrigir() {
   await remover();
-  if (await kvGet(CORRECOES_KEY)) return;
+  await aplicar("caixas:fix:v1", CORRECOES);
+  await aplicar("caixas:fix:v3", CORRECOES_V3);
+}
+
+async function aplicar(key: string, mapa: Record<string, Fix>) {
+  if (await kvGet(key)) return;
   const atual = await listarCaixas();
   let mudou = false;
   const novos = atual.map((r) => {
-    const fix = CORRECOES[r.id];
+    const fix = mapa[r.id];
     if (!fix) return r;
     mudou = true;
     return { ...r, ...fix };
   });
   if (mudou) await gravar(novos);
-  await kvSet(CORRECOES_KEY, "1");
+  await kvSet(key, "1");
 }
 
 export async function garantirIniciais() {
