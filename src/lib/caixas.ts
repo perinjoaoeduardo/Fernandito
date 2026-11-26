@@ -138,6 +138,8 @@ const INICIAIS: Omit<RegistroCaixa, "criadoEm">[] = [
   { id: "lorenzo-20261126-praia3", pessoa: "Lorenzo", tipo: "vendeu", qtd: 3, destino: "Amigos do pai (praia) · entrega pelo pai", para: null, nota: "O pai entrega 3 caixas pra amigos que compraram na praia.", data: "2026-11-26" },
   { id: "lorenzo-20261126-revendedor1", pessoa: "Lorenzo", tipo: "brinde", qtd: 1, destino: "Potencial revendedor", para: null, nota: "1 caixa de presente pra um cara que pode virar vendedor.", data: "2026-11-26" },
   { id: "lorenzo-20261126-nando4", pessoa: "Lorenzo", tipo: "passou", qtd: 4, destino: "", para: "Fernando", nota: "4 caixas levadas pro Nando.", data: "2026-11-26" },
+  { id: "lorenzo-20261126-pegou30b", pessoa: "Lorenzo", tipo: "pegou", qtd: 30, destino: "", para: null, nota: "Pegou mais 30 caixas.", data: "2026-11-26" },
+  { id: "lorenzo-20261126-nando15", pessoa: "Lorenzo", tipo: "passou", qtd: 15, destino: "Casa do Nando", para: "Fernando", nota: "Deixou 15 das 30 novas na casa do Nando.", data: "2026-11-26" },
 ];
 const SEED_KEY = "caixas:seed:v1";
 
