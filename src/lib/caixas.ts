@@ -292,16 +292,6 @@ const INICIAIS: Omit<RegistroCaixa, "criadoEm">[] = [
     data: "2026-11-26",
   },
   {
-    id: "lorenzo-20261126-nando4",
-    pessoa: "Lorenzo",
-    tipo: "passou",
-    qtd: 4,
-    destino: "",
-    para: "Fernando",
-    nota: "4 caixas levadas pro Nando.",
-    data: "2026-11-26",
-  },
-  {
     id: "lorenzo-20261126-pegou30b",
     pessoa: "João",
     tipo: "pegou",
@@ -345,7 +335,21 @@ const CORRECOES: Record<string, Partial<Pick<RegistroCaixa, "pessoa" | "nota">>>
 };
 const CORRECOES_KEY = "caixas:fix:v1";
 
+/** Lançamentos que não aconteceram: saem da lista (uma vez só). 26/11: as 4
+ * do Lorenzo pro Nando não foram; quem levou foi o João, dentro das 15. */
+const REMOVER = ["lorenzo-20261126-nando4"];
+const REMOVER_KEY = "caixas:fix:v2";
+
+async function remover() {
+  if (await kvGet(REMOVER_KEY)) return;
+  const atual = await listarCaixas();
+  const novos = atual.filter((r) => !REMOVER.includes(r.id));
+  if (novos.length !== atual.length) await gravar(novos);
+  await kvSet(REMOVER_KEY, "1");
+}
+
 async function corrigir() {
+  await remover();
   if (await kvGet(CORRECOES_KEY)) return;
   const atual = await listarCaixas();
   let mudou = false;
