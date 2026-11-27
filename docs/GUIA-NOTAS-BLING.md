@@ -9,6 +9,91 @@
 
 ---
 
+## Parte 0: o jeito fácil, a aba "Emitir nota" do painel
+
+**Para a maioria das notas, use o painel:** `fernandito.com.br/painel` →
+menu **Vendas → Emitir nota**. O Claude só é necessário para os casos que o
+painel trava.
+
+### Passo a passo
+
+1. **Cole o texto** (WhatsApp, cartão CNPJ etc.) e clique em **Preencher com
+   IA**. Se a IA ficar em dúvida, ela lista o que faltou (ex.: "Falta a IE").
+2. **Confira os campos.** Para cada coisa diferente, faça **uma nota por
+   vez**: venda e brinde pro mesmo cliente são duas notas.
+   - Preço = **preço final combinado POR UNIDADE**. Six pack = preço da
+     caixa (13,86 × 6 = 83,16), já com o ST dentro.
+   - Brinde: o preço é fixo (valor de tabela); ninguém paga.
+   - Envio: escolha **"cada caixa com sua etiqueta"** ou **"tudo junto
+     num volume só, empilhado"** (e quantas pilhas). O painel calcula a
+     caixa (ex.: 6 six packs em 2 pilhas = 24 × 27,6 × 49,2 cm, 15 kg).
+3. **Conferir.** O painel olha tudo sem criar nada: regras fiscais, CNPJ/CPF,
+   IE, CEP, preço, estoque do Bling, cadastro que já existe no Bling, nota
+   repetida, frete e saldo do Melhor Envio. Se for envio, **abre a janela do
+   Melhor Envio** com as opções (transportadora, preço e prazo) e o saldo:
+   escolha uma e clique em **Usar este frete**.
+4. **Preparar nota (rascunho).** Cria cliente, pedido e nota em RASCUNHO no
+   Bling e confere o rascunho (total e CFOP). Nada vai pra Sefaz. Dá pra ver
+   a prévia e **Descartar**.
+5. **Emitir na Sefaz.** Pede confirmação. Emite, manda pro e-mail do cliente
+   (se tiver), **baixa o estoque** e, se for envio, **compra a etiqueta** com
+   o saldo do Melhor Envio. A etiqueta aparece também em Vendas → Imprimir
+   e postar.
+
+### Quando o painel libera (o resto TRAVA)
+
+| | RS | RJ | SC | Outros estados |
+|---|---|---|---|---|
+| **Venda pra empresa** (com IE) | ✅ ST 5401 (preço com ST incluso) | ✅ 6101 sem ST + observação da Lei RJ | ⛔ | ⛔ |
+| **Venda pra pessoa física** | ✅ 5101 | ✅ 6107 | ✅ 6107 | ✅ 6107 |
+| **Brinde** (empresa ou pessoa) | ✅ 5910 | ⛔ | ✅ 6910 | ⛔ |
+
+Liberar um estado novo = a contadora cadastrar a natureza no Bling e o João
+acrescentar no sistema. **Até lá, trava e chama o João.**
+
+### O que trava e o que fazer
+
+**Regra de ouro: travou ou deu erro, NÃO tente de outro jeito. Chama o João.**
+É melhor esperar do que sair nota ou etiqueta errada.
+
+| Mensagem (resumo) | O que fazer |
+|---|---|
+| "A IA está desligada / não respondeu / ocupada" | Preencha os campos à mão (funciona igual). |
+| "CNPJ/CPF inválido" | Confira os números no cartão CNPJ. |
+| "Empresa sem inscrição estadual" | Pegue a IE no Sintegra RS. Se for isenta: João. |
+| "Falta a razão social" | Use o nome do cartão CNPJ (não o fantasia). |
+| "CEP não é do estado" / "Nenhuma transportadora atende esse CEP" | Confira o CEP. Se estiver certo: João. |
+| "Preço fora do normal" | Quase sempre é preço por lata no six pack (multiplique por 6). Se estiver certo: João. |
+| "Natureza desse estado não está cadastrada" / "ainda não emitimos bonificação pra esse estado" | João (e contadora). |
+| "Estoque do Bling tem X latas" | João (estoque precisa ser acertado). |
+| "Esse cliente já está no Bling com IE/UF diferente" | João (o cadastro do Bling precisa ser corrigido antes; senão a Sefaz rejeita). |
+| "Já tem nota hoje pra esse cliente" | Se for outra venda mesmo, marque **É outra nota mesmo**. Se não, pare. |
+| "Saldo do Melhor Envio não paga a etiqueta" | Coloque saldo no Melhor Envio e confira de novo. |
+| "Empilhado fica grande demais" / "mais de 20 caixas" | Mais pilhas ou caixas separadas. Se não der: João. |
+| "Travei: o total da nota não bate / o CFOP saiu…" | João. O rascunho é apagado sozinho (se não der, a mensagem diz o que apagar no Bling). |
+| "Nota REJEITADA / DENEGADA pela Sefaz" | **Não prepare outra.** João (o motivo está no Bling → Notas fiscais). |
+| "A Sefaz ainda não respondeu" | Espere 1 minuto e clique em **Conferir de novo**. Não emita outra. |
+| "A nota saiu, mas a etiqueta não" | Clique em **Comprar etiqueta** (não paga em dobro). Falhou de novo: João. |
+| "A nota saiu, mas o estoque NÃO baixou" | Avise o João (ele baixa à mão). |
+| "A conexão caiu no meio" | Recarregue e olhe **Últimas notas do painel** antes de repetir qualquer coisa. |
+
+### Ligar a IA (uma vez só, o João faz)
+
+1. Entrar em **console.anthropic.com** (criar conta com o e-mail da
+   Fernandito) → **Settings → Billing**: colocar um cartão e um crédito
+   pequeno (ex.: US$ 5 dura muito; cada nota custa uma fração de centavo).
+2. **API Keys → Create Key** → nome "painel-fernandito" → copiar a chave
+   (começa com `sk-ant-`). Ela só aparece uma vez.
+3. **Vercel** → projeto Fernandito → **Settings → Environment Variables** →
+   **Add**: nome `ANTHROPIC_API_KEY`, valor = a chave, ambiente
+   **Production** (e Preview, se quiser testar). Salvar.
+4. **Deployments** → no último → **⋯ → Redeploy**.
+5. Testar: painel → Emitir nota → colar um texto → **Preencher com IA**.
+6. **Nunca cole a chave em chat, WhatsApp ou e-mail.** Vazou? Apague em
+   console.anthropic.com → API Keys e crie outra.
+
+---
+
 ## Parte 1: deixar tudo pronto (uma vez só)
 
 Seu trabalho é só com o Bling. **Você não precisa mexer no código do site.**
@@ -101,11 +186,10 @@ Só se um dia você quiser ver ou mexer no código do site junto com o João.
 | Venda de produção a não contribuinte – Consumidor final | **15111699956** | 5101 (RS) / 6107 (fora) | Pessoa física e vendas do site |
 | Venda de produção Fora do Estado (RJ) | **15112000710** | 6101 | Empresa no RJ (caso Grão de Mostarda) |
 | Saída em bonificação – Brinde | **15111699949** | 5910 (RS) / 6910 (fora) | Brinde, amostra, bonificação |
+| Venda de produção com ST (RS) | **15111699959** | 5401 | Empresa do RS com IE (revenda). O **ST já está dentro** do preço combinado: o preço da nota é ajustado pra o total bater |
 
-> ❗ **Ainda não existe natureza para vender a uma EMPRESA dentro do RS**
-> (revenda: mercado, bar). **Antes dessa nota, pergunte à contadora** a
-> natureza e se tem **ICMS-ST** (bebida alcoólica). O mesmo vale para outro
-> estado novo: a do RJ tem regra própria de ST.
+> ❗ Venda pra empresa de **outro estado** (fora RS e RJ): cada estado tem
+> regra de ST. **Antes, a contadora.**
 
 ---
 
@@ -188,8 +272,8 @@ Registro simples de quem está com quantas caixas e para onde elas foram:
 - **Tipos:** pegou · entregou pra venda · brinde · consumo próprio · passou
   pra outra pessoa · devolveu · ajuste.
 - Lance pelo formulário do painel, aba **Caixas da equipe**.
-- Se a venda saiu das caixas de alguém da equipe, lance lá também ("Matheus
-  entregou 5 pra venda – Cliente X"), além da nota.
+- É só um **diário** de quem está com quantas caixas. **Não tem relação com
+  a nota**: toda nota sai do estoque do Bling.
 
 ---
 

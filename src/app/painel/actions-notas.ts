@@ -3,11 +3,10 @@
 import { painelAuthed } from "@/lib/painel";
 import {
   autorizarNota,
+  conferirNota,
   descartarNota,
   extrairRascunho,
-  planejar,
   prepararNota,
-  rascunhoSchema,
   type Plano,
   type Prep,
   type Rascunho,
@@ -32,17 +31,21 @@ export async function lerTexto(texto: string): Promise<Res<Rascunho>> {
   });
 }
 
-/** Confere as regras (natureza, campos faltando) sem mexer em nada. */
+/** Confere tudo (regras, estoque, cadastro, frete, saldo) sem criar nada. */
 export async function conferir(rascunho: Rascunho): Promise<Res<Plano>> {
-  return guard(async () => planejar(rascunhoSchema.parse(rascunho)));
+  return guard(() => conferirNota(rascunho));
 }
 
 /** Cria cliente, pedido e nota em RASCUNHO no Bling (nada vai pra Sefaz). */
-export async function preparar(rascunho: Rascunho): Promise<Res<Prep>> {
-  return guard(() => prepararNota(rascunho, "painel"));
+export async function preparar(
+  rascunho: Rascunho,
+  freteId: string | null,
+  confirmaRepetida: boolean,
+): Promise<Res<Prep>> {
+  return guard(() => prepararNota(rascunho, { freteId, confirmaRepetida }));
 }
 
-/** Manda a nota pra Sefaz, baixa o estoque, compra a etiqueta, lança nas caixas. */
+/** Manda a nota pra Sefaz, baixa o estoque e compra a etiqueta (envio). */
 export async function autorizar(id: string): Promise<Res<Prep>> {
   return guard(() => autorizarNota(id));
 }

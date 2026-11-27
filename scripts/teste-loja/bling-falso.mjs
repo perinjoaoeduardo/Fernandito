@@ -6,6 +6,9 @@ const flags = {
   nfeStuck: false,
   celularReject: false,
   saldos: {},
+  // Aba "Emitir nota": ST diferente do normal (total não bate) e saldo da lata.
+  stRatio: 1.18672,
+  saldoLata: 9999,
   // Token vencido: a próxima chamada (fora /oauth) responde 401 uma vez.
   expire401Once: false,
 };
@@ -35,6 +38,7 @@ http
     }
     const url = new URL(req.url, "http://x");
     const p = url.pathname.replace(/^\/Api\/v3/, "");
+    let m0;
     if (p === "/oauth/token") {
       calls.refresh++;
       return send(res, 200, {
@@ -73,7 +77,12 @@ http
           error: { description: "O limite de requisições por segundo foi atingido" },
         });
       }
-      return send(res, 200, { data: [] });
+      const achou = contacts.find((c) => c.numeroDocumento === doc);
+      return send(res, 200, { data: achou ? [{ id: achou.id }] : [] });
+    }
+    if ((m0 = p.match(/^\/contatos\/(\d+)$/)) && req.method === "GET") {
+      const c = contacts.find((x) => String(x.id) === m0[1]);
+      return c ? send(res, 200, { data: c }) : send(res, 404, {});
     }
     if (p === "/contatos" && req.method === "POST") {
       // Igual ao real: celular fora do padrão (ex.: não começa com 9) é recusado.
@@ -84,8 +93,9 @@ http
               "O contato não pode ser salvo, pois ocorreram problemas em sua validação. (É necessário preencher corretamente o campo Celular)",
           },
         });
-      contacts.push(body);
-      return send(res, 201, { data: { id: nextId++ } });
+      const id = nextId++;
+      contacts.push({ ...body, id });
+      return send(res, 201, { data: { id } });
     }
     if (p.startsWith("/campos-customizados")) return send(res, 200, { data: [] });
     if (p === "/produtos") {
@@ -110,7 +120,8 @@ http
         // pedidos em /produtos (100, 101, …), então guardamos por código.
         data: url.searchParams.getAll("idsProdutos[]").map((id) => ({
           produto: { id: Number(id) },
-          saldoVirtualTotal: flags.saldos[codigoById.get(Number(id))] ?? 9999,
+          saldoVirtualTotal:
+            id === "16718234916" ? flags.saldoLata : (flags.saldos[codigoById.get(Number(id))] ?? 9999),
         })),
       });
     if (p === "/pedidos/vendas" && req.method === "GET") {
@@ -134,7 +145,13 @@ http
       const st = (s.itens ?? []).some((i) => i.naturezaOperacao?.id === 15111699959);
       nfes.set(String(id), {
         id,
-        valorNota: Math.round(base * (st ? 1.18672 : 1) * 100) / 100,
+        valorNota: Math.round(base * (st ? flags.stRatio : 1) * 100) / 100,
+        itens: (s.itens ?? []).map((i) => ({
+          cfop:
+            { 15111699959: "5401", 15111699949: "5910", 15112000710: "6101" }[
+              i.naturezaOperacao?.id
+            ] ?? "5101",
+        })),
         numero: String(id - 4900),
         situacao: 1,
         chaveAcesso: null,

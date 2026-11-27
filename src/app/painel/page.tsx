@@ -1314,13 +1314,12 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       ) : aba === "notas" ? (
         <>
           <PageHeader
-            eyebrow="Venda por fora ou brinde: cola o texto, confere e emite"
+            eyebrow="Venda por fora do site ou brinde · na dúvida, para e chama o João"
             title="Emitir nota"
             actions={actions}
           />
           <EmitirNota
             vazio={rascunhoVazio()}
-            pessoas={PESSOAS}
             recentes={(await listarPreps().catch(() => [])).slice(0, 20)}
           />
         </>

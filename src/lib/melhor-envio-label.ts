@@ -338,3 +338,9 @@ export async function labelsPrintUrl(ids: string[]): Promise<string | null> {
   const data = await me<{ url?: string }>("/shipment/print", { mode: "private", orders: ids });
   return data?.url ?? null;
 }
+
+/** Saldo da conta do Melhor Envio, em centavos (pra não emitir nota sem saldo pra etiqueta). */
+export async function meBalanceCents(): Promise<number> {
+  const data = await me<{ balance?: number | string }>("/balance");
+  return Math.round(Number(data?.balance ?? 0) * 100);
+}
