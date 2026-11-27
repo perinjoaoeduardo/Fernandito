@@ -293,11 +293,37 @@ const FILTERS = [
 // Filtros agrupados pelo caminho do pedido.
 const FILTER_LABEL = Object.fromEntries(FILTERS) as Record<(typeof FILTERS)[number][0], string>;
 const FILTER_GROUPS = [
-  { title: "Geral", keys: ["todos", "fora"] },
+  // "Fora do site" virou o filtro de Canal (B2C / B2B / Brindes), logo acima.
+  { title: "Etapa", keys: ["todos"] },
   { title: "Correio", keys: ["imprimir", "caminho", "entregues-correio"] },
   { title: "Em mãos", keys: ["entregar", "entregues-maos"] },
   { title: "Atenção", keys: ["olho", "estornados"] },
 ] as const;
+
+/**
+ * Canal da venda (pra ninguém se perder entre consumidor e empresa):
+ *  - b2c: consumidor final — pedidos do site e vendas por fora pra CPF.
+ *  - b2b: empresa (CNPJ) — bares, mercados, distribuidores.
+ *  - brinde: bonificação (ninguém paga).
+ */
+type Canal = "b2c" | "b2b" | "brinde";
+const CANAIS = [
+  ["todos", "Todos"],
+  ["b2c", "B2C · Consumidor"],
+  ["b2b", "B2B · Empresas"],
+  ["brinde", "Brindes"],
+] as const;
+/** Venda por fora lida do Bling: CNPJ/CPF da nota; sem ele (nota antiga), pela natureza. */
+function canalDaNota(m: { tipo: string; pessoa?: "PJ" | "PF"; natureza: string }): Canal {
+  if (m.tipo === "bonificacao") return "brinde";
+  if (m.pessoa) return m.pessoa === "PJ" ? "b2b" : "b2c";
+  return /consumidor final|n[ãa]o contribuinte/i.test(m.natureza) ? "b2c" : "b2b";
+}
+const CANAL_BADGE: Record<Canal, { tone: Tone; label: (site: boolean) => string }> = {
+  b2c: { tone: "action", label: (site) => (site ? "B2C · Site" : "B2C · Por fora") },
+  b2b: { tone: "hold", label: () => "B2B · Empresa" },
+  brinde: { tone: "review", label: () => "Brinde" },
+};
 
 const ABAS: Aba[] = [
   "pedidos",
@@ -382,6 +408,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const q = (typeof sp.q === "string" ? sp.q : "").trim().slice(0, 80);
   const page = Math.max(1, Number.parseInt(String(sp.p ?? "1"), 10) || 1);
   const ver = FILTERS.some(([k]) => k === raw) ? String(raw) : "todos";
+  const canal = CANAIS.some(([k]) => k === sp.canal) ? String(sp.canal) : "todos";
   const ORDENS = ["cliente", "valor", "pago", "status"] as const;
   type Ordem = (typeof ORDENS)[number];
   const ordem: Ordem | null = ORDENS.includes(sp.ordem as Ordem) ? (sp.ordem as Ordem) : null;
@@ -420,6 +447,8 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     const row = avulsoAsRow(a);
     const m = nfDe.get(nfNum(a.nf.numero));
     row.order.nfLink = m?.danfeUrl ?? null;
+    (row.order as { canal?: Canal }).canal =
+      a.tipo === "bonificacao" ? "brinde" : m ? canalDaNota(m) : "b2b";
     row.order.nfNumero = a.nf.numero;
     return row;
   });
@@ -464,6 +493,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       createdAt: quando,
       simulated: false,
       origem: m.tipo === "bonificacao" ? "bonificacao" : "manual",
+      canal: canalDaNota(m),
       nfLink: m.danfeUrl ?? null,
       nfNumero: String(m.numero),
       nfPendente: !NFE_OK.includes(m.situacao),
@@ -493,13 +523,21 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       : null;
     return { order, f };
   });
+  const canalOf = (o: StoredOrder): Canal =>
+    (o as { canal?: Canal }).canal ?? (o.origem === "bonificacao" ? "brinde" : "b2c");
   const every = [
     ...orders.map((order, i) => ({
       order,
       f: fulfillments[i],
       st: status(order, fulfillments[i]),
+      canal: "b2c" as Canal,
     })),
-    ...[...avulsos, ...soNota].map(({ order, f }) => ({ order, f, st: status(order, f) })),
+    ...[...avulsos, ...soNota].map(({ order, f }) => ({
+      order,
+      f,
+      st: status(order, f),
+      canal: canalOf(order),
+    })),
   ].sort((a, b) => b.order.createdAt.localeCompare(a.order.createdAt));
   // Pedidos simulados (Pix de mentira dos testes do preview) ficam fora das
   // contas e da lista; só aparecem em "Todos".
@@ -544,9 +582,17 @@ export default async function PainelPage(props: PageProps<"/painel">) {
       .toLowerCase();
   const needle = norm(q);
   const digits = q.replace(/\D/g, "");
+  // Canal (B2C / B2B / Brindes) combina com o filtro de etapa.
+  const canalCounts = Object.fromEntries(
+    CANAIS.map(([k]) => [
+      k,
+      k === "todos" ? byFilter.length : byFilter.filter((r) => r.canal === k).length,
+    ]),
+  ) as Record<string, number>;
+  const byCanal = canal === "todos" ? byFilter : byFilter.filter((r) => r.canal === canal);
   const rows = [
     ...(needle
-      ? byFilter.filter(({ order: o, f }) => {
+      ? byCanal.filter(({ order: o, f }) => {
           const hay = norm(
             [
               o.id,
@@ -564,7 +610,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
             hay.includes(needle) || (digits.length >= 4 && hay.replace(/\D/g, "").includes(digits))
           );
         })
-      : byFilter),
+      : byCanal),
   ];
   // Ordenar pela coluna clicada (padrão: mais novo primeiro).
   const STATUS_RANK: Record<Tone, number> = {
@@ -601,10 +647,19 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     .filter((r) => !r.order.refundedAt && !r.f?.error)
     .filter((r) => r.f?.stage === "ready" && r.f.label.meId && r.f.label.status !== "canceled")
     .map((r) => r.f!.label.meId!);
-  const href = (o: { ver?: string; p?: number; q?: string; ordem?: string; dir?: string }) => {
+  const href = (o: {
+    ver?: string;
+    canal?: string;
+    p?: number;
+    q?: string;
+    ordem?: string;
+    dir?: string;
+  }) => {
     const v = o.ver ?? ver;
+    const c = o.canal ?? canal;
     const qs = new URLSearchParams();
     if (v !== "todos") qs.set("ver", v);
+    if (c !== "todos") qs.set("canal", c);
     const query = o.q ?? q;
     if (query) qs.set("q", query);
     const ord = o.ordem ?? ordem;
@@ -664,6 +719,12 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const latasOf = (map: Map<string, number>) =>
     [...map].reduce((n, [sku, qty]) => n + (LATAS[sku] ?? 0) * qty, 0);
   const salesCount = sitePaid.length + manualOk.length;
+  // B2C (site + vendas por fora pra CPF) × B2B (vendas pra CNPJ).
+  const manualB2b = manualOk.filter((m) => canalDaNota(m) === "b2b");
+  const manualB2c = manualOk.filter((m) => canalDaNota(m) === "b2c");
+  const somaNotas = (l: typeof manualOk) => l.reduce((sum, m) => sum + m.totalCents, 0);
+  const b2bRevenue = somaNotas(manualB2b);
+  const b2cRevenue = revenue + somaNotas(manualB2c);
   const totalRevenue = revenue + manualRevenue;
   const ticket = salesCount ? Math.round(totalRevenue / salesCount) : 0;
   const latasSold = latasOf(soldUnits);
@@ -698,7 +759,12 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     ...(manual?.sales ?? []).map((m) => ({
       id: `nf-${m.id}`,
       data: m.data ? m.data.slice(0, 10) : hoje,
-      canal: m.tipo === "bonificacao" ? ("bonificacao" as const) : ("manual" as const),
+      canal:
+        m.tipo === "bonificacao"
+          ? ("bonificacao" as const)
+          : canalDaNota(m) === "b2b"
+            ? ("b2b" as const)
+            : ("manual" as const),
       cliente: m.cliente,
       contato: "",
       cidade: m.cidade,
@@ -762,16 +828,19 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     )
     .slice(0, 10);
 
+  // Números das etapas dentro do canal escolhido (B2B mostra só os B2B).
+  const noCanal = <T extends { canal: Canal }>(l: T[]) =>
+    canal === "todos" ? l.length : l.filter((r) => r.canal === canal).length;
   const counts: Record<string, number> = {
-    imprimir: toPrint.length,
-    entregar: toDeliver.length,
-    caminho: inTransit.length,
-    "entregues-maos": deliveredByHand.length,
-    "entregues-correio": deliveredByMail.length,
-    olho: stuck.length,
-    estornados: all.filter((r) => r.order.refundedAt).length,
-    fora: every.filter((r) => r.order.origem).length,
-    todos: every.length,
+    imprimir: noCanal(toPrint),
+    entregar: noCanal(toDeliver),
+    caminho: noCanal(inTransit),
+    "entregues-maos": noCanal(deliveredByHand),
+    "entregues-correio": noCanal(deliveredByMail),
+    olho: noCanal(stuck),
+    estornados: noCanal(all.filter((r) => r.order.refundedAt)),
+    fora: noCanal(every.filter((r) => r.order.origem)),
+    todos: noCanal(every),
   };
   const waLink = (digits: string) =>
     `https://wa.me/55${digits.replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "")}`;
@@ -834,11 +903,10 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     <div className="flex min-w-0 flex-col gap-0.5">
       <p className="text-lk-ink flex min-w-0 items-center gap-2 font-semibold">
         <span className="truncate">{o.customer.name}</span>
-        {o.origem && (
-          <Badge tone={o.origem === "bonificacao" ? "review" : "muted"}>
-            Fora do site · {o.origem === "bonificacao" ? "Bonificação" : "Venda"}
-          </Badge>
-        )}
+        {(() => {
+          const c = canalOf(o);
+          return <Badge tone={CANAL_BADGE[c].tone}>{CANAL_BADGE[c].label(!o.origem)}</Badge>;
+        })()}
       </p>
       <p className="text-lk-muted text-xs">
         {o.items.map((i) => `${i.qty}x ${i.name}`).join(" + ")}
@@ -1038,13 +1106,13 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           icon={Banknote}
           label="Faturado"
           value={brl(totalRevenue)}
-          note={`site ${brl(revenue)} · manual ${brl(manualRevenue)}`}
+          note={`B2C ${brl(b2cRevenue)} · B2B ${brl(b2bRevenue)}`}
         />
         <Tile
           icon={ShoppingBag}
           label="Vendas"
           value={salesCount}
-          note={`${sitePaid.length} no site · ${manualOk.length} manuais`}
+          note={`${sitePaid.length + manualB2c.length} B2C · ${manualB2b.length} B2B`}
         />
         <Tile icon={Receipt} label="Ticket médio" value={brl(ticket)} note="Faturado ÷ vendas" />
         <Tile
@@ -1075,17 +1143,34 @@ export default async function PainelPage(props: PageProps<"/painel">) {
         <div className="flex flex-col gap-3">
           <SearchBox q={q} />
           <FilterGroups
+            label="Filtrar por canal"
+            groups={[
+              {
+                title: "Canal · consumidor, empresa ou brinde",
+                items: CANAIS.map(([key, label]) => ({
+                  key,
+                  label,
+                  count: canalCounts[key],
+                  href: href({ canal: key, p: 1 }),
+                  active: canal === key,
+                })),
+              },
+            ]}
+          />
+          <FilterGroups
             label="Filtrar pedidos"
-            groups={FILTER_GROUPS.map((g) => ({
-              title: g.title,
-              items: g.keys.map((key) => ({
-                key,
-                label: FILTER_LABEL[key],
-                count: counts[key],
-                href: href({ ver: key, p: 1 }),
-                active: ver === key,
+            groups={[
+              ...FILTER_GROUPS.map((g) => ({
+                title: g.title,
+                items: g.keys.map((key) => ({
+                  key,
+                  label: FILTER_LABEL[key],
+                  count: counts[key],
+                  href: href({ ver: key, p: 1 }),
+                  active: ver === key,
+                })),
               })),
-            }))}
+            ]}
           />
         </div>
 
@@ -1132,7 +1217,18 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                     >
                       <td className={TD}>{cliente(r)}</td>
                       <td className={`${TD} text-right`}>
-                        <p className="font-medium">{brl(r.order.totalCents)}</p>
+                        {r.canal === "brinde" ? (
+                          <>
+                            <p
+                              className="text-lk-review font-medium"
+                              title={`Valor de tabela na nota: ${brl(r.order.totalCents)} (ninguém paga)`}
+                            >
+                              Brinde
+                            </p>
+                          </>
+                        ) : (
+                          <p className="font-medium">{brl(r.order.totalCents)}</p>
+                        )}
                         <p className="text-lk-muted text-xs">{carrierOf(r)}</p>
                       </td>
                       <td className={`${TD} text-lk-muted`}>{when(r.order.paidAt)}</td>
@@ -1153,8 +1249,14 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                 >
                   {cliente(r)}
                   <p className="text-lk-muted text-xs">
-                    <span className="text-lk-ink font-medium">{brl(r.order.totalCents)}</span> ·{" "}
-                    {carrierOf(r)} · pago {when(r.order.paidAt)}
+                    {r.canal === "brinde" ? (
+                      <span className="text-lk-review font-medium">
+                        Brinde (tabela {brl(r.order.totalCents)})
+                      </span>
+                    ) : (
+                      <span className="text-lk-ink font-medium">{brl(r.order.totalCents)}</span>
+                    )}{" "}
+                    · {carrierOf(r)} · pago {when(r.order.paidAt)}
                   </p>
                   {estado(r)}
                   {acoes(r)}

@@ -21,6 +21,8 @@ export type ManualSale = {
   tipo: "venda" | "bonificacao";
   natureza: string;
   cliente: string;
+  /** Empresa (CNPJ) ou pessoa (CPF) na nota: separa B2B de B2C no painel. */
+  pessoa?: "PJ" | "PF";
   /** Nome na nota, quando a entrega é pra outra pessoa (etiqueta do pedido). */
   nfPara?: string;
   cidade: string;
@@ -43,7 +45,7 @@ type Store = {
 };
 
 const KEY = "bling:manual";
-const VERSION = 3;
+const VERSION = 4;
 const DAYS = 180;
 const FRESH_MS = 10 * 60 * 1000;
 // O Bling limita ~3 req/s: no máximo 25 notas novas por conferência, com
@@ -76,7 +78,7 @@ type NfeDetail = {
   numeroPedidoLoja?: string;
   loja?: { id?: number };
   naturezaOperacao?: { id?: number };
-  contato?: { nome?: string; endereco?: Endereco };
+  contato?: { nome?: string; numeroDocumento?: string; endereco?: Endereco };
   transporte?: { etiqueta?: Endereco & { nome?: string } };
   itens?: {
     codigo?: string;
@@ -209,6 +211,14 @@ export async function syncManualSales(): Promise<Store | null> {
         situacao: nfe.situacao ?? item.situacao,
         tipo: bonus ? "bonificacao" : "venda",
         natureza,
+        ...(() => {
+          const doc = (nfe.contato?.numeroDocumento ?? "").replace(/\D/g, "");
+          return doc.length === 14
+            ? { pessoa: "PJ" as const }
+            : doc.length === 11
+              ? { pessoa: "PF" as const }
+              : {};
+        })(),
         ...whoGets(nfe),
         itens,
         totalCents: Math.round(Number(nfe.valorNota ?? 0) * 100),

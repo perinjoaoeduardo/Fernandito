@@ -46,7 +46,9 @@ const ext = { target: "_blank", rel: "noopener noreferrer" } as const;
 
 // ── Vendas (site + manuais + bonificações), tudo num formato só ─────────────
 
-export type Canal = "site" | "manual" | "bonificacao";
+/** site = consumidor pelo site (B2C) · manual = por fora pra pessoa (B2C) ·
+ * b2b = por fora pra empresa (CNPJ) · bonificacao = brinde. */
+export type Canal = "site" | "manual" | "b2b" | "bonificacao";
 
 export type Venda = {
   id: string;
@@ -121,9 +123,10 @@ function PeriodoNav({ aba, periodo }: { aba: string; periodo: Periodo }) {
 }
 
 const CANAL: Record<Canal, { label: string; tone: Tone }> = {
-  site: { label: "Site", tone: "action" },
-  manual: { label: "Venda manual", tone: "pass" },
-  bonificacao: { label: "Bonificação", tone: "review" },
+  site: { label: "B2C · Site", tone: "action" },
+  manual: { label: "B2C · Por fora", tone: "action" },
+  b2b: { label: "B2B · Empresa", tone: "hold" },
+  bonificacao: { label: "Brinde", tone: "review" },
 };
 
 export function VendasView({
@@ -150,7 +153,8 @@ export function VendasView({
   const doPeriodo = vendas.filter((v) => noPeriodo(v.data, iv));
   const pagas = doPeriodo.filter((v) => v.canal !== "bonificacao" && !v.pendente);
   const site = pagas.filter((v) => v.canal === "site");
-  const manual = pagas.filter((v) => v.canal === "manual");
+  const b2c = pagas.filter((v) => v.canal === "site" || v.canal === "manual");
+  const b2b = pagas.filter((v) => v.canal === "b2b");
   const brindes = doPeriodo.filter((v) => v.canal === "bonificacao");
   const soma = (vs: Venda[]) => vs.reduce((n, v) => n + v.totalCents, 0);
   const faturado = soma(pagas);
@@ -167,8 +171,9 @@ export function VendasView({
   for (const v of doPeriodo.filter((x) => !x.pendente))
     for (const i of v.itens) {
       const p = produtos.get(i.sku) ?? { nome: i.nome, site: 0, manual: 0, brinde: 0, receita: 0 };
-      if (v.canal === "site") p.site += i.qtd;
-      else if (v.canal === "manual") p.manual += i.qtd;
+      // Colunas: B2C (site + por fora pra pessoa) e B2B (empresa).
+      if (v.canal === "site" || v.canal === "manual") p.site += i.qtd;
+      else if (v.canal === "b2b") p.manual += i.qtd;
       else p.brinde += i.qtd;
       if (v.canal !== "bonificacao") p.receita += i.valorCents;
       produtos.set(i.sku, p);
@@ -201,13 +206,13 @@ export function VendasView({
             icon={Banknote}
             label="Faturado"
             value={brl(faturado)}
-            note={`site ${brl(soma(site))} · manual ${brl(soma(manual))}`}
+            note={`B2C ${brl(soma(b2c))} · B2B ${brl(soma(b2b))}`}
           />
           <Tile
             icon={ShoppingBag}
             label="Vendas"
             value={pagas.length}
-            note={`${site.length} no site · ${manual.length} manuais`}
+            note={`${b2c.length} B2C · ${b2b.length} B2B`}
           />
           <Tile
             icon={Receipt}
@@ -247,8 +252,8 @@ export function VendasView({
               <thead>
                 <tr>
                   <th className={TH}>Produto</th>
-                  <th className={`${TH} text-right`}>Site</th>
-                  <th className={`${TH} text-right`}>Manual</th>
+                  <th className={`${TH} text-right`}>B2C</th>
+                  <th className={`${TH} text-right`}>B2B</th>
                   <th className={`${TH} text-right`}>Brindes</th>
                   <th className={`${TH} text-right`}>Receita (sem frete)</th>
                 </tr>
@@ -525,11 +530,13 @@ export function ClientesView({
                       <p className="font-semibold">{c.nome}</p>
                       <p className="text-lk-muted text-xs">
                         {c.cidade}
-                        {c.canais.has("manual") && c.canais.has("site")
-                          ? " · site e manual"
-                          : c.canais.has("manual")
-                            ? " · venda manual"
-                            : ""}
+                        {c.canais.has("b2b")
+                          ? " · B2B (empresa)"
+                          : c.canais.has("manual") && c.canais.has("site")
+                            ? " · site e por fora"
+                            : c.canais.has("manual")
+                              ? " · por fora"
+                              : ""}
                         {c.marketing ? " · aceita novidades" : ""}
                       </p>
                     </td>
