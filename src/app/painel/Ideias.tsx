@@ -2,7 +2,7 @@ import { Trash2 } from "lucide-react";
 import { CATEGORIAS, type Categoria, type Ideia } from "@/lib/ideias";
 import { apagarIdeiaAction, registrarIdeia } from "./actions";
 import { SubmitButton } from "./SubmitButton";
-import { CARD, PageHeader, SectionTitle } from "./ui";
+import { CARD, PageHeader, SectionTitle, Select } from "./ui";
 
 const FIELD =
   "border-lk-border focus:border-lk-action focus:ring-lk-action/15 h-10 w-full rounded-lg border bg-white px-3 text-sm outline-none focus:ring-4";
@@ -46,13 +46,13 @@ export function IdeiasView({
         <form action={registrarIdeia} className="mt-4 grid gap-3 sm:grid-cols-4">
           <label>
             <span className={LABEL}>Tipo</span>
-            <select name="categoria" required defaultValue="video" className={FIELD}>
+            <Select name="categoria" required defaultValue="video" className={FIELD}>
               {Object.entries(CATEGORIAS).map(([k, c]) => (
                 <option key={k} value={k}>
                   {c.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <label>
             <span className={LABEL}>Data</span>

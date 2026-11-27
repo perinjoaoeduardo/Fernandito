@@ -134,7 +134,7 @@ await preencher({
   pilhas: 2,
 });
 const p8 = await conferir();
-check("N8a empilhado 2×3 → caixa 24 × 27.6 × 49.2 cm, 15 kg", p8.includes("24 × 27.6 × 49.2") && p8.includes("15 kg"), p8);
+check("N8a empilhado 2×3 → caixa 24 × 27,6 × 49,2 cm, 15 kg", p8.includes("24 × 27,6 × 49,2") && p8.includes("15 kg"), p8);
 check("N8b natureza ST 5401", p8.includes("5401"));
 check("N8c abre a janela do Melhor Envio com as opções", (await page.locator("[role=dialog] li button").count()) > 0);
 check("N8d sem escolher o frete, não prepara", !(await page.locator("button:has-text('3. Preparar nota')").isDisabled()) === false);

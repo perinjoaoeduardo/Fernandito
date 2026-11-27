@@ -24,6 +24,7 @@ import {
   Tile,
   btn,
   type Tone,
+  Select,
 } from "./ui";
 
 const FIELD =
@@ -152,24 +153,24 @@ export function CaixasView({
           <input type="hidden" name="back" value={back} />
           <label className="lg:col-span-1">
             <span className={LABEL}>Quem</span>
-            <select name="pessoa" required defaultValue={pessoa ?? ""} className={FIELD}>
+            <Select name="pessoa" required defaultValue={pessoa ?? ""} className={FIELD}>
               <option value="" disabled>
                 Escolher…
               </option>
               {PESSOAS.map((p) => (
                 <option key={p}>{p}</option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="lg:col-span-2">
             <span className={LABEL}>O que aconteceu</span>
-            <select name="tipo" required defaultValue="pegou" className={FIELD}>
+            <Select name="tipo" required defaultValue="pegou" className={FIELD}>
               {Object.entries(TIPOS_CAIXA).map(([k, t]) => (
                 <option key={k} value={k}>
                   {t.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <label>
             <span className={LABEL}>Quantas caixas</span>
@@ -191,12 +192,12 @@ export function CaixasView({
           </label>
           <label>
             <span className={LABEL}>Passou pra (se passou)</span>
-            <select name="para" defaultValue="" className={FIELD}>
+            <Select name="para" defaultValue="" className={FIELD}>
               <option value="">—</option>
               {PESSOAS.map((p) => (
                 <option key={p}>{p}</option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="sm:col-span-2 lg:col-span-6">
             <span className={LABEL}>Pra quem / pra onde (cliente, bar, evento…)</span>

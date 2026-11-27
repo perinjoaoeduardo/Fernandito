@@ -3,9 +3,9 @@ import type { LucideIcon } from "lucide-react";
 import {
   Boxes,
   ChartLine,
+  ChevronDown,
   Factory,
   FileText,
-  Inbox,
   Lightbulb,
   PackageOpen,
   ShoppingBag,
@@ -77,6 +77,30 @@ export function btn(variant: BtnVariant = "secondary", size: "md" | "sm" = "md")
         ? "text-lk-muted hover:bg-lk-soft hover:text-lk-ink"
         : "border border-lk-border bg-white text-lk-ink hover:bg-lk-paper";
   return `inline-flex shrink-0 items-center justify-center gap-2 rounded-md font-medium whitespace-nowrap transition-colors duration-100 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 ${h} ${look} ${FOCUS}`;
+}
+
+/**
+ * Seletor do painel: o `<select>` nativo (teclado e celular funcionam igual)
+ * sem a setinha do sistema, com o chevron do design no lugar. Recebe a
+ * mesma classe de campo (FIELD/INPUT) dos inputs.
+ */
+export function Select({
+  className = "",
+  wrapperClassName = "",
+  children,
+  ...props
+}: React.SelectHTMLAttributes<HTMLSelectElement> & { wrapperClassName?: string }) {
+  return (
+    <span className={`relative block min-w-0 ${wrapperClassName}`}>
+      <select {...props} className={`${className} cursor-pointer appearance-none truncate pr-9`}>
+        {children}
+      </select>
+      <ChevronDown
+        aria-hidden
+        className="text-lk-muted pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2"
+      />
+    </span>
+  );
 }
 
 export const LINK =

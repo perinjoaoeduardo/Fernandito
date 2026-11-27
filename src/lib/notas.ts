@@ -46,6 +46,14 @@ import { kvDel, kvGet, kvMGet, kvSAdd, kvSet, kvSetNX, kvSMembers } from "@/lib/
  */
 
 const CHAMA = "Não emita: chama o João.";
+/** Número no formato brasileiro (27,6 · 1.234,56). */
+const br = (n: number, casas?: number) =>
+  n.toLocaleString(
+    "pt-BR",
+    casas === undefined ? {} : { minimumFractionDigits: casas, maximumFractionDigits: casas },
+  );
+/** Centavos → "R$ 1.234,56". */
+const rs = (cents: number) => `R$ ${br(cents / 100, 2)}`;
 
 // ── Cadastro (IDs do Bling) ────────────────────────────────────────────────
 export const NATUREZA = {
@@ -340,7 +348,7 @@ function regras(r: Rascunho): Plano {
   if (!c.nome) erros.push(pj ? "Falta a razão social (do cartão CNPJ)." : "Falta o nome completo.");
   if (pj && !c.ie)
     erros.push(
-      `Empresa sem inscrição estadual. A Sefaz rejeita sem a IE (consulte no Sintegra). Se a empresa for isenta: ${CHAMA}`,
+      `Empresa sem inscrição estadual. A Sefaz rejeita sem a IE (consulte no Sintegra). Se a empresa for isenta: chama o João (não emita).`,
     );
   if (!pj && c.ie) erros.push("Pessoa física não tem inscrição estadual: apague a IE.");
   if (!c.rua.trim() || !c.numero.trim() || !c.bairro.trim() || !c.cidade.trim())
@@ -362,7 +370,7 @@ function regras(r: Rascunho): Plano {
       if (!(i.preco > 0)) erros.push(`${p.curto}: falta o preço.`);
       else if (i.preco < p.faixa[0] || i.preco > p.faixa[1])
         erros.push(
-          `${p.curto}: preço de R$ ${i.preco.toFixed(2)} por unidade está fora do normal (R$ ${p.faixa[0]} a R$ ${p.faixa[1]}). Confira se é por lata ou por caixa. Se estiver certo: ${CHAMA}`,
+          `${p.curto}: preço de ${rs(Math.round(i.preco * 100))} por unidade está fora do normal (R$ ${p.faixa[0]} a R$ ${p.faixa[1]}). Confira se é por lata ou por caixa. Se estiver certo: chama o João (não emita).`,
         );
     }
   }
@@ -408,12 +416,12 @@ function regras(r: Rascunho): Plano {
         caixa.weightKg > 30
       )
         erros.push(
-          `Empilhado fica grande demais pra um volume (${caixa.lengthCm} × ${caixa.widthCm} × ${caixa.heightCm} cm, ${caixa.weightKg} kg; limite 100 cm por lado e 30 kg). Use caixas separadas ou mais pilhas.`,
+          `Empilhado fica grande demais pra um volume (${br(caixa.lengthCm)} × ${br(caixa.widthCm)} × ${br(caixa.heightCm)} cm, ${br(caixa.weightKg)} kg; limite 100 cm por lado e 30 kg). Use caixas separadas ou mais pilhas.`,
         );
       pacote = {
         caixa,
         volumes: 1,
-        descricao: `1 volume: ${pilhas} pilha(s) de ${altura} · ${caixa.lengthCm} × ${caixa.widthCm} × ${caixa.heightCm} cm · ${caixa.weightKg} kg`,
+        descricao: `1 volume: ${pilhas} pilha(s) de ${altura} · ${br(caixa.lengthCm)} × ${br(caixa.widthCm)} × ${br(caixa.heightCm)} cm · ${br(caixa.weightKg)} kg`,
       };
     } else {
       if (item.qtd > 20)
@@ -421,7 +429,7 @@ function regras(r: Rascunho): Plano {
       pacote = {
         caixa: p.caixa,
         volumes: item.qtd,
-        descricao: `${item.qtd} volume(s) iguais, cada um ${p.caixa.lengthCm} × ${p.caixa.widthCm} × ${p.caixa.heightCm} cm · ${p.caixa.weightKg} kg (etiquetas 1/${item.qtd}…)`,
+        descricao: `${item.qtd} volume(s) iguais, cada um ${br(p.caixa.lengthCm)} × ${br(p.caixa.widthCm)} × ${br(p.caixa.heightCm)} cm · ${br(p.caixa.weightKg)} kg (etiquetas 1/${item.qtd}…)`,
       };
     }
   }
@@ -528,7 +536,7 @@ export async function conferirNota(rascunho: Rascunho): Promise<Plano> {
       new Date(p.criadoEm).getTime() > dia,
   );
   if (igual)
-    plano.repetida = `Já tem ${igual.status === "emitida" ? `a NF ${igual.numero} emitida` : "um rascunho"} hoje pra esse cliente (${(igual.totalNotaCents / 100).toFixed(2)}).`;
+    plano.repetida = `Já tem ${igual.status === "emitida" ? `a NF ${igual.numero} emitida` : "um rascunho"} hoje pra esse cliente (${rs(igual.totalNotaCents)}).`;
 
   // Frete e saldo do Melhor Envio.
   if (plano.pacote) {
@@ -542,13 +550,17 @@ export async function conferirNota(rascunho: Rascunho): Promise<Plano> {
           id: o.id,
           nome: `${o.carrier} ${o.service}`,
           precoCents: o.priceCents,
-          prazo: `${o.days.min}–${o.days.max} dias úteis`,
+          prazo: !o.days.max
+            ? "prazo não informado"
+            : o.days.min === o.days.max
+              ? `${o.days.max} dias úteis`
+              : `${o.days.min} a ${o.days.max} dias úteis`,
         }))
         .sort((a, b) => a.precoCents - b.precoCents);
       if (!plano.fretes.length) throw new Error("sem opções");
     } catch {
       plano.erros.push(
-        `Nenhuma transportadora atende esse CEP (${r.cliente.cep}) com essa caixa. Confira o CEP. Se estiver certo: ${CHAMA}`,
+        `Nenhuma transportadora atende esse CEP (${r.cliente.cep}) com essa caixa. Confira o CEP. Se estiver certo: chama o João (não emita).`,
       );
     }
     try {
@@ -557,7 +569,7 @@ export async function conferirNota(rascunho: Rascunho): Promise<Plano> {
       const barato = plano.fretes[0]?.precoCents ?? 0;
       if (barato && saldo < barato)
         plano.erros.push(
-          `Saldo do Melhor Envio (R$ ${(saldo / 100).toFixed(2)}) não paga a etiqueta (R$ ${(barato / 100).toFixed(2)}). Coloque saldo antes de emitir.`,
+          `Saldo do Melhor Envio (${rs(saldo)}) não paga a etiqueta (${rs(barato)}). Coloque saldo antes de emitir.`,
         );
     } catch {
       plano.avisos.push("Não consegui ler o saldo do Melhor Envio (confira antes de emitir).");
@@ -694,7 +706,7 @@ export async function prepararNota(
   if (plano.pacote && !frete) throw new Error("Escolha o frete.");
   if (frete && plano.saldoCents !== null && plano.saldoCents < frete.precoCents)
     throw new Error(
-      `Saldo do Melhor Envio (R$ ${(plano.saldoCents / 100).toFixed(2)}) não paga esse frete. Escolha outro ou coloque saldo.`,
+      `Saldo do Melhor Envio (${rs(plano.saldoCents)}) não paga esse frete. Escolha outro ou coloque saldo.`,
     );
 
   if (!(await kvSetNX(`nota:preparando:${r.cliente.documento}`, "1", 60)))
@@ -754,11 +766,9 @@ export async function prepararNota(
         observacoesInternas:
           `Emitido pelo painel (aba Emitir nota). ` +
           (plano.stIncluso
-            ? `Combinado R$ ${(plano.totalCombinadoCents / 100).toFixed(2)} com ST incluso: preço da nota ajustado. `
+            ? `Combinado ${rs(plano.totalCombinadoCents)} com ST incluso: preço da nota ajustado. `
             : "") +
-          (frete
-            ? `Frete ${frete.nome} R$ ${(frete.precoCents / 100).toFixed(2)} (Fernandito paga).`
-            : ""),
+          (frete ? `Frete ${frete.nome} ${rs(frete.precoCents)} (Fernandito paga).` : ""),
       },
     });
     const pedidoId = pedido.data.id;
@@ -793,7 +803,7 @@ export async function prepararNota(
     if (!totalNotaCents) problemas.push("o Bling não devolveu o total da nota");
     else if (diff > (plano.stIncluso ? 100 : 1))
       problemas.push(
-        `o total da nota (R$ ${(totalNotaCents / 100).toFixed(2)}) não bate com o combinado (R$ ${(plano.totalCombinadoCents / 100).toFixed(2)})`,
+        `o total da nota (${rs(totalNotaCents)}) não bate com o combinado (${rs(plano.totalCombinadoCents)})`,
       );
     const cfops = [...new Set((nfe.itens ?? []).map((i) => i.cfop ?? ""))];
     if (cfops.some((cf) => !CFOP_OK[plano.natureza].includes(cf)))
@@ -854,7 +864,7 @@ export async function autorizarNota(id: string): Promise<Prep> {
       const saldo = await meBalanceCents().catch(() => null);
       if (saldo !== null && saldo < prep.frete.precoCents)
         throw new Error(
-          `Saldo do Melhor Envio (R$ ${(saldo / 100).toFixed(2)}) não paga a etiqueta (R$ ${(prep.frete.precoCents / 100).toFixed(2)}). Coloque saldo e clique em Emitir de novo.`,
+          `Saldo do Melhor Envio (${rs(saldo)}) não paga a etiqueta (${rs(prep.frete.precoCents)}). Coloque saldo e clique em Emitir de novo.`,
         );
     }
 
@@ -875,7 +885,7 @@ export async function autorizarNota(id: string): Promise<Prep> {
     prep.pdf = nfe.linkPDF ?? nfe.linkDanfe ?? prep.pdf;
     if (NFE_FAIL[nfe.situacao ?? 0]) {
       prep.status = "erro";
-      prep.erro = `Nota ${prep.numero ?? ""} ${NFE_FAIL[nfe.situacao ?? 0]}. Não tente de novo nem prepare outra: ${CHAMA} (o motivo está no Bling, em Notas fiscais).`;
+      prep.erro = `Nota ${prep.numero ?? ""} ${NFE_FAIL[nfe.situacao ?? 0]}. Não tente de novo nem prepare outra: chama o João (não emita). (o motivo está no Bling, em Notas fiscais).`;
       await savePrep(prep);
       return prep;
     }
@@ -932,7 +942,7 @@ export async function autorizarNota(id: string): Promise<Prep> {
           tentativas,
           erro:
             tentativas >= 2
-              ? `A etiqueta não saiu de novo (${(error as Error).message}). A nota está emitida: não emita outra. ${CHAMA}`
+              ? `A etiqueta não saiu de novo (${(error as Error).message}). A nota está emitida: não emita outra. Chama o João.`
               : `A nota saiu, mas a etiqueta não (${(error as Error).message}). Clique em “Comprar etiqueta” (não paga em dobro).`,
         };
       }

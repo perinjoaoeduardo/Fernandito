@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { FileText, Plus, Sparkles, Trash2, Truck } from "lucide-react";
 import type { Plano, Prep, Rascunho } from "@/lib/notas";
 import { autorizar, conferir, descartar, lerTexto, preparar } from "./actions-notas";
-import { CARD, SectionTitle, btn } from "./ui";
+import { CARD, SectionTitle, btn, Select } from "./ui";
 
 const FIELD =
   "border-lk-border focus:border-lk-action focus:ring-lk-action/15 h-10 w-full rounded-lg border bg-white px-3 text-sm outline-none focus:ring-4 disabled:bg-[#f3f4f6] disabled:text-lk-muted";
@@ -58,10 +58,27 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
       setAcao("");
     });
   };
+  const resultado = useRef<HTMLElement>(null);
+  const aviso = useRef<HTMLParagraphElement>(null);
+  const janela = useRef<HTMLDivElement>(null);
   const atualizar = (p: Prep) => {
     setPrep(p);
     setLista((l) => [p, ...l.filter((x) => x.id !== p.id)].slice(0, 20));
+    // O resultado aparece embaixo do formulário: leva a pessoa até ele.
+    setTimeout(() => resultado.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
   };
+  // Erro novo: mostra (fica embaixo do formulário).
+  useEffect(() => {
+    if (erro) aviso.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [erro]);
+  // Janela do frete: Esc fecha e o foco vai pra primeira opção.
+  useEffect(() => {
+    if (!modalFrete) return;
+    janela.current?.querySelector<HTMLButtonElement>("li button:not(:disabled)")?.focus();
+    const fechar = (e: KeyboardEvent) => e.key === "Escape" && setModalFrete(false);
+    window.addEventListener("keydown", fechar);
+    return () => window.removeEventListener("keydown", fechar);
+  }, [modalFrete]);
   // Qualquer mudança nos campos invalida a conferência.
   const mudar = (fn: (x: Rascunho) => Rascunho) => {
     setR((x) => fn(x));
@@ -71,7 +88,7 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
   };
   const setCliente = (k: keyof Rascunho["cliente"], v: string) =>
     mudar((x) => ({ ...x, cliente: { ...x.cliente, [k]: v } }));
-  const setItem = (i: number, k: "sku" | "qtd" | "preco", v: string) =>
+  const setItem = (i: number, k: "sku" | "qtd" | "preco", v: string | number) =>
     mudar((x) => ({
       ...x,
       itens: x.itens.map((it, j) => {
@@ -80,7 +97,7 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
           const sku = v as Sku;
           return { ...it, sku, preco: x.tipo === "bonificacao" ? tabela(sku) : it.preco };
         }
-        return { ...it, [k]: Number(v.replace(",", ".")) || 0 };
+        return { ...it, [k]: typeof v === "number" ? v : Number(v) || 0 };
       }),
     }));
   const setTipo = (tipo: Rascunho["tipo"]) =>
@@ -199,21 +216,21 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
             </ul>
           </div>
         )}
-        <fieldset disabled={bloqueado} className="mt-4 grid gap-3 sm:grid-cols-6">
-          <label className="sm:col-span-3">
+        <fieldset disabled={bloqueado} className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-6">
+          <label className="col-span-2 sm:col-span-3">
             <span className={LABEL}>O que é</span>
-            <select
+            <Select
               value={r.tipo}
               onChange={(e) => setTipo(e.target.value as Rascunho["tipo"])}
               className={FIELD}
             >
               <option value="venda">Venda</option>
               <option value="bonificacao">Brinde / bonificação (ninguém paga)</option>
-            </select>
+            </Select>
           </label>
-          <label className="sm:col-span-3">
+          <label className="col-span-2 sm:col-span-3">
             <span className={LABEL}>Entrega</span>
-            <select
+            <Select
               value={r.entrega}
               onChange={(e) =>
                 mudar((x) => ({ ...x, entrega: e.target.value as Rascunho["entrega"] }))
@@ -222,13 +239,13 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
             >
               <option value="maos">Em mãos (sem etiqueta)</option>
               <option value="envio">Envio (etiqueta no Melhor Envio, a Fernandito paga)</option>
-            </select>
+            </Select>
           </label>
           {r.entrega === "envio" && (
             <>
-              <label className="sm:col-span-4">
+              <label className="col-span-2 sm:col-span-4">
                 <span className={LABEL}>Como vão as caixas</span>
-                <select
+                <Select
                   value={r.embalagem}
                   onChange={(e) =>
                     mudar((x) => ({ ...x, embalagem: e.target.value as Rascunho["embalagem"] }))
@@ -237,15 +254,14 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
                 >
                   <option value="separadas">Cada caixa com sua etiqueta (vários volumes)</option>
                   <option value="empilhado">Tudo junto num volume só, empilhado</option>
-                </select>
+                </Select>
               </label>
               {r.embalagem === "empilhado" && (
-                <label className="sm:col-span-2">
+                <label className="col-span-2 sm:col-span-2">
                   <span className={LABEL}>Quantas pilhas lado a lado</span>
-                  <input
-                    value={r.pilhas || ""}
-                    onChange={(e) => mudar((x) => ({ ...x, pilhas: Number(e.target.value) || 1 }))}
-                    inputMode="numeric"
+                  <NumInput
+                    value={r.pilhas}
+                    onValue={(n) => mudar((x) => ({ ...x, pilhas: Math.max(1, n) }))}
                     className={FIELD}
                   />
                 </label>
@@ -253,18 +269,18 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
             </>
           )}
 
-          <label className="sm:col-span-1">
+          <label className="col-span-2 sm:col-span-1">
             <span className={LABEL}>Cliente</span>
-            <select
+            <Select
               value={c.pessoa}
               onChange={(e) => setCliente("pessoa", e.target.value)}
               className={FIELD}
             >
               <option value="PJ">Empresa</option>
               <option value="PF">Pessoa</option>
-            </select>
+            </Select>
           </label>
-          <label className="sm:col-span-2">
+          <label className="col-span-2 sm:col-span-2">
             <span className={LABEL}>{c.pessoa === "PJ" ? "CNPJ" : "CPF"}</span>
             <input
               value={c.documento}
@@ -273,7 +289,7 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
               className={FIELD}
             />
           </label>
-          <label className="sm:col-span-3">
+          <label className="col-span-2 sm:col-span-3">
             <span className={LABEL}>
               Inscrição estadual {c.pessoa === "PJ" ? "(obrigatória)" : "(pessoa não tem)"}
             </span>
@@ -284,7 +300,7 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
               className={FIELD}
             />
           </label>
-          <label className="sm:col-span-3">
+          <label className="col-span-2 sm:col-span-3">
             <span className={LABEL}>
               {c.pessoa === "PJ" ? "Razão social (do cartão CNPJ)" : "Nome completo"}
             </span>
@@ -294,7 +310,7 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
               className={FIELD}
             />
           </label>
-          <label className="sm:col-span-3">
+          <label className="col-span-2 sm:col-span-3">
             <span className={LABEL}>Nome fantasia</span>
             <input
               value={c.fantasia}
@@ -302,7 +318,7 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
               className={FIELD}
             />
           </label>
-          <label className="sm:col-span-3">
+          <label className="col-span-2 sm:col-span-3">
             <span className={LABEL}>E-mail (recebe a nota; opcional)</span>
             <input
               value={c.email}
@@ -310,7 +326,7 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
               className={FIELD}
             />
           </label>
-          <label className="sm:col-span-3">
+          <label className="col-span-2 sm:col-span-3">
             <span className={LABEL}>Telefone</span>
             <input
               value={c.telefone}
@@ -319,7 +335,7 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
               className={FIELD}
             />
           </label>
-          <label className="sm:col-span-4">
+          <label className="col-span-2 sm:col-span-4">
             <span className={LABEL}>Rua</span>
             <input
               value={c.rua}
@@ -327,7 +343,7 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
               className={FIELD}
             />
           </label>
-          <label className="sm:col-span-1">
+          <label className="col-span-1 sm:col-span-1">
             <span className={LABEL}>Número</span>
             <input
               value={c.numero}
@@ -335,7 +351,7 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
               className={FIELD}
             />
           </label>
-          <label className="sm:col-span-1">
+          <label className="col-span-1 sm:col-span-1">
             <span className={LABEL}>Compl.</span>
             <input
               value={c.complemento}
@@ -343,7 +359,7 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
               className={FIELD}
             />
           </label>
-          <label className="sm:col-span-2">
+          <label className="col-span-2 sm:col-span-2">
             <span className={LABEL}>Bairro</span>
             <input
               value={c.bairro}
@@ -351,7 +367,7 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
               className={FIELD}
             />
           </label>
-          <label className="sm:col-span-2">
+          <label className="col-span-2 sm:col-span-2">
             <span className={LABEL}>Cidade</span>
             <input
               value={c.cidade}
@@ -359,7 +375,7 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
               className={FIELD}
             />
           </label>
-          <label className="sm:col-span-1">
+          <label className="col-span-1 sm:col-span-1">
             <span className={LABEL}>UF</span>
             <input
               value={c.uf}
@@ -368,7 +384,7 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
               className={FIELD}
             />
           </label>
-          <label className="sm:col-span-1">
+          <label className="col-span-1 sm:col-span-1">
             <span className={LABEL}>CEP</span>
             <input
               value={c.cep}
@@ -378,7 +394,7 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
             />
           </label>
 
-          <div className="sm:col-span-6">
+          <div className="col-span-2 sm:col-span-6">
             <span className={LABEL}>
               {brinde
                 ? "Itens · brinde sai com o valor de tabela (ninguém paga)"
@@ -386,8 +402,13 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
             </span>
             <div className="flex flex-col gap-2">
               {r.itens.map((it, i) => (
-                <div key={i} className="grid grid-cols-[1fr_5rem_7rem_auto] gap-2">
-                  <select
+                <div
+                  key={i}
+                  className="grid grid-cols-[1fr_1fr_2.5rem] items-center gap-2 sm:grid-cols-[1fr_5.5rem_8rem_2.5rem]"
+                >
+                  <Select
+                    aria-label="Produto"
+                    wrapperClassName="col-span-3 sm:col-span-1"
                     value={it.sku}
                     onChange={(e) => setItem(i, "sku", e.target.value)}
                     className={FIELD}
@@ -397,31 +418,31 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
                         {o.label}
                       </option>
                     ))}
-                  </select>
-                  <input
+                  </Select>
+                  <NumInput
                     aria-label="Quantidade"
-                    value={it.qtd || ""}
-                    onChange={(e) => setItem(i, "qtd", e.target.value)}
-                    inputMode="numeric"
+                    value={it.qtd}
+                    onValue={(n) => setItem(i, "qtd", n)}
                     placeholder="Qtd"
                     className={FIELD}
                   />
-                  <input
+                  <NumInput
                     aria-label="Preço por unidade"
-                    value={it.preco || ""}
+                    decimal
+                    value={it.preco}
                     disabled={brinde}
-                    onChange={(e) => setItem(i, "preco", e.target.value)}
-                    inputMode="decimal"
-                    placeholder="R$"
+                    onValue={(n) => setItem(i, "preco", n)}
+                    placeholder="R$ 0,00"
                     className={FIELD}
                   />
                   <button
                     type="button"
                     aria-label="Tirar item"
+                    disabled={r.itens.length === 1}
                     onClick={() =>
                       mudar((x) => ({ ...x, itens: x.itens.filter((_, j) => j !== i) }))
                     }
-                    className={btn("ghost", "sm")}
+                    className={`${btn("ghost")} size-10 px-0`}
                   >
                     <Trash2 aria-hidden />
                   </button>
@@ -445,7 +466,7 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
               </button>
             </div>
           </div>
-          <label className="sm:col-span-6">
+          <label className="col-span-2 sm:col-span-6">
             <span className={LABEL}>Observação que sai na nota (opcional)</span>
             <input
               value={r.observacoes}
@@ -554,14 +575,18 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
       </section>
 
       {erro && (
-        <p role="alert" className="bg-lk-fail-bg text-lk-fail rounded-lg px-4 py-3 text-sm">
+        <p
+          ref={aviso}
+          role="alert"
+          className="bg-lk-fail-bg text-lk-fail rounded-lg px-4 py-3 text-sm"
+        >
           {erro}
         </p>
       )}
 
       {/* 3. Rascunho / resultado */}
       {prep && prep.status !== "descartada" && (
-        <section className={`${CARD} p-5`}>
+        <section ref={resultado} className={`${CARD} scroll-mt-6 p-5`}>
           <SectionTitle
             title={
               prep.status === "emitida"
@@ -757,6 +782,7 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
           onClick={() => setModalFrete(false)}
         >
           <div
+            ref={janela}
             className="flex max-h-[90vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-xl bg-white p-5 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -829,5 +855,50 @@ export function EmitirNota({ vazio, recentes }: { vazio: Rascunho; recentes: Pre
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Campo numérico que aceita vírgula: guarda o texto como a pessoa digita
+ * ("83," não vira "83") e mostra no formato brasileiro ao sair do campo.
+ */
+function NumInput({
+  value,
+  onValue,
+  decimal = false,
+  ...props
+}: {
+  value: number;
+  onValue: (n: number) => void;
+  decimal?: boolean;
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">) {
+  const fmt = (n: number) => (n ? (decimal ? n.toFixed(2).replace(".", ",") : String(n)) : "");
+  const parse = (t: string) => {
+    const limpo = t.replace(/[^\d,.]/g, "");
+    const n = limpo.includes(",")
+      ? Number(limpo.replace(/\./g, "").replace(",", "."))
+      : Number(limpo);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const [txt, setTxt] = useState(fmt(value));
+  const [antes, setAntes] = useState(value);
+  // Mudou de fora (IA, trocar pra brinde, limpar): mostra o valor novo.
+  if (value !== antes) {
+    setAntes(value);
+    if (parse(txt) !== value) setTxt(fmt(value));
+  }
+  return (
+    <input
+      {...props}
+      value={txt}
+      inputMode={decimal ? "decimal" : "numeric"}
+      onChange={(e) => {
+        setTxt(e.target.value);
+        const n = parse(e.target.value);
+        setAntes(n);
+        onValue(n);
+      }}
+      onBlur={() => setTxt(fmt(parse(txt)))}
+    />
   );
 }
