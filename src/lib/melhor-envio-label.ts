@@ -62,8 +62,11 @@ async function me<T>(path: string, body?: unknown, timeoutMs = 20000): Promise<T
   try {
     data = text ? (JSON.parse(text) as unknown) : null;
   } catch {
+    // Título da página de erro (ex.: "504 Gateway Time-out"), pra saber o que foi.
+    const titulo = /<title>([^<]{1,80})<\/title>/i.exec(text)?.[1]?.trim();
+    console.error(`[melhor envio] ${response.status} sem JSON em ${path}:`, text.slice(0, 300));
     throw new MeError(
-      `Melhor Envio fora do ar agora (respondeu ${response.status} sem dados em ${path.split("?")[0]}) — o site tenta de novo sozinho; se não sair, clica em Atualizar agora`,
+      `Melhor Envio fora do ar agora (${response.status}${titulo ? ` · ${titulo}` : ""} em ${path.split("?")[0]}) — o site tenta de novo sozinho; se não sair, clica em Atualizar agora`,
       response.status || 503,
     );
   }
@@ -138,6 +141,16 @@ function toShipment(o: MeOrder): MeShipment {
   };
 }
 
+/**
+ * Tag do pedido no Melhor Envio. Pedido com "--" no código (ex.: 2--CWzmgwEB-)
+ * era barrado pelo firewall deles ("--" parece ataque de banco de dados):
+ * voltava uma página HTML de erro e a etiqueta nunca saía. Na tag e na busca
+ * vai com um traço só; a busca aceita as duas formas.
+ */
+export function meTag(orderId: string) {
+  return orderId.replace(/-{2,}/g, "-");
+}
+
 /** Envio já existente com a tag do pedido (carrinho, pago ou gerado), se houver. */
 export async function findShipmentByTag(
   orderId: string,
@@ -146,12 +159,14 @@ export async function findShipmentByTag(
 ): Promise<MeShipment | null> {
   // Sem resultado o Melhor Envio responde vazio (null), não uma lista.
   const page = await me<{ data?: MeOrder[] } | MeOrder[] | null>(
-    `/orders/search?q=${encodeURIComponent(orderId)}`,
+    `/orders/search?q=${encodeURIComponent(meTag(orderId))}`,
   );
   const list = Array.isArray(page) ? page : (page?.data ?? []);
   const found = list.find(
     (o) =>
-      o.tags?.some((t) => t.tag === orderId) && o.status !== "canceled" && !skip.includes(o.id),
+      o.tags?.some((t) => t.tag === orderId || t.tag === meTag(orderId)) &&
+      o.status !== "canceled" &&
+      !skip.includes(o.id),
   );
   return found ? toShipment(found) : null;
 }
@@ -309,7 +324,13 @@ export async function addToCart(input: LabelInput): Promise<string> {
       non_commercial: false,
       invoice: { key: input.invoiceKey },
       platform: "Site Fernandito",
-      tags: [{ tag: input.orderId, url: `https://fernandito.com.br/pedido/${input.orderId}` }],
+      tags: [
+        {
+          tag: meTag(input.orderId),
+          // Traço codificado: "--" no corpo também pode cair no firewall.
+          url: `https://fernandito.com.br/pedido/${input.orderId.replace(/-/g, "%2D")}`,
+        },
+      ],
     },
   });
   if (!created?.id) throw new MeError("Melhor Envio não devolveu o id do carrinho");

@@ -83,7 +83,12 @@ const ORDER_TTL = 60 * 60 * 24 * 365;
 
 /** Id curto e impossível de adivinhar (a página do pedido abre só com ele). */
 export function newOrderId() {
-  return randomBytes(9).toString("base64url");
+  // Sem "-" e "_": "--" no código era barrado pelo firewall do Melhor Envio
+  // (a etiqueta não saía). Só letras e números, mesmo tamanho (12).
+  for (;;) {
+    const id = randomBytes(18).toString("base64url").replace(/[-_]/g, "").slice(0, 12);
+    if (id.length === 12) return id;
+  }
 }
 
 export async function getOrder(id: string): Promise<StoredOrder | null> {
