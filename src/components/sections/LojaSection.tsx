@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 import { gsap, DURATION, EASE, prefersReducedMotion } from "@/lib/gsap";
 import { ACTIVE_PRODUCTS, splitName, type Product } from "@/lib/catalog";
 import { STORE } from "@/content/site";
-import { Price } from "@/components/ui/Price";
+import { PrecoProduto, PromoSelo } from "@/components/ui/PrecoPromo";
 import { ArrowRightIcon } from "@/components/ui/icons";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { useStock } from "@/components/cart/useStock";
@@ -65,9 +65,10 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
                   soldOut && "opacity-45",
                 )}
               >
-                <Price cents={product.priceCents} />
+                <PrecoProduto product={product} />
               </p>
             </div>
+            {!soldOut && <PromoSelo product={product} className="mt-2" />}
             <p className="text-label mt-1.5 tracking-[0.12em] uppercase opacity-60">
               {product.contents.map((c) => `${c.qty} ${c.label}`).join(" · ")}
             </p>

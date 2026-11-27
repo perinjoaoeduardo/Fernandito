@@ -290,7 +290,7 @@ export function CheckoutClient({ canSimulate = false }: { canSimulate?: boolean 
       items: cart.lines.map((line) => ({
         sku: line.sku,
         qty: line.qty,
-        unitPriceCents: line.product.priceCents,
+        unitPriceCents: line.unitPriceCents,
       })),
       customer: contact,
       address,

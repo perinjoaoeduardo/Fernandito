@@ -9,7 +9,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { getProduct, type Product } from "@/lib/catalog";
+import { getProduct, PRODUCTS, type Product } from "@/lib/catalog";
+import { precoAtual } from "@/lib/promo";
 
 /**
  * Carrinho: itens (SKU + quantidade), gaveta aberta/fechada e totais.
@@ -20,7 +21,12 @@ import { getProduct, type Product } from "@/lib/catalog";
 const STORAGE_KEY = "fernandito:cart:v1";
 
 export type CartLine = { sku: string; qty: number };
-export type CartEntry = CartLine & { product: Product; lineTotalCents: number };
+/** `unitPriceCents` = preço que vale agora (com promoção, se tiver). */
+export type CartEntry = CartLine & {
+  product: Product;
+  unitPriceCents: number;
+  lineTotalCents: number;
+};
 
 type CartContextValue = {
   lines: CartEntry[];
@@ -72,6 +78,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([]);
   const [ready, setReady] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  // Hora usada no preço do carrinho; vira sozinha quando uma promoção acaba
+  // (o carrinho aberto à meia-noite volta pro preço normal).
+  const [agora, setAgora] = useState(() => Date.now());
+  useEffect(() => {
+    const fins = PRODUCTS.flatMap((p) => (p.promo ? [Date.parse(p.promo.fim)] : []))
+      .filter((t) => t > agora)
+      .sort((a, b) => a - b);
+    if (!fins.length) return;
+    const t = window.setTimeout(
+      () => setAgora(Date.now()),
+      Math.min(fins[0] - agora + 500, 2 ** 31 - 1),
+    );
+    return () => window.clearTimeout(t);
+  }, [agora]);
 
   useEffect(() => {
     // Leitura única do storage no cliente (não dá pra fazer no useState
@@ -116,7 +136,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const value = useMemo<CartContextValue>(() => {
     const entries: CartEntry[] = lines.flatMap((line) => {
       const product = getProduct(line.sku);
-      return product ? [{ ...line, product, lineTotalCents: product.priceCents * line.qty }] : [];
+      if (!product) return [];
+      const unitPriceCents = precoAtual(product, agora);
+      return [{ ...line, product, unitPriceCents, lineTotalCents: unitPriceCents * line.qty }];
     });
     return {
       lines: entries,
@@ -131,7 +153,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       remove,
       clear,
     };
-  }, [lines, ready, isOpen, open, close, add, setQty, remove, clear]);
+  }, [lines, ready, isOpen, open, close, add, setQty, remove, clear, agora]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

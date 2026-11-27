@@ -5,7 +5,7 @@ import { openNotify } from "@/lib/notify";
 import NextLink from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FEATURED_PRODUCT, splitName, type ContentIcon, type Product } from "@/lib/catalog";
-import { Price } from "@/components/ui/Price";
+import { PrecoProduto, PromoSelo } from "@/components/ui/PrecoPromo";
 import { STORE } from "@/content/site";
 import { Button } from "@/components/ui/Button";
 import { TypewriterText } from "@/components/ui/TypewriterText";
@@ -305,9 +305,16 @@ export function ComprarSection({
             </ul>
           </div>
 
-          <div data-reveal className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <PromoSelo product={product} className="mt-8" />
+          <div
+            data-reveal
+            className={clsx(
+              "flex flex-wrap items-center gap-x-4 gap-y-2",
+              product.promo ? "mt-4" : "mt-8",
+            )}
+          >
             <p className="font-rampart text-[clamp(1.9rem,2.6vw,2.3rem)] leading-none tabular-nums">
-              <Price cents={product.priceCents} />
+              <PrecoProduto product={product} />
             </p>
             {soldOut && (
               <span className="bg-fernandito-verde-escuro text-fernandito-off-white text-label inline-flex items-center rounded-full px-3 py-1 tracking-[0.12em] uppercase">
@@ -370,7 +377,7 @@ export function ComprarSection({
         )}
       >
         <p className="font-rampart text-[1.6rem] leading-none tabular-nums">
-          <Price cents={product.priceCents} />
+          <PrecoProduto product={product} />
         </p>
         <button
           type="button"

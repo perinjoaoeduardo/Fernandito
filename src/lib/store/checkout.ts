@@ -1,5 +1,6 @@
 import "server-only";
 import { getProduct } from "@/lib/catalog";
+import { precoAtual } from "@/lib/promo";
 import { quoteMelhorEnvio } from "@/lib/melhor-envio";
 import { onlyDigits } from "@/lib/br";
 import type { Order } from "@/lib/order";
@@ -62,7 +63,8 @@ export async function priceOrder(input: Order) {
       sku: product.sku,
       name: product.name,
       qty: item.qty,
-      unitPriceCents: product.priceCents,
+      // Promoção no ar (Black Friday etc.) vale aqui: é o preço do Pix.
+      unitPriceCents: precoAtual(product),
     };
   });
   const subtotalCents = items.reduce((sum, item) => sum + item.unitPriceCents * item.qty, 0);

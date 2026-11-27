@@ -168,7 +168,7 @@ export function CartDrawer() {
                               <p className="font-rampart text-[1.15rem] leading-none">{main}</p>
                               <p className="mt-1.5 flex flex-col gap-0.5 text-[0.7rem] leading-tight tracking-[0.04em] opacity-60">
                                 {sub && <span className="uppercase">{sub}</span>}
-                                <span>{formatBRL(line.product.priceCents)} cada</span>
+                                <span>{formatBRL(line.unitPriceCents)} cada</span>
                               </p>
                             </div>
                             <button

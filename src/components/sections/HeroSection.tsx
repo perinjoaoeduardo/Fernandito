@@ -20,6 +20,10 @@ import { useModo } from "@/components/providers/ModoProvider";
 import { Button } from "@/components/ui/Button";
 import { useStock } from "@/components/cart/useStock";
 import { useGoToShop } from "@/components/cart/useGoToShop";
+import { HeroPromo } from "@/components/ui/PrecoPromo";
+import { getProduct } from "@/lib/catalog";
+
+const SIX_PACK = getProduct("FERN-350-6");
 
 // Quanto o cartão encolhe/arredonda ao rolar (a "moldura") — sutil o
 // bastante pra não parecer um zoom brusco.
@@ -229,8 +233,20 @@ export function HeroSection() {
               <RotatingWord />
             </div>
             {/* CTA de compra: entra junto com a frase (mesma animação). */}
+            {modo.store && SIX_PACK?.promo && (
+              <HeroPromo
+                product={SIX_PACK}
+                href={`/comprar/${SIX_PACK.slug}`}
+                nome="Six pack"
+                className="mt-6"
+              />
+            )}
             {modo.store && (
-              <Button variant="primary" onClick={goToShop} className="mt-7">
+              <Button
+                variant="primary"
+                onClick={goToShop}
+                className={SIX_PACK?.promo ? "mt-4" : "mt-7"}
+              >
                 {soldOut ? STORE.notifyCta : STORE.cta}
               </Button>
             )}

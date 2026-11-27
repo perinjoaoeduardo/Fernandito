@@ -3,7 +3,7 @@
 import NextLink from "next/link";
 import { HOME_PRODUCT, splitName } from "@/lib/catalog";
 import { PAGES } from "@/content/site";
-import { Price } from "@/components/ui/Price";
+import { PrecoProduto, PromoSelo } from "@/components/ui/PrecoPromo";
 import { PhotoSlot } from "@/components/ui/PhotoSlot";
 import { ArrowRightIcon } from "@/components/ui/icons";
 
@@ -44,8 +44,11 @@ export function KitTeaserSection() {
             {main}
           </h2>
           <p className="text-body-lg mt-4 max-w-md opacity-85">{product.description}</p>
-          <p className="font-rampart mt-6 text-[clamp(1.9rem,2.6vw,2.3rem)] leading-none tabular-nums">
-            <Price cents={product.priceCents} />
+          <PromoSelo product={product} className="mt-6" />
+          <p
+            className={`font-rampart ${product.promo ? "mt-3" : "mt-6"} text-[clamp(1.9rem,2.6vw,2.3rem)] leading-none tabular-nums`}
+          >
+            <PrecoProduto product={product} />
           </p>
           <NextLink
             href={href}

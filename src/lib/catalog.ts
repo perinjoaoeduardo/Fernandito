@@ -1,3 +1,4 @@
+import type { Promo } from "@/lib/promo";
 /**
  * Catálogo da loja. Os SKUs são IGUAIS aos cadastrados no Bling — é por
  * eles que o pedido vai ser criado lá (prompt de integração). Só produto com
@@ -39,6 +40,8 @@ export type Product = {
   /** O que vem dentro (lista curta, mostrada na página de compra). */
   contents: { icon: ContentIcon; qty: string; label: string }[];
   priceCents: number;
+  /** Promoção com hora pra acabar (src/lib/promo.ts). Vale no site e no Pix. */
+  promo?: Promo;
   images: ProductImage[];
   /** Máximo por pedido. */
   maxQty: number;
@@ -126,6 +129,9 @@ export const PRODUCTS: Product[] = [
     contents: [{ icon: "can", qty: "6", label: "latas 350ml" }],
     // R$ 94,99 (igual ao cadastro no Bling).
     priceCents: 9499,
+    // BLACK FRIDAY (27/11): R$ 79,90 até meia-noite de Brasília. Depois disso
+    // volta sozinho pros R$ 94,99 (pode apagar este bloco com calma).
+    promo: { priceCents: 7990, fim: "2026-11-28T00:00:00-03:00", selo: "Black Friday" },
     images: [
       {
         src: "/images/sixpack/sixpack-caixas.jpg",
