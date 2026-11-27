@@ -121,10 +121,14 @@ export const metadata: Metadata = {
 // especial (src/lib/especial.ts), em lotes com contador próprio. Os números
 // saem dos contadores, então não tem conta fixa pra trocar aqui.
 const KIT_SKU = "FERN-KIT-PRE";
-// Produtos na tela de estoque, na ordem que importa. Preço = o do Bling
-// (06/11). `latas` = quantas latas vão em cada unidade (pra contar as latas
-// que já saíram). Saldo vem do Bling; o six pack é calculado pelas latas.
-const ESTOQUE = [
+// TODOS os produtos que já venderam, na ordem que importa. Preço = o do Bling.
+// `latas` = quantas latas vão em cada unidade (pra contar as latas que já
+// saíram). Saldo vem do Bling; o six pack é calculado pelas latas.
+//
+// Produto que acabou NÃO sai daqui: marca `ativo: false`. Ele some da tela de
+// estoque, mas as vendas dele continuam contando (latas vendidas, resultados,
+// clientes). Tirar da lista apaga essas vendas das contas.
+const PRODUTOS = [
   {
     sku: "FERN-350-6",
     name: "Six pack",
@@ -132,6 +136,7 @@ const ESTOQUE = [
     latas: 6,
     unit: ["pack", "packs"],
     note: "À venda no site · cada pack usa 6 latas",
+    ativo: true,
   },
   {
     sku: "FERN-350",
@@ -140,6 +145,7 @@ const ESTOQUE = [
     latas: 1,
     unit: ["lata", "latas"],
     note: "Cada six pack usa 6 latas deste saldo",
+    ativo: true,
   },
   {
     // 2 Pack: caixinha com 2 latas (Bling: composição de 2 latas). Preço
@@ -150,8 +156,18 @@ const ESTOQUE = [
     latas: 2,
     unit: ["2 pack", "2 packs"],
     note: "Caixinha com 2 latas · preço provisório",
+    ativo: true,
   },
-  // Kit Pré-Lançamento: encerrado (fica só no Bling e nos pedidos antigos).
+  {
+    // Encerrado (nov/2026): fora da tela, mas as vendas continuam contando.
+    sku: "FERN-KIT-PRE",
+    name: "Kit Fernandito Pré-Lançamento",
+    priceCents: 8990,
+    latas: 2,
+    unit: ["kit", "kits"],
+    note: "Encerrado",
+    ativo: false,
+  },
   {
     sku: "FERN-PRESSKIT",
     name: "Press kit (brinde)",
@@ -159,14 +175,13 @@ const ESTOQUE = [
     latas: 0,
     unit: ["kit", "kits"],
     note: "Só bonificação",
+    ativo: true,
   },
 ] as const;
-// Latas por unidade, pra somar "latas vendidas". O kit pré-lançamento saiu da
-// tela de estoque, mas os kits vendidos (2 latas cada) continuam na conta.
-const LATAS: Record<string, number> = {
-  ...Object.fromEntries(ESTOQUE.map((p) => [p.sku, p.latas])),
-  "FERN-KIT-PRE": 2,
-};
+/** Os que aparecem na tela de estoque. */
+const ESTOQUE = PRODUTOS.filter((p) => p.ativo);
+/** Latas por unidade de TODOS (inclusive os desativados), pras contas. */
+const LATAS: Record<string, number> = Object.fromEntries(PRODUTOS.map((p) => [p.sku, p.latas]));
 
 /**
  * Saldo do Bling com validade de 1 min no banco: o painel não precisa ir ao
@@ -1380,12 +1395,12 @@ export default async function PainelPage(props: PageProps<"/painel">) {
           margens={[
             {
               nome: "Lata 350ml",
-              preco: ESTOQUE.find((p) => p.sku === "FERN-350")!.priceCents,
+              preco: PRODUTOS.find((p) => p.sku === "FERN-350")!.priceCents,
               custo: custoLata,
             },
             {
               nome: "Six pack",
-              preco: ESTOQUE.find((p) => p.sku === "FERN-350-6")!.priceCents,
+              preco: PRODUTOS.find((p) => p.sku === "FERN-350-6")!.priceCents,
               custo: custoLata === null ? null : custoLata * 6 + plano.embalagemPackCents,
             },
           ]}
