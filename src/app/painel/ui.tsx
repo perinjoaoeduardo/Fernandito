@@ -4,6 +4,7 @@ import {
   Boxes,
   ChartLine,
   Factory,
+  FileText,
   Inbox,
   Lightbulb,
   PackageOpen,
@@ -106,7 +107,8 @@ export type Aba =
   | "producao"
   | "compras"
   | "resultados"
-  | "ideias";
+  | "ideias"
+  | "notas";
 
 /** O menu em 3 grupos: vendas, operação (fábrica) e gestão. */
 const GRUPOS: { titulo: string; itens: { aba: Aba; label: string; icon: LucideIcon }[] }[] = [
@@ -114,6 +116,7 @@ const GRUPOS: { titulo: string; itens: { aba: Aba; label: string; icon: LucideIc
     titulo: "Vendas",
     itens: [
       { aba: "pedidos", label: "Vendas", icon: ShoppingBag },
+      { aba: "notas", label: "Emitir nota", icon: FileText },
       { aba: "clientes", label: "Clientes", icon: Users },
     ],
   },

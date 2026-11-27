@@ -1,0 +1,600 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { FileText, Plus, Sparkles, Trash2, Truck } from "lucide-react";
+import type { Plano, Prep, Rascunho } from "@/lib/notas";
+import { autorizar, conferir, descartar, lerTexto, preparar } from "./actions-notas";
+import { CARD, SectionTitle, btn } from "./ui";
+
+const FIELD =
+  "border-lk-border focus:border-lk-action focus:ring-lk-action/15 h-10 w-full rounded-lg border bg-white px-3 text-sm outline-none focus:ring-4";
+const LABEL = "text-lk-muted mb-1 block text-xs font-medium";
+const brl = (cents: number) =>
+  (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const ITENS: { sku: Rascunho["itens"][number]["sku"]; label: string }[] = [
+  { sku: "FERN-350-6", label: "Six pack (6 latas)" },
+  { sku: "FERN-350", label: "Lata avulsa" },
+  { sku: "FERN-350-2", label: "2 Pack (2 latas)" },
+  { sku: "FERN-BARRIL-L", label: "Litro do barril" },
+];
+
+/** Emitir nota: colar texto → conferir → preparar (rascunho) → emitir. */
+export function EmitirNota({
+  vazio,
+  pessoas,
+  recentes,
+}: {
+  vazio: Rascunho;
+  pessoas: readonly string[];
+  recentes: Prep[];
+}) {
+  const [texto, setTexto] = useState("");
+  const [r, setR] = useState<Rascunho>(vazio);
+  const [plano, setPlano] = useState<Plano | null>(null);
+  const [prep, setPrep] = useState<Prep | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [lista, setLista] = useState<Prep[]>(recentes);
+  const [pending, start] = useTransition();
+  const [acao, setAcao] = useState("");
+
+  const run = (nome: string, fn: () => Promise<void>) => {
+    setErro(null);
+    setAcao(nome);
+    start(async () => {
+      await fn();
+      setAcao("");
+    });
+  };
+  const atualizar = (p: Prep) => {
+    setPrep(p);
+    setLista((l) => [p, ...l.filter((x) => x.id !== p.id)].slice(0, 20));
+  };
+
+  const setCliente = (k: keyof Rascunho["cliente"], v: string) => {
+    setR((x) => ({ ...x, cliente: { ...x.cliente, [k]: v } }));
+    setPlano(null);
+  };
+  const setItem = (i: number, k: "sku" | "qtd" | "preco", v: string) => {
+    setR((x) => ({
+      ...x,
+      itens: x.itens.map((it, j) =>
+        j !== i
+          ? it
+          : k === "sku"
+            ? { ...it, sku: v as typeof it.sku }
+            : { ...it, [k]: Number(v.replace(",", ".")) || 0 },
+      ),
+    }));
+    setPlano(null);
+  };
+
+  const ler = () =>
+    run("ler", async () => {
+      const res = await lerTexto(texto);
+      if (!res.ok) return setErro(res.error);
+      setR(res.data);
+      setPrep(null);
+      const p = await conferir(res.data);
+      setPlano(p.ok ? p.data : null);
+    });
+  const checar = () =>
+    run("conferir", async () => {
+      const p = await conferir(r);
+      if (!p.ok) return setErro(p.error);
+      setPlano(p.data);
+    });
+  const prepararNota = () =>
+    run("preparar", async () => {
+      const res = await preparar(r);
+      if (!res.ok) return setErro(res.error);
+      atualizar(res.data);
+    });
+  const emitir = (id: string) =>
+    run("emitir", async () => {
+      const res = await autorizar(id);
+      if (!res.ok) return setErro(res.error);
+      atualizar(res.data);
+    });
+  const jogarFora = (id: string) =>
+    run("descartar", async () => {
+      const res = await descartar(id);
+      if (!res.ok) return setErro(res.error);
+      atualizar(res.data);
+    });
+  const novo = () => {
+    setR(vazio);
+    setTexto("");
+    setPlano(null);
+    setPrep(null);
+    setErro(null);
+  };
+
+  const c = r.cliente;
+  const totalCombinado = r.itens.reduce((n, i) => n + Math.round(i.preco * 100) * i.qtd, 0);
+  const bloqueado = pending || Boolean(prep && prep.status !== "descartada");
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* 1. Colar */}
+      <section className={`${CARD} p-5`}>
+        <SectionTitle title="1. Cole o texto" />
+        <p className="text-lk-muted mt-1 text-sm">
+          Mensagem do WhatsApp, cartão CNPJ, o que tiver: quem é o cliente, o que vai, preço
+          combinado e se é em mãos ou envio. A IA preenche os campos abaixo.
+        </p>
+        <textarea
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          rows={6}
+          maxLength={8000}
+          placeholder={
+            "Ex.: Venda 4 six packs pro Bar do Zé, R$ 13,86 a lata com ST.\nRazão social…, CNPJ…, IE…, endereço…\nEntrega em mãos, saiu das caixas do Lorenzo."
+          }
+          className={`${FIELD} mt-3 h-auto py-2`}
+        />
+        <div className="mt-3 flex flex-wrap justify-end gap-2">
+          <button type="button" onClick={novo} className={btn("ghost", "sm")}>
+            Limpar
+          </button>
+          <button
+            type="button"
+            onClick={ler}
+            disabled={pending || !texto.trim()}
+            className={`${btn("primary", "sm")} disabled:opacity-60`}
+          >
+            <Sparkles aria-hidden />
+            {acao === "ler" ? "Lendo…" : "Preencher com IA"}
+          </button>
+        </div>
+      </section>
+
+      {/* 2. Conferir */}
+      <section className={`${CARD} p-5`}>
+        <SectionTitle title="2. Confira os campos" />
+        {r.duvidas.length > 0 && (
+          <ul className="bg-lk-review-bg text-lk-ink mt-3 list-disc rounded-lg px-8 py-3 text-sm">
+            {r.duvidas.map((d) => (
+              <li key={d}>{d}</li>
+            ))}
+          </ul>
+        )}
+        <fieldset disabled={bloqueado} className="mt-4 grid gap-3 sm:grid-cols-6">
+          <label className="sm:col-span-2">
+            <span className={LABEL}>O que é</span>
+            <select
+              value={r.tipo}
+              onChange={(e) => {
+                setR({ ...r, tipo: e.target.value as Rascunho["tipo"] });
+                setPlano(null);
+              }}
+              className={FIELD}
+            >
+              <option value="venda">Venda</option>
+              <option value="bonificacao">Brinde / bonificação</option>
+            </select>
+          </label>
+          <label className="sm:col-span-2">
+            <span className={LABEL}>Entrega</span>
+            <select
+              value={r.entrega}
+              onChange={(e) => {
+                setR({ ...r, entrega: e.target.value as Rascunho["entrega"] });
+                setPlano(null);
+              }}
+              className={FIELD}
+            >
+              <option value="maos">Em mãos (sem etiqueta)</option>
+              <option value="envio">Envio (compra etiqueta no Melhor Envio)</option>
+            </select>
+          </label>
+          <label className="sm:col-span-2">
+            <span className={LABEL}>Saiu das caixas de</span>
+            <select
+              value={r.quem}
+              onChange={(e) => setR({ ...r, quem: e.target.value })}
+              className={FIELD}
+            >
+              <option value="">Do estoque</option>
+              {pessoas.map((p) => (
+                <option key={p}>{p}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="sm:col-span-1">
+            <span className={LABEL}>Cliente</span>
+            <select
+              value={c.pessoa}
+              onChange={(e) => setCliente("pessoa", e.target.value)}
+              className={FIELD}
+            >
+              <option value="PJ">Empresa</option>
+              <option value="PF">Pessoa</option>
+            </select>
+          </label>
+          <label className="sm:col-span-2">
+            <span className={LABEL}>{c.pessoa === "PJ" ? "CNPJ" : "CPF"}</span>
+            <input
+              value={c.documento}
+              onChange={(e) => setCliente("documento", e.target.value.replace(/\D/g, ""))}
+              inputMode="numeric"
+              className={FIELD}
+            />
+          </label>
+          <label className="sm:col-span-3">
+            <span className={LABEL}>Inscrição estadual (vazio = não tem)</span>
+            <input
+              value={c.ie}
+              onChange={(e) => setCliente("ie", e.target.value.replace(/\D/g, ""))}
+              inputMode="numeric"
+              className={FIELD}
+            />
+          </label>
+          <label className="sm:col-span-3">
+            <span className={LABEL}>{c.pessoa === "PJ" ? "Razão social" : "Nome"}</span>
+            <input
+              value={c.nome}
+              onChange={(e) => setCliente("nome", e.target.value)}
+              className={FIELD}
+            />
+          </label>
+          <label className="sm:col-span-3">
+            <span className={LABEL}>Nome fantasia</span>
+            <input
+              value={c.fantasia}
+              onChange={(e) => setCliente("fantasia", e.target.value)}
+              className={FIELD}
+            />
+          </label>
+          <label className="sm:col-span-3">
+            <span className={LABEL}>E-mail (recebe a nota)</span>
+            <input
+              value={c.email}
+              onChange={(e) => setCliente("email", e.target.value)}
+              className={FIELD}
+            />
+          </label>
+          <label className="sm:col-span-3">
+            <span className={LABEL}>Telefone</span>
+            <input
+              value={c.telefone}
+              onChange={(e) => setCliente("telefone", e.target.value.replace(/\D/g, ""))}
+              inputMode="tel"
+              className={FIELD}
+            />
+          </label>
+          <label className="sm:col-span-4">
+            <span className={LABEL}>Rua</span>
+            <input
+              value={c.rua}
+              onChange={(e) => setCliente("rua", e.target.value)}
+              className={FIELD}
+            />
+          </label>
+          <label className="sm:col-span-1">
+            <span className={LABEL}>Número</span>
+            <input
+              value={c.numero}
+              onChange={(e) => setCliente("numero", e.target.value)}
+              className={FIELD}
+            />
+          </label>
+          <label className="sm:col-span-1">
+            <span className={LABEL}>Compl.</span>
+            <input
+              value={c.complemento}
+              onChange={(e) => setCliente("complemento", e.target.value)}
+              className={FIELD}
+            />
+          </label>
+          <label className="sm:col-span-2">
+            <span className={LABEL}>Bairro</span>
+            <input
+              value={c.bairro}
+              onChange={(e) => setCliente("bairro", e.target.value)}
+              className={FIELD}
+            />
+          </label>
+          <label className="sm:col-span-2">
+            <span className={LABEL}>Cidade</span>
+            <input
+              value={c.cidade}
+              onChange={(e) => setCliente("cidade", e.target.value)}
+              className={FIELD}
+            />
+          </label>
+          <label className="sm:col-span-1">
+            <span className={LABEL}>UF</span>
+            <input
+              value={c.uf}
+              maxLength={2}
+              onChange={(e) => setCliente("uf", e.target.value.toUpperCase())}
+              className={FIELD}
+            />
+          </label>
+          <label className="sm:col-span-1">
+            <span className={LABEL}>CEP</span>
+            <input
+              value={c.cep}
+              onChange={(e) => setCliente("cep", e.target.value.replace(/\D/g, ""))}
+              inputMode="numeric"
+              className={FIELD}
+            />
+          </label>
+
+          <div className="sm:col-span-6">
+            <span className={LABEL}>
+              Itens · preço FINAL combinado por unidade (com ST incluso)
+            </span>
+            <div className="flex flex-col gap-2">
+              {r.itens.map((it, i) => (
+                <div key={i} className="grid grid-cols-[1fr_5rem_7rem_auto] gap-2">
+                  <select
+                    value={it.sku}
+                    onChange={(e) => setItem(i, "sku", e.target.value)}
+                    className={FIELD}
+                  >
+                    {ITENS.map((o) => (
+                      <option key={o.sku} value={o.sku}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    aria-label="Quantidade"
+                    value={it.qtd || ""}
+                    onChange={(e) => setItem(i, "qtd", e.target.value)}
+                    inputMode="numeric"
+                    placeholder="Qtd"
+                    className={FIELD}
+                  />
+                  <input
+                    aria-label="Preço por unidade"
+                    value={it.preco || ""}
+                    onChange={(e) => setItem(i, "preco", e.target.value)}
+                    inputMode="decimal"
+                    placeholder="R$"
+                    className={FIELD}
+                  />
+                  <button
+                    type="button"
+                    aria-label="Tirar item"
+                    onClick={() => {
+                      setR({ ...r, itens: r.itens.filter((_, j) => j !== i) });
+                      setPlano(null);
+                    }}
+                    className={btn("ghost", "sm")}
+                  >
+                    <Trash2 aria-hidden />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setR({ ...r, itens: [...r.itens, { sku: "FERN-350-6", qtd: 1, preco: 0 }] })
+                }
+                className={`${btn("ghost", "sm")} self-start`}
+              >
+                <Plus aria-hidden />
+                Item
+              </button>
+            </div>
+          </div>
+          <label className="sm:col-span-6">
+            <span className={LABEL}>Observação na nota (opcional)</span>
+            <input
+              value={r.observacoes}
+              onChange={(e) => setR({ ...r, observacoes: e.target.value })}
+              className={FIELD}
+            />
+          </label>
+        </fieldset>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm">
+            Total combinado: <strong className="tabular-nums">{brl(totalCombinado)}</strong>
+          </p>
+          <button
+            type="button"
+            onClick={checar}
+            disabled={bloqueado}
+            className={`${btn("secondary", "sm")} disabled:opacity-60`}
+          >
+            {acao === "conferir" ? "Conferindo…" : "Conferir"}
+          </button>
+        </div>
+        {plano && (
+          <div className="border-lk-border mt-3 rounded-lg border p-4 text-sm">
+            <p>
+              <span className="text-lk-muted">Natureza:</span> {plano.naturezaLabel}
+              {plano.stIncluso && " · o ST já está dentro do preço combinado"}
+            </p>
+            <p className="mt-1">
+              <span className="text-lk-muted">Estoque:</span>{" "}
+              {plano.latas ? `sai ${plano.latas} latas do Bling` : "não mexe (barril)"}
+            </p>
+            {plano.avisos.map((a) => (
+              <p key={a} className="text-lk-review mt-1">
+                {a}
+              </p>
+            ))}
+            {plano.erros.map((a) => (
+              <p key={a} className="text-lk-fail mt-1">
+                {a}
+              </p>
+            ))}
+          </div>
+        )}
+        {!prep || prep.status === "descartada" ? (
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={prepararNota}
+              disabled={pending || !plano || plano.erros.length > 0}
+              className={`${btn("primary")} disabled:opacity-60`}
+            >
+              <FileText aria-hidden />
+              {acao === "preparar" ? "Preparando no Bling…" : "3. Preparar nota (rascunho)"}
+            </button>
+          </div>
+        ) : null}
+      </section>
+
+      {erro && (
+        <p role="alert" className="bg-lk-fail-bg text-lk-fail rounded-lg px-4 py-3 text-sm">
+          {erro}
+        </p>
+      )}
+
+      {/* 3. Rascunho / resultado */}
+      {prep && prep.status !== "descartada" && (
+        <section className={`${CARD} p-5`}>
+          <SectionTitle
+            title={
+              prep.status === "emitida"
+                ? `Nota ${prep.numero} emitida ✓`
+                : `Rascunho da nota ${prep.numero ?? ""}`
+            }
+          />
+          <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
+            <div>
+              <dt className="text-lk-muted text-xs">Cliente</dt>
+              <dd>{prep.rascunho.cliente.fantasia || prep.rascunho.cliente.nome}</dd>
+            </div>
+            <div>
+              <dt className="text-lk-muted text-xs">Total da nota (Bling)</dt>
+              <dd className="text-lg font-semibold tabular-nums">{brl(prep.totalNotaCents)}</dd>
+            </div>
+            <div>
+              <dt className="text-lk-muted text-xs">Combinado</dt>
+              <dd className="tabular-nums">{brl(prep.plano.totalCombinadoCents)}</dd>
+            </div>
+          </dl>
+          {prep.status === "rascunho" &&
+            Math.abs(prep.totalNotaCents - prep.plano.totalCombinadoCents) > 100 && (
+              <p className="text-lk-review mt-2 text-sm">
+                O total da nota ficou diferente do combinado. Confira antes de emitir (ou descarte e
+                ajuste o preço).
+              </p>
+            )}
+          {prep.erro && <p className="text-lk-fail mt-2 text-sm">{prep.erro}</p>}
+          {prep.etiqueta?.erro && <p className="text-lk-fail mt-2 text-sm">{prep.etiqueta.erro}</p>}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {prep.pdf && (
+              <a
+                href={prep.pdf}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={btn("secondary", "sm")}
+              >
+                <FileText aria-hidden />
+                {prep.status === "emitida" ? "PDF da nota" : "Ver prévia"}
+              </a>
+            )}
+            {prep.etiqueta?.pdf && (
+              <a
+                href={prep.etiqueta.pdf}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={btn("secondary", "sm")}
+              >
+                <Truck aria-hidden />
+                Etiqueta {prep.etiqueta.rastreio ? `· ${prep.etiqueta.rastreio}` : ""}
+              </a>
+            )}
+            <span className="flex-1" />
+            {(prep.status === "rascunho" || prep.status === "erro") && (
+              <button
+                type="button"
+                onClick={() => jogarFora(prep.id)}
+                disabled={pending}
+                className={`${btn("ghost", "sm")} disabled:opacity-60`}
+              >
+                {acao === "descartar" ? "Descartando…" : "Descartar"}
+              </button>
+            )}
+            {prep.status === "rascunho" && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    confirm(`Emitir a nota de ${brl(prep.totalNotaCents)} na Sefaz? Não tem volta.`)
+                  )
+                    emitir(prep.id);
+                }}
+                disabled={pending}
+                className={`${btn("primary")} disabled:opacity-60`}
+              >
+                {acao === "emitir" ? "Emitindo…" : "4. Emitir na Sefaz"}
+              </button>
+            )}
+            {(prep.status === "aguardando" ||
+              (prep.status === "emitida" &&
+                prep.rascunho.entrega === "envio" &&
+                !prep.etiqueta?.pdf)) && (
+              <button
+                type="button"
+                onClick={() => emitir(prep.id)}
+                disabled={pending}
+                className={`${btn("primary", "sm")} disabled:opacity-60`}
+              >
+                {prep.status === "aguardando" ? "Conferir de novo" : "Comprar etiqueta"}
+              </button>
+            )}
+            {prep.status === "emitida" && (
+              <button type="button" onClick={novo} className={btn("primary", "sm")}>
+                Nova nota
+              </button>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Histórico */}
+      {lista.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <SectionTitle title="Últimas notas do painel" count={lista.length} />
+          <ul className={`${CARD} divide-lk-border divide-y text-sm`}>
+            {lista.slice(0, 20).map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3">
+                <span className="w-24 tabular-nums">{p.numero ? `NF ${p.numero}` : "—"}</span>
+                <span className="min-w-0 flex-1 truncate">
+                  {p.rascunho.cliente.fantasia || p.rascunho.cliente.nome}
+                </span>
+                <span className="tabular-nums">{brl(p.totalNotaCents)}</span>
+                <span className="text-lk-muted w-24 text-xs">
+                  {
+                    {
+                      rascunho: "rascunho",
+                      aguardando: "aguardando Sefaz",
+                      emitida: "emitida",
+                      erro: "com erro",
+                      descartada: "descartada",
+                    }[p.status]
+                  }
+                </span>
+                {p.status !== "descartada" && p.status !== "emitida" && (
+                  <button type="button" onClick={() => setPrep(p)} className={btn("ghost", "sm")}>
+                    Abrir
+                  </button>
+                )}
+                {p.pdf && p.status === "emitida" && (
+                  <a
+                    href={p.pdf}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={btn("ghost", "sm")}
+                  >
+                    PDF
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}

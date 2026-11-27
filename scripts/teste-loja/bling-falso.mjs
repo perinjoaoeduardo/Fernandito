@@ -128,8 +128,13 @@ http
       if (s.notaFiscal) return send(res, 400, { error: { description: "já tem nota" } });
       const id = nextId++;
       // Igual ao real: a nota do pedido carrega o número do pedido na loja.
+      // Total da nota: itens (- desconto) e, na natureza com ST (5401), o ST
+      // por cima (≈ 18,672%, como no Bling de verdade em nov/2026).
+      const base = (s.itens ?? []).reduce((n, i) => n + i.valor * i.quantidade, 0);
+      const st = (s.itens ?? []).some((i) => i.naturezaOperacao?.id === 15111699959);
       nfes.set(String(id), {
         id,
+        valorNota: Math.round(base * (st ? 1.18672 : 1) * 100) / 100,
         numero: String(id - 4900),
         situacao: 1,
         chaveAcesso: null,

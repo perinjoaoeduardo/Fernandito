@@ -55,6 +55,8 @@ import { garantirIniciais, listarCaixas, PESSOAS, type Pessoa } from "@/lib/caix
 import { CaixasView } from "./Caixas";
 import { garantirIdeiasIniciais, listarIdeias } from "@/lib/ideias";
 import { IdeiasView } from "./Ideias";
+import { listarPreps, rascunhoVazio } from "@/lib/notas";
+import { EmitirNota } from "./EmitirNota";
 import { LoginForm } from "./LoginForm";
 import { SearchBox } from "./SearchBox";
 import { EtiquetaNova } from "./EtiquetaNova";
@@ -286,6 +288,7 @@ const ABAS: Aba[] = [
   "compras",
   "resultados",
   "ideias",
+  "notas",
 ];
 // Endereços antigos continuam abrindo a aba certa.
 const ABA_ANTIGA: Record<string, Aba> = { fora: "pedidos", vendas: "pedidos", lista: "clientes" };
@@ -1240,9 +1243,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                   <p className="text-lk-muted mt-0.5 text-xs">
                     {brl(p.priceCents)} · <Code>{p.sku}</Code>
                   </p>
-                  <p className="text-lk-ink3 mt-1 text-xs">
-                    {p.note}
-                  </p>
+                  <p className="text-lk-ink3 mt-1 text-xs">{p.note}</p>
                 </div>
                 <div className="flex min-w-0 flex-col gap-2">
                   <StockBar sold={sold} gift={gift} left={Math.max(0, left ?? 0)} />
@@ -1309,6 +1310,19 @@ export default async function PainelPage(props: PageProps<"/painel">) {
             actions={actions}
           />
           <Producao key={aba} initial={producao} modo={aba} />
+        </>
+      ) : aba === "notas" ? (
+        <>
+          <PageHeader
+            eyebrow="Venda por fora ou brinde: cola o texto, confere e emite"
+            title="Emitir nota"
+            actions={actions}
+          />
+          <EmitirNota
+            vazio={rascunhoVazio()}
+            pessoas={PESSOAS}
+            recentes={(await listarPreps().catch(() => [])).slice(0, 20)}
+          />
         </>
       ) : aba === "ideias" ? (
         <IdeiasView
