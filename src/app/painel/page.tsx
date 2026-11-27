@@ -40,7 +40,6 @@ import { kvGet, kvSet, kvSMembers } from "@/lib/store/kv";
 import { getOrders, type StoredOrder } from "@/lib/store/orders";
 import { blingStock } from "@/lib/bling/orders";
 import { stockRemaining } from "@/lib/store/stock";
-import { ESPECIAL_LOTES } from "@/lib/especial";
 import {
   atualizar,
   limparAlertas,
@@ -130,7 +129,7 @@ const ESTOQUE = [
     priceCents: 9499,
     latas: 6,
     unit: ["pack", "packs"],
-    note: "37 liberados no site + 5 de reserva · em breve",
+    note: "À venda no site · cada pack usa 6 latas",
   },
   {
     sku: "FERN-350",
@@ -141,13 +140,16 @@ const ESTOQUE = [
     note: "Cada six pack usa 6 latas deste saldo",
   },
   {
-    sku: "FERN-KIT-PRE",
-    name: "Kit Fernandito Pré-Lançamento",
-    priceCents: 8990,
+    // 2 Pack: caixinha com 2 latas (Bling: composição de 2 latas). Preço
+    // provisório; ainda não vende no site.
+    sku: "FERN-350-2",
+    name: "2 Pack",
+    priceCents: 4490,
     latas: 2,
-    unit: ["kit", "kits"],
-    note: "Os últimos saem só pelo link especial",
+    unit: ["2 pack", "2 packs"],
+    note: "Caixinha com 2 latas · preço provisório",
   },
+  // Kit Pré-Lançamento: encerrado (fica só no Bling e nos pedidos antigos).
   {
     sku: "FERN-PRESSKIT",
     name: "Press kit (brinde)",
@@ -698,11 +700,6 @@ export default async function PainelPage(props: PageProps<"/painel">) {
     kvSMembers("loja:alertas"),
     stockRemaining(KIT_SKU).catch(() => null),
   ]);
-  // Link especial: livres no lote atual e quantos já saíram de todos os lotes.
-  const especialLeft = await Promise.all(
-    ESPECIAL_LOTES.map((l) => stockRemaining(l.sku).catch(() => null)),
-  );
-  const especialFree = especialLeft[especialLeft.length - 1] ?? 0;
   // Kit. A conta vem dos contadores do site (anda junto com a compra; o Bling
   // só baixa depois da nota):
   //   restam    = livres no site público + livres no link especial (limitado ao Bling)
@@ -1244,9 +1241,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
                     {brl(p.priceCents)} · <Code>{p.sku}</Code>
                   </p>
                   <p className="text-lk-ink3 mt-1 text-xs">
-                    {p.sku === KIT_SKU
-                      ? `Site esgotado · link especial: ${especialFree} ${especialFree === 1 ? "livre" : "livres"}`
-                      : p.note}
+                    {p.note}
                   </p>
                 </div>
                 <div className="flex min-w-0 flex-col gap-2">
