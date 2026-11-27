@@ -5,6 +5,7 @@ import NextLink from "next/link";
 import { clsx } from "clsx";
 import { Price } from "@/components/ui/Price";
 import { faltaPara, promoAtiva, type Promo } from "@/lib/promo";
+import { getProduct } from "@/lib/catalog";
 
 /**
  * Relógio da promoção: `null` até montar no navegador (o HTML do servidor e o
@@ -86,55 +87,61 @@ export function PromoSelo({
   );
 }
 
+/** O six pack (o produto da promoção de hoje), pra faixa do topo. */
+const PRODUTO_FAIXA = getProduct("FERN-350-6");
+
 /**
- * Chamada da promoção no Hero (fundo escuro): "Black Friday · Six pack de
- * R$ 94,99 por R$ 79,90 · termina em 05:12:09", levando pro produto.
- * Some sozinha quando acaba.
+ * Faixa preta fixa no topo enquanto a promoção está no ar, em todas as
+ * páginas: "BLACK FRIDAY · Six pack de R$ 94,99 por R$ 79,90 · termina em
+ * 05:12:09 →", levando pro produto. Usa o mesmo espaço da faixa antiga
+ * (`--announcement-h`): o menu desce junto. O `layout.tsx` já liga a classe
+ * antes de pintar; daqui ela sai quando a promoção acaba.
  */
-export function HeroPromo({
-  product,
-  href,
-  nome,
-  className,
-}: {
-  product: ProdutoPreco;
-  href: string;
-  nome: string;
-  className?: string;
-}) {
-  const agora = useAgora(Boolean(product.promo));
-  const promo = agora === null ? (product.promo ?? null) : promoAtiva(product, agora);
-  if (!promo) return null;
+export function PromoBar() {
+  const product = PRODUTO_FAIXA;
+  const agora = useAgora(Boolean(product?.promo));
+  const promo = !product
+    ? null
+    : agora === null
+      ? (product.promo ?? null)
+      : promoAtiva(product, agora);
+
+  useEffect(() => {
+    if (agora === null) return;
+    document.documentElement.classList.toggle("has-announcement", Boolean(promo));
+  }, [agora, promo]);
+
+  if (!product || !promo) return null;
   const falta = agora === null ? null : faltaPara(promo.fim, agora);
   return (
     <NextLink
-      href={href}
-      className={clsx(
-        "group border-fernandito-off-white/25 bg-fernandito-off-white/10 text-fernandito-off-white hover:bg-fernandito-off-white/20 duration-base ease-out-standard inline-flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-x-2.5 gap-y-1 rounded-3xl border px-4 py-2 font-sans text-[0.8125rem] backdrop-blur-sm transition-colors",
-        className,
-      )}
+      href={`/comprar/${product.slug}`}
+      aria-label={`${promo.selo}: six pack de ${(product.priceCents / 100).toFixed(2).replace(".", ",")} por ${(promo.priceCents / 100).toFixed(2).replace(".", ",")} reais, só até meia-noite`}
+      className="fixed inset-x-0 top-0 z-[55] flex h-8 items-center justify-center gap-2 bg-[#0c0d0b] px-3 font-sans text-[11px] leading-none whitespace-nowrap text-white shadow-[0_4px_14px_rgba(0,0,0,0.35)] transition-colors duration-200 hover:bg-[#1c1f1a] sm:gap-3 sm:text-[12.5px]"
     >
-      <span className="bg-fernandito-off-white text-fernandito-verde-escuro rounded-full px-2.5 py-0.5 text-[0.6875rem] font-bold tracking-[0.14em] uppercase">
-        {promo.selo}
+      <span className="font-bold tracking-[0.16em] uppercase">{promo.selo}</span>
+      <span aria-hidden className="opacity-40">
+        ·
       </span>
       <span>
-        {nome} de{" "}
-        <s className="opacity-60">
+        Six pack{" "}
+        <s className="hidden opacity-55 sm:inline">
           <Price cents={product.priceCents} />
         </s>{" "}
-        por{" "}
+        <span className="hidden sm:inline">por </span>
         <strong className="font-bold">
           <Price cents={promo.priceCents} />
         </strong>
       </span>
-      <span className="tracking-[0.06em] uppercase opacity-70">
-        {falta ? (
-          <>
-            termina em <span className="tabular-nums">{falta}</span>
-          </>
-        ) : (
-          "só até meia-noite"
-        )}
+      <span aria-hidden className="opacity-40">
+        ·
+      </span>
+      <span className="tabular-nums opacity-80">
+        <span className="hidden sm:inline">termina em </span>
+        {falta ?? "até 00h"}
+      </span>
+      <span aria-hidden className="hidden sm:inline">
+        →
       </span>
     </NextLink>
   );

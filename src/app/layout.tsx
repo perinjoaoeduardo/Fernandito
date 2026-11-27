@@ -16,6 +16,11 @@ import { PageTransitions } from "@/components/providers/PageTransitions";
 import { NotifyModal } from "@/components/providers/NotifyModal";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { AnnouncementBar } from "@/components/ui/AnnouncementBar";
+import { PromoBar } from "@/components/ui/PrecoPromo";
+import { getProduct } from "@/lib/catalog";
+
+// Fim da promoção do six pack (faixa preta do topo); null = sem promoção.
+const PROMO_FIM = getProduct("FERN-350-6")?.promo?.fim ?? null;
 import { CartProvider } from "@/components/cart/CartProvider";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { ANNOUNCEMENT, STORE } from "@/content/site";
@@ -232,7 +237,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             pra quem já confirmou). Sem JS o portão fica escondido. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `var d=document.documentElement;d.dataset.intro=location.pathname==="/"?"run":"done";${ANNOUNCEMENT.enabled ? 'if(location.pathname==="/")d.classList.add("has-announcement");' : ""}try{d.dataset.age=localStorage.getItem("fernandito:age:v1")?"ok":"ask"}catch(e){d.dataset.age="ask"}`,
+            __html: `var d=document.documentElement;d.dataset.intro=location.pathname==="/"?"run":"done";${ANNOUNCEMENT.enabled ? 'if(location.pathname==="/")d.classList.add("has-announcement");' : ""}${PROMO_FIM && !publico ? `if(Date.now()<${Date.parse(PROMO_FIM)})d.classList.add("has-announcement");` : ""}try{d.dataset.age=localStorage.getItem("fernandito:age:v1")?"ok":"ask"}catch(e){d.dataset.age="ask"}`,
           }}
         />
         <script
@@ -263,6 +268,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               <PageTransitions />
               <NotifyModal />
               <AnnouncementBar />
+              {STORE.enabled && !publico && <PromoBar />}
               {publico ? <FloatingNavPublico /> : <FloatingNav />}
               <ThemeColorSync />
               {children}

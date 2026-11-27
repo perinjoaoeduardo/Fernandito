@@ -46,7 +46,7 @@ export function KitTeaserSection() {
           <p className="text-body-lg mt-4 max-w-md opacity-85">{product.description}</p>
           <PromoSelo product={product} className="mt-6" />
           <p
-            className={`font-rampart ${product.promo ? "mt-3" : "mt-6"} text-[clamp(1.9rem,2.6vw,2.3rem)] leading-none tabular-nums`}
+            className={`font-rampart ${product.promo ? "mt-4 pt-[0.1em]" : "mt-6"} text-[clamp(1.9rem,2.6vw,2.3rem)] leading-none tabular-nums`}
           >
             <PrecoProduto product={product} />
           </p>

@@ -305,22 +305,20 @@ export function ComprarSection({
             </ul>
           </div>
 
-          <PromoSelo product={product} className="mt-8" />
-          <div
-            data-reveal
-            className={clsx(
-              "flex flex-wrap items-center gap-x-4 gap-y-2",
-              product.promo ? "mt-4" : "mt-8",
-            )}
-          >
-            <p className="font-rampart text-[clamp(1.9rem,2.6vw,2.3rem)] leading-none tabular-nums">
-              <PrecoProduto product={product} />
-            </p>
-            {soldOut && (
-              <span className="bg-fernandito-verde-escuro text-fernandito-off-white text-label inline-flex items-center rounded-full px-3 py-1 tracking-[0.12em] uppercase">
-                {comingSoon ? STORE.comingSoon : STORE.soldOut}
-              </span>
-            )}
+          {/* Selo da promoção e preço no MESMO bloco (entram juntos na
+              animação; no celular o selo não encavala no número). */}
+          <div data-reveal className="mt-8 flex flex-col items-start gap-4">
+            <PromoSelo product={product} />
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <p className="font-rampart pt-[0.1em] text-[clamp(1.9rem,2.6vw,2.3rem)] leading-none tabular-nums">
+                <PrecoProduto product={product} />
+              </p>
+              {soldOut && (
+                <span className="bg-fernandito-verde-escuro text-fernandito-off-white text-label inline-flex items-center rounded-full px-3 py-1 tracking-[0.12em] uppercase">
+                  {comingSoon ? STORE.comingSoon : STORE.soldOut}
+                </span>
+              )}
+            </div>
           </div>
 
           <div
