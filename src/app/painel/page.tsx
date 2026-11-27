@@ -161,7 +161,12 @@ const ESTOQUE = [
     note: "Só bonificação",
   },
 ] as const;
-const LATAS: Record<string, number> = Object.fromEntries(ESTOQUE.map((p) => [p.sku, p.latas]));
+// Latas por unidade, pra somar "latas vendidas". O kit pré-lançamento saiu da
+// tela de estoque, mas os kits vendidos (2 latas cada) continuam na conta.
+const LATAS: Record<string, number> = {
+  ...Object.fromEntries(ESTOQUE.map((p) => [p.sku, p.latas])),
+  "FERN-KIT-PRE": 2,
+};
 
 /**
  * Saldo do Bling com validade de 1 min no banco: o painel não precisa ir ao
@@ -1185,7 +1190,7 @@ export default async function PainelPage(props: PageProps<"/painel">) {
   const custoLataBase = latasComCusto
     ? `média real de ${comCusto.map((x) => x.l.codigo).join(", ")}`
     : "planejado na calculadora";
-  const LATAS_SKU = Object.fromEntries(ESTOQUE.map((p) => [p.sku, p.latas]));
+  const LATAS_SKU = LATAS;
 
   const estoqueView = (
     <>
