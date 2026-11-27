@@ -55,7 +55,18 @@ async function me<T>(path: string, body?: unknown, timeoutMs = 20000): Promise<T
     signal: AbortSignal.timeout(timeoutMs),
   });
   const text = await response.text();
-  const data = text ? (JSON.parse(text) as unknown) : null;
+  // Fora do ar, o Melhor Envio (ou o Cloudflare na frente dele) devolve uma
+  // página HTML em vez de JSON. Antes isso virava "Unexpected token '<'…" no
+  // painel; agora vira um aviso claro, e a fila tenta de novo sozinha.
+  let data: unknown = null;
+  try {
+    data = text ? (JSON.parse(text) as unknown) : null;
+  } catch {
+    throw new MeError(
+      `Melhor Envio fora do ar agora (respondeu ${response.status} sem dados em ${path.split("?")[0]}) — o site tenta de novo sozinho; se não sair, clica em Atualizar agora`,
+      response.status || 503,
+    );
+  }
   if (!response.ok) {
     const message =
       (data as { message?: string; error?: string } | null)?.message ??

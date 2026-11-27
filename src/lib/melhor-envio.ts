@@ -83,7 +83,9 @@ async function refreshMeTokens(current: MeTokens): Promise<MeTokens> {
       signal: AbortSignal.timeout(15000),
     });
     if (!response.ok) throw new Error(`Melhor Envio ${response.status} ao renovar o token`);
-    const saved = await saveMeTokens(await response.json());
+    const body = await response.json().catch(() => null);
+    if (!body) throw new Error("Melhor Envio fora do ar ao renovar o token (resposta sem dados)");
+    const saved = await saveMeTokens(body);
     console.info("[melhor envio] token renovado sozinho");
     return saved;
   } finally {
