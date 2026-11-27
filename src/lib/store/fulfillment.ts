@@ -601,6 +601,15 @@ export async function markLocalDelivered(orderId: string, force = false) {
   return f;
 }
 
+/** Desfaz o "Marcar entregue" da entrega própria (clicou sem querer). */
+export async function unmarkLocalDelivered(orderId: string) {
+  const f = await getFulfillment(orderId);
+  if (!f || f.stage !== "local-delivered") return null;
+  f.stage = "local";
+  await save(orderId, f);
+  return f;
+}
+
 /**
  * Empurra o envio do pedido o máximo que der agora. Seguro de chamar várias
  * vezes e ao mesmo tempo (trava por pedido). Nunca lança.

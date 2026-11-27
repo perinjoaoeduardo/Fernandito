@@ -45,6 +45,7 @@ import {
   limparAlertas,
   enviarPeloCorreio,
   marcarEntregue,
+  desmarcarEntregue,
   marcarPostado,
   refazerEtiqueta,
   sair,
@@ -980,6 +981,19 @@ export default async function PainelPage(props: PageProps<"/painel">) {
 
   const acoes = ({ order: o, f }: Row) => (
     <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+      {/* Marcou entregue sem querer: desfaz (entrega em mãos, nota por fora
+          ou envio avulso). Pedido do site com rastreio não: quem marca é o
+          Melhor Envio. */}
+      {(f?.stage === "local-delivered" || (o.origem && f?.stage === "delivered")) && (
+        <form action={desmarcarEntregue}>
+          <input type="hidden" name="id" value={o.id} />
+          <input type="hidden" name="back" value={href({})} />
+          <SubmitButton variant="ghost" size="sm">
+            <Undo2 aria-hidden />
+            Desfazer entregue
+          </SubmitButton>
+        </form>
+      )}
       {(f?.stage === "local" ||
         ((o.origem || o.cupom) &&
           (f?.stage === "ready" ||

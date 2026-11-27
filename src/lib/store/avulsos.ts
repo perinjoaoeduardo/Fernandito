@@ -87,6 +87,20 @@ export async function markAvulsoDelivered(id: string) {
   return a;
 }
 
+/**
+ * Desfaz o "Marcar entregue" (clicou sem querer): volta pra "A caminho" (se
+ * já foi postado) ou "Imprimir". O rastreio volta a ser conferido; se o
+ * Melhor Envio disser que entregou, ele marca sozinho de novo.
+ */
+export async function unmarkAvulsoDelivered(id: string) {
+  const a = await getAvulso(id);
+  if (!a || a.stage !== "delivered") return null;
+  a.stage = a.postedAt || a.postedByHand || a.status === "posted" ? "posted" : "ready";
+  if (a.status === "delivered") a.status = "posted";
+  await saveAvulso(a);
+  return a;
+}
+
 /** Confere o rastreio no Melhor Envio (mesma regra dos pedidos do site). */
 export async function advanceAvulsos() {
   for (const a of await listAvulsos()) {

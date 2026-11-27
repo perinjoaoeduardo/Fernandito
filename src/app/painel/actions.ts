@@ -11,11 +11,17 @@ import {
   advanceFulfillment,
   markLocalDelivered,
   markPosted,
+  unmarkLocalDelivered,
   reshipLabel,
   shipByMail,
 } from "@/lib/store/fulfillment";
-import { advanceAvulsos, markAvulsoDelivered, markAvulsoPosted } from "@/lib/store/avulsos";
-import { markNfDelivered } from "@/lib/store/fora-do-site";
+import {
+  advanceAvulsos,
+  markAvulsoDelivered,
+  markAvulsoPosted,
+  unmarkAvulsoDelivered,
+} from "@/lib/store/avulsos";
+import { markNfDelivered, unmarkNfDelivered } from "@/lib/store/fora-do-site";
 import { adicionarCaixa, apagarCaixa, type Pessoa, type TipoCaixa } from "@/lib/caixas";
 import { adicionarIdeia, apagarIdeia, type Categoria } from "@/lib/ideias";
 import { kvDel, kvGet, kvSet, rateLimit } from "@/lib/store/kv";
@@ -107,6 +113,15 @@ export async function marcarEntregue(form: FormData) {
   if (id.startsWith("NF ")) await markNfDelivered(id.slice(3));
   else if (!(await markAvulsoDelivered(id))) await markLocalDelivered(id);
   // Volta pra mesma lista (filtro, busca e página) em que a pessoa estava.
+  redirect(backTo(form));
+}
+
+/** Desfaz o "Marcar entregue" (clicou sem querer): volta pra etapa de antes. */
+export async function desmarcarEntregue(form: FormData) {
+  if (!(await painelAuthed())) redirect("/painel");
+  const id = String(form.get("id") ?? "");
+  if (id.startsWith("NF ")) await unmarkNfDelivered(id.slice(3));
+  else if (!(await unmarkAvulsoDelivered(id))) await unmarkLocalDelivered(id);
   redirect(backTo(form));
 }
 

@@ -1,5 +1,5 @@
 import "server-only";
-import { kvMGet, kvSet } from "@/lib/store/kv";
+import { kvDel, kvMGet, kvSet } from "@/lib/store/kv";
 
 /**
  * Entregas FORA do site sem etiqueta (brinde ou venda manual lidos da nota
@@ -24,4 +24,10 @@ export async function entreguesFora(nfs: string[]): Promise<Map<string, string>>
 export async function markNfDelivered(nf: string) {
   if (norm(nf) === "0") return;
   await kvSet(key(nf), new Date().toISOString(), TTL);
+}
+
+/** Desfaz o "Marcar entregue" (clicou sem querer): volta pra "Entregar em mãos". */
+export async function unmarkNfDelivered(nf: string) {
+  if (norm(nf) === "0") return;
+  await kvDel(key(nf));
 }
